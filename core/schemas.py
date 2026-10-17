@@ -357,6 +357,20 @@ RELIABILITY = Table(
     ),
 )
 
+TILE_ATTENTION = Table(
+    "tile_attention.csv", "Task 10 · 05b_abmil (Agent 3; optional, cut order §I item 4)",
+    "Task 11 · 08 (contract tiles[].attention; Agent 4)",
+    key=("case_id", "grid", "tile_idx"),
+    columns=(
+        _c("case_id", "str", "case ID; variants use their variant IDs"),
+        _SPLIT, _GRID,
+        _c("tile_idx", "int", "tile index within the grid"),
+        _c("attention", "float", "ABMIL attention weight (>= 0; sums to 1 over a case's QC tiles)"),
+        _c("model", "str", "ABMIL model name, e.g. abmil_uni2h"),
+    ),
+    notes="Absent when ABMIL is cut or not trained; 08 then omits tiles[].attention.",
+)
+
 CONTRIBUTIONS = Table(
     "contributions.csv", "Task 10 · 05_risk_model (Agent 3)",
     "Task 11 · 08 (contract concepts[].contribution, cells.features[].contribution; Agent 4)",
@@ -421,7 +435,7 @@ CELL_FEATURES_TILE = Table(
 
 TABLES = (
     CASES, TILES, EMBED_MANIFEST, EMB_INDEX, COMPOSITES, WSI_WINDOWS, CASE_FEATURES, TILE_RISK, TILE_RISK_OOF,
-    PREDICTIONS, RELIABILITY, CONTRIBUTIONS, CELL_TILES, CELL_FEATURES, CELL_FEATURES_TILE,
+    PREDICTIONS, RELIABILITY, CONTRIBUTIONS, TILE_ATTENTION, CELL_TILES, CELL_FEATURES, CELL_FEATURES_TILE,
 )
 
 # ---- JSON files -----------------------------------------------------------------------------------------------------
@@ -754,6 +768,10 @@ def margins_json(root: str | Path) -> Path:
 
 def contributions_csv(root: str | Path) -> Path:
     return Path(root) / "contributions.csv"
+
+
+def tile_attention_csv(root: str | Path) -> Path:
+    return Path(root) / "tile_attention.csv"
 
 
 def cell_tiles_csv(root: str | Path) -> Path:
