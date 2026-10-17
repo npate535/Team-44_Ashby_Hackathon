@@ -30,7 +30,7 @@ def test_predictions_schema_rows_and_probabilities(run05):
     df = read(schemas.predictions_csv(root))
     schemas.validate_frame(schemas.PREDICTIONS, df)
     cases = read(schemas.cases_csv(root))
-    clean = df[~df.case_id.str.contains("_FSIM_|_COMP_")]
+    clean = df[~df.case_id.str.contains(r"_FSIM_|_COMP_|^COMP_")]
     assert set(clean[clean.split != "train"].case_id) == set(cases[cases.split.isin(["calibration", "test"])].case_id)
     assert set(clean[clean.split == "train"].case_id) == set(cases[cases.split == "train"].case_id)
     pcal = df[[schemas.cal_prob_col(c) for c in CLASSES]].to_numpy()
@@ -105,9 +105,9 @@ def test_contributions_sum_and_schema(run05):
     con = read(schemas.contributions_csv(root))
     schemas.validate_frame(schemas.CONTRIBUTIONS, con)
     choice = json.loads(schemas.eval_json(art, "model_choice").read_text())
-    assert set(con.model) == {choice["model_b"]}
+    assert choice["model_b"] in set(con.model) and set(con.model) <= {choice["model_b"]} | set(choice["variants"]["fallback_order"])
     assert set(con.split) <= {"calibration", "test"}
-    assert con.case_id.str.contains("_FSIM_").any() or choice["model_b"] != "cb_text"
+    assert con.case_id.str.contains("_FSIM_").any()
     per_case = con.groupby("case_id").contribution.sum()
     assert per_case.std() > 0
 
@@ -117,7 +117,7 @@ def test_tile_risk_and_oof(run05):
     tr = read(schemas.tile_risk_csv(root))
     schemas.validate_frame(schemas.TILE_RISK, tr)
     assert set(tr.split) <= {"calibration", "test"} and (tr.fold == -1).all()
-    assert tr.case_id.str.contains("_FSIM_").any() and tr.case_id.str.contains("_COMP_").any()
+    assert tr.case_id.str.contains("_FSIM_").any() and (tr.case_id.str.contains("_COMP_") | tr.case_id.str.startswith("COMP_")).any()
     oof = read(schemas.tile_risk_csv(root, oof=True))
     schemas.validate_frame(schemas.TILE_RISK_OOF, oof)
     assert (oof[oof.split == "train"].fold >= 0).all()

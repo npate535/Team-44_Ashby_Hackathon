@@ -96,13 +96,15 @@ class Combiner:
 def variant_of(rid: str) -> str:
     if "_FSIM_" in rid:
         return rid.split("_FSIM_")[1]
-    return "composite" if "_COMP_" in rid else "clean"
+    return "composite" if ("_COMP_" in rid or rid.startswith("COMP_")) else "clean"
 
 
-def source_of(rid: str) -> str:
+def source_of(rid: str, comp_src: Mapping[str, str] | None = None) -> str:
     for sep in ("_FSIM_", "_COMP_"):
         if sep in rid:
             return rid.split(sep)[0]
+    if comp_src and rid in comp_src:
+        return comp_src[rid]
     return rid
 
 
@@ -114,6 +116,11 @@ def run(ctx: cli.StepContext) -> dict[str, Any]:
     enc = cfg["encoders"]["primary"]
     cases = rm.read_cases(root)
     tiles = rm.read_tiles(root)
+    comp_src: dict[str, str] = {}
+    comp_csv = schemas.composites_csv(root)
+    if comp_csv.is_file():
+        comp_df = rm.read_csv(comp_csv)
+        comp_src = dict(zip(comp_df["case_id"], comp_df["carcinoma_case_id"]))
     label = dict(zip(cases.case_id, cases.label))
     group = dict(zip(cases.case_id, cases.group))
     split = dict(zip(cases.case_id, cases.split))
@@ -156,23 +163,30 @@ def run(ctx: cli.StepContext) -> dict[str, Any]:
                             "conch_musk_disagree": np.where(agree.isna(), 0, 1 - agree.fillna(1)).astype(int),
                             "agree_known": agree.notna().astype(int).to_numpy(),
                             "top": r["top"].to_numpy()}, index=pd.Index(ids, name="case_id"))
-        out["source_case_id"] = [source_of(i) for i in ids]
+        out["source_case_id"] = [source_of(i, comp_src) for i in ids]
         out["variant"] = [variant_of(i) for i in ids]
-        out["split"] = [split[s] for s in out["source_case_id"]]
-        out["correct"] = [int(t == label[s]) if v != "composite" else -1 for t, s, v in
+        out["split"] = [split.get(s, cfg["composites"]["source_split"] if v == "composite" else "test")
+                        for s, v in zip(out["source_case_id"], out["variant"])]
+        out["correct"] = [int(t == label[s]) if (v != "composite" and s in label) else -1 for t, s, v in
                           zip(out["top"], out["source_case_id"], out["variant"])]
         return out
 
     clean_rows = pred.loc[[i for i in pred.index if i in d_tta.index]]
     deg_rows = pred.loc[[i for i in pred.index if "_FSIM_" in i]]
-    comp_rows = pred.loc[[i for i in pred.index if "_COMP_" in i]]
+    comp_rows = pred.loc[[i for i in pred.index if "_COMP_" in i or i.startswith("COMP_")]]
     f_clean = feats(clean_rows, d_tta, ref_tta)
     f_v0 = feats(v0, d_v0, ref_v0)
     f_deg = feats(deg_rows, d_deg, ref_v0)
     f_comp = feats(comp_rows, d_comp, ref_tta)
     names = list(rcfg["features"])
-
     fit = pd.concat([f_v0[f_v0.split == "calibration"], f_deg[f_deg.split == "calibration"]])
+    dropped: list[str] = []
+    if "conch_musk_disagree" in names and not fit["agree_known"].all():
+        # disagreement unknown for some fit reads (no MUSK view-0/degraded read): defaulting it to 0 there would give
+        # the combiner a feature whose meaning differs between fit and use, so it is left out and recorded
+        names = [n for n in names if n != "conch_musk_disagree"]
+        dropped.append("conch_musk_disagree")
+
     y_fit = 1 - fit["correct"].to_numpy()
     comb = Combiner().fit(fit[names].to_numpy(float), y_fit)
     threshold = recall_threshold(comb.predict(fit[names].to_numpy(float)), y_fit, float(rcfg["target_error_recall"]))
@@ -194,7 +208,7 @@ def run(ctx: cli.StepContext) -> dict[str, Any]:
     prov = io.provenance(cfg, synthetic=ctx.synthetic)
     doc = {"name": "reliability", "created_utc": prov["created_utc"], "config_hash": prov["config_hash"],
            "git_sha": prov["git_sha"], "synthetic": bool(ctx.synthetic), **report,
-           "combiner": {"features": names, "coef": comb.clf.coef_[0].tolist(), "intercept": float(comb.clf.intercept_[0]),
+           "combiner": {"features": names, "dropped_features": dropped, "coef": comb.clf.coef_[0].tolist(), "intercept": float(comb.clf.intercept_[0]),
                         "fit_on": "calibration split: clean view-0 reads + degraded reads (view 0, ruling M9)",
                         "n_fit": int(len(fit)), "n_fit_errors": int(y_fit.sum())},
            "threshold": threshold, "target_error_recall": float(rcfg["target_error_recall"]),
@@ -202,7 +216,7 @@ def run(ctx: cli.StepContext) -> dict[str, Any]:
                    "percentile_reference": "clean calibration cases read the same way (TTA or view 0)"},
            "coverage_note": "No coverage claim is made on degraded or composite inputs: conformal coverage holds only "
                             "for exchangeable clean reads."}
-    io.write_json(schemas.eval_json(ctx.artifacts_root, "reliability"), doc)
+    io.write_json(schemas.eval_json(ctx.artifacts_root, "reliability"), rm.jsonable(doc))
     return doc
 
 

@@ -207,6 +207,13 @@ risk_model:                         # pipeline/05_risk_model.py + pipeline/riskm
   heatmap_probe: {encoder: conch, set: bach512, head: probe, name: conch_probe_oof}   # microscopy-only tile probe (tile_risk.csv)
   wsi_probe_set: wsi512             # WSI-enhanced tile-probe ablation adds these labeled tiles (§A9)
 
+deletion:                           # eval/deletion_test.py (plan §12 faithfulness; CELLS_SPEC §8.5)
+  n_tiles: 3                        # tiles removed per case (top-3)
+  n_random: 20                      # random 3-tile removals per case (averaged)
+  min_remaining: 1                  # a case needs n_tiles + min_remaining QC tiles to be tested
+  seed: 44
+  primary_subset: predicted_aggressive   # headline: test cases the model calls Invasive; all eligible test cases also reported
+
 abmil:                              # pipeline/05b_abmil.py (gated-attention MIL, Ilse et al. 2018); cut order §I item 4
   hidden: 128
   attn_dim: 64

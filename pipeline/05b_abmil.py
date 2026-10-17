@@ -56,6 +56,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         keep = set(cli.limit_case_ids(cases[cases.split.isin(["calibration", "test"])].case_id, ctx.limit))
     rows = []
     sources = [(set_name, False), (rm.DEG_SETS.get(set_name), False), (rm.COMP_SETS.get(set_name), True)]
+    comp_src: dict[str, str] = {}
+    comp_csv = schemas.composites_csv(root)
+    if comp_csv.is_file():
+        comp_df = rm.read_csv(comp_csv)
+        comp_src = dict(zip(comp_df["case_id"], comp_df["carcinoma_case_id"]))
     for sname, comp in sources:
         if not sname or not rm.emb_exists(root, enc, sname, head):
             continue
@@ -64,16 +69,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         grid = str(idx["grid"].iloc[0])
         sel = []
         for i, rid in enumerate(ids):
-            src = rid.split("_FSIM_")[0].split("_COMP_")[0]
-            if split.get(src) in ("calibration", "test") and (keep is None or src in keep):
+            src = comp_src.get(rid, rid.split("_FSIM_")[0].split("_COMP_")[0])
+            s_split = split.get(src, cfg.get("composites", {}).get("source_split", "test") if (comp or rid.startswith("COMP_")) else None)
+            if s_split in ("calibration", "test") and (keep is None or src in keep):
                 sel.append(i)
         if not sel:
             continue
         _, att = model.predict([bags[i] for i in sel])
         for i, a in zip(sel, att):
-            src = ids[i].split("_FSIM_")[0].split("_COMP_")[0]
+            src = comp_src.get(ids[i], ids[i].split("_FSIM_")[0].split("_COMP_")[0])
+            s_split = split.get(src, cfg.get("composites", {}).get("source_split", "test") if (comp or ids[i].startswith("COMP_")) else "test")
             for t, w in zip(tile_idx[i], a):
-                rows.append({"case_id": ids[i], "split": split[src], "grid": grid, "tile_idx": int(t),
+                rows.append({"case_id": ids[i], "split": s_split, "grid": grid, "tile_idx": int(t),
                              "attention": float(w), "model": f"{NAME}_{enc}"})
     df = pd.DataFrame(rows).sort_values(["case_id", "grid", "tile_idx"]).reset_index(drop=True)
     schemas.validate_frame(schemas.TILE_ATTENTION, df)

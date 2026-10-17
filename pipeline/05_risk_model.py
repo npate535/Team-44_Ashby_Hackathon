@@ -75,7 +75,8 @@ class LRCandidate:
                 m = self._fit([train_ids[i] for i in fit], labels, C)
                 return m.logits(self.fs.clean.loc[[train_ids[i] for i in held]].to_numpy(np.float64))
             self.results.append(rm.run_cv(self.name, self.family, {"C": float(C)}, len(train_ids), y, splits,
-                                          fit_predict, self.complexity, len(self.fs.names), len(self.cfg["classes"])))
+                                          fit_predict, self.complexity, len(self.fs.names), len(self.cfg["classes"]),
+                                          self.cfg["calibration"]["temperature_bounds"]))
 
     def fit_full(self, train_ids: list[str], labels: Mapping[str, int]) -> None:
         self.model = self._fit(train_ids, labels, float(self.chosen.config["C"]))
@@ -148,7 +149,8 @@ class ABMILCandidate:
             m = self._train([train_ids[i] for i in fit], labels)
             return m.predict([self.bags[train_ids[i]] for i in held])[0]
         self.results.append(rm.run_cv(self.name, self.family, {"encoder": self.spec["encoder"]}, len(train_ids), y,
-                                      splits, fit_predict, self.complexity, 0, len(self.cfg["classes"])))
+                                      splits, fit_predict, self.complexity, 0, len(self.cfg["classes"]),
+                                      self.cfg["calibration"]["temperature_bounds"]))
 
     def fit_full(self, train_ids: list[str], labels: Mapping[str, int]) -> None:
         self.model = self._train(train_ids, labels)
@@ -183,16 +185,22 @@ class FusionCandidate:
         self.temperature = 1.0
 
     def run_cv(self, train_ids: list[str], labels: Mapping[str, int], y: np.ndarray, splits) -> None:
-        temps = [calibration.fit_temperature(c.chosen.oof_logits.reshape(-1, c.chosen.oof_logits.shape[-1]),
-                                             np.tile(y, c.chosen.oof_logits.shape[0]),
-                                             self.cfg["calibration"]["temperature_bounds"]) for c in self.components]
-        reps = []
-        for r in range(len(splits)):
-            probs = np.mean([calibration.softmax(c.chosen.oof_logits[r], t) for c, t in zip(self.components, temps)], 0)
-            reps.append(np.log(np.clip(probs, 1e-12, 1.0)))
-        oof = np.stack(reps)
-        losses = [calibration.nll(calibration.softmax(oof[r, held], 1.0), y[held])
-                  for r, folds in enumerate(splits) for held in folds]
+        """Fold-honest fusion: for each held fold, every component's temperature is fit on the other folds' OOF logits
+        (same repeat), the calibrated probabilities are averaged, and the fused read is scored after its own
+        other-fold temperature (rm.fold_calibrated_losses), like every other candidate."""
+        bounds = self.cfg["calibration"]["temperature_bounds"]
+        n = len(train_ids)
+        oof = np.zeros((len(splits), n, len(self.cfg["classes"])))
+        for r, folds in enumerate(splits):
+            for held in folds:
+                rest = np.setdiff1d(np.arange(n), held)
+                probs = []
+                for c in self.components:
+                    lg = c.chosen.oof_logits[r]
+                    t = calibration.fit_temperature(lg[rest], y[rest], bounds)
+                    probs.append(calibration.softmax(lg[held], t))
+                oof[r, held] = np.log(np.clip(np.mean(probs, axis=0), 1e-12, 1.0))
+        losses = rm.fold_calibrated_losses(oof, y, splits, bounds)
         self.results.append(rm.CVResult(self.name, self.family, {"components": [c.name for c in self.components]},
                                         oof, losses, self.complexity, 0))
 
@@ -254,6 +262,13 @@ class RiskStep:
         self.n_folds = int(self.cfg["split"]["cv"]["folds"])
         self.skipped: dict[str, str] = {}
         self.complexity = {n: i for i, n in enumerate(self.cfg["risk_model"]["complexity"])}
+        comp_csv = schemas.composites_csv(self.root)
+        if comp_csv.is_file():
+            self.composites = rm.read_csv(comp_csv)
+            self.comp_src = dict(zip(self.composites["case_id"], self.composites["carcinoma_case_id"]))
+        else:
+            self.composites = None
+            self.comp_src = {}
 
     # -- candidates ---------------------------------------------------------------------------------------------
     def build_candidates(self) -> list[Any]:
@@ -411,6 +426,10 @@ class RiskStep:
         if "_COMP_" in rid:
             src = rid.split("_COMP_")[0]
             return self.split_of[src], src
+        if rid.startswith("COMP_") or rid in self.comp_src:
+            src = self.comp_src.get(rid, rid)
+            split = self.split_of.get(src, self.cfg.get("composites", {}).get("source_split", "test"))
+            return split, src
         raise ValueError(f"cannot place read id {rid!r}")
 
     def _limit_ids(self) -> set[str] | None:
@@ -419,11 +438,12 @@ class RiskStep:
         pool = self.cases[self.cases.split.isin(SPLITS_OUT)].case_id
         return set(cli.limit_case_ids(pool, self.ctx.limit))
 
-    def rows_for(self, rid: str, model: str, logits: np.ndarray, split: str) -> dict[str, Any]:
-        cfg = self.cfg
+    def rows_for(self, rid: str, model: str, logits: np.ndarray, split: str, *,
+                 calibrated: np.ndarray | None = None) -> dict[str, Any]:
+        """One predictions.csv row from uncalibrated logits, or from already-calibrated probabilities."""
         c = self.cands[model]
         conf = self.conf[model]
-        pcal = calibration.softmax(logits[None, :], c.temperature)[0]
+        pcal = calibrated if calibrated is not None else calibration.softmax(logits[None, :], c.temperature)[0]
         mask = conformal.lac_sets(pcal[None, :], conf["qhat_lac"])[0]
         members = conformal.set_labels(mask, self.classes)
         mond = conformal.mondrian_sets(pcal[None, :], np.array(conf["qhat_mondrian"]))[0]
@@ -464,10 +484,8 @@ class RiskStep:
         # out-of-fold train rows (calibration diagnostics; split = train)
         c = self.cands[prod]
         oof_cal = np.mean([calibration.softmax(l, c.temperature) for l in c.chosen.oof_logits], axis=0)
-        for i, rid in enumerate(self.train_ids):
-            row = self.rows_for(rid, prod, np.log(np.clip(oof_cal[i], 1e-12, 1)), "train")
-            row["temperature"] = float(c.temperature)       # probabilities above are already calibrated OOF means
-            rows.append(row)
+        for i, rid in enumerate(self.train_ids):           # OOF probabilities are already temperature-scaled
+            rows.append(self.rows_for(rid, prod, np.empty(0), "train", calibrated=oof_cal[i]))
         df = pd.DataFrame(rows)
         # randomized APS: one call on the whole matrix per model, fit seed for q-hat, seed + 1 for the sets
         seed = int(cfg["conformal"]["seed"])
@@ -525,6 +543,7 @@ class RiskStep:
                 continue
             row = self.rows_for(rid, prod, t.loc[rid].to_numpy(), split)
             row["read"] = source
+            row["agree_top"] = pd.NA                            # always present; NA when MUSK has no view-0 read
             if agree is not None and rid in agree.index:
                 row["agree_top"] = int(self.classes[int(np.argmax(agree.loc[rid].to_numpy()))] == row["top"])
             for model, tables in self.logit_tables.items():       # every model's own view-0 read (uncalibrated)
@@ -545,23 +564,39 @@ class RiskStep:
             return
         c = self.cands[b]
         keep = self._limit_ids()
-        frames = [c.fs.clean.loc[[i for i in c.fs.clean.index if self.split_of.get(i) in SPLITS_OUT]]]
-        if c.fs.variants is not None:
-            frames.append(c.fs.variants)
-        x = pd.concat(frames)
+        clean_cases = [i for i in c.fs.clean.index if self.split_of.get(i) in SPLITS_OUT]
         if keep is not None:
-            x = x.loc[[i for i in x.index if self._read_meta(i)[1] in keep]]
-        contrib = rm.centered_contributions(c.model, x.to_numpy(np.float64), self.agg)
-        std = c.model.standardize(x.to_numpy(np.float64))
+            clean_cases = [i for i in clean_cases if i in keep]
+        model_parts = [(b, c, c.fs.clean.loc[clean_cases])]
+        if c.fs.variants is not None and not c.fs.variants.empty:
+            var_df = c.fs.variants
+            if keep is not None:
+                var_df = var_df.loc[[i for i in var_df.index if self._read_meta(i)[1] in keep]]
+            model_parts.append((b, c, var_df))
+        else:
+            fallback = [m for m in self.cfg["risk_model"]["variant_fallback"] if m in self.cands and m != b]
+            for fb in fallback:
+                fbc = self.cands[fb]
+                if getattr(fbc, "fs", None) is not None and fbc.fs.variants is not None and not fbc.fs.variants.empty:
+                    var_df = fbc.fs.variants
+                    if keep is not None:
+                        var_df = var_df.loc[[i for i in var_df.index if self._read_meta(i)[1] in keep]]
+                    model_parts.append((fb, fbc, var_df))
+                    break
         concepts = set(self.cfg["concepts"]["ids"])
         rows = []
-        for i, rid in enumerate(x.index):
-            split = self._read_meta(rid)[0]
-            for j, feat in enumerate(c.fs.names):
-                base = feat.split("__")[0]
-                rows.append({"case_id": rid, "split": split, "model": b, "feature": feat, "concept": base,
-                             "source": "text" if base in concepts else "cell", "value": float(x.iloc[i, j]),
-                             "value_std": float(std[i, j]), "contribution": float(contrib[i, j])})
+        for model_name, cand, x_df in model_parts:
+            if x_df.empty:
+                continue
+            contrib = rm.centered_contributions(cand.model, x_df.to_numpy(np.float64), self.agg)
+            std = cand.model.standardize(x_df.to_numpy(np.float64))
+            for i, rid in enumerate(x_df.index):
+                split = self._read_meta(rid)[0]
+                for j, feat in enumerate(cand.fs.names):
+                    base = feat.split("__")[0]
+                    rows.append({"case_id": rid, "split": split, "model": model_name, "feature": feat, "concept": base,
+                                 "source": "text" if base in concepts else "cell", "value": float(x_df.iloc[i, j]),
+                                 "value_std": float(std[i, j]), "contribution": float(contrib[i, j])})
         df = pd.DataFrame(rows)
         schemas.validate_frame(schemas.CONTRIBUTIONS, df)
         io.write_csv(schemas.contributions_csv(self.root), df)
@@ -770,7 +805,7 @@ class RiskStep:
         doc.pop("name")
         if not schemas.MARGINS_JSON.problems(doc) == []:
             raise ValueError(schemas.MARGINS_JSON.problems(doc))
-        io.write_json(schemas.margins_json(self.root), doc)
+        io.write_json(schemas.margins_json(self.root), rm.jsonable(doc))
         self.margin_info = {k: doc[k] for k in ("probe", "coarse", "threshold", "threshold_ci", "n_benign_cal_images",
                                                 "benign_cal_fpr")}
         self.margin_info["n_reads"] = len(reads)
@@ -838,6 +873,12 @@ class RiskStep:
                          "fold_seed_base": int(cfg["split"]["cv"]["seed"]), "group_by": cfg["split"]["cv"]["group_by"],
                          "cv_metric": cfg["model_choice"]["cv_metric"], "rule": cfg["model_choice"]["rule"],
                          "se_definition": "SD of the K x R held-out fold log-losses / sqrt(K)",
+                         "fold_loss": "held-out log-loss after a temperature fit on the other folds' OOF logits "
+                                      "(same repeat); fusion components are calibrated the same way inside each fold",
+                         "cv_metrics_note": "cv_metrics log_loss is the uncalibrated repeat-averaged OOF log-loss; "
+                                            "AUROC/BAcc/F1 do not depend on temperature",
+                         "heatmap_probe_choice": "WSI-enhanced tile probe drives tile_risk.csv only if it wins on the "
+                                                 "calibration split (BUILD_PLAN §A9, explicitly calibration-based)",
                          "temperature": "per model from its out-of-fold train logits (all repeats)",
                          "test_split_used": False, "n_train": len(self.train_ids),
                          "n_train_groups": int(len(set(self.groups_train)))},
@@ -855,13 +896,13 @@ class RiskStep:
             "ablation_concepts_cells": ablation,
             "tile_probe": self.tile_probe_info,
             "margin_probe": self.margin_info,
-            "variants": {"n_predicted": int((self.predictions.case_id.str.contains("_FSIM_|_COMP_")).sum()),
+            "variants": {"n_predicted": int((self.predictions.case_id.str.contains(r"_FSIM_|_COMP_|^COMP_")).sum()),
                          "missing": self.missing_variants,
                          "fallback_order": cfg["risk_model"]["variant_fallback"],
                          "note": "variants are predicted by the frozen pipeline; no coverage claim on variants"},
             "qc_fallback_cases": sorted({i for c in self.cands.values() if getattr(c, "fs", None) for i in c.fs.qc_fallback}),
         }
-        io.write_json(schemas.eval_json(self.ctx.artifacts_root, "model_choice"), doc)
+        io.write_json(schemas.eval_json(self.ctx.artifacts_root, "model_choice"), rm.jsonable(doc))
 
 
 class BinaryProbe:

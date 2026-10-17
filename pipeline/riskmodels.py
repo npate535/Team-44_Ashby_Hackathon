@@ -15,7 +15,8 @@ objects are never pickled (§A22).
 
 Selection (§A3): patient-grouped K-fold CV inside train repeated R times (settings split.cv; folds from
 pipeline.tile_probe.case_folds with seed split.cv.seed + repeat). Score = mean held-out log-loss over the K x R
-folds; SE = SD of those fold log-losses / sqrt(K) (repeats reduce noise but are not independent folds). One-SE
+folds, each fold temperature-scaled with a T fit on the other folds' out-of-fold logits (so every candidate,
+including the late fusion, is scored calibrated and out-of-sample); SE = SD of those fold log-losses / sqrt(K) (repeats reduce noise but are not independent folds). One-SE
 rule: among configs within one SE of the best, the simplest wins (settings risk_model.complexity order, then the
 smaller C). The A-vs-B rule (plan §6.6, settings model_choice.auroc_margin / bacc_margin) compares the chosen
 black box A with the chosen concept bottleneck B on repeat-averaged out-of-fold predictions.
@@ -98,6 +99,22 @@ def read_id(row_case: Any, dtype: Any, sev: Any) -> str:
     if isinstance(dtype, str) and dtype:
         return schemas.variant_case_id(str(row_case), dtype, int(sev))
     return str(row_case)
+
+
+def jsonable(obj: Any) -> Any:
+    """Copy of obj with non-finite floats as None (JSON has no NaN; core.io.write_json refuses it) and numpy
+    scalars as Python numbers. An undefined metric is reported as null, never dropped."""
+    if isinstance(obj, Mapping):
+        return {str(k): jsonable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [jsonable(v) for v in obj]
+    if isinstance(obj, np.ndarray):
+        return [jsonable(v) for v in obj.tolist()]
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (float, np.floating)):
+        return float(obj) if math.isfinite(float(obj)) else None
+    return obj
 
 
 # ---- pooling ----------------------------------------------------------------------------------------------------------------
@@ -511,21 +528,37 @@ def cv_splits(train_cases: pd.DataFrame, cfg: Mapping[str, Any]) -> list[list[np
     return out
 
 
+def fold_calibrated_losses(oof: np.ndarray, labels: np.ndarray, splits: list[list[np.ndarray]],
+                           bounds: Sequence[float] | None) -> list[float]:
+    """Held-out log-loss per (repeat, fold). With bounds, each fold's logits are first temperature-scaled with a T fit
+    on the OTHER folds' out-of-fold logits of the same repeat (out-of-sample, like production's temperature); without
+    bounds, T = 1."""
+    losses = []
+    n = oof.shape[1]
+    for r, folds in enumerate(splits):
+        for held in folds:
+            t = 1.0
+            if bounds is not None:
+                rest = np.setdiff1d(np.arange(n), held)
+                t = calibration.fit_temperature(oof[r, rest], labels[rest], bounds)
+            losses.append(calibration.nll(calibration.softmax(oof[r, held], t), labels[held]))
+    return losses
+
+
 def run_cv(name: str, family: str, config: Mapping[str, Any], n_train: int, labels: np.ndarray,
            splits: list[list[np.ndarray]], fit_predict: Callable[[np.ndarray, np.ndarray], np.ndarray],
-           complexity: int, n_features: int, n_classes: int) -> CVResult:
-    """fit_predict(train_pos, held_pos) -> held-out logits. Returns OOF logits for every repeat and fold losses."""
+           complexity: int, n_features: int, n_classes: int, bounds: Sequence[float] | None = None) -> CVResult:
+    """fit_predict(train_pos, held_pos) -> held-out logits. Returns OOF logits for every repeat and the fold losses
+    (fold-calibrated when temperature bounds are given; see fold_calibrated_losses)."""
     oof = np.full((len(splits), n_train, n_classes), np.nan)
-    losses = []
     for r, folds in enumerate(splits):
         for held in folds:
             fit = np.setdiff1d(np.arange(n_train), held)
-            logits = fit_predict(fit, held)
-            oof[r, held] = logits
-            losses.append(calibration.nll(calibration.softmax(logits, 1.0), labels[held]))
+            oof[r, held] = fit_predict(fit, held)
     if np.isnan(oof).any():
         raise RuntimeError(f"{name}: some train cases were never held out")
-    return CVResult(name, family, dict(config), oof, losses, complexity, n_features)
+    return CVResult(name, family, dict(config), oof, fold_calibrated_losses(oof, labels, splits, bounds),
+                    complexity, n_features)
 
 
 def one_se_choice(results: Sequence[CVResult], n_folds: int) -> tuple[CVResult, dict[str, Any]]:

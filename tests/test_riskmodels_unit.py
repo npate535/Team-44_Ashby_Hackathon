@@ -219,3 +219,16 @@ def test_cv_metrics_have_cluster_cis():
         assert met[key]["lo"] <= met[key]["estimate"] <= met[key]["hi"]
         assert met[key]["n_groups"] == 20
     assert met["log_loss"]["estimate"] == pytest.approx(calibration.nll(res.oof_probs(), y))
+
+
+def test_fold_calibrated_losses_are_out_of_sample_and_fix_overconfidence():
+    tr = train_frame()
+    x, y = blobs(len(tr))
+    splits = rm.cv_splits(tr, CFG)[:1]
+    good = np.log(np.eye(4)[y] * 0.6 + 0.1)                  # calibrated-ish logits
+    over = 10 * good                                         # same ranking, wildly overconfident
+    raw = rm.fold_calibrated_losses(over[None], y, splits, None)
+    cal = rm.fold_calibrated_losses(over[None], y, splits, CFG["calibration"]["temperature_bounds"])
+    assert np.mean(cal) < np.mean(raw)
+    assert rm.fold_calibrated_losses(good[None], y, splits, None) == pytest.approx(
+        [calibration.nll(calibration.softmax(good[h], 1.0), y[h]) for h in splits[0]])

@@ -68,10 +68,16 @@ def run(ctx: cli.StepContext) -> dict[str, Any]:
     else:
         z = None
 
+    comp_src: dict[str, str] = {}
+    comp_csv = schemas.composites_csv(root)
+    if comp_csv.is_file():
+        comp_df = rm.read_csv(comp_csv)
+        comp_src = dict(zip(comp_df["case_id"], comp_df["carcinoma_case_id"]))
+
     queries = [i for i in emb.index if i not in set(lib_ids) and i in predicted]
     if ctx.limit is not None:
         keep = set(cli.limit_case_ids(cases[cases.split.isin(["calibration", "test"])].case_id, ctx.limit))
-        queries = [q for q in queries if q.split("_FSIM_")[0].split("_COMP_")[0] in keep]
+        queries = [q for q in queries if comp_src.get(q, q.split("_FSIM_")[0].split("_COMP_")[0]) in keep]
     sims = emb.loc[queries].to_numpy() @ lib.T
     out: dict[str, Any] = {}
     for qi, q in enumerate(queries):
@@ -100,7 +106,7 @@ def run(ctx: cli.StepContext) -> dict[str, Any]:
     problems = schemas.RETRIEVAL.problems(doc)
     if problems:
         raise ValueError(problems)
-    io.write_json(schemas.retrieval_json(root), doc)
+    io.write_json(schemas.retrieval_json(root), rm.jsonable(doc))
 
     # precision@k on test (true labels; evaluation only)
     test_ids = [q for q in queries if q in label and cases.set_index("case_id").split[q] == "test"]
@@ -117,7 +123,7 @@ def run(ctx: cli.StepContext) -> dict[str, Any]:
           "per_class_precision_at_k_test": {c: float(prec[[label[q] == c for q in test_ids]].mean())
                                             for c in cfg["classes"] if any(label[q] == c for q in test_ids)},
           "note": "precision@k = share of the k train neighbors whose label equals the query's true label (test split)"}
-    io.write_json(schemas.eval_json(ctx.artifacts_root, "retrieval"), ev)
+    io.write_json(schemas.eval_json(ctx.artifacts_root, "retrieval"), rm.jsonable(ev))
     return ev
 
 
