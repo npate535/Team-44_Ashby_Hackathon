@@ -38,7 +38,7 @@ def _tree(root):
 
 def test_collect_packs_per_item_arrays_and_laptop_inputs_only(tmp_path):
     _tree(tmp_path)
-    rel = {p.as_posix() for p in X.collect(tmp_path)}
+    rel = {p.as_posix() for p in X.collect(tmp_path, with_views=False)}
     assert {"cases.csv", "tiles.csv", "inventory.json", "tile_risk_oof.csv", "cell_features.csv",
             "emb/conch/bach512_align.npy", "emb/conch/bach512_align_index.csv", "emb/conch/meta.json",
             "emb/musk/nct_probe.npy", "emb/musk/nct_probe_index.csv", "text/conch.npz", "meta/02_embed.json", "display/BACH_0001.jpg",
@@ -51,7 +51,7 @@ def test_collect_packs_per_item_arrays_and_laptop_inputs_only(tmp_path):
 def test_dry_run_prints_the_size_and_writes_nothing(tmp_path):
     _tree(tmp_path)
     lines = []
-    assert X.main(["--data-root", str(tmp_path), "--dry-run"], log=lines.append) == 0
+    assert X.main(["--data-root", str(tmp_path), "--dry-run", "--no-views"], log=lines.append) == 0
     assert "14 files" in lines[0] and "MB uncompressed" in lines[0]
     assert not (tmp_path / "exports").exists()
 
@@ -61,11 +61,12 @@ def test_pack_then_unpack_round_trips_with_verified_hashes(tmp_path):
     src.mkdir()
     _tree(src)
     out = tmp_path / "x.tgz"
-    assert X.main(["--data-root", str(src), "--out", str(out)], log=lambda s: None) == 0
+    assert X.main(["--data-root", str(src), "--out", str(out)], log=lambda s: None) == 0  # views on by default
     with tarfile.open(out) as tar:
         names = tar.getnames()
         manifest = json.load(tar.extractfile(X.MANIFEST_NAME))
-    assert names[:2] == [X.MANIFEST_NAME, X.SUMS_NAME] and manifest["n_files"] == 14
+    assert names[:2] == [X.MANIFEST_NAME, X.SUMS_NAME] and manifest["n_files"] == 16
+    assert "emb/conch/bach512_align_views.npy" in names and manifest["with_views"] is True
     assert all(len(f["sha256"]) == 64 for f in manifest["files"])
     lines = []
     assert X.main(["--data-root", str(dest), "--unpack", str(out)], log=lines.append) == 0
