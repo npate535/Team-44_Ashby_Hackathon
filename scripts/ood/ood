@@ -64,8 +64,14 @@ cmd_run() {
   } >"$typed"
   printf '{"typeFile":"%s","tabId":"%s"}\n' "$typed" "$(cat "$STAGE/shell_tab_id" 2>/dev/null)" >"$STAGE/$id.type.json"
   ensure_shell_tab
-  local out
+  local out lock="$STAGE/.type.lock" waited=0
+  # One typist at a time: concurrent callers would interleave keystrokes in the shared terminal.
+  until mkdir "$lock" 2>/dev/null; do
+    sleep 1; waited=$((waited + 1))
+    ((waited < 120)) || { rm -rf "$lock"; }
+  done
   out="$(repl type.js "$STAGE/$id.type.json")"
+  rmdir "$lock" 2>/dev/null || true
   grep -q PQ_TYPED <<<"$out" || die "could not type into the OnDemand shell tab"
   grep -Eo 'PQ_TAB [A-F0-9]+' <<<"$out" | cut -d' ' -f2 >"$STAGE/shell_tab_id"
   echo "ood: started $id" >&2
