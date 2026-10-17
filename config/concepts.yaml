@@ -11,10 +11,12 @@
 # `direction` is the expected association with the aggressive class (Invasive) and is a sanity reference only; the
 # model learns the real sign, and contradictions are surfaced on the Metrics page.
 # Prompt IDs = core.schemas.expand_prompts (concept:<id>:<pos|con>:<phrasing>:<template>, class:<cls>:<i>:<t>).
-version: draft-2026-10-17
+version: draft-2026-10-17b
 notes: >-
-  Draft written by Agent 2 from CAP descriptors and the CONCH/MUSK prompt recipes; requires pathologist review.
-  Templates: 12 CONCH zero-shot templates + the 4 MUSK benchmark templates.
+  Draft written by Agent 2 (AI) from CAP descriptors and the CONCH/MUSK prompt recipes, then revised after an AI
+  (not pathologist) review on 2026-10-17: contrasts no longer reuse another concept's positives, in situ disease is
+  described by architecture rather than the diagnosis word, claims that need IHC were removed, contrasts are H&E
+  mimics. Still requires pathologist review. Templates: 12 CONCH zero-shot templates + 4 MUSK-style templates.
 
 templates:
   # CONCH zero-shot templates (CONCH paper / starter notebook)
@@ -34,7 +36,7 @@ templates:
   - "a histopathology slide showing {}"
   - "histopathology image of {}"
   - "pathology tissue showing {}"
-  - "presence of {} tissue on image"
+  - "presence of {} on image"          # MUSK's "presence of {} tissue on image" reads badly with phrasings
 
 concepts:
   - id: tubules
@@ -44,9 +46,9 @@ concepts:
     weak: false
     positives:
       - "well-formed tubules lined by a single layer of cuboidal epithelial cells"
-      - "carcinoma forming numerous well-formed glands with open lumina"
+      - "numerous well-formed glands with central open lumina"
       - "tubule formation with gland lumens surrounded by polarized tumor cells"
-      - "well-differentiated tubular carcinoma with angulated open tubules"
+      - "angulated open tubules with tapered ends set in cellular stroma"
     contrasts:
       - "solid sheets of tumor cells forming a confluent mass"
       - "tumor cells growing in solid nests and trabeculae"
@@ -59,7 +61,7 @@ concepts:
     positives:
       - "marked nuclear pleomorphism with large vesicular nuclei and prominent nucleoli"
       - "highly atypical tumor cells with enlarged, irregular, hyperchromatic nuclei"
-      - "high-grade carcinoma with marked variation in nuclear size and shape"
+      - "epithelial cells with marked variation in nuclear size and shape"
       - "bizarre pleomorphic nuclei with coarse chromatin and multiple nucleoli"
     contrasts:
       - "small uniform nuclei with regular outlines and fine even chromatin"
@@ -73,10 +75,11 @@ concepts:
     positives:
       - "numerous mitotic figures in tumor cells"
       - "frequent mitoses including atypical mitotic figures"
-      - "a highly proliferative carcinoma with many dividing cells"
-    contrasts:
-      - "quiescent epithelial cells with uniform resting nuclei"
-      - "low-grade tumor cells with small quiescent nuclei"
+      - "mitotic figures with dark condensed clumped chromosomes"
+      - "atypical tripolar mitotic figures"
+    contrasts:                      # mitosis mimics and evenly spaced nuclei (both visible on H&E)
+      - "evenly spaced tumor nuclei with fine open chromatin"
+      - "dark pyknotic nuclei of degenerating cells"
 
   - id: invasion
     group: insitu_vs_invasive
@@ -88,24 +91,24 @@ concepts:
       - "irregular nests, cords and single tumor cells invading fibrous stroma"
       - "infiltrating carcinoma with haphazard angulated glands in reactive stroma"
       - "single-file infiltration of tumor cells between collagen bundles"
-      - "invasive breast carcinoma infiltrating adipose tissue"
-    contrasts:
-      - "atypical cells confined to ducts with a smooth intact basement membrane"
-      - "rounded ducts and lobules with a preserved myoepithelial cell layer"
+      - "tumor cells infiltrating between mature fat cells"
+    contrasts:                      # decoupled from duct_confined's positives; architecture visible on H&E
+      - "cohesive epithelial nests with smooth rounded pushing borders"
+      - "orderly collagen bundles with sparse spindle fibroblasts"
 
   - id: duct_confined
     group: insitu_vs_invasive
     label: Atypical cells confined within ducts
     direction: down       # in situ pattern: associated with InSitu rather than Invasive
     weak: false
-    positives:
-      - "ductal carcinoma in situ with atypical cells filling and expanding ducts"
-      - "comedo-type ductal carcinoma in situ with central necrosis inside a duct"
-      - "cribriform ductal carcinoma in situ with punched-out spaces within a duct"
-      - "atypical epithelial proliferation confined within a duct surrounded by an intact myoepithelial layer"
-    contrasts:
-      - "invasive carcinoma cells infiltrating the surrounding stroma"
-      - "tumor cells breaching the basement membrane into fibrous stroma"
+    positives:                      # in situ architecture, not the diagnosis word (avoids a circular InSitu detector)
+      - "a duct distended by a solid proliferation of atypical epithelial cells"
+      - "cribriform pattern of rigid punched-out spaces within an expanded duct"
+      - "micropapillary tufts of atypical cells projecting into a duct lumen"
+      - "an expanded duct with a rim of flattened peripheral cells around atypical cells"
+    contrasts:                      # decoupled from invasion's positives
+      - "small ducts with open empty lumens and a thin epithelial lining"
+      - "cellular fibrous stroma containing scattered spindle cells"
 
   - id: normal_lobules
     group: benign_normal
@@ -117,9 +120,9 @@ concepts:
       - "a normal breast lobule with two-layered epithelium of luminal and myoepithelial cells"
       - "benign breast ducts lined by an inner luminal layer and an outer myoepithelial layer"
       - "normal mammary lobules embedded in loose intralobular stroma"
-    contrasts:
-      - "ducts distended by a proliferation of atypical tumor cells"
-      - "sheets of malignant epithelial cells replacing the lobular architecture"
+    contrasts:                      # benign mimics: Normal vs Benign is BACH's hard pair
+      - "lobules with crowded hyperplastic epithelium filling the acini"
+      - "cystically dilated ducts lined by apocrine cells"
 
   - id: benign_stroma_fat
     group: benign_normal
@@ -133,7 +136,7 @@ concepts:
       - "fibroadipose breast tissue with bland stromal cells"
     contrasts:
       - "densely cellular carcinoma composed of crowded tumor cells"
-      - "desmoplastic stroma infiltrated by malignant epithelial cells"
+      - "crowded glandular epithelium with scant intervening stroma"
 
   - id: lymphocytes
     group: microenvironment
@@ -141,9 +144,9 @@ concepts:
     direction: context    # context, not ranked (plan §6.4)
     weak: false
     positives:
-      - "a dense lymphocytic infiltrate of tumor-infiltrating lymphocytes"
+      - "dense stromal lymphocytes between epithelial nests"
       - "sheets of small round lymphocytes with dark nuclei and scant cytoplasm"
-      - "prominent stromal lymphocytes and plasma cells surrounding tumor nests"
+      - "a dense band of small lymphocytes and plasma cells within fibrous stroma"
       - "a lymphoid aggregate of densely packed lymphocytes"
     contrasts:
       - "tumor epithelium composed of large cohesive cells"
@@ -159,9 +162,10 @@ concepts:
       - "comedonecrosis with karyorrhectic debris"
       - "coagulative necrosis of tumor cells with ghost cell outlines"
       - "necrotic debris with pyknotic and fragmented nuclei"
-    contrasts:
-      - "viable tumor cells with intact nuclei"
-      - "well-preserved viable breast tissue"
+    contrasts:                      # necrosis mimics a field could show instead
+      - "pink acellular hyalinized collagen"
+      - "eosinophilic secretory material within a gland lumen"
+      - "scattered apoptotic bodies with shrunken eosinophilic cytoplasm"
 
 class_prompts:            # zero-shot BACH 4-class baseline (eval/zeroshot.json); settings.classes order
   Normal:
@@ -173,6 +177,8 @@ class_prompts:            # zero-shot BACH 4-class baseline (eval/zeroshot.json)
     - "fibroadenoma of the breast"
     - "benign fibrocystic change of the breast"
     - "usual ductal hyperplasia"
+    - "sclerosing adenosis of the breast"
+    - "intraductal papilloma of the breast"
   InSitu:
     - "ductal carcinoma in situ"
     - "breast carcinoma in situ"
@@ -181,3 +187,5 @@ class_prompts:            # zero-shot BACH 4-class baseline (eval/zeroshot.json)
     - "invasive ductal carcinoma"
     - "invasive breast carcinoma"
     - "infiltrating carcinoma of the breast"
+    - "invasive breast carcinoma NST"
+    - "invasive lobular carcinoma with single-file cells"
