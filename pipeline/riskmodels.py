@@ -212,8 +212,12 @@ def _named(frame: pd.DataFrame, names: Sequence[str]) -> pd.DataFrame:
     return frame
 
 
-def concept_frame(root: str | Path, cfg: Mapping[str, Any]) -> pd.DataFrame | None:
-    path = schemas.case_features_csv(root)
+CASE_FEATURES_VIEW0 = "case_features_view0.csv"   # optional (requested from Agent 2): clean view-0 concept features
+
+
+def concept_frame(root: str | Path, cfg: Mapping[str, Any], *, view0: bool = False) -> pd.DataFrame | None:
+    """case_features.csv indexed by case_id (None when absent); view0=True reads the optional clean view-0 file."""
+    path = Path(root) / CASE_FEATURES_VIEW0 if view0 else schemas.case_features_csv(root)
     if not path.is_file():
         return None
     df = read_csv(path)
@@ -233,7 +237,8 @@ def cell_frame(root: str | Path, cfg: Mapping[str, Any]) -> tuple[pd.DataFrame, 
 
 
 def concept_features(name: str, concepts: pd.DataFrame | None, cells: tuple[pd.DataFrame, list[str]] | None,
-                     cfg: Mapping[str, Any], cases: pd.DataFrame) -> FeatureSet | None:
+                     cfg: Mapping[str, Any], cases: pd.DataFrame, concepts_view0: pd.DataFrame | None = None
+                     ) -> FeatureSet | None:
     """cb_text (B), cb_text_cells (B+C) or cb_cells (C); None when an input is missing."""
     use_text = name in ("cb_text", "cb_text_cells")
     use_cells = name in ("cb_cells", "cb_text_cells")
@@ -261,7 +266,13 @@ def concept_features(name: str, concepts: pd.DataFrame | None, cells: tuple[pd.D
     variants = joined.loc[[i for i in joined.index if i not in real]] if not use_cells else None
     if variants is not None and variants.empty:
         variants = None
-    return FeatureSet(name, "concept", clean[names], names, variants=variants,
+    view0 = None
+    if use_text and concepts_view0 is not None:
+        v = concepts_view0[schemas.concept_feature_columns(cfg)].astype(float)
+        if use_cells:
+            v = v.join(cells[0], how="left")
+        view0 = v[names]
+    return FeatureSet(name, "concept", clean[names], names, variants=variants, view0=view0,
                       source={"case_features": use_text, "cell_features": use_cells})
 
 

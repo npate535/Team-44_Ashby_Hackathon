@@ -18,7 +18,8 @@ for any choice. Everything below is WSI-free except the explicitly labeled ablat
 4. Outputs (data root): predictions.csv (calibration/test + every degraded and composite variant + out-of-fold train
    rows), contributions.csv (concept bottleneck B), tile_risk.csv (+ tile_risk_oof.csv when 04a has not written
    it), margins.json, models/<name>.npz (exported weights), predictions_view0.csv (private to 06: clean view-0
-   reads of calibration/test cases, ruling M9). Artifacts root: eval/model_choice.json. The test split is only
+   reads of calibration/test cases by the production model, plus p__<model>__<class> of every model that has
+   view-0 features; `read` = view0, or tta when the production model has no view-0 features, ruling M9). Artifacts root: eval/model_choice.json. The test split is only
    predicted, never scored, here.
 
 Variant reads use the production model when it has features for the variant, else the first model of
@@ -269,9 +270,10 @@ class RiskStep:
             elif name not in ("abmil", "fusion_top3"):
                 self.skipped[name] = "no specification in risk_model.embedding_candidates"
         concepts = rm.concept_frame(self.root, cfg)
+        concepts_v0 = rm.concept_frame(self.root, cfg, view0=True)
         cells = rm.cell_frame(self.root, cfg)
         for name in mc["concept_models"]:
-            fs = rm.concept_features(name, concepts, cells, cfg, self.cases)
+            fs = rm.concept_features(name, concepts, cells, cfg, self.cases, concepts_v0)
             if fs is None:
                 why = []
                 if name in ("cb_text", "cb_text_cells") and concepts is None:
@@ -525,6 +527,11 @@ class RiskStep:
             row["read"] = source
             if agree is not None and rid in agree.index:
                 row["agree_top"] = int(self.classes[int(np.argmax(agree.loc[rid].to_numpy()))] == row["top"])
+            for model, tables in self.logit_tables.items():       # every model's own view-0 read (uncalibrated)
+                v0 = tables.get("view0")
+                if v0 is not None and rid in v0.index:
+                    p = calibration.softmax(v0.loc[rid].to_numpy()[None, :], 1.0)[0]
+                    row.update({schemas.prob_col(model, k): float(x) for k, x in zip(self.classes, p)})
             rows.append(row)
         df = pd.DataFrame(rows)
         io.write_csv(self.root / "predictions_view0.csv", df)

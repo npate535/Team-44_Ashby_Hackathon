@@ -116,6 +116,22 @@ def add_fake_concepts(root: Path) -> None:
 
 
 _WORK: dict[str, Path] = {}
+_IMAGE_DIRS = ("tiles", "display", "cells", "aux", "composites", "wsi_windows")
+
+
+def clone_root(src: Path, dst: Path) -> Path:
+    """Writable copy of a data root: tables, embeddings and JSONs are copied; the read-only image folders (tens of
+    thousands of PNG/JPEG files no step rewrites) are symlinked."""
+    dst.mkdir(parents=True)
+    for entry in Path(src).iterdir():
+        target = dst / entry.name
+        if entry.is_dir() and entry.name in _IMAGE_DIRS:
+            target.symlink_to(entry.resolve(), target_is_directory=True)
+        elif entry.is_dir():
+            shutil.copytree(entry, target, symlinks=True)
+        else:
+            shutil.copy2(entry, target)
+    return dst
 
 
 def analysis_root() -> Path:
@@ -123,8 +139,7 @@ def analysis_root() -> Path:
     if "root" not in _WORK:
         tmp = Path(tempfile.mkdtemp(prefix="a3work_"))
         atexit.register(shutil.rmtree, tmp, ignore_errors=True)
-        root = tmp / "data"
-        shutil.copytree(build_root(), root)
+        root = clone_root(build_root(), tmp / "data")
         add_fake_concepts(root)
         _WORK["root"] = root
     return _WORK["root"]
@@ -144,3 +159,19 @@ def fast_config(directory: Path) -> Path:
     path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
     config.load_settings(path)
     return path
+
+
+def after_05() -> tuple[Path, Path, Path]:
+    """(data root, artifacts root, fast settings path) after one 05_risk_model run on a copy of analysis_root()
+    (built once per process; tests that write must copy it first)."""
+    import importlib
+
+    if "after05" not in _WORK:
+        tmp = Path(tempfile.mkdtemp(prefix="a3r05_"))
+        atexit.register(shutil.rmtree, tmp, ignore_errors=True)
+        root, art = clone_root(analysis_root(), tmp / "data"), tmp / "art"
+        cfg_path = fast_config(tmp)
+        step = importlib.import_module("pipeline.05_risk_model")
+        assert step.main(["--data-root", str(root), "--artifacts-root", str(art), "--config", str(cfg_path)]) == 0
+        _WORK["after05"] = (root, art, cfg_path)
+    return _WORK["after05"]

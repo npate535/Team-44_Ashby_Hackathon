@@ -2,14 +2,13 @@
 
 import importlib
 import json
-import shutil
 
 import numpy as np
 import pandas as pd
 import pytest
 
 from core import config, conformal, contract, margin, schemas
-from tests.a3_synthetic import analysis_root, fast_config
+from tests.a3_synthetic import after_05
 
 step05 = importlib.import_module("pipeline.05_risk_model")
 CFG = config.load_settings()
@@ -17,12 +16,8 @@ CLASSES = list(CFG["classes"])
 
 
 @pytest.fixture(scope="module")
-def run05(tmp_path_factory):
-    work = tmp_path_factory.mktemp("r05")
-    root, art = work / "data", work / "art"
-    shutil.copytree(analysis_root(), root)
-    cfg_path = fast_config(work)
-    assert step05.main(["--data-root", str(root), "--artifacts-root", str(art), "--config", str(cfg_path)]) == 0
+def run05():
+    root, art, cfg_path = after_05()
     return root, art, config.load_settings(cfg_path)
 
 
