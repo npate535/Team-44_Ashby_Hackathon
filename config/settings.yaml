@@ -274,6 +274,9 @@ queue_sim:                          # FIFO vs tiers vs tiers+aging (plan §12; T
   arrivals_per_hour: 6
   read_time_min: 9
   policies: [fifo, tiers, tiers_aging]
+  aging_scenarios:                  # SENSITIVITY ONLY (eval.queue_sim): tiers + aging with day-scale targets (minutes).
+    day_scale: {1: 20, 2: 60, 3: 120, 4: 240}   # The configured aging targets (24/48 h) exceed an 8 h day, so the guard
+                                                # never fires there; these illustrative targets show what it would do.
 
 demo:                               # hero cases auto-picked by step 08 and placed late (§A16)
   heroes:
@@ -331,6 +334,16 @@ spotcheck:                          # step 08 review items (plan §5.4, CELLS_SP
   overlays_per_class: 5             # cell overlays per class (labels pick items; never written to items.json)
   crop_px: 256                      # crop edge in the review image (cut from the display JPEG, rescaled)
   seed: 44
+
+eval:                               # Agent 4 evaluation suite (plan §12, BUILD_PLAN Task 11)
+  thunder_reference:                # published THUNDER BACH results on our exact test split (BUILD_PLAN §A4, §F)
+    metric: macro_f1_percent
+    split_note: "same split, different protocol (published: whole-image resize; ours: tiles + TTA)"
+    linear_probe: {conch: 84.4, uni2h: 84.7, musk: 69.9}
+    zero_shot: {conch: 56.1, musk: 62.5}
+    source: "THUNDER benchmark (BACH), as recorded in BUILD_PLAN §F; verify before quoting in the deck"
+  queue_policies: {fifo: FIFO (arrival order), tiers: PathQueue tiers, tiers_aging: PathQueue tiers + aging guard (configured targets), tiers_aging_day_scale: "Sensitivity: tiers + aging, day-scale targets"}
+  figure_dpi: 200
 
 hosted:                             # organizer servers, callable only inside Delta: 5-tile equivalence check (§A6)
   env_file: ~/.config/ashby-2026/model-servers.env
