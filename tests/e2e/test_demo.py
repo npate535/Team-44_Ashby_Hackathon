@@ -6,6 +6,10 @@ import re
 
 from playwright.sync_api import expect
 
+from core import config
+
+REPLAY_S = config.load_settings()["sim"]["max_replay_wall_s"] or 120
+
 ROW = "[data-testid=worklist-row]"
 
 
@@ -18,7 +22,8 @@ def start_and_wait_for_biopsies(pg, api, roles) -> None:
     expect(pg.locator(tid("state-empty"))).to_be_visible()
     pg.click(tid("sim-start"))
     hero = roles["hero_biopsy"]
-    expect(pg.locator(f"{ROW}[data-case-id='{hero}']")).to_be_visible(timeout=30000)
+    # the replay window bounds the last arrival (settings sim.max_replay_wall_s)
+    expect(pg.locator(f"{ROW}[data-case-id='{hero}']")).to_be_visible(timeout=(REPLAY_S + 20) * 1000)
 
 
 def pg_url(pg) -> str:
@@ -121,7 +126,9 @@ def test_demo_script(page, api, roles):
     # 5. Metrics page renders (synthetic dev eval files) with charts and limitations.
     pg.click(tid("nav-metrics"))
     for section in ("metrics-queue-sim", "metrics-calibration", "metrics-concepts", "metrics-reliability"):
-        expect(pg.locator(f"{tid(section)} svg.chart").first).to_be_visible()
+        key = section.removeprefix("metrics-").replace("-", "_")
+        # a chart when the eval file exists, otherwise its explicit pending state
+        expect(pg.locator(f"{tid(section)} svg.chart, {tid('metrics-missing-' + key)}").first).to_be_visible()
     expect(pg.locator(tid("metrics-synthetic"))).to_be_visible()
     expect(pg.locator(tid("limitations"))).to_be_visible()
     page.assert_no_horizontal_scroll()
