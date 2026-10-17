@@ -20,7 +20,8 @@ Sources: <bach_root>/<dataset.official.wsi_subdir>/A01..A10.svs + .xml (Aperio I
     WSI patient. Written to wsi/tiles/<grid>/<wsi_id>/<x0>_<y0>.png; listed in wsi_tiles.csv (below).
   * Margin windows (wsi_windows.csv, set wsi_margin256): candidate windows on a lattice (stride
     wsi.window_stride_frac of the window) with tissue >= wsi.window_min_tissue_frac. For each of the four
-    outermost margin.strip_px strips (in window pixels) the annotated-carcinoma fraction (settings
+    outermost margin.strip_px strips (in window pixels; each needs wsi.strip_min_tissue_frac tissue, else the window
+    is skipped: glass is not a clear margin) the annotated-carcinoma fraction (settings
     carcinoma_classes) decides the truth: >= wsi.margin_tumor_min_frac -> tumor; exactly 0 -> clear; in between ->
     ambiguous, window skipped. Strata: edge_tumor (some margin tumor), central_only (all margins clear, carcinoma
     >= wsi.central_tumor_min_frac inside), none (no annotated carcinoma anywhere in the window). Up to
@@ -197,20 +198,32 @@ def cap_per_class(cands: list[dict[str, Any]], cap: int, rng: np.random.Generato
 
 
 # ---- windows ----------------------------------------------------------------------------------------------------
-def window_truth(win: np.ndarray, carcinoma_codes: Sequence[int], strip_frac: tuple[float, float],
-                 cfg: Mapping[str, Any]) -> tuple[str | None, dict[str, str], dict[str, float]]:
-    """(stratum or None if ambiguous, {margin: tumor|clear}, {margin|interior: carcinoma fraction}) of a window's
-    label-mask slice. strip_frac = (strip width / window width, strip height / window height)."""
-    h, w = win.shape
-    carc = np.isin(win, list(carcinoma_codes))
+def strip_fractions(arr: np.ndarray, strip_frac: tuple[float, float], names: Mapping[str, str]) -> dict[str, float]:
+    """Mean of a boolean window array in each outermost strip ({margin name: frac}) and in the interior."""
+    h, w = arr.shape
     sw = max(1, int(round(w * strip_frac[0])))
     sh = max(1, int(round(h * strip_frac[1])))
-    names = cfg["margin"]["names"]
-    strips = {names["top"]: carc[:sh, :], names["bottom"]: carc[h - sh:, :],
-              names["left"]: carc[:, :sw], names["right"]: carc[:, w - sw:]}
-    fracs = {m: float(s.mean()) for m, s in strips.items()}
-    interior = carc[sh:h - sh, sw:w - sw]
-    fracs["interior"] = float(interior.mean()) if interior.size else 0.0
+    strips = {names["top"]: arr[:sh, :], names["bottom"]: arr[h - sh:, :],
+              names["left"]: arr[:, :sw], names["right"]: arr[:, w - sw:]}
+    out = {m: float(s.mean()) if s.size else 0.0 for m, s in strips.items()}
+    interior = arr[sh:h - sh, sw:w - sw]
+    out["interior"] = float(interior.mean()) if interior.size else 0.0
+    return out
+
+
+def window_truth(win: np.ndarray, carcinoma_codes: Sequence[int], strip_frac: tuple[float, float],
+                 cfg: Mapping[str, Any], tissue: np.ndarray | None = None
+                 ) -> tuple[str | None, dict[str, str], dict[str, float]]:
+    """(stratum or None if ambiguous, {margin: tumor|clear}, {margin|interior: carcinoma fraction}) of a window's
+    label-mask slice. strip_frac = (strip width / window width, strip height / window height). When `tissue` (the
+    window's tissue-mask slice, any resolution) is given, every strip needs wsi.strip_min_tissue_frac tissue:
+    a strip of glass is not a "clear" margin, so such windows are skipped (None)."""
+    carc = np.isin(win, list(carcinoma_codes))
+    fracs = strip_fractions(carc, strip_frac, cfg["margin"]["names"])
+    if tissue is not None:
+        tfr = strip_fractions(np.asarray(tissue, dtype=bool), strip_frac, cfg["margin"]["names"])
+        if min(tfr[m] for m in schemas.MARGINS) < float(cfg["wsi"]["strip_min_tissue_frac"]):
+            return None, {}, fracs
     thr = float(cfg["wsi"]["margin_tumor_min_frac"])
     truth: dict[str, str] = {}
     for m in schemas.MARGINS:
@@ -323,9 +336,10 @@ def extract_slide(task: Mapping[str, Any]) -> dict[str, Any]:
     n_ambiguous = 0
     for y in range(0, dims0[1] - h0 + 1, sy):
         for x in range(0, dims0[0] - w0 + 1, sx):
-            if float(_slice(tissue, tscale, x, y, w0, h0).mean()) < float(wcfg["window_min_tissue_frac"]):
+            tis = _slice(tissue, tscale, x, y, w0, h0)
+            if float(tis.mean()) < float(wcfg["window_min_tissue_frac"]):
                 continue
-            stratum, truth, fracs = window_truth(_slice(mask, mscale, x, y, w0, h0), carc_codes, strip_frac, cfg)
+            stratum, truth, fracs = window_truth(_slice(mask, mscale, x, y, w0, h0), carc_codes, strip_frac, cfg, tis)
             if stratum is None:
                 n_ambiguous += 1
                 continue
@@ -375,11 +389,20 @@ def manifest_rows(tiles: pd.DataFrame, windows: pd.DataFrame, groups: Mapping[st
     return rows
 
 
+def safe_extract(task: Mapping[str, Any]) -> dict[str, Any]:
+    """extract_slide, but one unreadable slide (OpenSlideError, corrupt tile, ...) never sinks the other nine."""
+    try:
+        return extract_slide(task)
+    except Exception as exc:  # noqa: BLE001 - recorded per slide in meta and the exit code
+        return {"tiles": [], "windows": [], "group": task["group"],
+                "stats": {"wsi_id": task["wsi_id"], "error": f"{type(exc).__name__}: {exc}"}}
+
+
 def run_slides(tasks: Sequence[Mapping[str, Any]], workers: int) -> list[dict[str, Any]]:
     if workers <= 1 or len(tasks) <= 1:
-        return [extract_slide(t) for t in tasks]
+        return [safe_extract(t) for t in tasks]
     with multiprocessing.get_context().Pool(min(workers, len(tasks))) as pool:
-        return list(pool.imap_unordered(extract_slide, tasks))
+        return list(pool.imap_unordered(safe_extract, tasks))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -414,6 +437,9 @@ def main(argv: list[str] | None = None) -> int:
                   "svs": str(wsi_dir / f"{p.stem}.svs"), "patient_id": pmap[p.stem], "group": group_of[p.stem],
                   "fold": folds[group_of[p.stem]]} for p in xmls]
         results = sorted(run_slides(tasks, common.worker_count(args.workers)), key=lambda r: r["stats"]["wsi_id"])
+        failed = {r["stats"]["wsi_id"]: r["stats"]["error"] for r in results if "error" in r["stats"]}
+        if len(failed) == len(results):
+            raise ValueError(f"every slide failed: {failed}")
         tiles = pd.DataFrame([t for r in results for t in r["tiles"]], columns=TILE_COLUMNS)
         windows = pd.DataFrame([w for r in results for w in r["windows"]], columns=WINDOW_COLUMNS + ["group"])
         schemas.validate_frame(schemas.WSI_WINDOWS, windows[WINDOW_COLUMNS])
@@ -426,7 +452,7 @@ def main(argv: list[str] | None = None) -> int:
     io.write_json(root / "wsi_folds.json", folds)
     common.replace_manifest_sets(root, SETS, rows)
     summary = {
-        "n_slides": len(results), "folds": folds, "patient_source": patient_source,
+        "n_slides": len(results), "failed_slides": failed, "folds": folds, "patient_source": patient_source,
         "tiles_per_grid_label": tiles.groupby(["grid", "label"]).size().rename("n").reset_index().to_dict("records"),
         "windows_per_stratum": windows["stratum"].value_counts().to_dict(),
         "manifest_rows": {s: sum(r["set"] == s for r in rows) for s in SETS},
@@ -442,6 +468,9 @@ def main(argv: list[str] | None = None) -> int:
                       "if 0.5 were right, physical sizes would be ~7% off",
                       "WSI labels carry scanner shift vs the microscopy photos; microscopy test metrics stay WSI-free (§A9)"]})
     print(json.dumps({k: v for k, v in summary.items() if k != "per_slide"}, indent=1, default=str))
+    if failed:
+        print(f"ERROR {STEP}: slides failed (outputs written for the rest): {failed}", file=sys.stderr)
+        return 1
     return 0
 
 

@@ -159,6 +159,18 @@ concepts:
   cav:
     min_auroc: 0.75                 # held-out AUROC for a concept vector to count as "caption-consistent" (§A11)
     seed: 44
+    sets: [quilt, pathgen]          # mined concept-image embedding sets (CONCH align), labels "<concept_id>:pos|neg"
+    min_per_class: 20               # fewer mined positives or negatives -> no vector (text only)
+    min_groups: 4                   # distinct videos/slides needed for a grouped held-out split
+    folds: 5                        # grouped CV folds (by video / slide) for the held-out AUROC
+    C: 1.0                          # inverse L2 strength of the logistic regression (standardized features)
+    wsi_checks: {invasion: [Invasive, InSitu], duct_confined: [InSitu, Invasive]}   # concept: [positive, negative] WSI region class
+  expected_top_class:               # BACH sanity table (plan §6.5): class expected to have the highest case mean
+    invasion: [Invasive]
+    duct_confined: [InSitu]
+    normal_lobules: [Normal]
+    benign_stroma_fat: [Normal, Benign]
+  encoder: conch                    # concept scores use the primary encoder's align space (plan §6.5)
 
 model_choice:                       # selection by patient-grouped CV inside train (§A3, §A8)
   rule: one_se
@@ -230,6 +242,7 @@ wsi:                                # annotated BACH WSIs: clean tile labels + m
   window_min_tissue_frac: 0.5
   margin_tumor_min_frac: 0.005      # strip is "tumor" when >= this fraction is annotated carcinoma; 0 = "clear"; in between = ambiguous (window skipped)
   central_tumor_min_frac: 0.005     # central_only windows need >= this carcinoma fraction inside the strips
+  strip_min_tissue_frac: 0.3        # every margin strip needs this tissue fraction, else the window is skipped (glass is not a 'clear' margin)
 
 margin:                             # simulated surgical margin read (plan §6.9, §A12)
   names: {top: superior, bottom: inferior, left: medial, right: lateral}
@@ -315,6 +328,12 @@ agent:
   stain_rules: config/stain_rules.yaml
   blocked_lanes: [surgical]         # stains are never drafted in the frozen lane (§A21)
 
+spotcheck:                          # step 08 review items (plan §5.4, CELLS_SPEC §8.1); reviews are AI or human, labeled
+  per_concept: 20                   # top-scoring test tiles per concept
+  overlays_per_class: 5             # cell overlays per class (labels pick items; never written to items.json)
+  crop_px: 256                      # crop edge in the review image (cut from the display JPEG, rescaled)
+  seed: 44
+
 hosted:                             # organizer servers, callable only inside Delta: 5-tile equivalence check (§A6)
   env_file: ~/.config/ashby-2026/model-servers.env
   conch: {url_env: CONCH_URL, key_env: CONCH_API_KEY}
@@ -337,6 +356,22 @@ cells:                              # CELLS_SPEC §9 (backend order from BUILD_P
   hard_stop: "2026-10-18T10:00:00-05:00"   # disable the module if the full run is not done by then
   types: [neoplastic, inflammatory, connective, dead, epithelial]   # PanNuke type ids 1..5 in order; contract counts keys
   overlay_colors: {neoplastic: "#B0335C", inflammatory: "#4A3B8F", connective: "#C9A227", dead: "#5A5A5A", epithelial: "#2E8BC0"}
+  features_file: config/cell_features.yaml   # feature ids, display names, units, directions, PanNuke type map
+  probe_encoder: conch              # 04a ranks tiles with oof_tile_risk on emb/<probe_encoder>/<probe_set>_<probe_head>
+  probe_set: bach512
+  probe_head: probe
+  probe_name: conch_probe_oof       # TILE_RISK_OOF `probe` column
+  weights_sha256: 789b2be8bdaf532627f584a009f83b3ba06e04c0e55c1635252ff12785ef57e8   # TIACentre/TIAToolbox_pretrained_weights @ ea909bdc
+  weights_repo: TIACentre/TIAToolbox_pretrained_weights
+  weights_revision: ea909bdcce3aa409bf436c09b4495cca90a8e99b
+  weights_license: "CC BY-NC-SA 4.0 (PanNuke-derived HoVer-Net weights); TIAToolbox code BSD-3-Clause"
+  venv: /work/nvme/bfqi/rbansal3/venvs/cells   # --system-site-packages venv (pipeline/jobs/cells_env.sh)
+  shards: 4                         # 04b processes sharing the one GPU (CPU post-processing is the bottleneck)
+  chunk_size: 50                    # tiles per backend call; a crash loses at most one chunk
+  batch_size: 16                    # TIAToolbox engine batch size
+  spike_tiles: 5                    # --spike: tiles from different cases for the AI overlay review
+  hovernet_repo: ~/src/hover_net    # fallback backend: vqdang/hover_net @ 67e2ce5e (imgaug import removed)
+  hovernet_checkpoint: /work/nvme/bfqi/teams/{team_dir}/pathqueue/weights/hovernet_fast_pannuke_type_tf2pytorch.tar
 
 paths:
   delta:

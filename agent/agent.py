@@ -4,12 +4,14 @@
     agent, info = draft(case, cfg, client=client)     # tool calling -> JSON prompt -> rules + template
 
 The deterministic engine (agent.rules) computes the draftable options for the case: deduped rule orders that passed
-the lane guard, each with an option id "<rule_id>:<order index>". The LLM may only CHOOSE among those options and write
-the rationale. Every LLM draft is validated:
-  * each chosen option id exists, appears once, and its items are a non-empty subset of that option's items;
-  * when the rules drafted anything, at least one option is chosen (the LLM cannot silently drop every order);
+the lane guard, each with an option id "<rule_id>:<order index>". The LLM only REWRITES RATIONALES: every rule order
+is always kept with all of its items (so e.g. the p63/calponin pair can never be dropped), and orders the LLM does not
+address keep the rule's template rationale. Every LLM reply is validated:
+  * each referenced option id exists and appears once; any items it lists must be rule items of that option (an
+    invented item rejects the reply; listing fewer items has no effect, the full rule items are kept);
+  * at least one rationale is rewritten (otherwise the layer adds nothing and falls back);
   * rationales are non-empty, at most RATIONALE_MAX_CHARS, use no settings summary.banned_patterns wording, and
-    quote only numbers that appear in the case findings or the option's items.
+    quote only numbers that appear in the case findings.
 Any violation, error, missing key or spent budget falls back to the next layer; the rules layer always succeeds.
 `blocked` actions always come from the rules (blocked options are never shown to the LLM).
 
@@ -20,8 +22,8 @@ Tools offered to the model (OpenAI function calling):
 The JSON-prompt fallback asks for {"orders": [{"option_id", "items", "rationale"}]} in one call.
 
 info = {"path": "tools" | "json" | "rules", "llm_calls": int, "cached": bool, "fallbacks": [reasons]} plus
-"dropped_options" (option ids the LLM chose not to draft) on the LLM paths. Tool calling ends when a reply has no
-tool calls or every option is drafted; running out of llm.agent_max_turns first is a fallback, not a success.
+"template_rationale_options" (option ids that kept the rule's template rationale) on the LLM paths. Tool calling ends
+when a reply has no tool calls or every option is addressed; running out of llm.agent_max_turns first is a fallback.
 """
 
 from __future__ import annotations
@@ -38,9 +40,9 @@ RATIONALE_MAX_CHARS = 300
 
 SYSTEM_PROMPT = (
     "You assist a pathologist with a research-prototype breast pathology worklist (simulated cases; not for clinical "
-    "use). Deterministic rules have already proposed follow-up orders as numbered options. You may only choose among "
-    "those options (you may drop items from an option, never add any) and write a one-sentence rationale per chosen "
-    "order. Orders are drafts: nothing is ordered until the pathologist approves. Never state a diagnosis as fact; say "
+    "use). Deterministic rules have already drafted follow-up orders as numbered options. Every option is kept as is; "
+    "your only job is to write a one-sentence rationale for each option (call draft_order once per option). Never "
+    "add items. Orders are drafts: nothing is ordered until the pathologist approves. Never state a diagnosis as fact; say "
     "'suggested' or 'associated with'. Quote only numbers present in the findings."
 )
 
@@ -83,7 +85,7 @@ def validate_draft(chosen: Any, options: Sequence[R.Option], findings: Sequence[
     banned = [re.compile(p, re.I) for p in cfg["summary"]["banned_patterns"]]
     allowed_numbers = [x for f in findings for x in finding_numbers(f.get("data"))]
     codes = list(cfg["summary"]["allowed_codes"]) + [it for o in options for it in o.items]
-    orders: list[dict[str, Any]] = []
+    rewritten: dict[str, str] = {}
     seen: set[str] = set()
     for entry in chosen:
         if not isinstance(entry, Mapping):
@@ -114,11 +116,12 @@ def validate_draft(chosen: Any, options: Sequence[R.Option], findings: Sequence[
         for value, decimals, percent in numbers_in_text(rationale, codes):
             if not number_supported(value, decimals, percent, allowed_numbers):
                 raise DraftInvalid(f"option {option.option_id}: rationale number {value} is not in the findings")
-        ordered_items = [i for i in option.items if i in items]   # keep rule order, drop duplicates
-        orders.append({"type": option.type, "items": ordered_items, "rule_id": option.rule_id, "rationale": rationale})
-    if options and not orders:
-        raise DraftInvalid("the rules drafted orders but none were chosen")
-    return orders
+        rewritten[option.option_id] = rationale
+    if options and not rewritten:
+        raise DraftInvalid("the LLM rewrote no rationale")
+    # Every rule order is kept with ALL its items (safety: e.g. p63/calponin can never be dropped); only the
+    # rationale of the options the LLM addressed is replaced.
+    return [R.option_order(o, rewritten.get(o.option_id)) for o in options]
 
 
 def _tool_result(name: str, findings: Sequence[Mapping[str, Any]], payload: list[dict[str, Any]]) -> Any:
@@ -206,9 +209,9 @@ def draft(case: Mapping[str, Any], cfg: Mapping[str, Any], *, rules: R.RuleSet |
         except (LumenError, ValueError) as exc:
             info["fallbacks"].append(f"{name}: {type(exc).__name__}: {exc}")
             continue
-        chosen_rules = {(o["rule_id"], o["type"]) for o in orders}
         info.update(path=name, llm_calls=client.calls - calls_before, cached=client.cache_hits > hits_before,
-                    dropped_options=[o.option_id for o in options if (o.rule_id, o.type) not in chosen_rules])
+                    template_rationale_options=[o.option_id for o, order in zip(options, orders)
+                                                if order["rationale"] == o.rationale])
         return R.agent_block(orders, blocked), info
     info.update(llm_calls=client.calls - calls_before)
     return R.agent_block(rules_orders, blocked), info

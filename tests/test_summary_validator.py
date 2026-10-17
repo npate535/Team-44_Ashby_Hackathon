@@ -65,6 +65,14 @@ def test_signs_are_ignored_but_uncited_values_are_not():
     assert S.validate([sentence("Duct confinement pushes it down (-0.12).", "F2")], FINDINGS, CFG)[0] == []
 
 
+def test_number_words_inside_a_cited_label_are_allowed():
+    findings = FINDINGS + [{"id": "F9", "kind": "concept", "data": {"concept": "normal_lobules", "contribution": -0.2,
+                                                                    "tiles": [3], "label": "Normal two-layered lobules"}}]
+    ok = sentence("Normal two-layered lobules (region 3) lower the read.", "F9")
+    assert S.validate([ok], findings, CFG)[0] == [ok]
+    assert S.validate([sentence("Two regions show lobules.", "F9")], findings, CFG)[0] == []
+
+
 def test_numbers_across_multiple_cited_findings_are_pooled():
     s = sentence("Probability 0.72; regions 5 and 6.", "F1", "F2")
     assert S.validate([s], FINDINGS, CFG)[0] == [s]

@@ -58,8 +58,8 @@ def build_tree(root: Path, *, train_views: int = 3, test_views: int = 2) -> pd.D
         noise_image(root / rel, TILE, TILE, seed=100 + k)
         rows.append(manifest_row("nct", f"{cls}-T{k}", "", None, rel, (0, 0, TILE, TILE), 0, label=cls))
     for t, dtype in enumerate(["blur", "jpeg"]):
-        rows.append(manifest_row("deg512", "BACH_0004", "test", t, "src/BACH_0004.png", (t * TILE, 0, TILE, TILE), 0,
-                                 dtype=dtype, severity=2))
+        rows.append(manifest_row("deg512", schemas.variant_case_id("BACH_0004", dtype, 2), "test", t,
+                                 "src/BACH_0004.png", (t * TILE, 0, TILE, TILE), 0, dtype=dtype, severity=2))
     df = pd.DataFrame(rows, columns=[c.name for c in schemas.EMBED_MANIFEST.columns])
     schemas.validate_frame(schemas.EMBED_MANIFEST, df)
     df.to_csv(schemas.embed_manifest_csv(root), index=False)

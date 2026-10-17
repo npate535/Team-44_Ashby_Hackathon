@@ -10,8 +10,8 @@ The LLM never sees an image: it gets the structured `findings` array only and mu
 
 Validator (a sentence is dropped when any rule fails; reasons are returned):
   * it cites no finding, or a finding ID that does not exist;
-  * it uses a spelled-out number word ("ninety", "percent", "one" ...) or a letter-digit token that is not a finding ID
-    or one of settings summary.allowed_codes (e.g. "Ki-67", "CK5/6"; "pT3", "Grade-3", "95th" are rejected);
+  * it uses a spelled-out number word ("ninety", "percent", "one" ...) or a letter-digit token that is not a finding ID,
+    part of a cited finding's own `label` (e.g. "Normal two-layered lobules"), or one of settings summary.allowed_codes (e.g. "Ki-67", "CK5/6"; "pT3", "Grade-3", "95th" are rejected);
   * a number in its text is not supported by the data of the findings it cites:
       - a decimal ("0.72", ".7") must be a rounding of a cited value at the same number of decimals;
       - a whole number ("4", "3150") must equal a cited value exactly, or round to one that is >= 10;
@@ -61,8 +61,8 @@ def findings_hash(findings: Sequence[Mapping[str, Any]]) -> str:
 # ---- numbers --------------------------------------------------------------------------------------------------------
 def _strip_codes(text: str, codes: Sequence[str]) -> str:
     text = _ID_TOKEN.sub(" ", text)
-    for code in sorted(codes, key=len, reverse=True):
-        text = re.sub(rf"(?<![\w]){re.escape(code)}(?![\w])", " ", text)
+    for code in sorted({c for c in codes if c}, key=len, reverse=True):
+        text = re.sub(rf"(?<![\w]){re.escape(code)}(?![\w])", " ", text, flags=re.I)
     return text
 
 
@@ -140,6 +140,8 @@ def check_sentence(sentence: Any, by_id: Mapping[str, Mapping[str, Any]], banned
     for pattern in banned:
         if pattern.search(text):
             return f"banned wording /{pattern.pattern}/"
+    codes = list(codes) + [str(by_id[f]["data"]["label"]) for f in cited
+                           if isinstance(by_id[f].get("data"), Mapping) and by_id[f]["data"].get("label")]
     odd = unknown_tokens(text, codes)
     if odd:
         return f"unrecognized number word or code {odd[0]!r}"
@@ -265,7 +267,8 @@ def _cells_sentence(f: Mapping[str, Any]) -> str:
 
 def _retrieval_sentence(f: Mapping[str, Any], cfg: Mapping[str, Any]) -> str:
     d = f["data"]
-    return (f"{int(d['agree'])} of {int(d['of'])} most similar reference cases share the suggested category "
+    verb = "shares" if int(d["agree"]) == 1 else "share"
+    return (f"{int(d['agree'])} of {int(d['of'])} most similar reference cases {verb} the suggested category "
             f"({_class_label(cfg, d['label'])}).")
 
 

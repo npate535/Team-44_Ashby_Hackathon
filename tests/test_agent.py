@@ -77,13 +77,15 @@ def test_tool_calling_path_uses_llm_rationales(tmp_path):
         "breast_insitu_vs_invasive:0", "breast_invasive:0"}
 
 
-def test_llm_may_choose_a_subset_of_items_in_rule_order(tmp_path):
-    choice = {**GOOD_ER, "items": ["HER2", "ER"]}
+def test_llm_cannot_drop_orders_or_items_only_rewrite_rationales(tmp_path):
+    choice = {**GOOD_ER, "items": ["HER2", "ER"]}           # fewer items and no p63/calponin option at all
     server = Server([{"content": None, "tool_calls": [tool_call("draft_order", choice)]}, {"content": "done"}])
     agent, info = A.draft(case(), CFG, rules=RULES, client=client_for(server, tmp_path))
-    assert agent["orders"] == [{"type": "stain", "items": ["ER", "HER2"], "rule_id": "breast_invasive",
-                                "rationale": GOOD_ER["rationale"]}]
-    assert info["dropped_options"] == ["breast_insitu_vs_invasive:0"] and info["llm_calls"] == 2
+    rules_agent = R.draft_orders(case(), CFG, RULES)
+    assert [(o["rule_id"], o["items"]) for o in agent["orders"]] == [(o["rule_id"], o["items"]) for o in rules_agent["orders"]]
+    assert agent["orders"][0]["rationale"] == rules_agent["orders"][0]["rationale"]      # p63/calponin kept, template text
+    assert agent["orders"][1]["rationale"] == GOOD_ER["rationale"]
+    assert info["template_rationale_options"] == ["breast_insitu_vs_invasive:0"] and info["llm_calls"] == 2
 
 
 def test_one_draft_order_per_turn_keeps_every_order(tmp_path):
@@ -91,7 +93,7 @@ def test_one_draft_order_per_turn_keeps_every_order(tmp_path):
                      {"content": None, "tool_calls": [tool_call("draft_order", GOOD_ER, "b")]}])
     agent, info = A.draft(case(), CFG, rules=RULES, client=client_for(server, tmp_path))
     assert [o["rule_id"] for o in agent["orders"]] == ["breast_insitu_vs_invasive", "breast_invasive"]
-    assert info["path"] == "tools" and info["llm_calls"] == 2 and info["dropped_options"] == []
+    assert info["path"] == "tools" and info["llm_calls"] == 2 and info["template_rationale_options"] == []
 
 
 def test_running_out_of_turns_is_a_fallback(tmp_path):
@@ -132,7 +134,7 @@ def test_dropping_every_order_is_rejected(tmp_path):
     server = Server([{"content": "done", "tool_calls": []}, {"content": json.dumps({"orders": []})}])
     agent, info = A.draft(case(), CFG, rules=RULES, client=client_for(server, tmp_path))
     assert info["path"] == "rules" and "no draft_order" in info["fallbacks"][0]
-    assert "none were chosen" in info["fallbacks"][1]
+    assert "no rationale" in info["fallbacks"][1]
     assert agent["status"] == "drafted"
 
 
@@ -156,7 +158,8 @@ def test_json_mode_flag_is_sent(tmp_path):
     agent, info = A.draft(case(), cfg, rules=RULES, client=client_for(server, tmp_path))
     assert info["path"] == "json" and server.bodies[0]["response_format"] == {"type": "json_object"}
     assert "tools" not in server.bodies[0]
-    assert [o["rule_id"] for o in agent["orders"]] == ["breast_insitu_vs_invasive"]
+    assert [o["rule_id"] for o in agent["orders"]] == ["breast_insitu_vs_invasive", "breast_invasive"]
+    assert agent["orders"][0]["rationale"] == GOOD_P63["rationale"]
 
 
 def test_replay_hits_the_cache(tmp_path):

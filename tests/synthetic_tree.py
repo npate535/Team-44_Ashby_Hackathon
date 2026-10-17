@@ -356,3 +356,57 @@ def write_bach_xml(path: Path, regions: Iterable[tuple[str, list[tuple[int, int]
 
 def rect(x0: int, y0: int, x1: int, y1: int) -> list[tuple[int, int]]:
     return [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+
+
+def write_tiles_and_embeddings(data_root: Path, cfg: Mapping[str, Any], cases: "Any", *, dim: int = 8, seed: int = 0,
+                               blank_tiles: Iterable[int] = (0,), encoder: str = "conch", set_name: str = "bach512",
+                               head: str = "probe") -> tuple["Any", np.ndarray]:
+    """tiles.csv for the contract grid (blank_tiles fail QC; tile PNGs are generated) + a TTA-mean embedding file
+    with a planted class signal: emb = noise + onehot(label) * 2 on the first dims, stronger on higher tile_idx."""
+    import pandas as pd
+
+    from core import schemas
+
+    data_root = Path(data_root)
+    grid = cfg["tiles"]["contract_grid"]
+    spec = cfg["tiles"]["grids"][grid]
+    rng = np.random.default_rng(seed)
+    classes = list(cfg["classes"])
+    rows, idx_rows, emb = [], [], []
+    for c in cases.itertuples(index=False):
+        for r in range(spec["rows"]):
+            for col in range(spec["cols"]):
+                t = r * spec["cols"] + col
+                rel = f"tiles/{grid}/{c.case_id}/{r}_{col}.png"
+                path = data_root / rel
+                path.parent.mkdir(parents=True, exist_ok=True)
+                Image.fromarray(tissue_image((spec["size"], spec["size"]), seed=t), "RGB").save(path)
+                qc = 0 if t in set(blank_tiles) else 1
+                rows.append({"case_id": c.case_id, "grid": grid, "tile_idx": t, "row": r, "col": col,
+                             "x": col * spec["size"], "y": r * spec["size"], "size": spec["size"],
+                             "tissue_frac": 0.1 if not qc else 0.9, "qc_pass": qc, "path": rel})
+                v = rng.normal(size=dim)
+                v[classes.index(c.label) % dim] += 2.0 * (1 + t / 12)
+                emb.append(v)
+                idx_rows.append({"emb_row": len(idx_rows), "item_id": f"{set_name}:{c.case_id}:{t}", "set": set_name,
+                                 "case_id": c.case_id, "split": c.split, "grid": grid, "tile_idx": t, "view": -1,
+                                 "n_views": 1, "degrade_type": "", "degrade_severity": 0, "label": "", "group": ""})
+    tiles = pd.DataFrame(rows)
+    tiles.to_csv(data_root / "tiles.csv", index=False)
+    arr = np.asarray(emb, dtype=np.float16)
+    p = schemas.emb_npy(data_root, encoder, set_name, head)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    np.save(p, arr)
+    pd.DataFrame(idx_rows).to_csv(schemas.emb_index_csv(data_root, encoder, set_name, head), index=False)
+    return tiles, arr
+
+
+def case_specs(n_train: int = 24, n_cal: int = 8, n_test: int = 8, prefix: str = "BACH",
+               classes: tuple[str, ...] = ("Normal", "Benign", "InSitu", "Invasive")) -> list[tuple[str, str, str, str]]:
+    specs, k = [], 1
+    for split, n in (("train", n_train), ("calibration", n_cal), ("test", n_test)):
+        for i in range(n):
+            lane = "surgical" if split == "test" and i % 4 == 0 else "biopsy"
+            specs.append((f"{prefix}_{k:04d}", classes[i % len(classes)], split, lane))
+            k += 1
+    return specs
