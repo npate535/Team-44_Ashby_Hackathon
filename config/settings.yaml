@@ -156,6 +156,18 @@ concepts:
   cav:
     min_auroc: 0.75                 # held-out AUROC for a concept vector to count as "caption-consistent" (§A11)
     seed: 44
+    sets: [quilt, pathgen]          # mined concept-image embedding sets (CONCH align), labels "<concept_id>:pos|neg"
+    min_per_class: 20               # fewer mined positives or negatives -> no vector (text only)
+    min_groups: 4                   # distinct videos/slides needed for a grouped held-out split
+    folds: 5                        # grouped CV folds (by video / slide) for the held-out AUROC
+    C: 1.0                          # inverse L2 strength of the logistic regression (standardized features)
+    wsi_checks: {invasion: [Invasive, InSitu], duct_confined: [InSitu, Invasive]}   # concept: [positive, negative] WSI region class
+  expected_top_class:               # BACH sanity table (plan §6.5): class expected to have the highest case mean
+    invasion: [Invasive]
+    duct_confined: [InSitu]
+    normal_lobules: [Normal]
+    benign_stroma_fat: [Normal, Benign]
+  encoder: conch                    # concept scores use the primary encoder's align space (plan §6.5)
 
 model_choice:                       # selection by patient-grouped CV inside train (§A3, §A8)
   rule: one_se
