@@ -235,6 +235,8 @@ sim:                                # backend arrival replay (plan §10)
     process: poisson
     mean_interarrival_s: 120
     seed: 44
+  hold_surgical_for_injection: true   # surgical cases arrive only via POST /api/sim/inject_surgical (plan §14 steps 3-4)
+  or_rooms: 4                       # simulated operating rooms shown on the OR board (OR-1..OR-n, from case_id)
 
 queue_sim:                          # FIFO vs tiers vs tiers+aging (plan §12; Task 11)
   reps: 1000
