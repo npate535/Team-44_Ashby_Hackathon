@@ -305,3 +305,17 @@ def test_no_secrets_or_tokens_in_job_scripts():
         text = path.read_text()
         assert "hf_" not in text.replace("hf_download", "").replace("hf_hub", ""), path
         assert "API_KEY=" not in text and "Bearer " not in text, path
+
+
+def test_job_encoder_lists_match_settings():
+    from core import config
+
+    cfg = config.load_settings()
+    extra = (REPO / "pipeline" / "jobs" / "embed_extra.sbatch").read_text()
+    margin = ",".join(cfg["encoders"]["margin_probe_encoders"])
+    assert f"--sets bach256,bach512,deg256 --max-views bach512=1 --encoders {margin}" in extra
+    core = (REPO / "pipeline" / "jobs" / "embed_core.sbatch").read_text()
+    assert f"--encoders {cfg['encoders']['primary']}" in core and f"--encoders {cfg['encoders']['agreement']}" in core
+    for name in ("embed_core", "text_cpu"):
+        body = (REPO / "pipeline" / "jobs" / f"{name}.sbatch").read_text()
+        assert "--encoders " + ",".join(cfg["encoders"]["text_aligned"]) in body

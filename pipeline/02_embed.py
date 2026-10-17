@@ -76,8 +76,10 @@ def read_manifest(path: str | Path) -> pd.DataFrame:
     return df
 
 
-def select_rows(df: pd.DataFrame, set_name: str, limit: int | None) -> pd.DataFrame:
+def select_rows(df: pd.DataFrame, set_name: str, limit: int | None, max_views: int | None = None) -> pd.DataFrame:
     rows = df[df["set"] == set_name]
+    if max_views is not None:
+        rows = rows[rows["view"] < max_views]
     if limit is not None:
         rows = rows[rows["case_id"].isin(cli.limit_case_ids(rows["case_id"], limit))]
     return rows.sort_values(["item_id", "view"], kind="stable").reset_index(drop=True)
@@ -284,8 +286,10 @@ def update_meta(root: Path, enc_info: Mapping[str, Any], cfg: Mapping[str, Any],
 # ---- engine --------------------------------------------------------------------------------------------------------------
 class Engine:
     def __init__(self, ctx: cli.StepContext, ecfg: Mapping[str, Any], device: str, *, workers: int | None,
-                 batch: int | None, precision_check: bool, log: Any = print):
+                 batch: int | None, precision_check: bool, log: Any = print,
+                 max_views: Mapping[str, int] | None = None):
         self.ctx, self.ecfg, self.device = ctx, ecfg, device
+        self.max_views = dict(max_views or {})
         self.workers = int(ecfg["engine"]["num_workers"]) if workers is None else workers
         self.batch = batch
         self.precision_check = precision_check
@@ -300,7 +304,7 @@ class Engine:
         enc: E.Encoder | None = None
         first_batch_checked = False
         for set_name in sets:
-            rows = select_rows(manifest, set_name, self.ctx.limit)
+            rows = select_rows(manifest, set_name, self.ctx.limit, self.max_views.get(set_name))
             if rows.empty:
                 report[set_name] = {"status": "no rows"}
                 continue
@@ -518,6 +522,17 @@ def parse_list(text: str | None) -> list[str]:
     return [t.strip() for t in (text or "").split(",") if t.strip()]
 
 
+def parse_max_views(text: str | None) -> dict[str, int]:
+    """'bach512=1,bach256=4' -> {set: n}: keep only views 0..n-1 of that set (e.g. bach512 view 0 for 224 encoders)."""
+    out: dict[str, int] = {}
+    for part in parse_list(text):
+        set_name, _, n = part.partition("=")
+        if set_name not in schemas.EMBED_SETS or not n.isdigit() or int(n) < 1:
+            raise ValueError(f"--max-views entries look like bach512=1, got {part!r}")
+        out[set_name] = int(n)
+    return out
+
+
 def build_parser() -> Any:
     p = cli.step_parser(STEP, "Embed manifest tiles with foundation encoders (BUILD_PLAN Task 3).")
     p.add_argument("--sets", default=None, help="comma list of embed sets (default: every set in the manifest)")
@@ -525,6 +540,7 @@ def build_parser() -> Any:
     p.add_argument("--device", default=None, help="cuda | cpu (default: cuda when available)")
     p.add_argument("--workers", type=int, default=None, help="DataLoader workers (default engine.num_workers)")
     p.add_argument("--batch-size", type=int, default=None, help="override engine.batch_size")
+    p.add_argument("--max-views", default=None, help="per-set view cap, e.g. bach512=1 (views 0..n-1 only)")
     p.add_argument("--manifest", default=None, help="manifest path (default <data-root>/embed_manifest.csv)")
     p.add_argument("--encoders-config", default=None, help="config/encoders.yaml path")
     p.add_argument("--precision-check", action="store_true", help="autocast vs fp32 cosine on the first batch")
@@ -577,7 +593,7 @@ def main(argv: Sequence[str] | None = None, log: Any = print) -> int:
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
     engine = Engine(ctx, ecfg, device, workers=args.workers, batch=args.batch_size,
-                    precision_check=args.precision_check, log=log)
+                    precision_check=args.precision_check, log=log, max_views=parse_max_views(args.max_views))
     summary: dict[str, Any] = {}
     failed = False
     for name in names:
@@ -600,7 +616,8 @@ def main(argv: Sequence[str] | None = None, log: Any = print) -> int:
     log("SUMMARY " + json.dumps(summary, default=str))
     io.write_meta(schemas.step_meta_json(root, META_STEP), step=META_STEP, cfg=ctx.cfg,
                   inputs=[manifest_path], outputs=engine.outputs, synthetic=ctx.synthetic,
-                  args={"sets": sets, "encoders": names, "limit": ctx.limit, "force": ctx.force, "device": device},
+                  args={"sets": sets, "encoders": names, "limit": ctx.limit, "force": ctx.force, "device": device,
+                        "max_views": args.max_views},
                   extra={"summary": summary, "notes": engine.notes})
     return 2 if failed else 0
 

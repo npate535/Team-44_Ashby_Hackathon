@@ -328,3 +328,13 @@ def test_env_file_parsing_and_missing_endpoints(tmp_path, cfg):
         H.endpoint(cfg, "musk", env)
     assert "abc" not in str(err.value)
     assert H.read_env_file(tmp_path / "absent.env") == {}
+
+
+def test_max_views_keeps_view_zero_only(tmp_path, fake_degrade):
+    build_tree(tmp_path)
+    assert run_embed(tmp_path, make_encoders_yaml(tmp_path), "--sets", "bach512", "--max-views", "bach512=1")[0] == 0
+    _, idx = _load(tmp_path, "bach512", "probe")
+    assert len(idx) == 16 and set(idx["n_views"]) == {1}
+    assert not schemas.emb_npy(tmp_path, "test", "bach512", "probe", views=True).exists()
+    with pytest.raises(ValueError, match="max-views"):
+        embed.parse_max_views("bach512=0")
