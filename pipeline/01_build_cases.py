@@ -257,6 +257,22 @@ def assemble_cases(photos_dir: Path, pmap: Mapping[str, int] | None, cfg: Mappin
     return df.sort_values("case_id").reset_index(drop=True)
 
 
+def check_existing_cases(root: Path, cases: pd.DataFrame, force: bool) -> None:
+    """Tiles are reused by case_id; refuse a data root whose cases.csv maps a case_id to a different photo (another
+    --bach-root or a changed split.ids seed) unless --force rewrites everything."""
+    path = schemas.cases_csv(root)
+    if force or not path.is_file():
+        return
+    old = io.read_csv(path, dtype=str, keep_default_na=False)
+    if not {"case_id", "source_file"} <= set(old.columns):
+        return
+    new = cases.set_index("case_id")["source_file"]
+    clash = [c for c, f in zip(old["case_id"], old["source_file"]) if c in new.index and new[c] != f]
+    if clash:
+        raise ValueError(f"{path} maps {len(clash)} case IDs to other photos (e.g. {clash[0]}); existing tiles would be "
+                         "stale. Use a fresh --data-root or --force.")
+
+
 def summarize(cases: pd.DataFrame, tiles: pd.DataFrame, manifest: pd.DataFrame) -> dict[str, Any]:
     qc = tiles.groupby("grid")["qc_pass"].mean().round(4).to_dict()
     return {
@@ -300,6 +316,8 @@ def main(argv: list[str] | None = None) -> int:
         cases = all_cases[all_cases["case_id"].isin(keep)].reset_index(drop=True)
 
         common.check_grid_fits(cfg, *cfg["dataset"]["image_size"])
+        check_existing_cases(root, all_cases, ctx.force)
+        nct_rows = nct_sample(nct_root, cfg, ctx.limit)  # fail fast, before the long tile pass
         tasks = [{"cfg": cfg, "data_root": str(root), "case_id": c.case_id, "image_path": c.image_path,
                   "surgical": c.lane == "surgical", "force": ctx.force} for c in cases.itertuples(index=False)]
         results = sorted(run_cases(tasks, common.worker_count(args.workers)), key=lambda r: r["case_id"])
@@ -312,7 +330,6 @@ def main(argv: list[str] | None = None) -> int:
         schemas.validate_frame(schemas.CASES, cases)
         schemas.validate_frame(schemas.TILES, tiles)
 
-        nct_rows = nct_sample(nct_root, cfg, ctx.limit)
         manifest = core_manifest(cases, tiles, nct_rows, cfg)
     except (ValueError, FileNotFoundError, KeyError) as exc:
         print(f"ERROR {STEP}: {exc}", file=sys.stderr)
