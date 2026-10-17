@@ -220,9 +220,10 @@ def fig_margin(data: Mapping[str, Any], path: Path, dpi: int) -> Path:
         ("Carcinoma images: >= 1 margin called clear", data["echo"].get("p_at_least_one_clear_margin")),
     ]
     if "composite" in data:
-        rows += [("Composites: exact-negative margin called clear", data["composite"]["exact_negative_margin_clear_rate"]),
-                 ("Composites: benign-half segments below threshold", data["composite"]["benign_half_segment_clear_rate"]),
-                 ("Composites: tumor-side margin called involved", data["composite"]["tumor_side_margin_sensitivity"])]
+        c = data["composite"]
+        rows += [("Composites: exact-negative margin called clear", c.get("exact_negative_margin_clear_rate")),
+                 ("Composites: benign-half segments below threshold", c.get("benign_half_segment_clear_rate")),
+                 ("Composites: tumor-side margin called involved", c.get("tumor_side_margin_sensitivity"))]
     if data.get("wsi_windows", {}).get("sensitivity"):
         rows += [("WSI windows: sensitivity", data["wsi_windows"]["sensitivity"]),
                  ("WSI windows: specificity", data["wsi_windows"]["specificity"])]

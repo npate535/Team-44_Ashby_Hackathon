@@ -123,6 +123,10 @@ def section_queue(q: Mapping[str, Any]) -> list[str]:
             out.append(f"\n{q['policies'].get(p, p)} vs FIFO: invasive first look {sim_fmt(v['aggressive_mean'])} min; "
                        f"**delay imposed on unflagged cases {sim_fmt(v['non_flagged_mean'])} min**; false negatives "
                        f"{sim_fmt(v['false_negative_mean'])} min.")
+    promos = q.get("aging_promotions") or {}
+    if promos:
+        out += ["", "Aging guard: share of reads promoted per day — " + "; ".join(
+            f"{q['policies'].get(k, k)} {100 * v:.1f}%" for k, v in promos.items()) + "."]
     out += ["", "Assumptions: " + "; ".join(f"{k}: {v}" for k, v in q["assumptions"].items() if k != "aging") + "."]
     return out + [""] + [f"- {n}" for n in q["notes"]] + [""]
 

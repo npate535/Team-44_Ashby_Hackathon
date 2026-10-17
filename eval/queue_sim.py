@@ -8,6 +8,9 @@ Model (every assumption is written to queue_sim.json `assumptions`):
     its real read: lane, calibrated probabilities, LAC set, risk, reliability flag and QC tile count.
   * One reader, fixed read time queue_sim.read_time_min per case, non-preemptive; the reader works past the end of
     the day until the queue is empty (overtime is reported).
+  * Sensitivity: one extra run 'tiers_aging_<name>' per settings queue_sim.aging_scenarios entry, with the aging
+    targets replaced (the configured 24/48 h targets exceed an 8 h day, so the configured guard never fires; the
+    promoted_fraction metric shows how many reads were promoted). Labelled as illustrative, never the configured system.
   * Policies (settings queue_sim.policies): fifo = arrival order; tiers = core.tiers.sort_key with now=None (static
     tiers incl. the Invasive safety rule); tiers_aging = core.tiers.sort_key with now = the reader clock (aging guard,
     settings aging). Every policy sees the SAME arrival stream in a replication (common random numbers), so policy
@@ -103,7 +106,9 @@ def simulate_day(pool: Sequence[Mapping[str, Any]], arrivals: Sequence[tuple[flo
         else:
             raise ValueError(f"unknown queue policy {policy!r}")
         queue.remove(pick)
-        out.append({"pool": pick["pool"], "arrival": pick["t"], "start": clock, "wait": clock - pick["t"]})
+        promoted = policy == "tiers_aging" and tiers.AGING_PROMOTED in tiers.assign_tier(pick["case"], cfg, clock * 60.0)[1]
+        out.append({"pool": pick["pool"], "arrival": pick["t"], "start": clock, "wait": clock - pick["t"],
+                    "promoted": promoted})
         clock += read
     return out
 
@@ -145,6 +150,7 @@ def day_metrics(records: Sequence[Mapping[str, Any]], pool: Sequence[Mapping[str
         "max_wait": _stat(waits["all"], np.max),
         "overtime": max(0.0, (max((r["start"] for r in records), default=0.0) + read) - day_end) if records else 0.0,
         "n_arrivals": float(len(records)),
+        "promoted_fraction": (sum(bool(r.get("promoted")) for r in records) / len(records)) if records else math.nan,
     }
     out.update({f"class_{c}_mean": _stat(v, np.mean) for c, v in per_class.items()})
     out.update({f"tier_{t}_mean": _stat(v, np.mean) for t, v in per_tier.items()})
@@ -159,10 +165,21 @@ def summarize(values: Sequence[float]) -> dict[str, Any]:
             "n_reps": int(len(arr))}
 
 
+def policy_runs(cfg: Mapping[str, Any]) -> dict[str, tuple[str, Mapping[str, Any]]]:
+    """Run name -> (simulate_day policy, settings to use): the configured policies, plus one sensitivity run
+    'tiers_aging_<scenario>' per settings queue_sim.aging_scenarios entry (aging targets replaced, aging enabled)."""
+    runs: dict[str, tuple[str, Mapping[str, Any]]] = {p: (p, cfg) for p in cfg["queue_sim"]["policies"]}
+    for name, targets in (cfg["queue_sim"].get("aging_scenarios") or {}).items():
+        alt = {**cfg, "aging": {**cfg["aging"], "enabled": True, "turnaround_target_min": dict(targets)}}
+        runs[f"tiers_aging_{name}"] = ("tiers_aging", alt)
+    return runs
+
+
 def simulate(pool: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any], reps: int) -> dict[str, Any]:
     q = cfg["queue_sim"]
     rate, hours, seed = float(q["arrivals_per_hour"]), float(q["day_hours"]), int(q["seed"])
-    policies = list(q["policies"])
+    runs = policy_runs(cfg)
+    policies = list(runs)
     per_policy: dict[str, list[dict[str, float]]] = {p: [] for p in policies}
     rng = random.Random(seed)
     for _ in range(reps):
@@ -172,8 +189,8 @@ def simulate(pool: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any], reps: in
             if t > hours * 60.0:
                 break
             arrivals.append((t, rng.randrange(len(pool))))
-        for policy in policies:
-            per_policy[policy].append(day_metrics(simulate_day(pool, arrivals, policy, cfg), pool, cfg))
+        for name, (policy, run_cfg) in runs.items():
+            per_policy[name].append(day_metrics(simulate_day(pool, arrivals, policy, run_cfg), pool, run_cfg))
     keys = list(per_policy[policies[0]][0]) if reps else []
     results = {p: {k: summarize([d[k] for d in days]) for k in keys} for p, days in per_policy.items()}
     if "fifo" in per_policy:
@@ -197,7 +214,7 @@ def run(ctx: cli.StepContext, reps: int | None = None) -> Any:
     aggressive = cfg["aggressive_class"]
     payload = {
         "split": "test", "n_cases": len(pool), "reps": reps,
-        "policies": {p: cfg["eval"]["queue_policies"].get(p, p) for p in q["policies"]},
+        "policies": {p: cfg["eval"]["queue_policies"].get(p, p) for p in policy_runs(cfg)},
         "assumptions": {
             "arrivals": f"Poisson, {q['arrivals_per_hour']} per hour for {q['day_hours']} h; cases drawn uniformly "
                         "with replacement from the clean test split",
@@ -219,10 +236,24 @@ def run(ctx: cli.StepContext, reps: int | None = None) -> Any:
                   "A simulation with stated assumptions, not a measured workflow outcome."],
     }
     res = payload["results"]
-    if "tiers" in res and "tiers_aging" in res and res["tiers"] == {k: v for k, v in res["tiers_aging"].items()}:
-        payload["notes"].append("The aging guard never changed the order within a simulated day: its turnaround targets "
-                                f"({dict(cfg['aging']['turnaround_target_min'])} min) exceed the "
-                                f"{q['day_hours']} h day, so tiers and tiers_aging coincide.")
+    for name, block in res.items():
+        frac = (block.get("promoted_fraction") or {}).get("mean")
+        if name.startswith("tiers_aging") and frac is not None:
+            payload["aging_promotions"] = {**payload.get("aging_promotions", {}), name: frac}
+    if (res.get("tiers_aging", {}).get("promoted_fraction") or {}).get("mean") == 0:
+        payload["notes"].append(
+            "At the configured aging targets (" + ", ".join(f"tier {t}: {m} min" for t, m in
+                                                             cfg["aging"]["turnaround_target_min"].items())
+            + f") no case waits long enough to be promoted within a {q['day_hours']} h day, so tiers and tiers_aging "
+              "coincide: the aging guard has NO measured effect here and must not be claimed to protect unflagged cases.")
+    for name in res:
+        if name.startswith("tiers_aging_") and "tiers" in res:
+            frac = (res[name].get("promoted_fraction") or {}).get("mean")
+            nf, base = (res[name].get("non_flagged_mean") or {}).get("mean"), (res["tiers"].get("non_flagged_mean") or {}).get("mean")
+            effect = (f": {100 * frac:.1f}% of reads promoted; unflagged mean wait {base:.1f} -> {nf:.1f} min vs plain tiers"
+                      if None not in (frac, nf, base) else "")
+            payload["notes"].append(f"{name} is a sensitivity run with illustrative day-scale aging targets "
+                                    f"(settings queue_sim.aging_scenarios), not the configured system{effect}.")
     out = write_eval(ctx.artifacts_root, "queue_sim", payload, cfg, ctx.synthetic)
     io.write_meta(schemas.step_meta_json(ctx.data_root, STEP), step=STEP, cfg=cfg,
                   inputs=[schemas.cases_csv(ctx.data_root), schemas.predictions_csv(ctx.data_root),

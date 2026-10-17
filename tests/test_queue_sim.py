@@ -69,7 +69,7 @@ def test_simulate_is_paired_and_deterministic():
     assert a == b
     assert a["tiers"]["aggressive_mean"]["mean"] <= a["fifo"]["aggressive_mean"]["mean"]
     assert a["tiers"]["vs_fifo"]["non_flagged_mean"]["mean"] >= 0     # the cost to non-flagged cases is reported
-    assert set(a) == set(CFG["queue_sim"]["policies"])
+    assert set(a) == set(CFG["queue_sim"]["policies"]) | {f"tiers_aging_{n}" for n in CFG["queue_sim"]["aging_scenarios"]}
 
 
 def test_run_on_the_eval_fixture(tmp_path):
@@ -84,3 +84,15 @@ def test_run_on_the_eval_fixture(tmp_path):
     for block in (fifo["aggressive_p90"], tiered["vs_fifo"]["non_flagged_mean"]):
         assert block["lo"] <= block["mean"] <= block["hi"]
     assert schemas.eval_json(tmp_path / "art", "queue_sim") == out
+
+
+def test_configured_aging_never_fires_and_the_sensitivity_run_is_labelled(tmp_path):
+    D.write_eval_root(tmp_path / "data", CFG)
+    q = io.read_json(Q.run(D.make_ctx(CFG, tmp_path / "data", tmp_path / "art"), reps=40))
+    res = q["results"]
+    assert res["tiers_aging"]["promoted_fraction"]["mean"] == 0
+    assert res["tiers_aging"]["aggressive_mean"] == res["tiers"]["aggressive_mean"]
+    assert any("NO measured effect" in n for n in q["notes"])
+    assert "tiers_aging_day_scale" in res and "Sensitivity" in q["policies"]["tiers_aging_day_scale"]
+    assert res["tiers_aging_day_scale"]["promoted_fraction"]["mean"] > 0
+    assert any("sensitivity run" in n for n in q["notes"])
