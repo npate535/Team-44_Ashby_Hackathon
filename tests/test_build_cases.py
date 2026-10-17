@@ -121,8 +121,9 @@ def test_manifest_sets_views_and_crop_boxes(run):
     types, sevs = cfg["degrade"]["types"], cfg["degrade"]["severities"]
     assert counts["bach512"] == 400 * n["g512"] * views["g512"]
     assert counts["bach256"] == 400 * n["g256"] * views["g256"]
-    assert counts["deg512"] == n_caltest * len(types) * len(sevs) * n["g512"] * views["g512"]
-    assert counts["deg256"] == n_surg * len(types) * n["g256"] * views["g256"]
+    dv = cfg["degrade"]["embed_views"]
+    assert counts["deg512"] == n_caltest * len(types) * len(sevs) * n["g512"] * dv["g512"]
+    assert counts["deg256"] == n_surg * len(types) * n["g256"] * dv["g256"]
     assert counts["nct"] == len(cfg["nct"]["classes"]) * cfg["nct"]["per_class"]
     assert man["row_id"].is_unique
     assert (man["row_id"] == man["item_id"] + "|v" + man["view"]).all()
@@ -245,3 +246,30 @@ def test_existing_cases_csv_with_other_photos_is_refused(tmp_path, run):
     cases.to_csv(schemas.cases_csv(data), index=False)
     assert build.main(argv) == 2
     assert build.main(argv + ["--force"]) == 0
+
+
+def test_degraded_view_count_is_configurable(tmp_path, run):
+    cfg_path, cfg = st.small_settings(tmp_path, **{"degrade.embed_views": {"g512": 1, "g256": 1}})
+    data = tmp_path / "data"
+    assert build.main(_argv(cfg_path, data, run["bach"], run["nct"], "--limit", "40")) == 0
+    man = pd.read_csv(schemas.embed_manifest_csv(data), dtype=str, keep_default_na=False)
+    assert set(man.loc[man["set"].isin(["deg512", "deg256"]), "view"]) == {"0"}
+    assert set(man.loc[man["set"] == "bach512", "view"].astype(int)) == set(range(cfg["encoders"]["views"]["g512"]))
+
+
+def test_manifest_only_rebuilds_without_reading_images(tmp_path, run):
+    import shutil
+
+    data = tmp_path / "data"
+    for name in ("cases.csv", "tiles.csv", "embed_manifest.csv"):
+        shutil.copy(run["data"] / name, data / name) if data.exists() else (data.mkdir(), shutil.copy(run["data"] / name, data / name))
+    cfg_path, cfg = st.small_settings(tmp_path, **{"degrade.embed_views": {"g512": 2, "g256": 1}})
+    # no tiles/ or photos needed: point --bach-root nowhere
+    assert build.main(["--config", str(cfg_path), "--data-root", str(data), "--bach-root", str(tmp_path / "x"),
+                       "--nct-root", str(run["nct"]), "--manifest-only"]) == 0
+    man = pd.read_csv(schemas.embed_manifest_csv(data), dtype=str, keep_default_na=False)
+    assert set(man.loc[man["set"] == "deg512", "view"]) == {"0", "1"}
+    ref = run["manifest"]
+    pd.testing.assert_frame_equal(man[man["set"] == "bach512"].reset_index(drop=True),
+                                  ref[ref["set"] == "bach512"].reset_index(drop=True))
+    assert not (data / "tiles").exists()

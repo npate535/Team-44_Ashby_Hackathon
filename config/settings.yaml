@@ -110,6 +110,9 @@ nct:                                # cross-organ concept sanity check (plan §5
     pleomorphism: [TUM]
     benign_stroma_fat: [STR, ADI]
 
+caption_mining:                     # Quilt-1M / PathGen concept images (§A11; pipeline/mine_captions.py, Agent 1)
+  file: config/caption_mining.yaml  # draft synonym lists; caption co-mention != tissue truth
+
 encoders:                           # model loading details live in config/encoders.yaml (Task 3)
   priority: [conch, musk, uni2h, hoptimus0, virchow2, phikonv2, pathgenclip]   # §A8 order
   primary: conch                    # concepts, retrieval, OOD
@@ -212,6 +215,7 @@ degrade:                            # simulated frozen-section artifacts (plan �
     stain: {alpha: [0.05, 0.10, 0.20], beta: [0.01, 0.03, 0.06]}   # HED jitter: c' = c * (1 + a) + b, a~U(-alpha,alpha), b~U(-beta,beta)
     resample: {factor: [2, 4, 8]}                           # downsample by factor, then upsample back (bicubic)
   display_severity: 3               # degraded display JPEGs for test-surgical cases
+  embed_views: {g512: 1, g256: 1}   # ruling M9: deg512/deg256 at view 0 only; compared against clean view-0 reads (_views files), never TTA means
 
 composites:                         # margin localization test fields (§A12)
   n: 64
@@ -220,12 +224,25 @@ composites:                         # margin localization test fields (§A12)
   seed: 44
 
 wsi:                                # annotated BACH WSIs: clean tile labels + margin windows (§A9)
-  mpp: 0.467
+  mpp: 0.467                        # fallback when an XML lacks MicronsPerPixel (XMLs say 0.466667; SVS header says 0.5)
   target_mpp: 0.42
   min_label_purity: 0.9
   window: [2048, 1536]
   folds: 5
   seed: 44
+  paint_order: [Benign, InSitu, Invasive]          # mask codes 1..3; later classes overwrite earlier (nested regions keep the more severe label)
+  label_patterns: {Benign: benign, InSitu: in situ, Invasive: invasive}   # case-insensitive substring of the region label, checked in paint_order
+  tile_grids: [g512, g256]          # labeled tile sets wsi512 / wsi256 (tile edge = the grid's size at target_mpp)
+  max_tiles_per_class_per_wsi: {g512: 150, g256: 300}   # seeded cap per (slide, class, grid) to bound embed_aux
+  tile_min_tissue_frac: 0.5         # labeled tiles also need this tissue fraction (qc thresholds)
+  mask_downsample: 4                # label mask rasterized at the slide level closest to this downsample (~1.9 µm)
+  tissue_downsample: 16             # tissue mask level for window screening
+  windows_per_stratum: 4            # per slide and stratum (edge_tumor / central_only / none), seeded, non-overlapping
+  window_stride_frac: 0.5           # candidate window lattice stride as a fraction of the window size
+  window_min_tissue_frac: 0.5
+  margin_tumor_min_frac: 0.005      # strip is "tumor" when >= this fraction is annotated carcinoma; 0 = "clear"; in between = ambiguous (window skipped)
+  central_tumor_min_frac: 0.005     # central_only windows need >= this carcinoma fraction inside the strips
+  strip_min_tissue_frac: 0.3        # every margin strip needs this tissue fraction, else the window is skipped (glass is not a 'clear' margin)
 
 margin:                             # simulated surgical margin read (plan §6.9, §A12)
   names: {top: superior, bottom: inferior, left: medial, right: lateral}
@@ -309,6 +326,12 @@ agent:
   stain_rules: config/stain_rules.yaml
   blocked_lanes: [surgical]         # stains are never drafted in the frozen lane (§A21)
 
+spotcheck:                          # step 08 review items (plan §5.4, CELLS_SPEC §8.1); reviews are AI or human, labeled
+  per_concept: 20                   # top-scoring test tiles per concept
+  overlays_per_class: 5             # cell overlays per class (labels pick items; never written to items.json)
+  crop_px: 256                      # crop edge in the review image (cut from the display JPEG, rescaled)
+  seed: 44
+
 hosted:                             # organizer servers, callable only inside Delta: 5-tile equivalence check (§A6)
   env_file: ~/.config/ashby-2026/model-servers.env
   conch: {url_env: CONCH_URL, key_env: CONCH_API_KEY}
@@ -331,6 +354,22 @@ cells:                              # CELLS_SPEC §9 (backend order from BUILD_P
   hard_stop: "2026-10-18T10:00:00-05:00"   # disable the module if the full run is not done by then
   types: [neoplastic, inflammatory, connective, dead, epithelial]   # PanNuke type ids 1..5 in order; contract counts keys
   overlay_colors: {neoplastic: "#B0335C", inflammatory: "#4A3B8F", connective: "#C9A227", dead: "#5A5A5A", epithelial: "#2E8BC0"}
+  features_file: config/cell_features.yaml   # feature ids, display names, units, directions, PanNuke type map
+  probe_encoder: conch              # 04a ranks tiles with oof_tile_risk on emb/<probe_encoder>/<probe_set>_<probe_head>
+  probe_set: bach512
+  probe_head: probe
+  probe_name: conch_probe_oof       # TILE_RISK_OOF `probe` column
+  weights_sha256: 789b2be8bdaf532627f584a009f83b3ba06e04c0e55c1635252ff12785ef57e8   # TIACentre/TIAToolbox_pretrained_weights @ ea909bdc
+  weights_repo: TIACentre/TIAToolbox_pretrained_weights
+  weights_revision: ea909bdcce3aa409bf436c09b4495cca90a8e99b
+  weights_license: "CC BY-NC-SA 4.0 (PanNuke-derived HoVer-Net weights); TIAToolbox code BSD-3-Clause"
+  venv: /work/nvme/bfqi/rbansal3/venvs/cells   # --system-site-packages venv (pipeline/jobs/cells_env.sh)
+  shards: 4                         # 04b processes sharing the one GPU (CPU post-processing is the bottleneck)
+  chunk_size: 50                    # tiles per backend call; a crash loses at most one chunk
+  batch_size: 16                    # TIAToolbox engine batch size
+  spike_tiles: 5                    # --spike: tiles from different cases for the AI overlay review
+  hovernet_repo: ~/src/hover_net    # fallback backend: vqdang/hover_net @ 67e2ce5e (imgaug import removed)
+  hovernet_checkpoint: /work/nvme/bfqi/teams/{team_dir}/pathqueue/weights/hovernet_fast_pannuke_type_tf2pytorch.tar
 
 paths:
   delta:
