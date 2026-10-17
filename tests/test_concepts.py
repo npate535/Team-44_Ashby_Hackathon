@@ -195,3 +195,31 @@ def test_limit_and_missing_inputs(fake, tmp_path):
     assert _features(fake)["source_case_id"].nunique() <= 12
     empty = Fake(tmp_path / "empty")
     assert run(C, empty)[0] == 2
+
+
+def test_chain_02_embed_03_text_04_concepts_on_the_cpu_test_encoder(tmp_path, monkeypatch):
+    """Real file formats end to end: 02_embed writes emb/test/*, 03_text writes text/test.npz, 04_concepts reads both."""
+    from tests.embed_helpers import build_tree, make_encoders_yaml, run_embed
+
+    monkeypatch.setenv("PATHOLOGY_TEST_ADAPTER_DELAY_S", "0")
+    monkeypatch.setattr("pipeline.degrade.apply", lambda image, *a, **k: image)
+    root = tmp_path / "root"
+    f = Fake(root)
+    cases = f.cases().head(4).copy()
+    cases["case_id"] = ["BACH_0001", "BACH_0002", "BACH_0003", "BACH_0004"]
+    cases["split"] = ["train", "train", "calibration", "test"]
+    cases.to_csv(schemas.cases_csv(root), index=False)
+    tiles = f.tiles(cases)
+    tiles = tiles[tiles["tile_idx"] < 4]
+    tiles.to_csv(schemas.tiles_csv(root), index=False)
+    build_tree(root)
+    ecfg = make_encoders_yaml(tmp_path)
+    assert run_embed(root, ecfg, "--sets", "bach512,deg512,nct")[0] == 0
+    T = importlib.import_module("pipeline.03_text")
+    assert T.main(["--data-root", str(root), "--encoders", "test", "--device", "cpu", "--encoders-config", str(ecfg)],
+                  log=lambda s: None) == 0
+    code, log = run(C, f, "--encoder", "test")
+    assert code == 0, log
+    feats = _features(f)
+    assert set(feats.loc[feats["variant"] == "clean", "case_id"]) == set(cases["case_id"])
+    assert (feats["variant"] == "degraded").sum() == 2
