@@ -23,7 +23,27 @@ if ! curl -sSf --max-time 20 -o /dev/null https://zenodo.org/api/records/3632035
     echo "NO_INTERNET_ON_COMPUTE_NODE"
     exit 3
 fi
-curl -sSfL -C - --retry 5 -o ICIAR2018_BACH_Challenge.zip "$URL"
+# Zenodo serves ~3 MB/s per connection, so fetch 8 byte ranges in parallel (each resumable), then join.
+SIZE=10419148291
+PARTS=8
+CHUNK=$(( (SIZE + PARTS - 1) / PARTS ))
+if [[ ! -f ICIAR2018_BACH_Challenge.zip ]] || ! echo "$MD5  ICIAR2018_BACH_Challenge.zip" | md5sum -c - >/dev/null 2>&1; then
+    rm -f ICIAR2018_BACH_Challenge.zip
+    for i in $(seq 0 $((PARTS - 1))); do
+        start=$(( i * CHUNK )); end=$(( start + CHUNK - 1 )); (( end >= SIZE )) && end=$(( SIZE - 1 ))
+        want=$(( end - start + 1 ))
+        (
+            have=$(stat -c %s "part.$i" 2>/dev/null || echo 0)
+            while (( have < want )); do
+                curl -sSfL --retry 5 -r "$(( start + have ))-$end" "$URL" >> "part.$i" || sleep 5
+                have=$(stat -c %s "part.$i")
+            done
+        ) &
+    done
+    wait
+    cat $(for i in $(seq 0 $((PARTS - 1))); do echo "part.$i"; done) > ICIAR2018_BACH_Challenge.zip
+    rm -f part.*
+fi
 echo "$MD5  ICIAR2018_BACH_Challenge.zip" | md5sum -c -
 unzip -q -n ICIAR2018_BACH_Challenge.zip -d "$DEST"
 find "$DEST" -maxdepth 3 -type d | head -30
