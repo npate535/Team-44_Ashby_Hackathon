@@ -3,6 +3,9 @@
 An AI-prioritized pathology worklist with explainable, confidence-aware case reads.
 Built for the 2026 Ashby Prize Hackathon (NCSA Delta, Sat–Sun Oct 17–18, 2026).
 
+**Companion spec:** `CELLS_SPEC.md` adds cell segmentation (nuclei counts, nuclear size and shape
+variation, immune cells near tumor) behind the `cells.enabled` flag. Read it after this file.
+
 **Scope: breast cancer, using the BACH dataset.** We validate the workflow on one organ and
 build it so another organ can be added by swapping configuration (Section 17).
 
@@ -349,6 +352,10 @@ never claimed as biological causes, and never presented as a Nottingham grade.
   in Invasive, `duct_confined` in InSitu, `normal_lobules` in Normal) plus the manual spot check
   from 5.4. Write `eval/concepts_bach.json`.
 
+### 6.5b Cell segmentation (see `CELLS_SPEC.md`)
+Optional, behind `cells.enabled`. Steps `04a_select_tiles.py`, `04b_cells.py` (GPU job),
+`04c_cell_features.py` produce measured cell features that 6.6 can add to the concept bottleneck.
+
 ### 6.6 `05_risk_model.py`
 Train on the train split, tune on calibration, report on test.
 - **Model A — black-box ceiling:** logistic regression on mean-pooled CONCH tile embeddings
@@ -443,6 +450,7 @@ case view.
                     "differs_most_in": ["invasion"]},
   "agreement": {"conch_musk_same_top": true, "neighbor_agreement": 0.8},
   "margin": null,
+  "cells": {"status": "disabled"},
   "flag": {"flagged": true, "tier": 2, "reasons": ["aggressive_in_conformal_set", "set_size_gt_1"]},
   "findings": [
     {"id": "F1", "kind": "prediction", "data": {"top": "Invasive", "p": 0.72, "set": ["InSitu", "Invasive"]}},
@@ -590,6 +598,7 @@ leave margin). Demo freeze **Sun ~15:30**; final presentation before 17:00.
 | M2 | Hand-written fixture JSON + backend skeleton + worklist UI against fixture | app | worklist renders and sorts the fixture |
 | M3 | Cases/tiles built; CONCH+MUSK tile embeddings done | model | `.npy` files aligned with `tiles.csv` (Sat evening) |
 | M4 | Prompt embeddings; concept scores; NCT-CRC concept check | model | `eval/concepts.json` |
+| M4c | Cell segmentation C0–C3 (`CELLS_SPEC.md` §10); disable if not done by Sun 10:00 | model | `eval/cells.json` or flag off |
 | M5 | Risk models A/B, calibration, conformal, retrieval | model | metrics JSON + test predictions (Sun morning) |
 | M6 | Reliability/degradation experiment; margin read | model | reliability curve + margin fields |
 | M7 | Case JSONs + cached summaries + agent drafts; copied to laptop | model + agent | `artifacts/cases/*.json` validate against the contract |
