@@ -579,8 +579,9 @@ def build_smoke_manifest(cfg: Mapping[str, Any], ecfg: Mapping[str, Any], nct_di
                         rows.append(row("bach512", case_id, "test", "g512", tile, path, box, view))
                     if deg_ok and tile == 0:
                         for dtype in cfg["degrade"]["types"]:
-                            rows.append(row("deg512", case_id, "test", "g512", tile, path, box, 0, dtype=dtype,
-                                            severity=int(cfg["degrade"]["severities"][-1])))
+                            sev = int(cfg["degrade"]["severities"][-1])
+                            rows.append(row("deg512", schemas.variant_case_id(case_id, dtype, sev), "test", "g512",
+                                            tile, path, box, 0, dtype=dtype, severity=sev))
             n_bach += 1
     if not n_bach:
         notes.append(f"no readable BACH images under {[str(d) for d in bach_dirs]}")
