@@ -85,3 +85,14 @@ def test_cli_refuses_fixtures_and_skips_existing(tmp_path, capsys):
     assert len(list((out / "cases").glob("*.json"))) == n + 1
     meta = json.loads((out / "meta" / "dev_cases.json").read_text())
     assert meta["synthetic"] is True
+
+
+def test_with_eval_writes_synthetic_eval_files(tmp_path):
+    out = tmp_path / "dev"
+    dev_cases.build_dev_cases(CFG, out, fill=0, mean_interarrival_s=5, seed=44, fixtures=FIXTURES, with_eval=True)
+    names = {p.stem for p in (out / "eval").glob("*.json")}
+    assert {"metrics", "calibration", "conformal", "concepts", "reliability", "retrieval", "queue_sim"} <= names
+    assert names <= set(schemas.EVAL_FILES)
+    for p in (out / "eval").glob("*.json"):
+        data = json.loads(p.read_text())
+        assert data["synthetic"] is True and data["name"] == p.stem

@@ -9,6 +9,7 @@ Writes an artifacts-root layout under --out (default artifacts/dev, git-ignored)
     images/*.jpg            generated striped placeholders labeled SYNTHETIC (non-tissue), incl. reference cases
     cells/*_overlay.png     generated dot-pattern overlays in the cells.overlay_colors
     spotcheck/items.json    spot-check items (core.schemas.SPOTCHECK_ITEMS) + generated crops
+    eval/*.json             only with --with-eval: made-up metrics (synthetic: true) for Metrics-page development
     meta/dev_cases.json     provenance (core.io.write_meta, synthetic: true)
 
 Cases are derived from fixtures/demo_0001.json (biopsy) and demo_0002.json (surgical) and cover the plan §14 demo
@@ -297,7 +298,7 @@ def build_case(base: Mapping[str, Any], scenario: Mapping[str, Any], case_id: st
 
 
 def build_dev_cases(cfg: Mapping[str, Any], out: Path, *, fill: int, mean_interarrival_s: float, seed: int,
-                    fixtures: Path) -> list[Path]:
+                    fixtures: Path, with_eval: bool = False) -> list[Path]:
     """Write the dev case set under `out`; returns the case JSON paths."""
     biopsy_base = io.read_json(schemas.fixture_case_json(fixtures, "demo_0001"))
     surgical_base = io.read_json(schemas.fixture_case_json(fixtures, "demo_0002"))
@@ -344,6 +345,8 @@ def build_dev_cases(cfg: Mapping[str, Any], out: Path, *, fill: int, mean_intera
         t += mean_interarrival_s
         written.append(_write(build_case(surgical_base, scenario, case_id, t, cfg, refs), out, cfg))
     _spotcheck(cfg, out, [io.read_json(p) for p in written])
+    if with_eval:
+        _dev_eval(cfg, out, seed)
     return written
 
 
@@ -384,10 +387,52 @@ def _spotcheck(cfg: Mapping[str, Any], out: Path, cases: Sequence[Mapping[str, A
     io.write_json(schemas.spotcheck_items_json(out), {"created_utc": io.utc_now(), "synthetic": True, "items": items})
 
 
+def _ci(rng: random.Random, est: float, half: float, n: int, groups: int) -> dict[str, Any]:
+    est = round(est, 3)
+    return {"estimate": est, "lo": round(est - half * (0.8 + 0.4 * rng.random()), 3),
+            "hi": round(est + half * (0.8 + 0.4 * rng.random()), 3), "ci": 0.95, "n": n, "n_groups": groups}
+
+
+def _dev_eval(cfg: Mapping[str, Any], out: Path, seed: int) -> None:
+    """Made-up eval JSONs in the documented Task 11 shapes (estimate/lo/hi/n), labeled synthetic: UI development only."""
+    rng = random.Random(seed)
+    env = {"synthetic": True, "created_utc": io.utc_now(), "note": "dev_cases sample: made-up numbers for UI work"}
+    n, g = 132, 60
+    files = {
+        "metrics": {"auroc_invasive": {"model_a": _ci(rng, 0.93, 0.04, n, g), "model_b": _ci(rng, 0.90, 0.05, n, g)},
+                    "production": {"macro_f1": _ci(rng, 0.78, 0.07, n, g), "balanced_accuracy": _ci(rng, 0.79, 0.07, n, g)},
+                    "insitu_invasive_confusions": {"insitu_as_invasive": 6, "invasive_as_insitu": 4}},
+        "calibration": {"before": {"ece": _ci(rng, 0.11, 0.03, n, g),
+                                   "bins": [{"confidence": c, "accuracy": round(min(1, c * 0.82 + 0.04), 3), "n": 13}
+                                            for c in (0.15, 0.3, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95)]},
+                        "after": {"ece": _ci(rng, 0.05, 0.02, n, g),
+                                  "bins": [{"confidence": c, "accuracy": round(min(1, c * 0.97 + 0.01), 3), "n": 13}
+                                           for c in (0.15, 0.3, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95)]}},
+        "conformal": {"lac": {"coverage": _ci(rng, 0.91, 0.05, n, g), "mean_set_size": _ci(rng, 1.4, 0.15, n, g)},
+                      "aps": {"coverage": _ci(rng, 0.93, 0.04, n, g), "mean_set_size": _ci(rng, 1.7, 0.2, n, g)}},
+        "concepts": {"auroc": {k: _ci(rng, v, 0.04, 300, 300) for k, v in
+                               (("lymphocytes", 0.94), ("necrosis", 0.81), ("pleomorphism", 0.77),
+                                ("benign_stroma_fat", 0.88))}},
+        "reliability": {"accuracy_by_severity": {t: [{"severity": s, "accuracy": _ci(rng, 0.8 - 0.09 * s * w, 0.06, 20, 15)}
+                                                     for s in (0, 1, 2, 3)]
+                                                 for t, w in (("blur", 1.0), ("jpeg", 0.5), ("stain", 0.7),
+                                                              ("resample", 0.9))},
+                        "error_auroc": _ci(rng, 0.74, 0.08, 240, 15)},
+        "retrieval": {"precision_at_5": _ci(rng, 0.71, 0.06, n, g)},
+        "queue_sim": {"policies": {p: {"aggressive_first_look_min": {"mean": _ci(rng, v, v * 0.15, 1000, 1000)}}
+                                   for p, v in (("fifo", 46.0), ("tiers", 14.0), ("tiers_aging", 15.5))},
+                      "assumptions": ["Poisson arrivals", "one reader, fixed read time", "made-up dev numbers"]},
+    }
+    for name, payload in files.items():
+        io.write_json(schemas.eval_json(out, name), {"name": name, **env, **payload})
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = cli.step_parser("backend.dev_cases", "Synthetic contract-valid cases for UI development and e2e tests.")
     parser.add_argument("--out", default="artifacts/dev", help="output artifacts root (default artifacts/dev)")
     parser.add_argument("--fill", type=int, default=6, help="extra routine biopsies (default 6)")
+    parser.add_argument("--with-eval", action="store_true",
+                        help="also write made-up eval JSONs (synthetic: true) for Metrics-page development")
     parser.add_argument("--mean-interarrival-s", type=float, default=None,
                         help="mean biopsy inter-arrival on the simulator clock (default settings sim.arrival)")
     args = parser.parse_args(argv)
@@ -405,7 +450,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     mean = args.mean_interarrival_s if args.mean_interarrival_s is not None else \
         float(cfg["sim"]["arrival"]["mean_interarrival_s"])
     written = build_dev_cases(cfg, out, fill=args.fill, mean_interarrival_s=mean,
-                              seed=int(cfg["sim"]["arrival"]["seed"]), fixtures=fixtures)
+                              seed=int(cfg["sim"]["arrival"]["seed"]), fixtures=fixtures, with_eval=args.with_eval)
     io.write_meta(out / "meta" / "dev_cases.json", step="backend.dev_cases", cfg=cfg,
                   inputs=[schemas.fixture_case_json(fixtures, "demo_0001"), schemas.fixture_case_json(fixtures,
                                                                                                      "demo_0002")],
