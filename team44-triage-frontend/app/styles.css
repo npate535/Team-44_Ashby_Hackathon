@@ -1,0 +1,74 @@
+:root{--bg:#f4f3f8;--sf:#fff;--ink:#1f1b33;--mut:#6a6684;--ln:#dedbea;--hema:#4b3a8f;--eos:#d9467a;--eosl:#fbe3ec;--amb:#b7791f;--ambl:#fbf0d9;--grn:#2f7d5b;--grnl:#dff2e9;--bl:#e8e5f4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15131f;--sf:#1e1b2c;--ink:#ece9f7;--mut:#9a95b8;--ln:#352f4d;--hema:#a698f0;--eos:#f0709e;--eosl:#3a1d2b;--amb:#e5b45c;--ambl:#372c15;--grn:#5cc79a;--grnl:#173226;--bl:#2a2542}}
+:root[data-theme="dark"]{--bg:#15131f;--sf:#1e1b2c;--ink:#ece9f7;--mut:#9a95b8;--ln:#352f4d;--hema:#a698f0;--eos:#f0709e;--eosl:#3a1d2b;--amb:#e5b45c;--ambl:#372c15;--grn:#5cc79a;--grnl:#173226;--bl:#2a2542}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans","Segoe UI",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--hema);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto;padding:16px}
+.mock{background:var(--ambl);color:var(--amb);border:1px solid var(--amb);border-radius:6px;padding:8px 12px;font-size:13px;margin-bottom:14px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px}
+h1{font:600 24px/1.2 "Iowan Old Style","Palatino Linotype",Georgia,serif;margin:0;letter-spacing:-.01em}
+.clock{font-size:13px;color:var(--mut)}
+nav{display:flex;gap:4px;border-bottom:1px solid var(--ln);margin-bottom:16px}
+nav button{background:none;border:0;border-bottom:3px solid transparent;padding:8px 14px;color:var(--mut);font-weight:500}
+nav button[aria-selected=true]{color:var(--hema);border-color:var(--hema)}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.seg{display:inline-flex;border:1px solid var(--ln);border-radius:8px;overflow:hidden;background:var(--sf)}
+.seg button{background:none;border:0;padding:7px 14px;color:var(--mut)}
+.seg button[aria-pressed=true]{background:var(--hema);color:#fff}
+.note{font-size:13px;color:var(--mut)}
+.tblw{overflow-x:auto;background:var(--sf);border:1px solid var(--ln);border-radius:10px}
+table{width:100%;border-collapse:collapse;min-width:820px}
+th{text-align:left;font-weight:500;font-size:13px;color:var(--mut);padding:9px 12px;border-bottom:1px solid var(--ln)}
+td{padding:10px 12px;border-bottom:1px solid var(--ln);vertical-align:middle}
+tr.row{cursor:pointer;transition:background .15s}
+tr.row:hover,tr.row:focus-visible{background:var(--bl)}
+tr:last-child td{border-bottom:0}
+.tier{display:inline-block;padding:2px 9px;border-radius:99px;font-size:13px;font-weight:500;border:1px solid}
+.t-urgent{background:var(--eosl);color:var(--eos);border-color:var(--eos)}
+.t-unsure{background:var(--ambl);color:var(--amb);border-color:var(--amb)}
+.t-quality{background:var(--bl);color:var(--hema);border-color:var(--hema)}
+.t-routine{background:none;color:var(--mut);border-color:var(--ln)}
+.sub{font-size:12px;color:var(--mut)}
+.timer{font-weight:600}
+.timer.hot{color:var(--eos)}
+.pbar{height:5px;background:var(--bl);border-radius:3px;margin-top:4px;width:90px}
+.pbar i{display:block;height:100%;border-radius:3px;background:var(--hema)}
+.pbar i.hot{background:var(--eos)}
+.aged{font-size:12px;color:var(--eos);font-weight:600}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:10px;padding:16px}
+.grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+h2{font:600 18px/1.3 "Iowan Old Style","Palatino Linotype",Georgia,serif;margin:0 0 8px}
+h3{font-size:14px;font-weight:600;margin:16px 0 6px}
+.back{background:none;border:0;color:var(--hema);padding:0;margin-bottom:10px;font-weight:500}
+.mos{display:grid;grid-template-columns:repeat(16,1fr);gap:2px}
+.mos i{aspect-ratio:1;border-radius:2px}
+.legend{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mut);margin-top:6px}
+.legend b{display:inline-block;width:80px;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--bl),var(--eos))}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--bl);border-radius:6px;padding:3px 9px;font-size:13px}
+.look{display:flex;gap:6px}
+.look div{flex:1;text-align:center;font-size:12px;color:var(--mut)}
+.look i{display:block;aspect-ratio:1;border-radius:4px;margin-bottom:3px}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed var(--ln)}
+.kv:last-child{border:0}
+.act{border:1px solid var(--ln);border-radius:8px;padding:10px;margin-bottom:8px}
+.act.off{opacity:.5;text-decoration:line-through}
+.act.blk{border-color:var(--amb);background:var(--ambl)}
+.act b{font-weight:600}
+.btn{border:1px solid var(--ln);background:var(--sf);border-radius:7px;padding:5px 12px;font-size:13px}
+.btn.p{background:var(--hema);color:#fff;border-color:var(--hema)}
+.btn.d{border-color:var(--eos);color:var(--eos)}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.verdict{margin-top:10px;padding:8px 12px;border-radius:8px;background:var(--grnl);color:var(--grn);font-size:14px}
+.or{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.steps{display:flex;gap:4px;margin:10px 0}
+.steps span{flex:1;height:6px;border-radius:3px;background:var(--bl)}
+.steps span.on{background:var(--hema)}
+.steps span.done{background:var(--grn)}
+.big{font:600 32px/1 "Iowan Old Style",Georgia,serif}
+.quiet{color:var(--mut);font-size:13px;margin-top:18px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
