@@ -10,9 +10,14 @@ The LLM never sees an image: it gets the structured `findings` array only and mu
 
 Validator (a sentence is dropped when any rule fails; reasons are returned):
   * it cites no finding, or a finding ID that does not exist;
-  * a number in its text does not appear in the data of the findings it cites. Text "0.72" matches a value that
-    rounds to it at the same number of decimals; "72%" matches 0.72 (x 100) or 72; signs are ignored; finding IDs
-    and alphanumeric tokens such as "Ki-67" or "CK5/6" are not numbers; "3,150" is 3150;
+  * it uses a spelled-out number word ("ninety", "percent", "one" ...) or a letter-digit token that is not a finding ID
+    or one of settings summary.allowed_codes (e.g. "Ki-67", "CK5/6"; "pT3", "Grade-3", "95th" are rejected);
+  * a number in its text is not supported by the data of the findings it cites:
+      - a decimal ("0.72", ".7") must be a rounding of a cited value at the same number of decimals;
+      - a whole number ("4", "3150") must equal a cited value exactly, or round to one that is >= 10;
+      - a percentage ("72%") must be a rounding of 100 x a cited value (or equal a cited value >= 1);
+      - counts and indices (keys tiles, agree, of, qc_tiles_kept, min_tiles_kept) support only whole numbers, never
+        decimals or percentages; signs are ignored; "3,150" is 3150;
   * it matches a settings summary.banned_patterns regex (no diagnosis stated as fact, no causal claims);
   * it is not a {"text": str, "findings": [str]} object.
 At most summary.max_sentences survivors are kept; fewer than summary.min_valid_sentences => the template.
@@ -38,8 +43,13 @@ MARGIN_ORDER = ("superior", "inferior", "medial", "lateral")
 NARRATIVE = ("prediction", "concept_up", "concept_down", "cells", "retrieval", "quality", "margin")
 
 _ID_TOKEN = re.compile(r"\bF[1-9][0-9]*\b")
-_ALNUM_TOKEN = re.compile(r"\b[A-Za-z]+[-/]?\d[\w/\-]*")
-_NUMBER = re.compile(r"(?<![\w.])(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?(\s*%)?")
+_HYBRID = re.compile(r"[A-Za-z][-/]?\d|\d[A-Za-z]")
+_NUMBER_WORD = re.compile(
+    r"\b(zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|"
+    r"seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|"
+    r"percent|percentage|half|quarter|dozen|once|twice)\b", re.I)
+_NUMBER = re.compile(r"(?<![\w.])(?:(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?|\.(\d+))(\s*%)?")
+COUNT_KEYS = frozenset({"tiles", "agree", "of", "qc_tiles_kept", "min_tiles_kept"})
 
 
 # ---- hashing ------------------------------------------------------------------------------------------------------
@@ -49,37 +59,61 @@ def findings_hash(findings: Sequence[Mapping[str, Any]]) -> str:
 
 
 # ---- numbers --------------------------------------------------------------------------------------------------------
-def numbers_in_text(text: str) -> list[tuple[float, int, bool]]:
-    """(value, decimals, is_percent) for every number in `text` (finding IDs and alphanumeric codes excluded)."""
-    cleaned = _ALNUM_TOKEN.sub(" ", _ID_TOKEN.sub(" ", text))
+def _strip_codes(text: str, codes: Sequence[str]) -> str:
+    text = _ID_TOKEN.sub(" ", text)
+    for code in sorted(codes, key=len, reverse=True):
+        text = re.sub(rf"(?<![\w]){re.escape(code)}(?![\w])", " ", text)
+    return text
+
+
+def unknown_tokens(text: str, codes: Sequence[str] = ()) -> list[str]:
+    """Number words and letter-digit tokens that are neither finding IDs nor allowed codes."""
+    cleaned = _strip_codes(text, codes)
+    bad = [m.group(0) for m in _NUMBER_WORD.finditer(cleaned)]
+    bad += [w for w in re.split(r"[\s,;:()\[\]]+", cleaned) if w and _HYBRID.search(w)]
+    return bad
+
+
+def numbers_in_text(text: str, codes: Sequence[str] = ()) -> list[tuple[float, int, bool]]:
+    """(value, decimals, is_percent) for every number in `text` (finding IDs and allowed codes excluded)."""
     out = []
-    for match in _NUMBER.finditer(cleaned):
-        whole, frac, pct = match.group(1).replace(",", ""), match.group(2), match.group(3)
+    for match in _NUMBER.finditer(_strip_codes(text, codes)):
+        whole, frac, lead, pct = match.group(1), match.group(2), match.group(3), match.group(4)
+        if lead is not None:
+            whole, frac = "0", lead
+        whole = whole.replace(",", "")
         value = float(f"{whole}.{frac}") if frac else float(whole)
         out.append((value, len(frac) if frac else 0, bool(pct)))
     return out
 
 
-def finding_numbers(obj: Any) -> list[float]:
-    """Every numeric value inside a finding's data (recursively; booleans excluded), as absolute values."""
+def finding_numbers(obj: Any, key: str | None = None) -> list[tuple[float, bool]]:
+    """(absolute value, is_count) for every number in a finding's data (recursively; booleans excluded).
+    Values under COUNT_KEYS are counts/indices."""
     if isinstance(obj, bool) or obj is None:
         return []
     if isinstance(obj, (int, float)):
-        return [abs(float(obj))]
+        return [(abs(float(obj)), key in COUNT_KEYS)]
     if isinstance(obj, Mapping):
-        return [x for v in obj.values() for x in finding_numbers(v)]
+        return [x for k, v in obj.items() for x in finding_numbers(v, str(k))]
     if isinstance(obj, (list, tuple)):
-        return [x for v in obj for x in finding_numbers(v)]
+        return [x for v in obj for x in finding_numbers(v, key)]
     return []
 
 
-def number_supported(value: float, decimals: int, percent: bool, allowed: Sequence[float]) -> bool:
-    """True when the text number is a rounding of an allowed value (or of 100x it, for percentages)."""
+def number_supported(value: float, decimals: int, percent: bool, allowed: Sequence[tuple[float, bool]]) -> bool:
+    """True when a text number is supported by an allowed (value, is_count) pair (rules in the module docstring)."""
     tol = 0.5 * 10.0 ** (-decimals) + 1e-9
-    for x in allowed:
-        if abs(x - value) <= tol:
-            return True
-        if percent and abs(100.0 * x - value) <= tol:
+    for x, is_count in allowed:
+        if percent:
+            if is_count:
+                continue
+            if abs(100.0 * x - value) <= tol or (x >= 1.0 and abs(x - value) <= tol):
+                return True
+        elif decimals == 0:
+            if abs(x - value) <= 1e-9 or (not is_count and x >= 10.0 and abs(x - value) <= tol):
+                return True
+        elif not is_count and abs(x - value) <= tol:
             return True
     return False
 
@@ -89,7 +123,8 @@ def _banned(cfg: Mapping[str, Any]) -> list[re.Pattern[str]]:
     return [re.compile(p, re.I) for p in cfg["summary"]["banned_patterns"]]
 
 
-def check_sentence(sentence: Any, by_id: Mapping[str, Mapping[str, Any]], banned: Sequence[re.Pattern[str]]) -> str | None:
+def check_sentence(sentence: Any, by_id: Mapping[str, Mapping[str, Any]], banned: Sequence[re.Pattern[str]],
+                   codes: Sequence[str] = ()) -> str | None:
     """Reason the sentence is invalid, or None when it passes."""
     if not isinstance(sentence, Mapping) or not isinstance(sentence.get("text"), str) or not sentence["text"].strip():
         return "not a {text, findings} object"
@@ -105,8 +140,11 @@ def check_sentence(sentence: Any, by_id: Mapping[str, Mapping[str, Any]], banned
     for pattern in banned:
         if pattern.search(text):
             return f"banned wording /{pattern.pattern}/"
+    odd = unknown_tokens(text, codes)
+    if odd:
+        return f"unrecognized number word or code {odd[0]!r}"
     allowed = [x for f in cited for x in finding_numbers(by_id[f].get("data"))]
-    for value, decimals, percent in numbers_in_text(text):
+    for value, decimals, percent in numbers_in_text(text, codes):
         if not number_supported(value, decimals, percent, allowed):
             shown = f"{value:.{decimals}f}{'%' if percent else ''}"
             return f"number {shown} is not in the cited findings"
@@ -118,10 +156,11 @@ def validate(sentences: Any, findings: Sequence[Mapping[str, Any]], cfg: Mapping
     """(kept, dropped): kept sentences as {"text", "findings"} (at most summary.max_sentences), dropped with reasons."""
     by_id = {f["id"]: f for f in findings}
     banned = _banned(cfg)
+    codes = list(cfg["summary"]["allowed_codes"])
     kept: list[dict[str, Any]] = []
     dropped: list[dict[str, Any]] = []
     for sentence in sentences if isinstance(sentences, list) else []:
-        reason = check_sentence(sentence, by_id, banned)
+        reason = check_sentence(sentence, by_id, banned, codes)
         if reason is not None:
             dropped.append({"text": str(sentence.get("text", "")) if isinstance(sentence, Mapping) else str(sentence),
                             "reason": reason})
@@ -311,7 +350,14 @@ SYSTEM_PROMPT = (
 )
 
 
+GROUND_TRUTH_KEYS = frozenset({"true_label", "eval_only", "split", "group", "patient_id"})
+
+
 def build_messages(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]) -> list[dict[str, str]]:
+    """Findings-only prompt. Raises ValueError if a finding carries a ground-truth-like key (defensive)."""
+    leaked = sorted({k for f in findings for k in (f.get("data") or {}) if k in GROUND_TRUTH_KEYS})
+    if leaked:
+        raise ValueError(f"findings must not carry ground truth keys {leaked}")
     payload = {
         "prompt_version": cfg["summary"]["prompt_version"],
         "classes": {c: cfg["ui"]["class_labels"].get(c, c) for c in cfg["classes"]},
@@ -350,9 +396,10 @@ def generate(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any], *, c
                                                  "reason": "llm disabled"}
     from agent.lumen import LumenError
 
+    messages = build_messages(findings, cfg)
     calls_before = client.calls
     try:
-        reply = client.chat(build_messages(findings, cfg), json_mode=bool(cfg["llm"]["json_mode"]))
+        reply = client.chat(messages, json_mode=bool(cfg["llm"]["json_mode"]))
         sentences = parse_reply(reply["content"])
     except (LumenError, ValueError) as exc:
         info["llm_calls"] = client.calls - calls_before

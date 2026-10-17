@@ -19,7 +19,9 @@ Tools offered to the model (OpenAI function calling):
     draft_order(option_id, items, rationale) -> records one chosen order
 The JSON-prompt fallback asks for {"orders": [{"option_id", "items", "rationale"}]} in one call.
 
-info = {"path": "tools" | "json" | "rules", "llm_calls": int, "cached": bool, "fallbacks": [reasons]}.
+info = {"path": "tools" | "json" | "rules", "llm_calls": int, "cached": bool, "fallbacks": [reasons]} plus
+"dropped_options" (option ids the LLM chose not to draft) on the LLM paths. Tool calling ends when a reply has no
+tool calls or every option is drafted; running out of llm.agent_max_turns first is a fallback, not a success.
 """
 
 from __future__ import annotations
@@ -73,13 +75,14 @@ def _options_payload(options: Sequence[R.Option], rules: R.RuleSet) -> list[dict
 def validate_draft(chosen: Any, options: Sequence[R.Option], findings: Sequence[Mapping[str, Any]],
                    cfg: Mapping[str, Any]) -> list[dict[str, Any]]:
     """Contract orders from an LLM choice list [{"option_id", "items", "rationale"}]; raises DraftInvalid."""
-    from backend.summary import finding_numbers, number_supported, numbers_in_text
+    from backend.summary import finding_numbers, number_supported, numbers_in_text, unknown_tokens
 
     if not isinstance(chosen, list):
         raise DraftInvalid("orders must be a list")
     by_id = {o.option_id: o for o in options}
     banned = [re.compile(p, re.I) for p in cfg["summary"]["banned_patterns"]]
     allowed_numbers = [x for f in findings for x in finding_numbers(f.get("data"))]
+    codes = list(cfg["summary"]["allowed_codes"]) + [it for o in options for it in o.items]
     orders: list[dict[str, Any]] = []
     seen: set[str] = set()
     for entry in chosen:
@@ -105,9 +108,11 @@ def validate_draft(chosen: Any, options: Sequence[R.Option], findings: Sequence[
         rationale = " ".join(rationale.split())
         if any(p.search(rationale) for p in banned):
             raise DraftInvalid(f"option {option.option_id}: rationale uses banned wording")
-        item_numbers = [float(n) for it in option.items for n in re.findall(r"\d+(?:\.\d+)?", it)]
-        for value, decimals, percent in numbers_in_text(rationale):
-            if not number_supported(value, decimals, percent, allowed_numbers + item_numbers):
+        odd = unknown_tokens(rationale, codes)
+        if odd:
+            raise DraftInvalid(f"option {option.option_id}: rationale has an unrecognized number word or code {odd[0]!r}")
+        for value, decimals, percent in numbers_in_text(rationale, codes):
+            if not number_supported(value, decimals, percent, allowed_numbers):
                 raise DraftInvalid(f"option {option.option_id}: rationale number {value} is not in the findings")
         ordered_items = [i for i in option.items if i in items]   # keep rule order, drop duplicates
         orders.append({"type": option.type, "items": ordered_items, "rule_id": option.rule_id, "rationale": rationale})
@@ -133,10 +138,13 @@ def _draft_with_tools(client: Any, findings: Sequence[Mapping[str, Any]], option
                                     "order to draft. Reply 'done' when finished."},
     ]
     chosen: list[dict[str, Any]] = []
+    all_ids = {o.option_id for o in options}
+    finished = False
     for _ in range(int(cfg["llm"]["agent_max_turns"])):
         reply = client.chat(messages, tools=TOOLS, tool_choice="auto")
         calls = reply.get("tool_calls") or []
         if not calls:
+            finished = True
             break
         messages.append({"role": "assistant", "content": reply.get("content") or "", "tool_calls": calls})
         for call in calls:
@@ -152,10 +160,13 @@ def _draft_with_tools(client: Any, findings: Sequence[Mapping[str, Any]], option
             else:
                 result = _tool_result(str(name), findings, payload)
             messages.append({"role": "tool", "tool_call_id": call.get("id", ""), "content": json.dumps(result)})
-        if chosen and all((c.get("function") or {}).get("name") == "draft_order" for c in calls):
+        if all_ids <= {str(c.get("option_id")) for c in chosen}:
+            finished = True          # every option drafted: no need to spend a call on "done"
             break
     if not chosen:
         raise DraftInvalid("no draft_order tool call")
+    if not finished:
+        raise DraftInvalid(f"tool calling did not finish within llm.agent_max_turns={cfg['llm']['agent_max_turns']}")
     return validate_draft(chosen, options, findings, cfg)
 
 
@@ -195,7 +206,9 @@ def draft(case: Mapping[str, Any], cfg: Mapping[str, Any], *, rules: R.RuleSet |
         except (LumenError, ValueError) as exc:
             info["fallbacks"].append(f"{name}: {type(exc).__name__}: {exc}")
             continue
-        info.update(path=name, llm_calls=client.calls - calls_before, cached=client.cache_hits > hits_before)
+        chosen_rules = {(o["rule_id"], o["type"]) for o in orders}
+        info.update(path=name, llm_calls=client.calls - calls_before, cached=client.cache_hits > hits_before,
+                    dropped_options=[o.option_id for o in options if (o.rule_id, o.type) not in chosen_rules])
         return R.agent_block(orders, blocked), info
     info.update(llm_calls=client.calls - calls_before)
     return R.agent_block(rules_orders, blocked), info

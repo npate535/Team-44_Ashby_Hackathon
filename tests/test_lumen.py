@@ -179,3 +179,33 @@ def test_probe_cost_is_uncached(tmp_path):
     lumen.probe_cost(client)
     lumen.probe_cost(client)
     assert client.calls == 2 and not list((tmp_path / "cache").rglob("*.json"))
+
+
+def test_auth_errors_and_echoed_tokens_never_reach_the_message(tmp_path):
+    class Echo(FakeServer):
+        def __call__(self, request):
+            if request.url.path.endswith("/chat/completions"):
+                status = self.replies.pop(0)
+                return httpx.Response(status, text=f"bad key {SECRET} token abcdefghijklmnopqrstuvwxyz123456")
+            return super().__call__(request)
+
+    for status in (401, 400):
+        client, _ = make_client(Echo(replies=[status]), tmp_path)
+        with pytest.raises(lumen.LumenError) as info:
+            client.chat([{"role": "user", "content": "x"}])
+        assert SECRET not in str(info.value) and "abcdefghijklmnopqrstuvwxyz123456" not in str(info.value)
+
+
+def test_truncated_or_empty_replies_are_not_cached(tmp_path):
+    class Trunc(FakeServer):
+        def __call__(self, request):
+            if request.url.path.endswith("/chat/completions"):
+                self.requests.append(request)
+                return httpx.Response(200, json={"choices": [{"message": {"content": ""}, "finish_reason": "length"}]})
+            return super().__call__(request)
+
+    server = Trunc()
+    client, _ = make_client(server, tmp_path)
+    client.chat([{"role": "user", "content": "x"}])
+    client.chat([{"role": "user", "content": "x"}])
+    assert client.calls == 2 and client.cache_hits == 0 and not list((tmp_path / "cache").rglob("*.json"))

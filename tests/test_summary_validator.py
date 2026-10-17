@@ -71,14 +71,28 @@ def test_numbers_across_multiple_cited_findings_are_pooled():
 
 
 def test_percent_and_decimal_forms_are_consistent():
-    assert S.numbers_in_text("72% and 0.72 and 3,150 and F12 and Ki-67") == [(72.0, 0, True), (0.72, 2, False),
-                                                                             (3150.0, 0, False)]
-    assert S.number_supported(72, 0, True, [0.72])
-    assert S.number_supported(72, 0, True, [72.0])
-    assert not S.number_supported(72, 0, False, [0.72])        # "72" without % is not 0.72
-    assert S.number_supported(0.7, 1, False, [0.72])
-    assert not S.number_supported(0.70, 2, False, [0.72])
-    assert S.number_supported(3150, 0, False, [3150.0])
+    assert S.numbers_in_text("72% and 0.72 and 3,150 and F12 and Ki-67 and .5", codes=["Ki-67"]) == [
+        (72.0, 0, True), (0.72, 2, False), (3150.0, 0, False), (0.5, 1, False)]
+    v = [(0.72, False)]
+    assert S.number_supported(72, 0, True, v)
+    assert S.number_supported(72, 0, True, [(72.0, False)])
+    assert not S.number_supported(72, 0, False, v)        # "72" without % is not 0.72
+    assert S.number_supported(0.7, 1, False, v)
+    assert not S.number_supported(0.70, 2, False, v)
+    assert not S.number_supported(1, 0, False, v)         # a whole number never rounds a probability
+    assert S.number_supported(3150, 0, False, [(3150.4, False)])
+    assert not S.number_supported(5, 0, True, [(5.0, True)])     # "5%" is not tile index 5
+    assert S.number_supported(5, 0, False, [(5.0, True)])
+    assert not S.number_supported(0.5, 1, False, [(0.5, True)])  # counts never support decimals
+
+
+@pytest.mark.parametrize("text", [
+    "Probability of .99 here.", "probability-0.99 here.", "ER-90% expected.", "Grade-3 features.", "pT3 disease.",
+    "ninety-nine percent likely.", "Probability 1 for invasive carcinoma.", "5% of the tissue.", "The 95th percentile.",
+])
+def test_reviewer_bypasses_are_rejected(text):
+    kept, dropped = S.validate([sentence(text, "F1", "F2")], FINDINGS, CFG)
+    assert kept == [], f"{text!r} should be dropped"
 
 
 def test_validator_caps_sentences_and_dedupes_citations():
@@ -223,6 +237,13 @@ def test_generate_prompt_contains_findings_only(tmp_path):
     assert set(payload) == {"prompt_version", "classes", "aggressive_class", "findings"}
     text = json.dumps(messages)
     assert "true_label" not in text and "eval_only" not in text and ".jpg" not in text
+
+
+def test_prompt_refuses_ground_truth_keys():
+    leaky = copy.deepcopy(FINDINGS)
+    leaky[0]["data"]["true_label"] = "Invasive"
+    with pytest.raises(ValueError, match="ground truth"):
+        S.build_messages(leaky, CFG)
 
 
 def test_generate_falls_back_when_too_few_valid_sentences(tmp_path):

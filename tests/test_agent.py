@@ -79,10 +79,27 @@ def test_tool_calling_path_uses_llm_rationales(tmp_path):
 
 def test_llm_may_choose_a_subset_of_items_in_rule_order(tmp_path):
     choice = {**GOOD_ER, "items": ["HER2", "ER"]}
-    server = Server([{"content": None, "tool_calls": [tool_call("draft_order", choice)]}])
-    agent, _ = A.draft(case(), CFG, rules=RULES, client=client_for(server, tmp_path))
+    server = Server([{"content": None, "tool_calls": [tool_call("draft_order", choice)]}, {"content": "done"}])
+    agent, info = A.draft(case(), CFG, rules=RULES, client=client_for(server, tmp_path))
     assert agent["orders"] == [{"type": "stain", "items": ["ER", "HER2"], "rule_id": "breast_invasive",
                                 "rationale": GOOD_ER["rationale"]}]
+    assert info["dropped_options"] == ["breast_insitu_vs_invasive:0"] and info["llm_calls"] == 2
+
+
+def test_one_draft_order_per_turn_keeps_every_order(tmp_path):
+    server = Server([{"content": None, "tool_calls": [tool_call("draft_order", GOOD_P63, "a")]},
+                     {"content": None, "tool_calls": [tool_call("draft_order", GOOD_ER, "b")]}])
+    agent, info = A.draft(case(), CFG, rules=RULES, client=client_for(server, tmp_path))
+    assert [o["rule_id"] for o in agent["orders"]] == ["breast_insitu_vs_invasive", "breast_invasive"]
+    assert info["path"] == "tools" and info["llm_calls"] == 2 and info["dropped_options"] == []
+
+
+def test_running_out_of_turns_is_a_fallback(tmp_path):
+    lookups = [{"content": None, "tool_calls": [tool_call("lookup_rules", {}, f"l{i}")]}
+               for i in range(CFG["llm"]["agent_max_turns"] - 1)]
+    server = Server(lookups + [{"content": None, "tool_calls": [tool_call("draft_order", GOOD_P63)]}, 400])
+    agent, info = A.draft(case(), CFG, rules=RULES, client=client_for(server, tmp_path))
+    assert info["path"] == "rules" and "did not finish" in info["fallbacks"][0]
 
 
 @pytest.mark.parametrize("bad,why", [
@@ -96,6 +113,7 @@ def test_llm_may_choose_a_subset_of_items_in_rule_order(tmp_path):
 def test_violations_fall_back_to_json_then_rules(tmp_path, bad, why):
     server = Server([
         {"content": None, "tool_calls": [tool_call("draft_order", bad)]},
+        {"content": "done"},
         {"content": json.dumps({"orders": [bad]})},
     ])
     agent, info = A.draft(case(), CFG, rules=RULES, client=client_for(server, tmp_path))

@@ -11,7 +11,7 @@ header and is never printed, logged, cached or put in an exception message. Base
 Model: the first of settings llm.model_preference present in the live GET /models listing (listing is free).
 
 Cache: <cache_dir>/<model>/<sha256>.json keyed by (model, the exact request: messages, tools, tool_choice,
-json_mode, max_tokens, temperature). A cache hit costs no call. Because prompts embed the case findings, any change to
+json_mode, max_tokens, temperature). A cache hit costs no call. Truncated (finish_reason "length") or empty replies are never cached, so a rerun can recover. Because prompts embed the case findings, any change to
 the findings is a cache miss: with the budget spent, callers fall back to templates instead of stale text.
 
 Reasoning models (ornith-1.0-35b) spend part of max_tokens on hidden reasoning (~150 tokens even for a trivial
@@ -49,6 +49,7 @@ from core import io
 log = logging.getLogger(__name__)
 
 RETRY_STATUS = (408, 409, 429, 500, 502, 503, 504)
+_TOKENISH = re.compile(r"(sk-[A-Za-z0-9_\-]{6,}|[A-Za-z0-9_\-]{24,})")
 
 
 class LumenError(RuntimeError):
@@ -249,7 +250,8 @@ class LumenClient:
             raise LumenError("malformed /chat/completions response (no choices[0].message)") from None
         reply = {"content": message.get("content"), "tool_calls": list(message.get("tool_calls") or []),
                  "usage": data.get("usage") or {}, "finish_reason": data["choices"][0].get("finish_reason")}
-        if path is not None:
+        cacheable = reply["finish_reason"] != "length" and (bool(reply["content"]) or bool(reply["tool_calls"]))
+        if path is not None and cacheable:
             io.write_json(path, {"model": body["model"], "prompt_hash": key, "created_utc": io.utc_now(),
                                  "reply": reply})
         self.log.append({"model": body["model"], "prompt_hash": key, "cached": False, "usage": reply["usage"]})
@@ -271,13 +273,21 @@ class LumenClient:
                         return response.json()
                     except ValueError:
                         raise LumenError("non-JSON /chat/completions response") from None
+                if response.status_code in (401, 403):
+                    raise LumenError(f"/chat/completions returned HTTP {response.status_code} (authentication)")
                 if response.status_code not in RETRY_STATUS:
                     raise LumenError(f"/chat/completions returned HTTP {response.status_code}: "
-                                     f"{_short(response.text)}")
+                                     f"{self._redact(_short(response.text))}")
                 last = f"HTTP {response.status_code}"
             if attempt < self.retries:
                 self._sleep(2.0 ** attempt)
         raise LumenError(f"/chat/completions failed after {self.retries + 1} attempts ({last})")
+
+    def _redact(self, text: str) -> str:
+        """Server text with the key and anything token-shaped removed (error messages must never carry the key)."""
+        if self._key:
+            text = text.replace(self._key, "[redacted]")
+        return _TOKENISH.sub("[redacted]", text)
 
     def close(self) -> None:
         self._http.close()
