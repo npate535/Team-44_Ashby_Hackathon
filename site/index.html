@@ -1,0 +1,1300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PathQueue</title>
+<meta name="description" content="Team 44's build plan for PathQueue: an AI-prioritized pathology worklist with explainable, confidence-aware case reads, built for the 2026 Ashby Prize Hackathon.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Caveat:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Schibsted+Grotesk:wght@600;800&family=UnifrakturMaguntia&display=swap">
+<style>
+/* Layout: a blackletter "Updated File" stamp across the top, then an accession-sheet rail (clocks + contents)
+   beside one reading column; the rail stacks above on phones.
+   Palette: the plan's own visual language. Ink, paper, hematoxylin purple for the biopsy lane, eosin pink for the surgical lane. */
+:root {
+  --paper: #F5F2EC;
+  --panel: #FBF9F5;
+  --ink: #1B1A2E;
+  --muted: #5F5A6E;
+  --rule: #E0DBD1;
+  --hema: #4A3B8F;
+  --eosin: #B0335C;
+  --danger: #B42318;
+  --caution: #9A5806;
+  --ok: #22744A;
+  --quiet: #5B6170;
+  --code-bg: #EDE9E1;
+  --display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --gothic: "UnifrakturMaguntia", "Old English Text MT", "Goudy Text MT", serif;
+  /* The whiteboard is a physical object: it stays white in both themes, on purpose. */
+  --wb-surface: #F6F7F8;
+  --wb-glare: #FFFFFF;
+  --wb-shade: #E9EBEE;
+  --wb-frame: #BFC4CB;
+  --wb-frame-edge: #9AA0A8;
+  --wb-inner-shadow: rgba(30, 35, 45, 0.12);
+  --wb-marker: #E6E8EC;
+  --mk-black: #1B1A2E;
+  --mk-pink: #B0335C;
+  --mk-purple: #4A3B8F;
+  --mk-red: #D23636;
+  --mk-orange: #D97706;
+  --mk-green: #1F8049;
+  --mk-gray: #6B7180;
+  color-scheme: light;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #15131F; --panel: #1C1A28; --ink: #EEEAF4; --muted: #ABA5BD; --rule: #2E2B3D;
+    --hema: #ACA1F2; --eosin: #F08AB0; --danger: #F97066; --caution: #F5B44A; --ok: #5FD39A;
+    --quiet: #A3A9B8; --code-bg: #241F33; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #15131F; --panel: #1C1A28; --ink: #EEEAF4; --muted: #ABA5BD; --rule: #2E2B3D;
+  --hema: #ACA1F2; --eosin: #F08AB0; --danger: #F97066; --caution: #F5B44A; --ok: #5FD39A;
+  --quiet: #A3A9B8; --code-bg: #241F33; color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 1rem; line-height: 1.6; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+
+/* Updated File stamp */
+.stamp {
+  border-bottom: 1px solid var(--rule);
+  padding-block: 1.6rem 1.3rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.stamp-inner { max-width: 78rem; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.4rem 1.5rem; }
+.stamp h2 { font-family: var(--gothic); font-weight: 400; font-size: clamp(2.6rem, 7vw, 4.2rem); line-height: 1; letter-spacing: 0.01em; color: var(--ink); margin: 0; }
+.stamp .meta { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+
+.shell {
+  display: grid; grid-template-columns: 16.5rem minmax(0, 1fr); gap: 3.5rem;
+  max-width: 78rem; margin: 0 auto;
+  padding-block: 2.5rem 5rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { min-width: 0; max-width: 48rem; }
+
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(2.4rem, 5vw, 3.4rem); font-weight: 800; letter-spacing: -0.025em; }
+h2 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.01em; }
+h3 { font-size: 1.15rem; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--hema); text-underline-offset: 0.18em; }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--eosin); outline-offset: 2px; border-radius: 3px; }
+strong { font-weight: 700; }
+code, .mono { font-family: var(--mono); font-size: 0.88em; }
+ul, ol { margin: 0; padding-left: 1.25rem; display: grid; gap: 0.4rem; }
+li { max-width: 68ch; }
+
+.eyebrow { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--eosin); }
+.lede { font-size: 1.2rem; }
+.muted { color: var(--muted); }
+.small { font-size: 0.9rem; }
+
+/* Rail */
+.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 1.5rem); align-self: start; max-height: calc(100vh - 3rem); overflow-y: auto; display: grid; gap: 2rem; padding-bottom: 1rem; }
+.rail h2 { font-size: 0.75rem; font-family: var(--mono); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.75rem; }
+.clocks { display: grid; gap: 0.85rem; }
+.clock { display: grid; gap: 0.1rem; padding-bottom: 0.85rem; border-bottom: 1px solid var(--rule); }
+.clock:last-child { border-bottom: 0; padding-bottom: 0; }
+.clock .what { font-weight: 700; font-size: 0.92rem; line-height: 1.3; }
+.clock .when { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+.clock .left { font-family: var(--mono); font-size: 0.85rem; font-variant-numeric: tabular-nums; color: var(--eosin); font-weight: 500; }
+.clock .left.passed { color: var(--muted); }
+.toc { list-style: none; padding: 0; gap: 0.1rem; font-size: 0.92rem; }
+.toc a { display: block; padding: 0.18rem 0; text-decoration: none; color: var(--ink); }
+.toc a:hover { color: var(--hema); }
+.toc .num { display: inline-block; width: 1.7rem; font-family: var(--mono); color: var(--muted); font-size: 0.8rem; }
+
+/* Header */
+.masthead { display: grid; gap: 1.1rem; padding-bottom: 2.5rem; }
+.status { display: flex; gap: 0.75rem; align-items: baseline; padding: 0.8rem 1rem; border: 1px dashed var(--muted); border-radius: 10px; font-size: 0.95rem; }
+.status b { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+
+/* Lane colors */
+.lane-s { color: var(--eosin); }
+.lane-b { color: var(--hema); }
+
+/* Sections */
+section { display: grid; gap: 1.1rem; padding-block: 2.75rem; border-top: 1px solid var(--rule); scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 1rem); }
+.sub { display: grid; gap: 0.8rem; padding-top: 0.6rem; }
+.section-head { display: grid; gap: 0.35rem; }
+
+/* Tables */
+.tw { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; line-height: 1.45; }
+th { text-align: left; font-family: var(--mono); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 0.7rem 0.85rem; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+td { padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 700; }
+table.wide { min-width: 40rem; }
+
+/* Cards */
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.quad { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.card { display: grid; gap: 0.6rem; align-content: start; padding: 1.15rem; background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; min-width: 0; }
+.card.surgical { border-top: 4px solid var(--eosin); }
+.card.biopsy { border-top: 4px solid var(--hema); }
+.card ul { font-size: 0.95rem; }
+.answers { display: flex; flex-wrap: wrap; gap: 0.45rem; list-style: none; padding: 0; }
+.answers li { font-size: 0.85rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; border: 1.5px solid currentColor; }
+.answers .a-ok { color: var(--ok); }
+.answers .a-bad { color: var(--danger); }
+.answers .a-defer { color: var(--caution); }
+
+/* Tiers */
+.tiers { list-style: none; padding: 0; display: grid; gap: 0.6rem; }
+.tiers li { display: grid; grid-template-columns: 2.4rem minmax(0, 1fr); gap: 0.9rem; align-items: start; padding: 0.85rem 1rem; background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; max-width: none; }
+.tiers .n { font-family: var(--display); font-weight: 800; font-size: 1.5rem; line-height: 1; width: 2.4rem; height: 2.4rem; border-radius: 50%; border: 2px solid currentColor; display: grid; place-items: center; }
+.t1 { color: var(--eosin); }
+.t2 { color: var(--danger); }
+.t3 { color: var(--caution); }
+.t4 { color: var(--quiet); }
+.tiers strong { color: var(--ink); }
+.callout { padding: 0.9rem 1.1rem; border-radius: 10px; border: 1.5px solid var(--danger); font-size: 0.95rem; }
+.callout b { color: var(--danger); }
+.note { padding: 0.9rem 1.1rem; border-radius: 10px; background: color-mix(in srgb, var(--hema) 9%, transparent); font-size: 0.95rem; }
+
+/* Whiteboard */
+.wb { display: grid; gap: 0.85rem; margin: 0; }
+.wb-frame {
+  border: 10px solid var(--wb-frame); border-radius: 8px;
+  background: linear-gradient(118deg, var(--wb-glare) 0%, var(--wb-surface) 36%, var(--wb-glare) 50%, var(--wb-surface) 68%, var(--wb-shade) 100%);
+  box-shadow: inset 0 0 0 1px var(--wb-frame-edge), inset 0 2px 12px var(--wb-inner-shadow);
+}
+.wb-scroll { overflow-x: auto; }
+.wb-scroll svg { display: block; width: 100%; min-width: 640px; height: auto; }
+.hand { font-family: "Caveat", "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive; }
+.wb-tray { height: 12px; margin: -2px 7% 0; background: var(--wb-frame); border-radius: 0 0 6px 6px; display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 0 18px; }
+.wb-tray .mk { width: 58px; height: 9px; border-radius: 5px; background: linear-gradient(90deg, var(--wb-marker) 0 72%, var(--cap) 72% 100%); transform: translateY(-6px); }
+.wb-tray .mk.black { --cap: var(--mk-black); }
+.wb-tray .mk.pink { --cap: var(--mk-pink); }
+.wb-tray .mk.purple { --cap: var(--mk-purple); }
+.wb-tray .mk.red { --cap: var(--mk-red); }
+.wb-legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; font-size: 0.9rem; color: var(--muted); }
+.wb-legend .sw { display: inline-block; width: 1.4rem; height: 0.32rem; border-radius: 2px; background: var(--c); margin-right: 0.45rem; vertical-align: middle; }
+.wb-legend .sw.black { --c: var(--ink); }
+.wb-legend .sw.pink { --c: var(--eosin); }
+.wb-legend .sw.purple { --c: var(--hema); }
+.wb-legend .sw.red { --c: var(--danger); }
+.origin { display: grid; grid-template-columns: 14rem minmax(0, 1fr); gap: 1.1rem; align-items: center; }
+.origin img { border-radius: 8px; border: 1px solid var(--rule); display: block; }
+
+/* Flow lists */
+ol.steps { gap: 0.55rem; }
+.pipeline { list-style: none; padding: 0; display: grid; gap: 0.45rem; }
+.pipeline li { display: grid; grid-template-columns: 3.2rem minmax(0, 1fr); gap: 0.8rem; max-width: none; font-size: 0.95rem; }
+.pipeline .k { font-family: var(--mono); font-size: 0.8rem; color: var(--eosin); padding-top: 0.15rem; }
+.states { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.5rem; font-family: var(--mono); font-size: 0.82rem; }
+.states span { padding: 0.15rem 0.5rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel); }
+.states i { font-style: normal; color: var(--muted); }
+.swatches { display: flex; flex-wrap: wrap; gap: 0.75rem; list-style: none; padding: 0; }
+.swatches li { display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; }
+.swatches .chip { width: 1.6rem; height: 1.6rem; border-radius: 6px; border: 1px solid var(--rule); }
+.todo { list-style: none; padding: 0; gap: 0.45rem; }
+.code { background: var(--code-bg); border-radius: 10px; padding: 1rem 1.1rem; overflow-x: auto; font-family: var(--mono); font-size: 0.8rem; line-height: 1.5; color: var(--ink); margin: 0; }
+details { border: 1px solid var(--rule); border-radius: 10px; background: var(--panel); }
+details > summary { cursor: pointer; padding: 0.75rem 1rem; font-weight: 700; }
+details[open] > summary { border-bottom: 1px solid var(--rule); }
+details .code { border-radius: 0 0 10px 10px; }
+
+footer { padding-top: 2rem; border-top: 1px solid var(--rule); font-size: 0.85rem; color: var(--muted); display: grid; gap: 0.4rem; }
+
+@media (max-width: 960px) {
+  .shell { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+  .rail { position: static; max-height: none; overflow: visible; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+}
+@media (max-width: 720px) {
+  .rail { grid-template-columns: minmax(0, 1fr); }
+  .toc { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .toc a { padding: 0.25rem 0.6rem; border: 1px solid var(--rule); border-radius: 999px; font-size: 0.85rem; }
+  .toc .num { width: auto; margin-right: 0.3rem; }
+  .pair, .quad, .origin { grid-template-columns: minmax(0, 1fr); }
+  .origin img { max-width: 20rem; }
+}
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<header class="stamp">
+  <div class="stamp-inner">
+    <h2>Updated File</h2>
+    <span class="meta">PathQueue build plan · supersedes the whiteboard plan · Sat Oct 17, 2026</span>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="rail" aria-label="Clocks and contents">
+    <div>
+      <h2>Clocks</h2>
+      <div class="clocks">
+        <div class="clock">
+          <span class="what">Reserved GPU block 1 ends</span>
+          <span class="when">Sun Oct 18 · 7:59 AM CDT</span>
+          <span class="left" data-deadline="2026-10-18T07:59:00-05:00"></span>
+        </div>
+        <div class="clock">
+          <span class="what">All Delta GPU and hosted-server work done</span>
+          <span class="when">Sun Oct 18 · ~12:00 PM CDT · team target</span>
+          <span class="left" data-deadline="2026-10-18T12:00:00-05:00"></span>
+        </div>
+        <div class="clock">
+          <span class="what">Demo freeze</span>
+          <span class="when">Sun Oct 18 · ~3:30 PM CDT · team target</span>
+          <span class="left" data-deadline="2026-10-18T15:30:00-05:00"></span>
+        </div>
+        <div class="clock">
+          <span class="what">Final presentation</span>
+          <span class="when">Sun Oct 18 · before 5:00 PM CDT · team target</span>
+          <span class="left" data-deadline="2026-10-18T17:00:00-05:00"></span>
+        </div>
+        <div class="clock">
+          <span class="what">Hosted models and reserved GPUs stop</span>
+          <span class="when">Sun Oct 18 · 6:00 PM CDT</span>
+          <span class="left" data-deadline="2026-10-18T18:00:00-05:00"></span>
+        </div>
+        <div class="clock">
+          <span class="what">Official submission due</span>
+          <span class="when">Wed Oct 21 · cutoff to confirm on Slack</span>
+          <span class="left" data-deadline="2026-10-21T00:00:00-05:00" data-prefix="day starts in "></span>
+        </div>
+      </div>
+    </div>
+    <nav aria-label="Contents">
+      <h2>Contents</h2>
+      <ul class="toc">
+        <li><a href="#lanes"><span class="num">1</span>Two lanes</a></li>
+        <li><a href="#tiers"><span class="num">2</span>Priority tiers</a></li>
+        <li><a href="#board"><span class="num">3</span>The board</a></li>
+        <li><a href="#explain"><span class="num">4</span>Explainability</a></li>
+        <li><a href="#architecture"><span class="num">5</span>Architecture</a></li>
+        <li><a href="#constraints"><span class="num">6</span>Event rules</a></li>
+        <li><a href="#data"><span class="num">7</span>Data plan</a></li>
+        <li><a href="#pipeline"><span class="num">8</span>Model pipeline</a></li>
+        <li><a href="#contract"><span class="num">9</span>Case JSON</a></li>
+        <li><a href="#agent"><span class="num">10</span>Agent</a></li>
+        <li><a href="#app"><span class="num">11</span>Demo app</a></li>
+        <li><a href="#evaluation"><span class="num">12</span>Evaluation</a></li>
+        <li><a href="#milestones"><span class="num">13</span>Milestones</a></li>
+        <li><a href="#demo"><span class="num">14</span>Demo script</a></li>
+        <li><a href="#risks"><span class="num">15</span>Risks</a></li>
+        <li><a href="#rules"><span class="num">16</span>Rules for Claude Code</a></li>
+        <li><a href="#credits"><span class="num">17</span>Credits</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="masthead">
+      <span class="eyebrow">Team 44 · Ashby Prize Hackathon 2026 · NCSA Delta, Sat–Sun Oct 17–18</span>
+      <h1>PathQueue</h1>
+      <p class="lede">An AI-prioritized pathology worklist with explainable, confidence-aware case reads.</p>
+      <p>A pathologist opens one worklist fed by two lanes. Frozen sections from the operating room always come first, with a running timer. Biopsies are sorted by risk and confidence, and flagged cases arrive with follow-up orders already drafted. The model suggests. The pathologist decides, and nothing is ordered without their approval.</p>
+      <p class="status"><b>Status</b><span>This is the build plan. No results yet. Metrics will be added from cached test-split runs only.</span></p>
+    </div>
+
+    <section id="lanes">
+      <div class="section-head"><span class="eyebrow">What we are building</span><h2>Two lanes into one worklist</h2></div>
+      <div class="pair">
+        <div class="card surgical">
+          <span class="eyebrow">Surgical lane</span>
+          <h3>Frozen sections from the OR</h3>
+          <p class="small">Always top priority, with a running timer. The model reads the sample, says whether tumor appears at a margin, and reports how reliable its read is. The pathologist makes the call, and the surgeon gets one of three answers.</p>
+          <ul class="answers">
+            <li class="a-ok">Margins clear</li>
+            <li class="a-bad">Tumor at a named margin</li>
+            <li class="a-defer">Cannot determine, defer to permanent</li>
+          </ul>
+          <p class="small muted">Simulated this weekend. No frozen-section data is provided.</p>
+        </div>
+        <div class="card biopsy">
+          <span class="eyebrow lane-b">Biopsy lane</span>
+          <h3>Risk, reasons and confidence</h3>
+          <p class="small">The model estimates risk, explains why using named histologic criteria, and attaches a calibrated confidence. Cases are flagged if likely aggressive or low confidence.</p>
+          <p class="small">For flagged cases, an agent drafts follow-up orders (stains, recuts, new-sample requests) before the pathologist opens the case. The pathologist can order the drafted tests, take a closer look first, or dismiss the flag.</p>
+          <p class="small"><strong>Nothing is ordered until the pathologist approves.</strong> The signed-out result goes to the oncologist.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="tiers">
+      <div class="section-head"><span class="eyebrow">Worklist sort order</span><h2>Priority tiers</h2></div>
+      <ol class="tiers">
+        <li class="t1"><span class="n">1</span><span><strong>Surgical frozen sections.</strong> <span class="muted">The timer is running.</span></span></li>
+        <li class="t2"><span class="n">2</span><span><strong>Likely aggressive.</strong> <span class="muted">Includes any case whose conformal prediction set contains the aggressive class, even when it isn't the top prediction.</span></span></li>
+        <li class="t3"><span class="n">3</span><span><strong>Low confidence.</strong> <span class="muted">The conformal set holds more than one class, or the reliability flag is raised.</span></span></li>
+        <li class="t4"><span class="n">4</span><span><strong>Unflagged.</strong> <span class="muted">Read in arrival order.</span></span></li>
+      </ol>
+      <p class="callout"><b>Safety rule.</b> If the aggressive class is anywhere in a case's conformal prediction set, the case is tier 2 even if it is not the top prediction.</p>
+      <p class="muted small">Within a tier, cases sort by risk score (highest first), then by arrival time.</p>
+    </section>
+
+    <section id="board">
+      <div class="section-head"><span class="eyebrow">The board</span><h2>How a case moves through PathQueue</h2></div>
+      <figure class="wb" aria-labelledby="wb-cap">
+        <div class="wb-frame">
+          <div class="wb-scroll">
+            <svg id="wb" viewBox="0 0 900 1560" role="img" aria-label="Hand-drawn flow. Cases arrive from the surgical lane (simulated frozen sections, timer starts on arrival) and the biopsy lane. The model read cuts each image into tiles, embeds them with CONCH and MUSK, scores eight named criteria, fits a calibrated risk model and adds a conformal set and reliability check. Every read shows why, where, compared to what, and how sure. The worklist sorts cases into four tiers: surgical, likely aggressive, low confidence, unflagged. Surgical cases open a margin view with three answers. Flagged biopsies get agent-drafted orders that are not placed until approved. Unflagged cases go straight to the pathologist. The pathologist decides; margin calls go to the surgeon screen, signed-out results to the oncologist inbox, and every action to an event log."><title>PathQueue, drawn as a whiteboard</title></svg>
+          </div>
+        </div>
+        <div class="wb-tray" aria-hidden="true"><span class="mk black"></span><span class="mk pink"></span><span class="mk purple"></span><span class="mk red"></span></div>
+        <figcaption id="wb-cap" class="wb-legend">
+          <span><i class="sw pink"></i>Pink: surgical lane</span>
+          <span><i class="sw purple"></i>Purple: biopsy lane</span>
+          <span><i class="sw red"></i>Red: safety rules and limits</span>
+          <span><i class="sw black"></i>Black: shared steps</span>
+        </figcaption>
+      </figure>
+      <div class="origin">
+        <img src="board.jpg" width="1400" height="1050" alt="The original team whiteboard: prioritize stuff, a model that evaluates incoming images, pathologist approval, an agent that orders stains, OR integration and the oncologist.">
+        <p class="small muted">Where it started: the team whiteboard from Saturday morning. PathQueue keeps its spine (worklist, model, agent, pathologist, surgeon, oncologist) and adds tiers, conformal confidence and grounded explanations.</p>
+      </div>
+    </section>
+
+    <section id="explain">
+      <div class="section-head"><span class="eyebrow">From judge feedback</span><h2>Every conclusion shows four things</h2></div>
+      <div class="quad">
+        <div class="card"><h3>Why</h3><p class="small">Contributions of named criteria, such as nuclear pleomorphism, invasion into stroma, gland formation, lymphocytic infiltrate and necrosis. Each is linked to the image regions that drove it.</p></div>
+        <div class="card"><h3>Where</h3><p class="small">Tile-level heatmaps for each criterion.</p></div>
+        <div class="card"><h3>Compared to what</h3><p class="small">Similar reference cases, including the nearest case with a different label.</p></div>
+        <div class="card"><h3>How sure</h3><p class="small">A calibrated probability, a conformal prediction set, and agreement signals: CONCH vs MUSK, nearest-neighbor label agreement, and prompt-ensemble spread.</p></div>
+      </div>
+      <div class="sub">
+        <h3>Grounded summary</h3>
+        <ul>
+          <li>An LLM writes the summary <strong>only from structured findings</strong>. It never sees the image.</li>
+          <li>Every sentence must cite finding IDs, or it is dropped. At most four sentences, no numbers that aren't in the cited findings, and no diagnosis stated as fact.</li>
+          <li>If fewer than two sentences survive the validator, a deterministic template writes the summary instead.</li>
+          <li>Summaries are generated once, offline, and cached. The live demo makes no LLM calls by default.</li>
+        </ul>
+        <p class="note">Concepts are shown as "features associated with" higher or lower risk. They are never claimed as biological causes.</p>
+      </div>
+    </section>
+
+    <section id="architecture">
+      <div class="section-head"><span class="eyebrow">Architecture</span><h2>An offline pipeline on Delta, a demo app on a laptop</h2></div>
+      <div class="pair">
+        <div class="card">
+          <span class="eyebrow">On Delta · offline</span>
+          <ol class="pipeline">
+            <li><span class="k">00</span><span>Inventory the shared datasets</span></li>
+            <li><span class="k">01</span><span>Build cases and tiles</span></li>
+            <li><span class="k">02</span><span>Embed tiles (hosted /embed or own job)</span></li>
+            <li><span class="k">03</span><span>Encode prompts (GPU or CPU job)</span></li>
+            <li><span class="k">04</span><span>Concept scores</span></li>
+            <li><span class="k">05</span><span>Risk model, calibration, conformal</span></li>
+            <li><span class="k">06</span><span>Reliability and out-of-distribution</span></li>
+            <li><span class="k">07</span><span>Retrieval</span></li>
+            <li><span class="k">08</span><span>Case JSON and cached summaries (Lumen)</span></li>
+          </ol>
+        </div>
+        <div class="card">
+          <span class="eyebrow">On a laptop · demo</span>
+          <ul>
+            <li><code>artifacts/</code> (JSON and thumbnails) is copied off Delta by scp or OnDemand.</li>
+            <li>A simulator replays cases into FastAPI and SQLite, which serve the React worklist and case views.</li>
+            <li>The agent (rules, plus optional Lumen) drafts orders. The pathologist's decision routes results to the surgeon screen or the oncologist inbox.</li>
+            <li>The app never depends on the hosted servers, which stop Sunday 6 PM, or on GPU availability.</li>
+          </ul>
+        </div>
+      </div>
+      <details>
+        <summary>Repository layout</summary>
+<pre class="code">pathqueue/
+  Plan.md
+  README.md                    # how to run pipeline + app; credits/citations
+  .gitignore                   # artifacts/, data/, *.csv, *.npy, .env, logs/
+  .env.example                 # LUMEN_API_KEY=, CONCH_ENDPOINT=, CONCH_KEY=, MUSK_ENDPOINT=, MUSK_KEY=
+  config/
+    settings.yaml              # paths, dataset choice, tile size, alpha, tier thresholds
+    concepts.yaml              # criterion prompt bank (positive + negative phrasings)
+    stain_rules.yaml           # suspected finding -> drafted orders (illustrative, needs clinical review)
+  pipeline/                    # runs on Delta
+    common.py                  # config loading, paths, hosted-server client w/ batching+retry+resume
+    00_inventory.py
+    01_build_cases.py
+    02_embed_tiles.py
+    03_encode_prompts.py
+    04_concepts.py
+    05_risk_model.py
+    06_reliability.py
+    07_retrieval.py
+    08_build_case_json.py
+    jobs/
+      encode_prompts.sbatch
+      embed_tiles.sbatch       # fallback if hosted server is slow/down
+  eval/
+    metrics.py                 # AUROC, ECE, reliability diagram, conformal coverage, concept AUROC
+    queue_sim.py               # FIFO vs PathQueue waiting-time simulation
+    deletion_test.py           # explanation faithfulness
+  agent/
+    rules.py                   # deterministic rule engine over stain_rules.yaml
+    agent.py                   # Lumen tool-calling wrapper (optional) with rules fallback
+    lumen.py                   # OpenAI-compatible client, caching, retries
+  backend/
+    app.py                     # FastAPI
+    db.py                      # SQLite: cases, decisions, orders, routed_results
+    simulator.py               # replays cases as live arrivals
+    summary.py                 # grounded-summary validator + template fallback
+  frontend/                    # Vite + React + TypeScript + Tailwind
+  artifacts/                   # git-ignored; produced by pipeline, consumed by app
+    cases/&lt;case_id&gt;.json
+    images/&lt;case_id&gt;.jpg       # downscaled display image
+    reference_index.json
+    eval/                      # metrics JSON + plots for the Metrics page
+  tests/</pre>
+      </details>
+    </section>
+
+    <section id="constraints">
+      <div class="section-head"><span class="eyebrow">Hard constraints</span><h2>Event compute rules we never break</h2><p class="muted small">From <code>ncsa/ashby-hackathon-2026</code>. We reuse its <code>client.py</code>, <code>models.py</code>, <code>run_embeddings.py</code>, <code>submit.sbatch</code> and <code>train_probe.py</code> instead of rewriting them.</p></div>
+      <div class="quad">
+        <div class="card">
+          <h3>Cluster and jobs</h3>
+          <ul>
+            <li>NCSA Delta. Accounts <code>bfqi-delta-gpu</code> and <code>bfqi-delta-cpu</code>.</li>
+            <li>Never run model inference on the login node. Use <code>srun</code> or <code>sbatch</code>.</li>
+            <li>One GPU per team at a time. 10 GPU-hours per person. At most 16 CPUs and ~62 GB per GPU. Interactive partitions cost double.</li>
+            <li>Reserved A100 blocks: Sat 07:30–Sun 07:59 and Sun 08:00–18:00. A job crossing Sun 08:00 or 18:00 falls into the regular queue. Keep jobs to 1–2 hours.</li>
+            <li>Claude Code never submits Slurm jobs. It writes the script and the command, and a person runs it.</li>
+            <li>Compute nodes have no internet. Install on the login node.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Hosted model servers</h3>
+          <ul>
+            <li>CONCH, MUSK, QuiltNet-B-32 and PLIP on an A40 node until Sun 18:00, callable only from inside Delta.</li>
+            <li><code>/embed</code> returns L2-normalized image embeddings. <code>/classify</code> returns only the top label, so we compute text-prompt embeddings ourselves.</li>
+            <li>About 60 images per second shared by about 60 teams. Batches of 32, retry with backoff, a few thousand tiles at most.</li>
+            <li>Every member using CONCH or MUSK needs their own approved Hugging Face access.</li>
+            <li>Never mix embeddings from different models in one index.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Storage</h3>
+          <ul>
+            <li>Code in <code>/u/&lt;username&gt;</code> and GitHub.</li>
+            <li>Data and outputs in <code>/work/nvme/bfqi/&lt;username&gt;</code> and <code>/work/nvme/bfqi/teams/&lt;team&gt;</code>. Not backed up, and readable by every participant, so no keys or private data.</li>
+            <li>Read shared datasets in place. Never copy them wholesale.</li>
+            <li>Avoid <code>/work/hdd</code> this weekend.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>LLMs</h3>
+          <ul>
+            <li>Lumen at <code>https://lumen.ncsa.illinois.edu/v1</code>, key in <code>LUMEN_API_KEY</code>, never in code.</li>
+            <li>Coins are limited and costs differ about 40× by model. Default to <code>qwen3-coder-next</code> or <code>ornith-1.0-35b</code>; avoid <code>glm-5.3</code>. Check <code>/v1/models</code> for current IDs.</li>
+            <li>Summaries and agent rationales are generated once, offline, and cached. The demo works with zero LLM calls.</li>
+            <li>Public, de-identified data only. Cite every model, dataset and tool.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="sub">
+        <h3>What this changes in the design</h3>
+        <ul>
+          <li><strong>Tile level, not whole slides.</strong> Each case is one large field-of-view image, cut into a grid of tiles, embedded, then aggregated to a case-level read.</li>
+          <li><strong>The surgical lane is a labeled simulation.</strong> Image borders stand in for inked margins, and frozen-section artifacts are simulated with controlled degradations. Real TCGA frozen slides are a stretch goal.</li>
+          <li><strong>The demo runs locally</strong> from precomputed artifacts.</li>
+        </ul>
+        <details>
+          <summary>Environment setup (login node, once)</summary>
+<pre class="code">module load pytorch-conda/2.8
+unset PYTHONNOUSERSITE          # required after every module load
+pip install --user "open_clip_torch&gt;=2.24"
+pip install --user git+https://github.com/mahmoodlab/CONCH.git
+pip install --user git+https://github.com/lilab-stanford/MUSK.git fairscale sentencepiece</pre>
+        </details>
+        <p class="muted small">Every sbatch script starts with <code>module load pytorch-conda/2.8</code> then <code>unset PYTHONNOUSERSITE</code>.</p>
+      </div>
+    </section>
+
+    <section id="data">
+      <div class="section-head"><span class="eyebrow">Data plan</span><h2>Inventory first, then pick the dataset</h2></div>
+      <div class="sub">
+        <h3>Phase 0: inventory (about 30 minutes, login node)</h3>
+        <ul>
+          <li>For each shared dataset folder: subfolders, file counts, extensions and three example paths. Open five images per subset and record sizes.</li>
+          <li>Find out what PathGen's "2k-slide sample" actually is, and whether any captions map to images we have.</li>
+          <li>Check whether <code>pathmmu/BACH</code>, <code>MHIST</code> and <code>Osteo</code> hold full image sets with labels, or only the VQA subset.</li>
+          <li>Write <code>artifacts/inventory.json</code> and a short summary.</li>
+        </ul>
+      </div>
+      <div class="sub">
+        <h3>Decision rule: take the first option that holds</h3>
+        <ol class="steps">
+          <li><strong>BACH (breast), complete with labels.</strong> Preferred. Normal, Benign, InSitu, Invasive. Invasive is the likely-aggressive class, and InSitu vs Invasive is a real, clinically meaningful ambiguity.</li>
+          <li><strong>MHIST (colorectal polyps, HP vs SSA)</strong> with NCT-CRC as reference. A weaker aggressive story; SSA is the flag class.</li>
+          <li><strong>NCT-CRC-HE-100K only.</strong> Synthetic cases composed from tiles, with tumor fraction driving risk. Least realistic.</li>
+          <li><strong>PathGen WSIs with labels,</strong> if they exist, as an extension rather than a replacement.</li>
+        </ol>
+        <p class="muted small">The choice is recorded as <code>dataset: bach|mhist|nct</code> in <code>config/settings.yaml</code>. Class names and the aggressive class are always read from config.</p>
+      </div>
+      <div class="pair">
+        <div class="card">
+          <h3>Cases and tiles (BACH assumed)</h3>
+          <ul>
+            <li>One microscopy image is one case, cut into a grid of 512 × 512 tiles (about 4 × 3 for a 2048 × 1536 image).</li>
+            <li>Mostly-background tiles are dropped by a saturation and brightness threshold. This is the QC step.</li>
+            <li>Split 60% train, 20% calibration, 20% test, stratified by class with a fixed seed. Without patient IDs, results may be optimistic, and the README says so.</li>
+            <li>Test cases become simulated arrivals, about 25% in the surgical lane, marked "simulated frozen section."</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Reference and validation sets</h3>
+          <ul>
+            <li><strong>Retrieval library:</strong> all train-split cases, with embeddings, labels and thumbnails.</li>
+            <li><strong>Concept check:</strong> 300 NCT-CRC-HE-100K tiles per class, fixed seed. Do lymphocyte, necrosis, tumor, stroma and adipose prompts fire on the right tissue?</li>
+            <li>It's cross-organ, so it is reported as a sanity check, not a final validation.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="pipeline">
+      <div class="section-head"><span class="eyebrow">Model pipeline on Delta</span><h2>Resumable steps, each tested on five cases first</h2><p class="muted small">Every step skips work whose outputs exist and writes atomically. Each runs with <code>--limit 5</code> before a full run.</p></div>
+      <ol class="pipeline">
+        <li><span class="k">01</span><span><strong>Build cases.</strong> <code>cases.csv</code>, <code>tiles.csv</code> with a QC flag per tile, and a downscaled display JPEG per case.</span></li>
+        <li><span class="k">02</span><span><strong>Embed tiles</strong> with CONCH (primary) and MUSK (agreement signal). Hosted <code>/embed</code> in batches of 32 with backoff and resume, at most about four concurrent requests. Fallback: a one-hour <code>embed_tiles.sbatch</code> job. Also embeds the NCT-CRC validation tiles.</span></li>
+        <li><span class="k">03</span><span><strong>Encode prompts</strong> with the event repo's <code>resolve_adapter</code> and <code>encode_texts</code> in a short job. Confirm the text embeddings are L2-normalized and share the <code>/embed</code> space.</span></li>
+        <li><span class="k">04</span><span><strong>Concept scores</strong> per tile; per case, the mean of the top-3 tiles and the fraction above threshold. Prompt-ensemble spread feeds confidence. Writes the NCT-CRC concept AUROCs.</span></li>
+        <li><span class="k">05</span><span><strong>Risk models, calibration and conformal sets</strong> (below).</span></li>
+        <li><span class="k">06</span><span><strong>Reliability.</strong> Blur, JPEG compression, stain shift and downsample-upsample at three severities on a small set (about 20 cases × 3 × 4), re-embedded and re-read. The reliability score combines OOD distance (k = 10 nearest train tiles), conformal set size and CONCH–MUSK disagreement. Its flag threshold is set on calibration data.</span></li>
+        <li><span class="k">07</span><span><strong>Retrieval.</strong> Case embedding is the mean of tile embeddings. Cosine kNN over the train library gives the top five neighbors, neighbor agreement, and the nearest different-label contrast case.</span></li>
+        <li><span class="k">08</span><span><strong>Case JSON.</strong> One file per test case with structured findings, plus the grounded summary and agent drafts, generated once and cached. Then copy <code>artifacts/</code> to the laptop.</span></li>
+      </ol>
+      <div class="sub">
+        <h3>Criterion prompt bank (BACH version)</h3>
+        <p class="small">Each concept has 3–5 positive and 2–3 contrast phrasings. Tile score is the mean similarity to positives minus the mean similarity to negatives, z-scored against the train split.</p>
+        <div class="tw"><table>
+          <thead><tr><th>ID</th><th>Criterion</th><th>Kind</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">invasion</td><td>Tumor cells infiltrating stroma as irregular nests or single cells</td><td>tissue pattern</td></tr>
+            <tr><td class="mono">pleomorphism</td><td>Marked nuclear pleomorphism, enlarged irregular nuclei, prominent nucleoli</td><td>cytologic</td></tr>
+            <tr><td class="mono">mitoses</td><td>Frequent mitotic figures</td><td>cytologic (expect weak at tile scale)</td></tr>
+            <tr><td class="mono">glands</td><td>Well-formed glands or tubules with preserved architecture</td><td>tissue pattern (protective)</td></tr>
+            <tr><td class="mono">duct_confined</td><td>Atypical cells confined within ducts, intact myoepithelial layer</td><td>tissue pattern (in situ)</td></tr>
+            <tr><td class="mono">lymphocytes</td><td>Dense lymphocytic infiltrate</td><td>tissue pattern</td></tr>
+            <tr><td class="mono">necrosis</td><td>Tumor necrosis or debris</td><td>tissue pattern</td></tr>
+            <tr><td class="mono">benign_stroma_fat</td><td>Benign fibrous stroma or adipose tissue</td><td>tissue pattern (protective)</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="pair">
+        <div class="card">
+          <h3>Two risk models, both reported</h3>
+          <ul>
+            <li><strong>Model A, black-box ceiling:</strong> logistic regression on mean-pooled CONCH tile embeddings, plus a tile-level probe for risk heatmaps.</li>
+            <li><strong>Model B, concept bottleneck:</strong> logistic regression on about 16 aggregated concept features. Coefficient × value is each criterion's contribution in the UI.</li>
+            <li>If B is close to A, B drives predictions. If not, A drives them and B is shown as associated features with its agreement reported. The choice goes in config and on the Metrics page.</li>
+            <li>The same pipeline runs on MUSK embeddings for the agreement signal.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Calibration and conformal sets</h3>
+          <ul>
+            <li>Temperature scaling on the calibration split. ECE and a reliability diagram before and after.</li>
+            <li>Split conformal (APS or LAC) at α = 0.1, configurable. Empirical coverage and average set size on test. With about 80 calibration cases, coverage is noisy, and we say so.</li>
+            <li>Risk score is the calibrated probability of the aggressive class (<code>Invasive</code> for BACH, read from config).</li>
+          </ul>
+        </div>
+      </div>
+      <div class="sub">
+        <h3>Surgical lane: the margin read (simulation)</h3>
+        <ul>
+          <li>The image's borders stand in for inked margins: top is superior, bottom inferior, left medial, right lateral. The UI labels this as a simulation.</li>
+          <li>A margin is involved if any tile touching it has a tumor probability above a threshold tuned on calibration data.</li>
+          <li>Suggested call: tumor at margin (named), clear, or defer when the reliability flag is raised. The pathologist always makes the final call.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="contract">
+      <div class="section-head"><span class="eyebrow">Case JSON contract</span><h2>One contract so four streams work in parallel</h2></div>
+      <ul>
+        <li>A hand-written fixture, <code>artifacts/cases/demo_0001.json</code>, exists on day one so UI work starts before the pipeline finishes.</li>
+        <li>Ground-truth labels live under <code>eval_only</code> and never appear in the worklist or case view.</li>
+        <li>If the contract changes, the fixture, backend models and frontend types change in the same commit.</li>
+      </ul>
+      <details>
+        <summary>Full biopsy case example</summary>
+<pre class="code">{
+  "case_id": "BACH_0123",
+  "lane": "biopsy",
+  "simulated": false,
+  "arrived_offset_s": 340,
+  "image": {"display": "images/BACH_0123.jpg", "width": 2048, "height": 1536,
+            "tile_size": 512, "grid": [3, 4]},
+  "quality": {"qc_tiles_kept": 11, "ood_percentile": 0.42, "reliability": 0.81,
+              "reliability_flag": false},
+  "prediction": {
+    "model": "concept_bottleneck",
+    "classes": ["Normal", "Benign", "InSitu", "Invasive"],
+    "probs": [0.02, 0.05, 0.21, 0.72],
+    "risk_score": 0.72,
+    "conformal_alpha": 0.1,
+    "conformal_set": ["InSitu", "Invasive"]
+  },
+  "concepts": [
+    {"id": "invasion", "label": "Tumor infiltrating stroma", "value": 1.9,
+     "contribution": 0.44, "direction": "up", "spread": 0.06, "top_tiles": [5, 6]},
+    {"id": "duct_confined", "label": "Cells confined within ducts", "value": 0.8,
+     "contribution": -0.12, "direction": "down", "spread": 0.09, "top_tiles": [2]}
+  ],
+  "tiles": [
+    {"idx": 5, "row": 1, "col": 1, "x": 512, "y": 512, "risk": 0.88,
+     "concepts": {"invasion": 2.3, "pleomorphism": 1.4, "lymphocytes": -0.2}}
+  ],
+  "similar_cases": [
+    {"case_id": "BACH_0007", "label": "Invasive", "similarity": 0.93, "image": "images/BACH_0007.jpg"}
+  ],
+  "contrast_case": {"case_id": "BACH_0044", "label": "InSitu", "similarity": 0.88,
+                    "differs_most_in": ["invasion"]},
+  "agreement": {"conch_musk_same_top": true, "neighbor_agreement": 0.8},
+  "margin": null,
+  "flag": {"flagged": true, "tier": 2, "reasons": ["aggressive_in_conformal_set", "set_size_gt_1"]},
+  "findings": [
+    {"id": "F1", "kind": "prediction", "data": {"top": "Invasive", "p": 0.72, "set": ["InSitu", "Invasive"]}},
+    {"id": "F2", "kind": "concept", "data": {"concept": "invasion", "contribution": 0.44, "tiles": [5, 6]}},
+    {"id": "F3", "kind": "retrieval", "data": {"agree": 4, "of": 5, "label": "Invasive"}},
+    {"id": "F4", "kind": "quality", "data": {"reliability_flag": false}}
+  ],
+  "summary": {
+    "generator": "lumen:qwen3-coder-next",
+    "sentences": [
+      {"text": "Most likely invasive carcinoma, though in situ disease cannot be excluded at 90% confidence.", "findings": ["F1"]},
+      {"text": "The strongest driver is tumor infiltrating stroma in two central regions.", "findings": ["F2"]}
+    ]
+  },
+  "agent": {
+    "status": "drafted",
+    "orders": [
+      {"type": "stain", "items": ["p63", "calponin"], "rule_id": "breast_insitu_vs_invasive",
+       "rationale": "Myoepithelial markers help distinguish in situ from invasive disease."},
+      {"type": "stain", "items": ["ER", "PR", "HER2", "Ki-67"], "rule_id": "breast_invasive",
+       "rationale": "Standard biomarker panel if invasion is confirmed."}
+    ]
+  },
+  "eval_only": {"true_label": "Invasive", "split": "test"}
+}</pre>
+      </details>
+      <details>
+        <summary>Surgical case margin field</summary>
+<pre class="code">"lane": "surgical",
+"simulated": true,
+"margin": {"suggested_call": "tumor_at_margin", "involved": ["superior"],
+           "per_margin": {"superior": 0.81, "inferior": 0.07, "medial": 0.12, "lateral": 0.04}}</pre>
+      </details>
+      <p class="muted small">Example values are illustrative, not results.</p>
+    </section>
+
+    <section id="agent">
+      <div class="section-head"><span class="eyebrow">Agent</span><h2>Drafts orders. Never places them.</h2></div>
+      <p>A deterministic rules engine reads each case's findings and <code>config/stain_rules.yaml</code>. The rules are illustrative and require clinical review, which the file header and the UI both say.</p>
+      <div class="tw"><table class="wide">
+        <thead><tr><th>Rule</th><th>When</th><th>Drafts</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">breast_insitu_vs_invasive</td><td>InSitu and Invasive both in the conformal set</td><td>p63, calponin (myoepithelial markers)</td></tr>
+          <tr><td class="mono">breast_invasive</td><td>Top class is Invasive</td><td>ER, PR, HER2, Ki-67</td></tr>
+          <tr><td class="mono">low_quality</td><td>Reliability flag raised</td><td>Recut or deeper levels</td></tr>
+          <tr><td class="mono">uncertain_benign_atypia</td><td>Benign and InSitu both in the set</td><td>Deeper levels</td></tr>
+          <tr><td class="mono">insufficient</td><td>Few QC-passing tiles</td><td>Request a new sample</td></tr>
+        </tbody>
+      </table></div>
+      <ul>
+        <li><strong>Optional LLM layer.</strong> Lumen tool calling with <code>get_case_findings</code>, <code>lookup_rules</code> and <code>draft_order</code>. The LLM may only choose among rule outputs and write the rationale. It cannot invent stains.</li>
+        <li><strong>Fallback.</strong> If tool calling fails or coins run out, the rules run alone with template rationales.</li>
+      </ul>
+      <div class="sub">
+        <h3>Order states</h3>
+        <p class="states"><span>none</span><i>→</i><span>drafted</span><i>→</i><span>approved</span><i>|</i><span>edited_and_approved</span><i>|</i><span>deferred_closer_look</span><i>|</i><span>dismissed</span></p>
+        <p class="muted small">Orders are never placed without a pathologist action. Every transition is logged with a timestamp.</p>
+      </div>
+    </section>
+
+    <section id="app">
+      <div class="section-head"><span class="eyebrow">Demo app</span><h2>FastAPI and SQLite behind a React worklist</h2></div>
+      <div class="sub">
+        <h3>Backend (runs on the laptop)</h3>
+        <ul>
+          <li>On startup, loads <code>artifacts/cases/*.json</code> into SQLite tables for cases, decisions, orders, routed results and events.</li>
+          <li>The simulator replays test cases by <code>arrived_offset_s</code> at a speed multiplier such as 30×, with start, pause, reset and "inject a surgical case now."</li>
+          <li>Surgical timers are computed server-side from arrival time and stop on the margin call. Tier assignment lives in one unit-tested function.</li>
+        </ul>
+        <div class="tw"><table class="wide">
+          <thead><tr><th>Endpoint</th><th>Returns</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">GET /api/worklist?lane=all|surgical|biopsy</td><td>Cases sorted by the tier rules</td></tr>
+            <tr><td class="mono">GET /api/cases/{id}</td><td>Full case JSON without <code>eval_only</code></td></tr>
+            <tr><td class="mono">POST /api/cases/{id}/decision</td><td>approve_orders, edit_orders, closer_look, dismiss_flag, sign_out, margin_call</td></tr>
+            <tr><td class="mono">GET /api/routed?to=surgeon|oncologist</td><td>Results sent after sign-out or a margin call</td></tr>
+            <tr><td class="mono">POST /api/sim/{action}</td><td>start, pause, reset, inject_surgical</td></tr>
+            <tr><td class="mono">GET /api/metrics</td><td>Contents of <code>artifacts/eval/*.json</code></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="sub">
+        <h3>Frontend views (Vite, React, TypeScript, Tailwind; polls every 2 seconds)</h3>
+        <ol class="steps">
+          <li><strong>Worklist.</strong> Rows grouped by tier, live timers on surgical rows, flag-reason badges, conformal-set chips, risk score and an "orders drafted" indicator.</li>
+          <li><strong>Biopsy case view.</strong> Heatmap, Why, How sure and Compared-to panels, plus the agent panel with Order tests, Edit, Take a closer look first, Dismiss flag and Sign out.</li>
+          <li><strong>Surgical case view.</strong> A large timer, the image with four margins colored by involvement, a reliability indicator, and Margins clear, Tumor at margin, Defer to permanent. Banner: "Simulated frozen section."</li>
+          <li><strong>Surgeon screen.</strong> Receives margin calls in real time.</li>
+          <li><strong>Oncologist inbox.</strong> Receives signed-out biopsy summaries.</li>
+          <li><strong>Metrics.</strong> Calibration, conformal coverage and set size, concept AUROCs, reliability vs degradation, retrieval precision@5 and the queue simulation.</li>
+        </ol>
+        <ul class="swatches" aria-label="Visual language">
+          <li><span class="chip" style="background:#1B1A2E"></span>Ink #1B1A2E</li>
+          <li><span class="chip" style="background:#F5F2EC"></span>Paper #F5F2EC</li>
+          <li><span class="chip" style="background:#4A3B8F"></span>Hematoxylin #4A3B8F · biopsy</li>
+          <li><span class="chip" style="background:#B0335C"></span>Eosin #B0335C · surgical</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="evaluation">
+      <div class="section-head"><span class="eyebrow">Evaluation</span><h2>Each claim gets a test-split metric</h2><p class="muted small">JSON and PNG plots go to <code>artifacts/eval/</code>.</p></div>
+      <div class="tw"><table class="wide">
+        <thead><tr><th>Claim</th><th>Metric</th><th>Script</th></tr></thead>
+        <tbody>
+          <tr><td>Triage separates aggressive cases</td><td>AUROC (aggressive vs rest), Model A vs Model B</td><td class="mono">metrics.py</td></tr>
+          <tr><td>Confidence is honest</td><td>ECE and reliability diagram before and after temperature scaling; conformal coverage and mean set size</td><td class="mono">metrics.py</td></tr>
+          <tr><td>Explanations are real</td><td>Concept AUROCs on NCT-CRC. Deletion test: removing a case's top-3 tiles for its top concept lowers risk more than removing three random tiles (mean drop ± CI).</td><td class="mono">metrics.py, deletion_test.py</td></tr>
+          <tr><td>Reliability flag works</td><td>Accuracy vs degradation severity; AUROC of the reliability score for predicting errors</td><td class="mono">06_reliability.py</td></tr>
+          <tr><td>Retrieval is meaningful</td><td>Precision@5</td><td class="mono">07_retrieval.py</td></tr>
+          <tr><td>Workflow benefit</td><td>Queue simulation: a day of Poisson arrivals with a fixed read time. Mean and median time-to-first-look for aggressive cases, FIFO vs PathQueue tiers, with assumptions stated on the Metrics page.</td><td class="mono">queue_sim.py</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="milestones">
+      <div class="section-head"><span class="eyebrow">Milestones</span><h2>From access checks to a rehearsed demo</h2><p class="muted small">All Delta GPU and hosted-server work finishes by about noon Sunday. Demo freeze about 3:30 PM. M2 and M8 depend only on the JSON contract, so they run in parallel with the pipeline.</p></div>
+      <div class="tw"><table class="wide">
+        <thead><tr><th>#</th><th>Milestone</th><th>Owner</th><th>Done when</th></tr></thead>
+        <tbody>
+          <tr><td>M0</td><td>Every member has CONCH/MUSK access, a Lumen key, the team directory, the event repo and packages</td><td>all</td><td><code>example_student_usage.py</code> succeeds against the CONCH endpoint</td></tr>
+          <tr><td>M1</td><td>Inventory and dataset decision</td><td>model</td><td><code>inventory.json</code> written; <code>settings.yaml</code> has <code>dataset</code></td></tr>
+          <tr><td>M2</td><td>Fixture JSON, backend skeleton, worklist UI against the fixture</td><td>app</td><td>The worklist renders and sorts the fixture</td></tr>
+          <tr><td>M3</td><td>Cases and tiles built; CONCH and MUSK tile embeddings</td><td>model</td><td><code>.npy</code> files aligned with <code>tiles.csv</code> (Sat evening)</td></tr>
+          <tr><td>M4</td><td>Prompt embeddings, concept scores, NCT-CRC concept check</td><td>model</td><td><code>eval/concepts.json</code></td></tr>
+          <tr><td>M5</td><td>Risk models A and B, calibration, conformal, retrieval</td><td>model</td><td>Metrics JSON and test predictions (Sun morning)</td></tr>
+          <tr><td>M6</td><td>Reliability experiment and margin read</td><td>model</td><td>Reliability curve and margin fields</td></tr>
+          <tr><td>M7</td><td>Case JSONs, cached summaries, agent drafts, copied to the laptop</td><td>model + agent</td><td><code>artifacts/cases/*.json</code> validate against the contract</td></tr>
+          <tr><td>M8</td><td>Full UI: case views, agent panel, surgeon and oncologist screens, simulator</td><td>app</td><td>The end-to-end demo path works with real artifacts</td></tr>
+          <tr><td>M9</td><td>Metrics page and queue simulation</td><td>eval</td><td>Plots render in the app</td></tr>
+          <tr><td>M10</td><td>Deck with real numbers, honest limitations and citations; rehearsal</td><td>all</td><td>Demo rehearsed twice</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="demo">
+      <div class="section-head"><span class="eyebrow">Demo script</span><h2>Three minutes, five beats</h2></div>
+      <ol class="steps">
+        <li>Start the simulator. Biopsies arrive, and one jumps to tier 2 on arrival despite arriving last.</li>
+        <li>Open it. Heatmap, then the Why panel (tumor infiltrating stroma drives the call), then the conformal set {InSitu, Invasive}. The agent has drafted p63/calponin and ER/PR/HER2/Ki-67. Click Order tests, sign out, and it appears in the oncologist inbox.</li>
+        <li>Inject a surgical case. It goes straight to the top with a timer. Open it, see the superior margin highlighted, choose Tumor at margin: superior. The surgeon screen updates and the timer stops.</li>
+        <li>Inject a degraded surgical case. The reliability flag is raised, so choose Defer to permanent.</li>
+        <li>Metrics page: queue simulation, calibration, concept checks, reliability curve. Close on limitations: a simulated frozen lane, a small dataset, and rules that need clinical review.</li>
+      </ol>
+    </section>
+
+    <section id="risks">
+      <div class="section-head"><span class="eyebrow">Risks</span><h2>What could go wrong, and the fallback</h2></div>
+      <div class="tw"><table class="wide">
+        <thead><tr><th>Risk</th><th>Fallback</th></tr></thead>
+        <tbody>
+          <tr><td>BACH incomplete in <code>pathmmu</code></td><td>The decision rule: MHIST, then NCT-CRC composites</td></tr>
+          <tr><td>Hosted server slow or overloaded</td><td>Our own one-hour GPU job via <code>embed_tiles.sbatch</code>; cache aggressively</td></tr>
+          <tr><td>CONCH text encoder won't load</td><td>QuiltNet or PLIP for both image and text sides. Never mix models.</td></tr>
+          <tr><td>Concept bottleneck much weaker than black box</td><td>Predict with Model A; show concepts as associated features with measured agreement</td></tr>
+          <tr><td>Lumen coins run out</td><td>Template summaries and rule-based rationales, already the fallback</td></tr>
+          <tr><td>GPU budget running low</td><td>Fewer degradation variants; MUSK agreement on a subset</td></tr>
+          <tr><td>Reserved-node window boundaries</td><td>Never request a <code>--time</code> that crosses Sun 08:00 or 18:00</td></tr>
+          <tr><td>Delta unreachable at demo time</td><td>The app runs locally from <code>artifacts/</code></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="rules">
+      <div class="section-head"><span class="eyebrow">Rules for Claude Code</span><h2>How the coding agent works on this project</h2></div>
+      <ul>
+        <li>Read the event rules before running anything on Delta. Never run inference on the login node.</li>
+        <li><strong>Never submit Slurm jobs.</strong> Write the script and the exact command; a person submits it.</li>
+        <li>Never write or print secrets. Keys come from environment variables or a git-ignored <code>.env</code>. Never commit <code>.env</code>, data, embeddings or artifacts.</li>
+        <li>Test every pipeline step with <code>--limit 5</code> and show the output before a full run.</li>
+        <li>Keep the JSON contract stable. If it changes, update the fixture, backend models and frontend types together.</li>
+        <li>Read class names, the aggressive class, thresholds, α and paths from <code>config/</code>. No magic constants.</li>
+        <li>Keep ground-truth labels out of every user-facing view.</li>
+        <li>UI wording: "suggested," "associated with," "simulated." The model never diagnoses.</li>
+        <li>Unit tests for tier assignment (including the conformal safety rule), conformal set construction, the summary validator, the rules engine and margin involvement.</li>
+      </ul>
+    </section>
+
+    <section id="credits">
+      <div class="section-head"><span class="eyebrow">Credits</span><h2>Every model, dataset and tool we use</h2><p class="muted small">Full citations are resolved before they go in the final deck.</p></div>
+      <ul>
+        <li><strong>Models:</strong> CONCH (Lu et al., Nature Medicine 2024) and MUSK (Xiang et al., Nature 2025). QuiltNet-B-32 and PLIP if used.</li>
+        <li><strong>Datasets, as used:</strong> BACH, MHIST, NCT-CRC-HE-100K (Kather et al., PLoS Medicine 2019), PathMMU, PathGen-1.6M.</li>
+        <li><strong>Tools:</strong> the <code>ncsa/ashby-hackathon-2026</code> event tooling (MIT), Lumen at NCSA and the specific LLM used, and NCSA Delta.</li>
+      </ul>
+    </section>
+
+    <footer>
+      <span>Built from <code>plan.md</code> in the Team-44_Ashby_Hackathon repository, Sat Oct 17, 2026.</span>
+      <span>Research prototype on public, de-identified data. Not clinically validated. The model suggests; it never diagnoses.</span>
+    </footer>
+  </main>
+</div>
+
+<script>
+(function () {
+  var els = document.querySelectorAll('[data-deadline]');
+  function fmt(ms) {
+    var m = Math.floor(ms / 60000);
+    var d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60;
+    return (d ? d + 'd ' : '') + h + 'h ' + String(mm).padStart(2, '0') + 'm';
+  }
+  function tick() {
+    var now = Date.now();
+    els.forEach(function (el) {
+      var ms = new Date(el.getAttribute('data-deadline')).getTime() - now;
+      var prefix = el.getAttribute('data-prefix');
+      if (ms <= 0) {
+        el.textContent = 'passed';
+        el.classList.add('passed');
+      } else {
+        el.textContent = prefix ? prefix + fmt(ms) : fmt(ms) + ' left';
+      }
+    });
+  }
+  tick();
+  setInterval(tick, 30000);
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.js"></script>
+<script>
+/* Hand-drawn whiteboard. Uses rough.js when it loads; falls back to plain strokes otherwise. */
+(function () {
+  var svg = document.getElementById('wb');
+  if (!svg) return;
+  var NS = 'http://www.w3.org/2000/svg';
+  var css = getComputedStyle(document.documentElement);
+  function tok(n) { return css.getPropertyValue(n).trim(); }
+  var C = {
+    k: tok('--mk-black'), pink: tok('--mk-pink'), purp: tok('--mk-purple'), r: tok('--mk-red'),
+    o: tok('--mk-orange'), g: tok('--mk-green'), gr: tok('--mk-gray')
+  };
+  var rc = window.rough ? window.rough.svg(svg) : null;
+  var seed = 11, tilt = 0;
+
+  function add(n) { svg.appendChild(n); return n; }
+  function ro(o) {
+    seed = (seed * 9301 + 49297) % 233280;
+    var r = {
+      stroke: o.c || C.k, strokeWidth: o.w || 2.2, roughness: o.r == null ? 1.1 : o.r,
+      bowing: o.bow == null ? 1 : o.bow, seed: seed + 1, hachureGap: o.hg || 4.5, fillWeight: o.fw || 1.3
+    };
+    if (o.fill) { r.fill = o.fill; r.fillStyle = o.fs || 'hachure'; }
+    if (o.dash) r.strokeLineDash = o.dash;
+    return r;
+  }
+  function plain(tag, attrs, o) {
+    var el = document.createElementNS(NS, tag);
+    Object.keys(attrs).forEach(function (k) { el.setAttribute(k, attrs[k]); });
+    el.setAttribute('stroke', o.c || C.k);
+    el.setAttribute('stroke-width', o.w || 2.2);
+    el.setAttribute('fill', o.fill && o.fs === 'solid' ? o.fill : 'none');
+    el.setAttribute('stroke-linecap', 'round');
+    el.setAttribute('stroke-linejoin', 'round');
+    if (o.dash) el.setAttribute('stroke-dasharray', o.dash.join(' '));
+    return add(el);
+  }
+  function pts(p) { return p.map(function (q) { return q[0] + ',' + q[1]; }).join(' '); }
+  var R = {
+    rect: function (x, y, w, h, o) { o = o || {}; return rc ? add(rc.rectangle(x, y, w, h, ro(o))) : plain('rect', { x: x, y: y, width: w, height: h, rx: 6 }, o); },
+    circle: function (x, y, d, o) { o = o || {}; return rc ? add(rc.circle(x, y, d, ro(o))) : plain('circle', { cx: x, cy: y, r: d / 2 }, o); },
+    line: function (x1, y1, x2, y2, o) { o = o || {}; return rc ? add(rc.line(x1, y1, x2, y2, ro(o))) : plain('line', { x1: x1, y1: y1, x2: x2, y2: y2 }, o); },
+    path: function (d, o) { o = o || {}; return rc ? add(rc.path(d, ro(o))) : plain('path', { d: d }, o); },
+    lines: function (p, o) { o = o || {}; return rc ? add(rc.linearPath(p, ro(o))) : plain('polyline', { points: pts(p) }, o); },
+    curve: function (p, o) { o = o || {}; return rc ? add(rc.curve(p, ro(o))) : plain('polyline', { points: pts(p) }, o); }
+  };
+
+  function T(x, y, s, o) {
+    o = o || {};
+    var el = document.createElementNS(NS, 'text');
+    el.setAttribute('x', x);
+    el.setAttribute('y', y);
+    el.setAttribute('class', 'hand');
+    el.setAttribute('fill', o.c || C.k);
+    el.setAttribute('font-size', o.s || 20);
+    el.setAttribute('font-weight', o.b ? 700 : 500);
+    if (o.a) el.setAttribute('text-anchor', o.a);
+    tilt = (tilt + 1) % 7;
+    var deg = o.rot != null ? o.rot : (tilt - 3) * 0.3;
+    el.setAttribute('transform', 'rotate(' + deg + ' ' + x + ' ' + y + ')');
+    el.textContent = s;
+    return add(el);
+  }
+  function arrow(p, o) {
+    o = o || {};
+    if (o.curve && p.length > 2) R.curve(p, o); else R.lines(p, o);
+    var a = p[p.length - 2], b = p[p.length - 1];
+    var ang = Math.atan2(b[1] - a[1], b[0] - a[0]), L = o.head || 13;
+    var h = { c: o.c, w: o.w, r: 0.5 };
+    R.line(b[0], b[1], b[0] - L * Math.cos(ang - 0.42), b[1] - L * Math.sin(ang - 0.42), h);
+    R.line(b[0], b[1], b[0] - L * Math.cos(ang + 0.42), b[1] - L * Math.sin(ang + 0.42), h);
+  }
+
+  // Icons are drawn in a unit box scaled by s, so each one is a few marker strokes.
+  function P(x, y, s, cmds) {
+    return cmds.map(function (cm) {
+      var out = cm[0];
+      for (var i = 1; i < cm.length; i += 2) out += ' ' + (x + cm[i] * s).toFixed(1) + ' ' + (y + cm[i + 1] * s).toFixed(1);
+      return out;
+    }).join(' ');
+  }
+  function ic(c, extra) {
+    var o = { c: c, r: 0.6, w: 2 };
+    if (extra) Object.keys(extra).forEach(function (k) { o[k] = extra[k]; });
+    return o;
+  }
+  function Ln(x, y, s, x1, y1, x2, y2, o) { R.line(x + x1 * s, y + y1 * s, x + x2 * s, y + y2 * s, o); }
+  function Ci(x, y, s, cx, cy, d, o) { R.circle(x + cx * s, y + cy * s, d * s, o); }
+  function Re(x, y, s, rx, ry, rw, rh, o) { R.rect(x + rx * s, y + ry * s, rw * s, rh * s, o); }
+  function Pa(x, y, s, cmds, o) { R.path(P(x, y, s, cmds), o); }
+
+  var I = {
+    person: function (x, y, s, c) {
+      Ci(x, y, s, 0.5, 0.28, 0.36, ic(c));
+      Pa(x, y, s, [['M', 0.1, 0.98], ['Q', 0.5, 0.38, 0.9, 0.98], ['Z']], ic(c));
+    },
+    hospital: function (x, y, s, c) {
+      Re(x, y, s, 0.04, 0.04, 0.92, 0.92, ic(c));
+      Ln(x, y, s, 0.5, 0.2, 0.5, 0.8, ic(C.r, { w: 4 }));
+      Ln(x, y, s, 0.2, 0.5, 0.8, 0.5, ic(C.r, { w: 4 }));
+    },
+    tube: function (x, y, s, c) {
+      Pa(x, y, s, [['M', 0.38, 0.5], ['L', 0.38, 0.8], ['Q', 0.38, 0.96, 0.5, 0.96], ['Q', 0.62, 0.96, 0.62, 0.8], ['L', 0.62, 0.5], ['Z']], ic(C.pink, { fill: C.pink, w: 1, hg: 3 }));
+      Pa(x, y, s, [['M', 0.38, 0.06], ['L', 0.38, 0.8], ['Q', 0.38, 0.96, 0.5, 0.96], ['Q', 0.62, 0.96, 0.62, 0.8], ['L', 0.62, 0.06]], ic(c));
+      Ln(x, y, s, 0.3, 0.06, 0.7, 0.06, ic(c));
+    },
+    clipboard: function (x, y, s, c) {
+      Re(x, y, s, 0.14, 0.12, 0.72, 0.86, ic(c));
+      Re(x, y, s, 0.34, 0.04, 0.32, 0.14, ic(c));
+      Ln(x, y, s, 0.26, 0.42, 0.74, 0.42, ic(c));
+      Ln(x, y, s, 0.26, 0.58, 0.74, 0.58, ic(c));
+      Ln(x, y, s, 0.26, 0.74, 0.6, 0.74, ic(c));
+    },
+    tiles: function (x, y, s) {
+      for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) {
+        var fill = (i + j) % 2 ? C.pink : C.purp;
+        Re(x, y, s, 0.02 + j * 0.33, 0.02 + i * 0.33, 0.29, 0.29, ic(fill, { fill: fill, w: 1.4, hg: 3.2, fw: 1 }));
+      }
+    },
+    vector: function (x, y, s, c) {
+      Re(x, y, s, 0.3, 0, 0.4, 1, ic(c));
+      for (var k = 1; k < 6; k++) Ln(x, y, s, 0.3, k / 6, 0.7, k / 6, ic(c, { w: 1.4 }));
+    },
+    speech: function (x, y, s, c) {
+      Pa(x, y, s, [['M', 0.12, 0.12], ['L', 0.88, 0.12], ['Q', 0.96, 0.12, 0.96, 0.22], ['L', 0.96, 0.56], ['Q', 0.96, 0.66, 0.88, 0.66], ['L', 0.42, 0.66], ['L', 0.22, 0.88], ['L', 0.26, 0.66], ['L', 0.12, 0.66], ['Q', 0.04, 0.66, 0.04, 0.56], ['L', 0.04, 0.22], ['Q', 0.04, 0.12, 0.12, 0.12], ['Z']], ic(c));
+      Ln(x, y, s, 0.2, 0.32, 0.8, 0.32, ic(c, { w: 1.6 }));
+      Ln(x, y, s, 0.2, 0.48, 0.62, 0.48, ic(c, { w: 1.6 }));
+    },
+    magnifier: function (x, y, s, c) {
+      Ci(x, y, s, 0.4, 0.4, 0.62, ic(c));
+      Ln(x, y, s, 0.62, 0.62, 0.94, 0.94, ic(c, { w: 4 }));
+    },
+    bars: function (x, y, s, c) {
+      Re(x, y, s, 0.08, 0.56, 0.22, 0.4, ic(c, { fill: c, w: 1.6, hg: 4 }));
+      Re(x, y, s, 0.39, 0.32, 0.22, 0.64, ic(c, { fill: c, w: 1.6, hg: 4 }));
+      Re(x, y, s, 0.7, 0.08, 0.22, 0.88, ic(c, { fill: c, w: 1.6, hg: 4 }));
+    },
+    gauge: function (x, y, s, c) {
+      Pa(x, y, s, [['M', 0.06, 0.78], ['Q', 0.06, 0.14, 0.5, 0.14], ['Q', 0.94, 0.14, 0.94, 0.78]], ic(c));
+      Ln(x, y, s, 0.5, 0.78, 0.76, 0.36, ic(c, { w: 3 }));
+      Ci(x, y, s, 0.5, 0.78, 0.12, ic(c, { fill: c, fs: 'solid' }));
+    },
+    checkCircle: function (x, y, s, c) {
+      Ci(x, y, s, 0.5, 0.5, 0.92, ic(c));
+      Pa(x, y, s, [['M', 0.26, 0.52], ['L', 0.44, 0.7], ['L', 0.76, 0.3]], ic(c, { w: 3 }));
+    },
+    robot: function (x, y, s, c) {
+      Re(x, y, s, 0.14, 0.26, 0.72, 0.6, ic(c));
+      Ln(x, y, s, 0.5, 0.26, 0.5, 0.1, ic(c));
+      Ci(x, y, s, 0.5, 0.07, 0.12, ic(c));
+      Ci(x, y, s, 0.35, 0.5, 0.14, ic(c, { fill: c, fs: 'solid' }));
+      Ci(x, y, s, 0.65, 0.5, 0.14, ic(c, { fill: c, fs: 'solid' }));
+      Ln(x, y, s, 0.36, 0.72, 0.64, 0.72, ic(c));
+      Ln(x, y, s, 0.14, 0.52, 0.04, 0.52, ic(c));
+      Ln(x, y, s, 0.86, 0.52, 0.96, 0.52, ic(c));
+    },
+    bulb: function (x, y, s, c) {
+      Ci(x, y, s, 0.5, 0.38, 0.6, ic(c));
+      Pa(x, y, s, [['M', 0.36, 0.62], ['L', 0.4, 0.76], ['L', 0.6, 0.76], ['L', 0.64, 0.62]], ic(c));
+      Ln(x, y, s, 0.41, 0.86, 0.59, 0.86, ic(c));
+    },
+    shield: function (x, y, s, c) {
+      Pa(x, y, s, [['M', 0.5, 0.04], ['L', 0.9, 0.18], ['Q', 0.9, 0.7, 0.5, 0.96], ['Q', 0.1, 0.7, 0.1, 0.18], ['Z']], ic(c));
+      Ln(x, y, s, 0.5, 0.3, 0.5, 0.6, ic(c, { w: 2.6 }));
+      Ci(x, y, s, 0.5, 0.75, 0.08, ic(c, { fill: c, fs: 'solid' }));
+    },
+    monitor: function (x, y, s, c) {
+      Re(x, y, s, 0.04, 0.06, 0.92, 0.62, ic(c));
+      Ln(x, y, s, 0.5, 0.68, 0.5, 0.84, ic(c));
+      Ln(x, y, s, 0.28, 0.9, 0.72, 0.9, ic(c));
+      Ci(x, y, s, 0.15, 0.22, 0.08, ic(C.pink, { fill: C.pink, fs: 'solid' }));
+      Ci(x, y, s, 0.15, 0.38, 0.08, ic(C.r, { fill: C.r, fs: 'solid' }));
+      Ln(x, y, s, 0.24, 0.22, 0.84, 0.22, ic(c, { w: 1.6 }));
+      Ln(x, y, s, 0.24, 0.38, 0.84, 0.38, ic(c, { w: 1.6 }));
+      Ln(x, y, s, 0.24, 0.54, 0.66, 0.54, ic(c, { w: 1.6 }));
+    },
+    clock: function (x, y, s, c) {
+      Ci(x, y, s, 0.5, 0.5, 0.92, ic(c));
+      Ln(x, y, s, 0.5, 0.5, 0.5, 0.2, ic(c, { w: 2.6 }));
+      Ln(x, y, s, 0.5, 0.5, 0.72, 0.62, ic(c, { w: 2.6 }));
+    },
+    tasks: function (x, y, s, c) {
+      [0.18, 0.5, 0.82].forEach(function (ry) {
+        Re(x, y, s, 0.04, ry - 0.1, 0.2, 0.2, ic(c, { w: 1.6 }));
+        Ln(x, y, s, 0.34, ry, 0.96, ry, ic(c, { w: 1.8 }));
+      });
+      Pa(x, y, s, [['M', 0.06, 0.17], ['L', 0.13, 0.25], ['L', 0.27, 0.03]], ic(C.g, { w: 2.6 }));
+    },
+    loop: function (x, y, s, c) {
+      function q(px, py) { return [x + px * s, y + py * s]; }
+      arrow([q(0.86, 0.44), q(0.66, 0.12), q(0.3, 0.14), q(0.12, 0.42)], { curve: 1, c: c, w: 2, head: 8 });
+      arrow([q(0.14, 0.58), q(0.34, 0.88), q(0.7, 0.86), q(0.88, 0.58)], { curve: 1, c: c, w: 2, head: 8 });
+    },
+    microscope: function (x, y, s, c) {
+      Pa(x, y, s, [['M', 0.26, 0.1], ['L', 0.4, 0.02], ['L', 0.62, 0.42], ['L', 0.48, 0.5], ['Z']], ic(c));
+      Ln(x, y, s, 0.55, 0.47, 0.58, 0.58, ic(c, { w: 2.6 }));
+      Ln(x, y, s, 0.34, 0.62, 0.8, 0.62, ic(c));
+      Pa(x, y, s, [['M', 0.56, 0.3], ['Q', 0.92, 0.44, 0.72, 0.84]], ic(c));
+      Ln(x, y, s, 0.72, 0.84, 0.72, 0.94, ic(c));
+      Ln(x, y, s, 0.2, 0.94, 0.94, 0.94, ic(c, { w: 2.6 }));
+    },
+    signedBars: function (x, y, s) {
+      Ln(x, y, s, 0.42, 0.02, 0.42, 0.98, ic(C.k, { w: 2 }));
+      Re(x, y, s, 0.42, 0.08, 0.54, 0.2, ic(C.r, { fill: C.r, w: 1.4, hg: 3.5 }));
+      Re(x, y, s, 0.42, 0.4, 0.32, 0.2, ic(C.r, { fill: C.r, w: 1.4, hg: 3.5 }));
+      Re(x, y, s, 0.1, 0.72, 0.32, 0.2, ic(C.g, { fill: C.g, w: 1.4, hg: 3.5 }));
+    },
+    heatmap: function (x, y, s) {
+      var heat = [0, 1, 2, 0, 1, 3, 3, 1, 0, 2, 1, 0];
+      var col = [null, C.o, C.r, C.r];
+      for (var r = 0; r < 3; r++) for (var c = 0; c < 4; c++) {
+        var h = heat[r * 4 + c];
+        var o = h ? ic(col[h], { w: 1.2, fill: col[h], hg: h === 3 ? 2.2 : 4 }) : ic(C.gr, { w: 1.2 });
+        Re(x, y, s, c * 0.25, r * 0.25, 0.23, 0.23, o);
+      }
+    }
+  };
+
+  var K = C.k, PK = C.pink, PU = C.purp, RD = C.r, OG = C.o, GN = C.g, GY = C.gr;
+
+  /* ---- the two lanes ---- */
+  R.rect(20, 30, 400, 120, { c: PK });
+  I.hospital(38, 52, 56, PK);
+  T(112, 70, 'surgical lane', { s: 28, b: 1, c: PK });
+  T(112, 98, 'frozen section from the OR', { s: 20 });
+  T(112, 124, 'simulated · timer starts on arrival', { s: 18, c: GY });
+
+  R.rect(480, 30, 400, 120, { c: PU });
+  I.tube(492, 46, 80, PU);
+  T(572, 70, 'biopsy lane', { s: 28, b: 1, c: PU });
+  T(572, 98, 'read for risk, in arrival order', { s: 20 });
+  T(572, 124, 'result goes to the oncologist', { s: 18, c: GY });
+
+  arrow([[220, 152], [260, 180], [330, 206]], { curve: 1, c: PK });
+  arrow([[680, 152], [640, 180], [570, 206]], { curve: 1, c: PU });
+
+  /* ---- model read ---- */
+  R.rect(20, 210, 860, 360);
+  T(40, 248, 'model read', { s: 30, b: 1 });
+  T(196, 248, 'tile level · CONCH primary · MUSK as a second opinion', { s: 19, c: GY });
+  var steps = [
+    { x: 40, icon: 'tiles', a: 'image →', b: 'tile grid' },
+    { x: 210, icon: 'vector', a: 'embed', b: 'CONCH + MUSK' },
+    { x: 380, icon: 'speech', a: 'concepts', b: '8 criteria' },
+    { x: 550, icon: 'bars', a: 'risk model', b: 'calibrated' },
+    { x: 720, icon: 'checkCircle', a: 'conformal', b: '+ reliability' }
+  ];
+  steps.forEach(function (st, i) {
+    R.rect(st.x, 268, 150, 84);
+    if (st.icon === 'tiles') I.tiles(st.x + 10, 282, 54); else I[st.icon](st.x + 12, 288, 44, K);
+    T(st.x + 70, 304, st.a, { s: 19, b: 1 });
+    T(st.x + 70, 328, st.b, { s: 16 });
+    if (i < steps.length - 1) arrow([[st.x + 152, 310], [st.x + 168, 310]], { head: 7, w: 1.8 });
+  });
+
+  T(40, 380, 'every read shows', { s: 18, c: GY });
+  // why
+  R.rect(40, 390, 197, 162);
+  T(54, 418, 'why', { s: 24, b: 1 });
+  I.signedBars(110, 426, 72);
+  T(54, 522, 'named criteria,', { s: 16 });
+  T(54, 542, 'signed contributions', { s: 16 });
+  // where
+  R.rect(250, 390, 197, 162);
+  T(264, 418, 'where', { s: 24, b: 1 });
+  I.heatmap(300, 428, 100);
+  T(264, 522, 'tile heatmap,', { s: 16 });
+  T(264, 542, 'per criterion', { s: 16 });
+  // compared to
+  R.rect(460, 390, 197, 162);
+  T(474, 418, 'compared to', { s: 24, b: 1 });
+  I.magnifier(472, 432, 50, K);
+  R.rect(534, 432, 48, 48, { c: PU, w: 1.4, fill: PU, hg: 5, fw: 0.9 });
+  R.rect(592, 432, 48, 48, { c: PK, w: 1.4, fill: PK, hg: 5, fw: 0.9 });
+  T(558, 500, 'similar', { s: 14, a: 'middle', c: GN, b: 1 });
+  T(616, 500, '≠ label', { s: 14, a: 'middle', c: RD, b: 1 });
+  T(474, 522, 'similar cases +', { s: 16 });
+  T(474, 542, 'nearest different label', { s: 16 });
+  // how sure
+  R.rect(670, 390, 197, 162);
+  T(684, 418, 'how sure', { s: 24, b: 1 });
+  I.gauge(680, 430, 50, K);
+  R.rect(742, 432, 56, 26, { c: OG, w: 1.6, r: 0.8 });
+  T(770, 450, 'InSitu', { s: 14, a: 'middle', c: OG, b: 1, rot: 0 });
+  R.rect(804, 432, 58, 26, { c: RD, w: 1.6, r: 0.8 });
+  T(833, 450, 'Invasive', { s: 14, a: 'middle', c: RD, b: 1, rot: 0 });
+  T(742, 480, 'conformal set', { s: 14, c: GY });
+  T(684, 522, 'calibrated p,', { s: 16 });
+  T(684, 542, 'CONCH–MUSK agreement', { s: 16 });
+
+  /* ---- worklist tiers ---- */
+  arrow([[450, 572], [450, 606]]);
+  R.rect(120, 610, 660, 232);
+  I.monitor(136, 626, 56, K);
+  T(206, 652, 'worklist', { s: 30, b: 1 });
+  T(322, 652, 'sorted by tier', { s: 20, c: GY });
+  var tiers = [
+    [1, PK, 'surgical frozen sections · timer running'],
+    [2, RD, 'likely aggressive'],
+    [3, OG, 'low confidence: set > 1 class or reliability flag'],
+    [4, GY, 'unflagged, in arrival order']
+  ];
+  tiers.forEach(function (t, i) {
+    var y = 694 + i * 34;
+    R.circle(226, y - 7, 26, { c: t[1], r: 0.7 });
+    T(226, y, String(t[0]), { s: 19, b: 1, c: t[1], a: 'middle', rot: 0 });
+    T(250, y, t[2], { s: 20, b: i < 3 ? 1 : 0, c: i < 3 ? t[1] : K });
+  });
+  I.clock(596, 672, 28, PK);
+  I.shield(414, 708, 26, RD);
+  T(446, 728, 'safety rule: aggressive anywhere in the set', { s: 16, c: RD });
+  T(250, 828, 'within a tier: risk score ↓, then arrival time', { s: 17, c: GY });
+
+  /* ---- split by lane ---- */
+  arrow([[300, 844], [250, 878]], { c: PK });
+  T(178, 868, 'surgical', { s: 16, c: PK, b: 1 });
+  arrow([[600, 844], [650, 878]], { c: PU });
+  T(660, 870, 'flagged biopsies', { s: 16, c: PU, b: 1 });
+  arrow([[450, 844], [450, 1236]]);
+  T(442, 1040, 'unflagged: straight to the read', { s: 16, a: 'middle', rot: -90 });
+
+  // surgical case view
+  R.rect(20, 880, 400, 320, { c: PK });
+  T(40, 916, 'surgical case view', { s: 26, b: 1, c: PK });
+  T(40, 940, 'banner: simulated frozen section', { s: 17, c: GY });
+  var mx = 120, my = 968, mw = 180, mh = 130;
+  R.path('M' + (mx + 18) + ' ' + (my + 40) + ' Q' + (mx + 40) + ' ' + (my + 2) + ' ' + (mx + 100) + ' ' + (my + 6) +
+    ' Q' + (mx + 168) + ' ' + (my + 18) + ' ' + (mx + 160) + ' ' + (my + 80) + ' Q' + (mx + 150) + ' ' + (my + 122) + ' ' + (mx + 84) + ' ' + (my + 114) +
+    ' Q' + (mx + 14) + ' ' + (my + 104) + ' ' + (mx + 18) + ' ' + (my + 40) + ' Z', { c: PK, w: 1.4, fill: PK, hg: 7, fw: 0.9, r: 0.8 });
+  R.path('M' + (mx + 60) + ' ' + (my + 4) + ' Q' + (mx + 90) + ' ' + (my - 2) + ' ' + (mx + 118) + ' ' + (my + 6) +
+    ' Q' + (mx + 120) + ' ' + (my + 34) + ' ' + (mx + 90) + ' ' + (my + 38) + ' Q' + (mx + 62) + ' ' + (my + 34) + ' ' + (mx + 60) + ' ' + (my + 4) + ' Z', { c: PU, w: 1.4, fill: PU, hg: 3, r: 0.8 });
+  R.line(mx, my, mx + mw, my, { c: RD, w: 5, r: 0.6 });
+  R.line(mx, my + mh, mx + mw, my + mh, { c: GN, w: 3.5, r: 0.6 });
+  R.line(mx, my, mx, my + mh, { c: GN, w: 3.5, r: 0.6 });
+  R.line(mx + mw, my, mx + mw, my + mh, { c: GN, w: 3.5, r: 0.6 });
+  T(mx + mw / 2, my - 12, 'superior', { s: 15, b: 1, c: RD, a: 'middle' });
+  T(mx + mw / 2, my + mh + 20, 'inferior', { s: 15, c: GN, a: 'middle' });
+  T(mx - 8, my + mh / 2 + 5, 'medial', { s: 15, c: GN, a: 'end' });
+  T(mx + mw + 8, my + mh / 2 + 5, 'lateral', { s: 15, c: GN });
+  I.clock(356, 950, 44, PK);
+  T(378, 1014, '06:42', { s: 20, b: 1, c: PK, a: 'middle' });
+  T(40, 1140, 'pathologist picks one answer:', { s: 16 });
+  [['margins clear', GN, 30, 112], ['tumor at margin', RD, 150, 122], ['defer to permanent', OG, 280, 132]].forEach(function (ch) {
+    R.rect(ch[2], 1150, ch[3], 36, { c: ch[1], r: 0.8 });
+    T(ch[2] + ch[3] / 2, 1174, ch[0], { s: 16, b: 1, c: ch[1], a: 'middle' });
+  });
+
+  // agent
+  R.rect(480, 880, 400, 320, { c: PU });
+  I.robot(494, 892, 52, PU);
+  T(558, 916, 'agent drafts orders', { s: 26, b: 1, c: PU });
+  T(558, 940, 'flagged biopsies, before the case opens', { s: 16, c: GY });
+  R.rect(500, 958, 160, 74);
+  I.tasks(512, 974, 40, K);
+  T(562, 990, 'rules engine', { s: 18, b: 1 });
+  T(562, 1012, 'picks orders', { s: 15 });
+  arrow([[662, 995], [684, 995]], { head: 7, w: 1.8 });
+  R.rect(686, 958, 176, 74);
+  I.bulb(696, 972, 40, K);
+  T(742, 990, 'LLM, optional', { s: 18, b: 1 });
+  T(742, 1012, 'rationale only', { s: 15 });
+  T(500, 1062, 'drafted:', { s: 18, b: 1, c: PU });
+  T(572, 1062, '(illustrative; needs clinical review)', { s: 14, c: GY });
+  [['p63 · calponin', 'in situ vs invasive', 1090], ['ER · PR · HER2 · Ki-67', 'if invasion confirmed', 1116], ['recut / deeper levels', 'if quality is low', 1142]].forEach(function (d) {
+    R.rect(502, d[2] - 13, 13, 13, { c: PU, w: 1.6, r: 0.5 });
+    T(524, d[2], d[0], { s: 17, b: 1 });
+    T(704, d[2], d[1], { s: 15, c: GY });
+  });
+  T(500, 1176, 'nothing is ordered until the pathologist approves', { s: 17, c: RD, b: 1 });
+  R.line(500, 1183, 846, 1185, { c: RD, w: 1.5, r: 0.8 });
+
+  /* ---- pathologist ---- */
+  arrow([[220, 1202], [270, 1238]], { c: PK });
+  arrow([[680, 1202], [630, 1238]], { c: PU });
+  R.rect(170, 1240, 560, 132, { w: 2.8 });
+  I.person(188, 1262, 50, K);
+  I.microscope(242, 1260, 54, K);
+  T(312, 1282, 'pathologist decides', { s: 28, b: 1 });
+  T(312, 1308, 'order tests · edit · closer look first · dismiss flag', { s: 17 });
+  T(312, 1330, 'sign out, or make the margin call', { s: 17 });
+  T(312, 1356, 'the model suggests; it never diagnoses', { s: 17, c: RD });
+  R.line(312, 1362, 580, 1364, { c: RD, w: 1.5, r: 0.8 });
+
+  /* ---- where results go ---- */
+  arrow([[250, 1374], [190, 1408]], { c: PK });
+  T(228, 1398, 'margin call', { s: 15, c: PK, b: 1 });
+  arrow([[450, 1374], [450, 1408]], { dash: [6, 5] });
+  arrow([[650, 1374], [710, 1408]], { c: PU });
+  T(600, 1398, 'sign out', { s: 15, c: PU, b: 1, a: 'end' });
+
+  R.rect(20, 1410, 300, 130, { c: PK });
+  I.person(36, 1428, 44, PK);
+  I.clock(86, 1430, 38, PK);
+  T(138, 1454, 'surgeon screen', { s: 24, b: 1, c: PK });
+  T(138, 1478, 'margin call arrives live', { s: 16 });
+  T(138, 1500, 'timer stops', { s: 16, c: GY });
+
+  R.rect(345, 1410, 210, 130);
+  I.loop(360, 1430, 40, K);
+  T(410, 1454, 'event log', { s: 22, b: 1 });
+  T(410, 1478, 'every action', { s: 16 });
+  T(410, 1500, 'timestamped', { s: 16, c: GY });
+
+  R.rect(580, 1410, 300, 130, { c: PU });
+  I.person(596, 1428, 44, PU);
+  I.clipboard(644, 1428, 42, PU);
+  T(698, 1454, 'oncologist inbox', { s: 24, b: 1, c: PU });
+  T(698, 1478, 'signed-out summary', { s: 16 });
+  T(698, 1500, 'sentences cite findings', { s: 15, c: GY });
+})();
+</script>
+</body>
+</html>
