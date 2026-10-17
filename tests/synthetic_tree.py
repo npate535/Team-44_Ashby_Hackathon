@@ -289,3 +289,70 @@ def delta_import_problems(relpath: str, allowed: set[str] = DELTA_ALLOWED) -> li
     problems = sorted(imported - set(sys.stdlib_module_names) - allowed - {"__future__"})
     problems += sorted(full & FORBIDDEN_CORE)
     return problems
+
+
+def write_cases_csv(data_root: Path, cfg: Mapping[str, Any], specs: Iterable[tuple[str, str, str, str]],
+                    img_dir: Path | None = None) -> "Any":
+    """Hand-made cases.csv for steps downstream of 01: specs = (case_id, label, split, lane). Each case gets a
+    generated solid-color-plus-noise image (color derived from its position) at settings dataset.image_size."""
+    import pandas as pd
+
+    data_root = Path(data_root)
+    img_dir = Path(img_dir or data_root / "_src")
+    img_dir.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for i, (case_id, label, split, lane) in enumerate(specs):
+        path = img_dir / f"{case_id}.tif"
+        color = (40 + (37 * i) % 200, 60 + (91 * i) % 180, 80 + (53 * i) % 160)
+        Image.fromarray(tissue_image(tuple(cfg["dataset"]["image_size"]), seed=i, color=color), "RGB").save(path)
+        rows.append({"case_id": case_id, "source": "synthetic", "source_file": f"Photos/{label}/{case_id}.tif",
+                     "source_index": i, "image_path": str(path), "label": label, "split": split, "patient_id": "",
+                     "group": f"b{i}", "lane": lane, "width": cfg["dataset"]["image_size"][0],
+                     "height": cfg["dataset"]["image_size"][1], "display_path": f"display/{case_id}.jpg"})
+    df = pd.DataFrame(rows)
+    data_root.mkdir(parents=True, exist_ok=True)
+    df.to_csv(data_root / "cases.csv", index=False)
+    return df
+
+
+# ---- WSI stand-ins ------------------------------------------------------------------------------------------------
+class FakeSlide:
+    """openslide.OpenSlide stand-in over a generated level-0 array (levels = integer downsamples)."""
+
+    def __init__(self, level0: np.ndarray, downsamples: tuple[int, ...] = (1, 2, 8)):
+        base = Image.fromarray(level0, "RGB")
+        self.levels = [base if d == 1 else base.resize((max(1, base.width // d), max(1, base.height // d)),
+                                                       Image.BILINEAR) for d in downsamples]
+        self.level_count = len(self.levels)
+        self.level_dimensions = tuple(im.size for im in self.levels)
+        self.dimensions = self.level_dimensions[0]
+        self.level_downsamples = tuple(self.dimensions[0] / im.width for im in self.levels)
+
+    def read_region(self, location: tuple[int, int], level: int, size: tuple[int, int]) -> Image.Image:
+        d = self.level_downsamples[level]
+        x, y = int(location[0] / d), int(location[1] / d)
+        canvas = Image.new("RGBA", size, (0, 0, 0, 0))  # outside the slide = transparent, like openslide
+        src = self.levels[level]
+        x1, y1 = min(src.width, x + size[0]), min(src.height, y + size[1])
+        if x1 > x and y1 > y:
+            canvas.paste(src.crop((x, y, x1, y1)).convert("RGBA"), (0, 0))
+        return canvas
+
+
+def write_bach_xml(path: Path, regions: Iterable[tuple[str, list[tuple[int, int]]]], mpp: float = 0.466667,
+                   use_attribute: bool = False) -> None:
+    """Aperio ImageScope XML like BACH's: one Annotation; Regions with Text (or A01-style Attribute@Value)."""
+    parts = [f'<Annotations MicronsPerPixel="{mpp}"><Annotation Id="1" Type="4"><Attributes/><Regions>'
+             '<RegionAttributeHeaders/>']
+    for i, (label, xy) in enumerate(regions, start=1):
+        text = "" if use_attribute else label
+        attrs = f'<Attributes><Attribute Name="1" Id="0" Value="{label}"/></Attributes>' if use_attribute else "<Attributes/>"
+        verts = "".join(f'<Vertex X="{x}" Y="{y}" Z="0"/>' for x, y in xy)
+        parts.append(f'<Region Id="{i}" Type="0" Text="{text}" NegativeROA="0">{attrs}<Vertices>{verts}</Vertices></Region>')
+    parts.append("</Regions></Annotation></Annotations>")
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text("".join(parts))
+
+
+def rect(x0: int, y0: int, x1: int, y1: int) -> list[tuple[int, int]]:
+    return [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]

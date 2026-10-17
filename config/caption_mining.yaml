@@ -1,0 +1,155 @@
+# Caption mining for data-driven concept vectors (BUILD_PLAN §A11; pipeline/mine_captions.py, Agent 1).
+#
+# DRAFT SYNONYM LISTS; CAPTION CO-MENTION != TISSUE TRUTH. A caption that names a feature does not prove the image
+# shows it (YouTube narration drifts, Twitter captions describe whole cases). Concept vectors trained on these
+# images are labeled "caption-consistent", never "validated". Lists need pathologist review.
+#
+# Matching: every regex is Python `re`, case-insensitive, searched in the caption. A positive needs a positive
+# match that is not negated (negation cues within `negation.window_words` words before the match) and no match
+# of the concept's `exclude` list. A negative needs a match of the concept's `negative` list (captions that
+# affirmatively describe contrasting tissue) and no positive match. Image level: an image is positive if any of
+# its captions is; negative if any caption is negative and none is positive; images whose captions hit the
+# stain/modality filter are dropped entirely. Concept ids must equal settings concepts.ids.
+
+version: 1
+seed: 44
+
+quilt:
+  csv_name_contains: lookup         # pick the largest *.csv in the Quilt root whose name contains this
+  chunksize: 200000                 # rows per pandas chunk (the CSV is 2.2 GB: never loaded whole)
+  usecols: [caption, image_path, subset, pathology, roi_text, not_histology]
+  require_not_histology_zero: true  # drop videos flagged as non-histology (2023-10-26 changelog)
+  image_dirs: ["images_part_{part}/quilt_1m"]   # relative to the Quilt root
+  parts: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+pathgen:
+  json_name: PathGen-1.6M.json      # used only when inventory.json says pathgen.has_patch_images
+  patch_name: "{wsi_id}_{x}_{y}"    # README crop naming; extension any of the image extensions
+
+organ_filter:                       # breast rows: Quilt `pathology` list OR the caption
+  pathology_prefixes: [breast]      # Quilt `pathology` values starting with these (older CSVs say "Breast pathology")
+  caption_regex: '\b(breast|mammary|ductal|lobular|dcis|idc|ilc|lcis|tdlu|terminal duct lobular|fibroadenoma|phyllodes|nipple|areola)\b'
+
+stain_filter:                       # H&E only: drop images whose captions mention another stain or modality
+  exclude_regex: '\b(immunohistochem\w*|ihc|immunostain\w*|immunoreactiv\w*|her-?2|estrogen receptor|progesterone receptor|ki-?67|p63|calponin|smmhc|cytokeratin|ck ?5/6|ck ?7|ck ?20|e-?cadherin|gata-?3|trichrome|reticulin|\bpas\b|mucicarmine|gms|silver stain|special stain|in situ hybridi[sz]ation|\bfish\b|cytolog\w*|pap smear|papanicolaou|fine needle|\bfna\b|diff-?quik|gross(ly)?|mammogra\w*|ultrasound|\bmri\b|radiolog\w*)\b'
+
+negation:                           # positives preceded by these (within window_words words) are not positives
+  cues: '\b(no|not|without|absence of|absent|lack of|lacking|negative for|free of|rule out|ruled out|r/o|devoid of)\b'
+  window_words: 4
+
+caps:
+  positives_per_concept: 400
+  negatives_per_concept: 400
+  max_images_per_group: 5           # per Quilt video / Twitter thread / PathGen slide (near-duplicate frames)
+
+concepts:
+  tubules:
+    positive:
+      - '\btubul(e|es|ar formation|ar structures|ar pattern|ar differentiation)\b'
+      - '\b(gland|glandular) (formation|differentiation|structures)\b'
+      - '\bwell[- ]formed (glands|tubules)\b'
+      - '\btubular carcinoma\b'
+    exclude: ['\b(renal|kidney|seminiferous|proximal|distal|collecting) tubul', '\bpoor(ly)? (formed|differentiated)\b']
+    negative:
+      - '\bsolid (sheets|nests|growth|pattern)\b'
+      - '\bsheets of (tumou?r|malignant|carcinoma|neoplastic) cells\b'
+      - '\bpoorly differentiated\b'
+  pleomorphism:
+    positive:
+      - '\bpleomorph\w*\b'
+      - '\bnuclear (atypia|pleomorphism|enlargement)\b'
+      - '\b(enlarged|bizarre|atypical|vesicular) nuclei\b'
+      - '\bprominent nucleol\w*\b'
+      - '\b(high[- ]grade|grade 3) nuclei\b'
+      - '\bnuclear grade (3|iii)\b'
+      - '\banaplas\w*\b'
+    exclude: ['\bpleomorphic (adenoma|xanthoastrocytoma|lipoma|sarcoma)\b']
+    negative:
+      - '\b(bland|uniform|monotonous|regular|small round) nuclei\b'
+      - '\blow[- ]grade\b'
+      - '\bnuclear grade (1|i)\b'
+  mitoses:
+    positive:
+      - '\bmitos[ie]s\b'
+      - '\bmitotic (figure|figures|activity|count|rate)\b'
+      - '\bmitotically active\b'
+      - '\batypical mitos\w*\b'
+    exclude: ['\b(rare|occasional|few|low) mitos', '\blow mitotic\b']
+    negative:
+      - '\bbland\b'
+      - '\blow[- ]grade\b'
+      - '\b(rare|occasional) mitos\w*\b'
+  invasion:
+    positive:
+      - '\binvasive (ductal|lobular|mammary|breast)? ?(carcinoma|cancer|tumou?r)\b'
+      - '\binfiltrat\w* (ductal|lobular)? ?(carcinoma|tumou?r|cells|nests|cords|glands)\b'
+      - '\b(stromal|stroma) invasion\b'
+      - '\binvad\w+ (the |into )?(stroma|fat|adipose)\b'
+      - '\bsingle[- ]file\b'
+      - '\bdesmoplas\w*\b'
+      - '\b(idc|ilc)\b'
+    exclude: ['\b(non|pre|micro)[- ]?invasive\b', '\bin situ\b', '\bdcis\b', '\blcis\b']
+    negative:
+      - '\bin situ\b'
+      - '\bdcis\b'
+      - '\bconfined to (the )?(duct|ducts|lobule|lobules|basement membrane)\b'
+      - '\b(intact|preserved) myoepithel\w*\b'
+  duct_confined:
+    positive:
+      - '\b(ductal|lobular)? ?carcinoma in situ\b'
+      - '\b(dcis|lcis)\b'
+      - '\bcomedo\w*\b'
+      - '\bcribriform (pattern|architecture|dcis|spaces)\b'
+      - '\bconfined to (the )?(duct|ducts|lobule|lobules|basement membrane)\b'
+      - '\b(intact|preserved) myoepithel\w*\b'
+    exclude: ['\binvasi\w*\b', '\binfiltrat\w*\b', '\bmicroinvas\w*\b']
+    negative:
+      - '\binvasive (ductal|lobular|mammary)? ?carcinoma\b'
+      - '\binfiltrat\w* (ductal|lobular)? ?carcinoma\b'
+      - '\bstromal invasion\b'
+  normal_lobules:
+    positive:
+      - '\bnormal (breast )?(lobule|lobules|tdlu|ducts|acini|breast tissue|breast parenchyma|terminal duct)\b'
+      - '\bterminal duct lobular units?\b'
+      - '\btdlus?\b'
+      - '\b(two|double|bi)[- ]?layer(ed)? (epithelium|of cells|lining)\b'
+    exclude: ['\bcarcinoma\b', '\bmalignan\w*\b', '\batypi\w*\b', '\btumou?r\b', '\bin situ\b', '\bhyperplasia\b']
+    negative:
+      - '\b(invasive|infiltrating) (ductal|lobular)? ?carcinoma\b'
+      - '\bsheets of (tumou?r|malignant|carcinoma) cells\b'
+      - '\b(ductal|lobular)? ?carcinoma in situ\b'
+  benign_stroma_fat:
+    positive:
+      - '\b(adipose|fatty) tissue\b'
+      - '\b(mature )?adipocytes\b'
+      - '\bfibroadipose\b'
+      - '\b(dense |benign )?(fibrous|fibrocollagenous|collagenous|hyalini[sz]ed) stroma\b'
+      - '\bfibrofatty\b'
+    exclude: ['\bdesmoplas\w*\b', '\bcarcinoma\b', '\bmalignan\w*\b', '\bliposarcoma\b', '\bnecros\w*\b', '\binvasi\w*\b']
+    negative:
+      - '\bsheets of (tumou?r|malignant|carcinoma|neoplastic) cells\b'
+      - '\b(invasive|infiltrating) (ductal|lobular)? ?carcinoma\b'
+      - '\bdense lymphoid\b'
+  lymphocytes:
+    positive:
+      - '\blymphocyt\w*\b'
+      - '\blymphoid (infiltrate|aggregates?|cells|follicles?)\b'
+      - '\b(tumou?r[- ]infiltrating lymphocytes|tils)\b'
+      - '\b(lymphoplasmacytic|chronic inflammatory|inflammatory) (infiltrate|cells)\b'
+    exclude: ['\blymphoma\b', '\bleuk(a)?emia\b']
+    negative:
+      - '\b(acellular|paucicellular|hypocellular)\b'
+      - '\b(adipose|fatty) tissue\b'
+      - '\bhyalini[sz]ed\b'
+  necrosis:
+    positive:
+      - '\bnecros\w*\b'
+      - '\bnecrotic\b'
+      - '\bcomedonecrosis\b'
+      - '\bkaryorrhex\w*\b'
+      - '\bapoptotic debris\b'
+    exclude: ['\bfat necrosis\b', '\bfibrinoid necrosis\b', '\bavascular necrosis\b']
+    negative:
+      - '\bviable (tumou?r|tissue|cells)\b'
+      - '\b(adipose|fatty) tissue\b'
+      - '\bnormal (breast )?(lobule|lobules|ducts|breast tissue)\b'
