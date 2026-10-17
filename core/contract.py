@@ -17,7 +17,8 @@ Every model forbids unknown fields, so drift fails loudly. Cross-field rules (en
   * findings ids are unique F<n>; each finding's data carries its kind's keys (FINDING_REQUIRED_KEYS); summary
     sentences cite at least one existing finding.
   * margin: per_margin has all four margins and equals the max p of that margin's segments; involved == margins with
-    per_margin > threshold; "clear" has no involved margin, "tumor_at_margin" has at least one; each segment touches
+    per_margin > threshold (except "defer", an unreliable read, which lists no involved margins but may keep its
+    threshold for display); "clear" has no involved margin, "tumor_at_margin" has at least one; each segment touches
     its own image edge (superior: y = 0, inferior: y + size = height, medial: x = 0, lateral: x + size = width).
   * cells: status "ok" needs model and mpp_model; other statuses carry no tiles or features.
   * agent: "drafted" has orders, "none" has none.
@@ -209,7 +210,10 @@ class Margin(_Model):
             raise ValueError("margin call 'clear' cannot list involved margins")
         if self.suggested_call == "tumor_at_margin" and not self.involved:
             raise ValueError("margin call 'tumor_at_margin' needs at least one involved margin")
-        if self.threshold is not None:
+        if self.suggested_call == "defer" and (self.involved or self.involved_length_um):
+            raise ValueError("margin call 'defer' (unreliable read) lists no involved margins; per_margin and "
+                             "segments still carry the probabilities for display")
+        if self.threshold is not None and self.suggested_call != "defer":
             above = {m for m in MARGIN_NAMES if self.per_margin[m] > self.threshold}
             if set(self.involved) != above:
                 raise ValueError(f"margin.involved {self.involved} must equal margins above threshold {sorted(above)}")

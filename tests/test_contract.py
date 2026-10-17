@@ -300,6 +300,14 @@ def test_involved_margins_follow_the_threshold():
     rejects(case, "involved")
 
 
+def test_defer_call_keeps_its_threshold_but_lists_no_involved_margin():
+    case = surgical_case()
+    case["margin"].update(suggested_call="defer", involved=[], involved_length_um=None)
+    contract.Case.model_validate(case)            # superior is above threshold, yet a deferred read names no margin
+    case["margin"]["involved"] = ["superior"]
+    rejects(case, "defer")
+
+
 def test_clear_call_has_no_involved_margin():
     case = surgical_case()
     case["margin"]["suggested_call"] = "clear"
