@@ -172,6 +172,12 @@ retrieval:
   library_split: train
   differs_most_in_k: 2              # contrast case: top-k concepts by |delta z|
 
+tile_probe:                         # pipeline.tile_probe.oof_tile_risk (CELLS_SPEC §4; plan §6.6 tile-level probe)
+  C: 0.1                            # inverse L2 strength of the multinomial logistic regression (sklearn C)
+  max_iter: 3000
+  class_weight: balanced            # balanced | null (case labels propagated to tiles; cases differ in QC tile counts)
+  seed: 44                          # grouped, class-stratified fold assignment over train cases
+
 degrade:                            # simulated frozen-section artifacts (plan §6.7); list index i = severity i+1
   types: [blur, jpeg, stain, resample]
   severities: [1, 2, 3]
