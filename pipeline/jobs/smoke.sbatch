@@ -69,7 +69,11 @@ for s, info in m["sets"].items():
 PY
 done
 echo "== weight-loading warnings (MUSK prints missing/unexpected keys instead of raising; CONCH loads strict=False)"
-if grep -inE "missing key|unexpected key|not initialized from pretrained|not used in" "$SMOKE/embed_run.log"; then
+# MUSK's "Ignored weights of ... not initialized" line lists the deliberately ignored relative_position_index buffers
+# (musk/utils.py load_state_dict ignore_missing): benign, so it is shown but not counted.
+grep -i "^Ignored weights of" "$SMOKE/embed_run.log" || true
+if grep -iE "missing key|unexpected key|not initialized from pretrained|not used in" "$SMOKE/embed_run.log" \
+        | grep -iv "^Ignored weights of"; then
     echo "WEIGHT-LOADING WARNINGS above: inspect them before any full embedding job (exit code 3)"
     [ "$RC" -ne 0 ] || RC=3
 else
