@@ -106,3 +106,27 @@ def test_reset_rewinds_and_reseeds(tmp_path):
     assert sim.sim_now() == 0 and not sim.clock_sim.running
     assert store.row("b1")["agent_status"] == "drafted" and not store.row("b1")["arrived"]
     assert [e["type"] for e in store.events()] == ["reset"]
+
+
+def test_replay_speed_brings_the_last_arrival_within_the_window(tmp_path):
+    base = fixture_case("demo_0001")
+    window = CFG["sim"]["max_replay_wall_s"]
+    late = window * CFG["sim"]["speed"] * 4           # would take 4x the window at sim.speed
+    cases = [variant(base, "early", offset=10), variant(base, "hero_last", offset=late),
+             variant(fixture_case("demo_0002"), "held", offset=late * 10)]   # held surgical: ignored
+    sim, fake, _ = _sim(tmp_path, cases)
+    assert sim.clock_sim.speed == pytest.approx(late / window)
+    assert sim.status()["base_speed"] == CFG["sim"]["speed"]
+    sim.start()
+    fake.advance(window)
+    assert "hero_last" in sim.tick()
+    sim.reset()
+    assert sim.clock_sim.speed == pytest.approx(late / window)
+
+
+def test_replay_speed_never_slows_below_sim_speed(tmp_path):
+    sim, _, _ = _sim(tmp_path, [variant(fixture_case("demo_0001"), "b", offset=5)])
+    assert sim.clock_sim.speed == CFG["sim"]["speed"]
+    cfg = {**CFG, "sim": {**CFG["sim"], "max_replay_wall_s": None}}
+    sim2, _, _ = _sim(tmp_path / "x", [variant(fixture_case("demo_0001"), "b", offset=1e9)], cfg=cfg)
+    assert sim2.clock_sim.speed == CFG["sim"]["speed"]

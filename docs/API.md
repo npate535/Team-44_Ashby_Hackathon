@@ -17,6 +17,7 @@ make demo                                                  # real/synthetic pipe
 | `PATHQUEUE_DEV_CORS=1` | allow `http://localhost:*` origins (frontend served elsewhere) |
 | `backend.db_file` | SQLite file under the artifacts root, re-seeded at every start and every reset |
 | `sim.speed` | simulator clock speed (× wall time) |
+| `sim.max_replay_wall_s` | the last self-arriving case (the biopsy hero) arrives at most this many wall seconds after Start: the clock runs faster than `sim.speed` when the offsets need it (`sim.speed` reports the effective speed, `sim.base_speed` the setting); `null` = always `sim.speed` |
 | `sim.hold_surgical_for_injection` | `true`: surgical cases arrive only through `inject_surgical` |
 | `sim.or_rooms` | simulated OR rooms on the surgeon board (`OR-1…OR-n`, stable per case_id) |
 | `margin.timer` | surgical timer amber/red thresholds (minutes, wall clock) |
