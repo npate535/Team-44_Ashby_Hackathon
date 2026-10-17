@@ -264,3 +264,30 @@ def test_fake_slide_reads_like_openslide():
     out = wsi.read_rgb(s, (90, 70), 0, (20, 20))
     assert out.size == (20, 20) and np.asarray(out)[15, 15].tolist() == [255, 255, 255]  # outside = white
     assert common.tissue_mask(out, CFG)[:10, :10].mean() > 0.5
+
+
+def test_glass_strip_is_not_a_clear_margin():
+    frac = (8 / 64, 8 / 48)
+    m = _win()
+    m[20:28, 28:36] = INS
+    tissue = np.ones((12, 16), dtype=bool)  # coarser tissue mask
+    assert wsi.window_truth(m, [INS, INV], frac, CFG, tissue)[0] == "central_only"
+    tissue[:, 14:] = False  # right strip = glass
+    assert wsi.window_truth(m, [INS, INV], frac, CFG, tissue)[0] is None
+
+
+def test_one_failing_slide_does_not_sink_the_run(wsi_run, monkeypatch):
+    data, cfg_path, bach, slides = wsi_run["data"], wsi_run["cfg_path"], wsi_run["bach"], wsi_run["slides"]
+
+    def opener(p):
+        name = __import__("pathlib").Path(p).stem
+        if name == "A02":
+            raise OSError("corrupt tile")
+        return slides[name]
+
+    monkeypatch.setattr(wsi, "SLIDE_OPENER", opener)
+    assert wsi.main(["--config", str(cfg_path), "--data-root", str(data), "--bach-root", str(bach)]) == 1
+    tiles = pd.read_csv(data / "wsi_tiles.csv")
+    assert set(tiles["wsi_id"]) == {"A01"}
+    meta = json.loads(schemas.step_meta_json(data, "wsi_extract").read_text())
+    assert "corrupt tile" in meta["summary"]["failed_slides"]["A02"]

@@ -26,16 +26,24 @@ pathgen:
   json_name: PathGen-1.6M.json      # used only when inventory.json says pathgen.has_patch_images
   patch_name: "{wsi_id}_{x}_{y}"    # README crop naming; extension any of the image extensions
 
-organ_filter:                       # breast rows: Quilt `pathology` list OR the caption
+organ_filter:                       # image-level: an image is breast when ANY of its captions passes
   pathology_prefixes: [breast]      # Quilt `pathology` values starting with these (older CSVs say "Breast pathology")
-  caption_regex: '\b(breast|mammary|ductal|lobular|dcis|idc|ilc|lcis|tdlu|terminal duct lobular|fibroadenoma|phyllodes|nipple|areola)\b'
+  # Quilt `pathology` is VIDEO-level. A caption row passes when:
+  #   pathology lists only breast                      -> always
+  #   pathology lists breast + other organs            -> caption has a strong or weak breast term
+  #   pathology empty (openpath / pubmed / laion)      -> caption has a strong or weak breast term
+  #   pathology lists other organs only                -> caption has a strong breast term
+  strong_regex: '\b(breast|mammary|dcis|lcis|tdlu|terminal duct lobular|fibroadenoma|phyllodes|nipple|areola)\b'
+  weak_regex: '\b(ductal|lobular|idc|ilc)\b'   # also pancreas/salivary "ductal", liver "lobular": never enough alone in another-organ video
 
 stain_filter:                       # H&E only: drop images whose captions mention another stain or modality
-  exclude_regex: '\b(immunohistochem\w*|ihc|immunostain\w*|immunoreactiv\w*|her-?2|estrogen receptor|progesterone receptor|ki-?67|p63|calponin|smmhc|cytokeratin|ck ?5/6|ck ?7|ck ?20|e-?cadherin|gata-?3|trichrome|reticulin|\bpas\b|mucicarmine|gms|silver stain|special stain|in situ hybridi[sz]ation|\bfish\b|cytolog\w*|pap smear|papanicolaou|fine needle|\bfna\b|diff-?quik|gross(ly)?|mammogra\w*|ultrasound|\bmri\b|radiolog\w*)\b'
+  exclude_regex: '\b(immunohistochem\w*|ihc|immunostain\w*|immunoreactiv\w*|her-?2|estrogen receptor|progesterone receptor|ki-?67|p63|calponin|smmhc|cytokeratin|ck ?5/6|ck ?7|ck ?20|e-?cadherin|gata-?3|trichrome|reticulin|\bpas\b|mucicarmine|gms|silver stain|special stain|in situ hybridi[sz]ation|\bfish\b|cytology|cytologic (smear|preparation|specimen)|\bpap\b|pap smear|papanicolaou|fine needle|\bfna\b|diff-?quik|gross (photo\w*|image|specimen|examination)|mammogra\w*|ultrasound|\bmri\b|radiolog\w*)\b'
 
-negation:                           # positives preceded by these (within window_words words) are not positives
+negation:                           # a positive match is negated by a cue within window_words words BEFORE it (same clause) or a trailing cue right AFTER it
   cues: '\b(no|not|without|absence of|absent|lack of|lacking|negative for|free of|rule out|ruled out|r/o|devoid of)\b'
   window_words: 4
+  clause_break: '[.;:]|\b(but|however|whereas|although)\b'   # the look-back window stops here
+  trailing: '^\W{0,3}(is |are |was |were )?(absent|not (seen|identified|present|evident)|ruled out)\b'
 
 caps:
   positives_per_concept: 400

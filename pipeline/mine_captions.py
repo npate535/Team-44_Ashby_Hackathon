@@ -2,17 +2,18 @@
 (BUILD_PLAN §A11, Task 2; CPU job prep_b). Draft synonym lists; caption co-mention != tissue truth.
 
 Rules live in config/caption_mining.yaml (settings caption_mining.file); the concept ids must equal settings
-concepts.ids. Quilt: the lookup CSV (2.2 GB) is read in chunks with `usecols`, never whole. Rows are kept when
-not_histology == 0, the image is breast (Quilt `pathology` list or caption regex), and then matched per concept
+concepts.ids. Quilt: the lookup CSV (2.2 GB) is read in chunks with `usecols`, never whole. Rows flagged
+not_histology == 1 are dropped; every other row is matched per concept
 (positive regex not negated and not excluded; negative regex = captions affirmatively describing contrasting
 tissue). Aggregation is per image: positive if any caption is; negative if any caption is negative and none is
-positive; any caption hitting the stain/modality filter drops the image. Images are located by trying
+positive; an image is breast if any of its captions passes the organ filter; any caption hitting the
+stain/modality filter drops the image. Images are located by trying
 images_part_<k>/quilt_1m/<image_path> (only for selected candidates, no full directory scan); missing files are
 counted and skipped. Caps per concept and polarity, and per leakage group (Quilt video = 11-char YouTube id prefix;
 Twitter thread = tweet id; PubMed/LAION = the image itself), are applied with a seeded shuffle.
 
 PathGen: used only when <data_root>/inventory.json says pathgen.has_patch_images; patches are matched to
-{wsi_id, position, caption} entries by the README crop name; group = TCGA slide.
+{wsi_id, position, caption} entries by the README crop name; group = TCGA patient (wsi_id[:12]).
 
 Manifest rows (sets quilt / pathgen): one row per (image, concept, polarity), label '<concept_id>:pos|neg',
 group = leakage group (so held-out AUROC splits by video/slide), absolute image path, view 0, whole image.
@@ -63,32 +64,51 @@ class Rules:
         self.data = data
         self.ids = ids
         self.organ_prefixes = [p.lower() for p in data["organ_filter"]["pathology_prefixes"]]
-        self.organ = re.compile(data["organ_filter"]["caption_regex"], flags)
+        self.strong = re.compile(data["organ_filter"]["strong_regex"], flags)
+        self.weak = re.compile(data["organ_filter"]["weak_regex"], flags)
         self.stain = re.compile(data["stain_filter"]["exclude_regex"], flags)
         self.negation = re.compile(data["negation"]["cues"], flags)
+        self.clause_break = re.compile(data["negation"]["clause_break"], flags)
+        self.trailing = re.compile(data["negation"]["trailing"], flags)
         self.window = int(data["negation"]["window_words"])
         self.pos = {c: [re.compile(p, flags) for p in data["concepts"][c]["positive"]] for c in ids}
         self.exc = {c: [re.compile(p, flags) for p in data["concepts"][c].get("exclude", [])] for c in ids}
         self.neg = {c: [re.compile(p, flags) for p in data["concepts"][c]["negative"]] for c in ids}
         self.caps = data["caps"]
 
-    def negated(self, text: str, start: int) -> bool:
-        before = text[:start].split()[-self.window:]
-        return bool(self.negation.search(" ".join(before)))
+    def negated(self, text: str, start: int, end: int) -> bool:
+        """Cue within `window` words before the match in the same clause, or a trailing cue right after it."""
+        before = text[:start]
+        breaks = list(self.clause_break.finditer(before))
+        if breaks:
+            before = before[breaks[-1].end():]
+        if self.negation.search(" ".join(before.split()[-self.window:])):
+            return True
+        return bool(self.trailing.search(text[end:end + 40]))
 
     def classify(self, caption: str) -> dict[str, str]:
-        """{concept: 'pos' | 'neg'} for one caption (concepts with neither are absent)."""
+        """{concept: 'pos' | 'neg'} for one caption (concepts with neither are absent). An excluded positive does
+        not block the negative check (e.g. "rare mitoses" is a mitoses negative)."""
         out: dict[str, str] = {}
         for c in self.ids:
-            pos = any(not self.negated(caption, m.start()) for rx in self.pos[c] for m in rx.finditer(caption))
-            if pos and not any(rx.search(caption) for rx in self.exc[c]):
+            pos = any(not self.negated(caption, m.start(), m.end()) for rx in self.pos[c] for m in rx.finditer(caption))
+            if pos and any(rx.search(caption) for rx in self.exc[c]):
+                pos = False
+            if pos:
                 out[c] = "pos"
-            elif not pos and any(rx.search(caption) for rx in self.neg[c]):
+            elif any(rx.search(caption) for rx in self.neg[c]):
                 out[c] = "neg"
         return out
 
     def is_breast(self, pathology: str, caption: str) -> bool:
-        return pathology_is_breast(pathology, self.organ_prefixes) or bool(self.organ.search(caption))
+        """Row-level breast test (see caption_mining.yaml organ_filter); images aggregate it with any()."""
+        values = pathology_values(pathology)
+        breast = [v for v in values if any(v.lower().startswith(p) for p in self.organ_prefixes)]
+        if breast and len(breast) == len(values):
+            return True
+        if breast or not values:
+            return bool(self.strong.search(caption) or self.weak.search(caption))
+        return bool(self.strong.search(caption))
 
 
 def load_rules(cfg: Mapping[str, Any], path: str | Path | None = None) -> Rules:
@@ -97,15 +117,20 @@ def load_rules(cfg: Mapping[str, Any], path: str | Path | None = None) -> Rules:
         return Rules(yaml.safe_load(handle), cfg)
 
 
-def pathology_is_breast(pathology: str, prefixes: Iterable[str]) -> bool:
+def pathology_values(pathology: str) -> list[str]:
+    """Quilt `pathology` list string -> names ('Unknown' and blanks dropped)."""
     text = (pathology or "").strip()
-    if not text or not any(p in text.lower() for p in prefixes):  # cheap pre-check (~1M rows)
-        return False
+    if not text or text == "[]":
+        return []
     try:
         values = ast.literal_eval(text) if text.startswith("[") else [text]
     except (ValueError, SyntaxError):
         values = [text]
-    return any(str(v).strip().lower().startswith(p) for v in values for p in prefixes)
+    return [str(v).strip() for v in values if str(v).strip() and str(v).strip().lower() != "unknown"]
+
+
+def pathology_is_breast(pathology: str, prefixes: Iterable[str]) -> bool:
+    return any(v.lower().startswith(p) for v in pathology_values(pathology) for p in prefixes)
 
 
 def quilt_group(subset: str, image_path: str) -> str:
@@ -132,21 +157,31 @@ class ImageVotes:
     def __init__(self) -> None:
         self.images: dict[str, dict[str, Any]] = {}
 
-    def add(self, key: str, group: str, caption: str, rules: Rules) -> None:
-        state = self.images.setdefault(key, {"group": group, "dropped": False, "votes": {}, "captions": []})
+    def add(self, key: str, group: str, caption: str, rules: Rules, breast: bool) -> None:
+        """One caption row of an image (every histology row, breast or not: breast and stain are image-level)."""
         if rules.stain.search(caption):
-            state["dropped"] = True
+            self.images.setdefault(key, self._new(group))["dropped"] = True
             return
-        for concept, pol in rules.classify(caption).items():
+        votes = rules.classify(caption)
+        if not votes and not breast and key not in self.images:
+            return  # keep memory to images that can matter
+        state = self.images.setdefault(key, self._new(group))
+        state["breast"] = state["breast"] or breast
+        for concept, pol in votes.items():
             state["votes"].setdefault(concept, set()).add(pol)
-        if len(state["captions"]) < 2:
+        if len(state["captions"]) < 2 and (votes or breast):
             state["captions"].append(caption[:200])
 
+    @staticmethod
+    def _new(group: str) -> dict[str, Any]:
+        return {"group": group, "dropped": False, "breast": False, "votes": {}, "captions": []}
+
     def labels(self) -> dict[str, dict[str, str]]:
-        """{image: {concept: pos|neg}} after image-level aggregation (positive wins; dropped images removed)."""
+        """{image: {concept: pos|neg}} after image-level aggregation: breast if any caption is, dropped if any caption
+        hits the stain/modality filter, positive wins over negative."""
         out = {}
         for key, state in self.images.items():
-            if state["dropped"]:
+            if state["dropped"] or not state["breast"]:
                 continue
             lab = {c: ("pos" if "pos" in v else "neg") for c, v in state["votes"].items()}
             if lab:
@@ -188,17 +223,23 @@ def scan_quilt(csv_path: Path, rules: Rules, stats: dict[str, int]) -> ImageVote
     for chunk in pd.read_csv(csv_path, usecols=usecols, dtype=str, keep_default_na=False, chunksize=int(q["chunksize"])):
         stats["rows_scanned"] += len(chunk)
         if q["require_not_histology_zero"] and "not_histology" in chunk.columns:
-            chunk = chunk[chunk["not_histology"].isin(["0", "0.0"])]
+            # the flag exists for YouTube videos only; empty values (other subsets) are kept
+            chunk = chunk[~chunk["not_histology"].isin(["1", "1.0"])]
         stats["rows_histology"] += len(chunk)
+        if "subset" in chunk.columns:
+            for sub, n in chunk["subset"].value_counts().items():
+                stats.setdefault("rows_histology_per_subset", {})
+                stats["rows_histology_per_subset"][sub] = stats["rows_histology_per_subset"].get(sub, 0) + int(n)
         pathology = chunk["pathology"] if "pathology" in chunk.columns else pd.Series("", index=chunk.index)
         roi = chunk["roi_text"] if "roi_text" in chunk.columns else pd.Series("", index=chunk.index)
         subset = chunk["subset"] if "subset" in chunk.columns else pd.Series("", index=chunk.index)
         for cap, img, path_txt, roi_txt, sub in zip(chunk["caption"], chunk["image_path"], pathology, roi, subset):
             text = f"{cap} {roi_txt if roi_txt not in ('', '[]') else ''}".strip()
-            if not img or not rules.is_breast(path_txt, text):
+            if not img:
                 continue
-            stats["rows_breast"] += 1
-            votes.add(img, quilt_group(sub, img), text, rules)
+            breast = rules.is_breast(path_txt, text)
+            stats["rows_breast"] += int(breast)
+            votes.add(img, quilt_group(sub, img), text, rules, breast)
     return votes
 
 
@@ -226,10 +267,9 @@ def scan_pathgen(root: Path, rules: Rules, stats: dict[str, int]) -> tuple[Image
         if stem not in patches:
             continue
         caption = e.get("caption") or ""
-        if not rules.is_breast("", caption):
-            continue
-        stats["pathgen_breast_with_patch"] += 1
-        votes.add(stem, f"tcga:{wsi_id}", caption, rules)
+        breast = rules.is_breast("", caption)
+        stats["pathgen_breast_with_patch"] += int(breast)
+        votes.add(stem, f"tcga:{wsi_id[:12]}", caption, rules, breast)  # group = TCGA patient (barcode prefix)
     return votes, patches
 
 
