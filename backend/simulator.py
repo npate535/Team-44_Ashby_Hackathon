@@ -99,14 +99,29 @@ class Simulator:
         self.loader = loader
         self.clock = clock or Clock()
         sim_cfg = cfg["sim"]
-        self.clock_sim = SimClock(speed=float(sim_cfg["speed"]))
+        self.base_speed = float(sim_cfg["speed"])
+        self.max_replay_wall_s = sim_cfg["max_replay_wall_s"]
         self.hold_surgical = bool(sim_cfg["hold_surgical_for_injection"])
+        self.clock_sim = SimClock(speed=self.base_speed)
         self.heroes: Mapping[str, Any] = cfg["demo"]["heroes"]
         missing = [k for k in _HERO_KEY.values() if k not in self.heroes]
         if missing:
             raise KeyError(f"settings demo.heroes is missing {missing} (needed by inject_surgical)")
         self.loaded: db.LoadResult = loader()
+        self.clock_sim.speed = self.replay_speed(self.loaded)
         self.store.seed(self.loaded, wall=self.clock.wall(), sim=0.0)
+
+    def replay_speed(self, loaded: db.LoadResult) -> float:
+        """sim.speed, raised so the last self-arriving case arrives within sim.max_replay_wall_s of Start."""
+        if self.max_replay_wall_s is None:
+            return self.base_speed
+        offsets = [float(c["arrived_offset_s"]) for c in loaded.cases
+                   if not (self.hold_surgical and c["lane"] == "surgical")]
+        needed = max(offsets, default=0.0) / float(self.max_replay_wall_s)
+        if needed > self.base_speed:
+            log.info("simulator speed raised from %gx to %.1fx so every arrival lands within %gs of Start",
+                     self.base_speed, needed, self.max_replay_wall_s)
+        return max(self.base_speed, needed)
 
     # ---- clocks -------------------------------------------------------------------------------------------------------
     def sim_now(self) -> float:
@@ -132,6 +147,7 @@ class Simulator:
         return {
             "running": self.clock_sim.running,
             "speed": self.clock_sim.speed,
+            "base_speed": self.base_speed,
             "sim_time_s": self.sim_now(),
             "hold_surgical_for_injection": self.hold_surgical,
             "cases": counts["cases"],
@@ -204,4 +220,5 @@ class Simulator:
         with self.store.lock:
             self.loaded = self.loader()
             self.clock_sim.reset()
+            self.clock_sim.speed = self.replay_speed(self.loaded)
             self.store.seed(self.loaded, wall=self.wall_now(), sim=0.0)

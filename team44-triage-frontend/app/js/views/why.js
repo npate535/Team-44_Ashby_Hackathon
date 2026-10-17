@@ -67,6 +67,6 @@ export function summary(v) {
   const badge = s.isLLM ? `<span class="badge llm" data-testid="summary-generator">LLM-written from findings · ${esc(s.generator.slice(6))}</span>`
     : '<span class="badge" data-testid="summary-generator">Template</span>';
   const ps = s.sentences.map(sent => `<p style="margin:6px 0">${esc(sent.text)}${sent.findings.filter(f => FINDING_ID.test(f))
-    .map(f => `<button class="fref" data-testid="finding-ref" data-f="${esc(f)}" title="${esc((v.findings.get(f) || {}).kind || '')}">${esc(f)}</button>`).join('')}</p>`).join('');
+    .map(f => `<button class="fref" data-testid="finding-ref" data-f="${esc(f)}" data-kind="${esc((v.findings.get(f) || {}).kind || '')}" title="${esc((v.findings.get(f) || {}).kind || '')} finding">${esc(f)}</button>`).join('')}</p>`).join('');
   return `<div>${badge}</div>${ps}<p class="sub">Written only from structured findings; it never saw the image.</p>`;
 }
