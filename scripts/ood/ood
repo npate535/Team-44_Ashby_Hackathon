@@ -1,0 +1,130 @@
+#!/bin/bash
+# Drive NCSA Delta through Open OnDemand in the Aside browser (controller-only; docs/BUILD_PLAN.md §E).
+#
+#   ood run [--wait SECONDS] -- 'commands'   run on the login node, print output, exit with its status
+#   ood tail ID                              print the current log of a still-running command
+#   ood get REMOTE_ABS_PATH LOCAL_PATH       download one file
+#   ood put LOCAL_FILE REMOTE_ABS_DIR        upload one file
+#
+# Commands run detached (setsid nohup) so a dropped terminal never kills them; their output goes to
+# ~/.pq/out/<id>.log on Delta and comes back through the Files app. Never pass secrets on the command
+# line: typed commands land in shell history.
+set -euo pipefail
+
+OOD_URL="https://openondemand.delta.ncsa.illinois.edu"
+SHELL_URL="$OOD_URL/pun/sys/shell/ssh/dt-login"
+REMOTE_HOME="${PQ_REMOTE_HOME:-/u/rbansal3}"
+STAGE="${PQ_OOD_STAGE:-$HOME/.aside/u/0/sessions/pq-staging}"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+mkdir -p "$STAGE"
+
+die() { echo "ood: $*" >&2; exit 2; }
+
+# Run one helper script in a fresh Aside REPL with a JSON parameter file.
+repl() {
+  local script=$1 params=$2 code
+  code="$(<"$HERE/$script")"
+  aside repl "${code//__PARAMS__/$params}" 2>&1 | sed -e 's/\x1b\[[0-9;]*m//g'
+}
+
+ensure_shell_tab() {
+  if ! aside repl "console.log((await listBrowserTabs()).some((t) => t.url.includes('/pun/sys/shell/ssh/')))" \
+      2>/dev/null | grep -q true; then
+    aside "$SHELL_URL" >/dev/null 2>&1 || true
+    sleep 8
+  fi
+}
+
+poll() {  # poll ID WAIT_SECONDS ONCE
+  local id=$1 wait=$2 once=$3 params="$STAGE/$1.poll.json"
+  printf '{"ood":"%s","remote":"%s/.pq/out/%s.log","outFile":"%s/%s.log","waitMs":%d,"once":%s}\n' \
+    "$OOD_URL" "$REMOTE_HOME" "$id" "$STAGE" "$id" "$((wait * 1000))" "$once" >"$params"
+  repl poll.js "$params" | grep -Eo 'PQ_(DONE|PENDING|ERR.*)' | tail -1
+}
+
+cmd_run() {
+  local wait=600
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --wait) wait=$2; shift 2 ;;
+      --) shift; break ;;
+      *) break ;;
+    esac
+  done
+  [[ $# -ge 1 ]] || die "run needs a command"
+  local id typed state deadline
+  id="$(date +%Y%m%d-%H%M%S)-$RANDOM"
+  typed="$STAGE/$id.type"
+  {
+    echo "mkdir -p ~/.pq/out ~/.pq/cmd"
+    echo "cat > ~/.pq/cmd/$id.sh <<'PQEOF_$id'"
+    printf '%s\n' "$*" | expand -t 4
+    echo "PQEOF_$id"
+    echo "setsid nohup bash -c 'bash ~/.pq/cmd/$id.sh > ~/.pq/out/$id.log 2>&1; echo __PQ_EXIT=\$? >> ~/.pq/out/$id.log' >/dev/null 2>&1 < /dev/null &"
+  } >"$typed"
+  printf '{"typeFile":"%s","tabId":"%s"}\n' "$typed" "$(cat "$STAGE/shell_tab_id" 2>/dev/null)" >"$STAGE/$id.type.json"
+  ensure_shell_tab
+  local out
+  out="$(repl type.js "$STAGE/$id.type.json")"
+  grep -q PQ_TYPED <<<"$out" || die "could not type into the OnDemand shell tab"
+  grep -Eo 'PQ_TAB [A-F0-9]+' <<<"$out" | cut -d' ' -f2 >"$STAGE/shell_tab_id"
+  echo "ood: started $id" >&2
+  deadline=$((SECONDS + wait))
+  while :; do
+    state="$(poll "$id" 100 false)"
+    case $state in
+      PQ_DONE) break ;;
+      PQ_ERR*) die "$state (id $id)" ;;
+    esac
+    ((SECONDS < deadline)) || { echo "ood: still running after ${wait}s; follow with: ood tail $id" >&2; exit 124; }
+  done
+  grep -v '^__PQ_EXIT=' "$STAGE/$id.log" || true
+  exit "$(grep -Eo '__PQ_EXIT=[0-9]+' "$STAGE/$id.log" | tail -1 | cut -d= -f2)"
+}
+
+cmd_tail() {
+  [[ $# -eq 1 ]] || die "tail needs an id"
+  local state
+  state="$(poll "$1" 5 true)"
+  [[ $state == PQ_ERR* ]] && die "$state"
+  [[ -f "$STAGE/$1.log" ]] && tail -n "${PQ_TAIL_LINES:-60}" "$STAGE/$1.log" || echo "(no output yet)"
+}
+
+cmd_get() {
+  [[ $# -eq 2 ]] || die "get needs REMOTE_ABS_PATH LOCAL_PATH"
+  local name params result
+  name="get-$(date +%s)-$RANDOM-$(basename "$1")"
+  params="$STAGE/$name.json"
+  printf '{"ood":"%s","remote":"%s","outFile":"%s/%s","allowHtml":%s}\n' \
+    "$OOD_URL" "$1" "$STAGE" "$name" "${PQ_ALLOW_HTML:-false}" >"$params"
+  result="$(repl get.js "$params" | grep -Eo 'PQ_(GOT [0-9]+|ERR.*)' | tail -1)"
+  [[ $result == PQ_GOT* ]] || die "${result:-no result} for $1"
+  mkdir -p "$(dirname "$2")"
+  mv "$STAGE/$name" "$2"
+  rm -f "$params"
+  echo "ood: got $1 -> $2 (${result#PQ_GOT } bytes)" >&2
+}
+
+cmd_put() {
+  [[ $# -eq 2 ]] || die "put needs LOCAL_FILE REMOTE_ABS_DIR"
+  [[ -f $1 ]] || die "no such file: $1"
+  local name size params result
+  name="$(basename "$1")"
+  size="$(stat -f %z "$1")"
+  cp "$1" "$STAGE/$name"
+  params="$STAGE/put-$name.json"
+  printf '{"ood":"%s","stagedFile":"%s/%s","name":"%s","remoteDir":"%s","size":%d,"waitSeconds":%d}\n' \
+    "$OOD_URL" "$STAGE" "$name" "$name" "$2" "$size" "${PQ_PUT_WAIT:-300}" >"$params"
+  result="$(repl put.js "$params" | grep -Eo 'PQ_(PUT [0-9]+|ERR.*)' | tail -1)"
+  rm -f "$STAGE/$name" "$params"
+  [[ $result == PQ_PUT* ]] || die "${result:-no result} uploading $1"
+  echo "ood: put $1 -> $2/$name ($size bytes)" >&2
+}
+
+case ${1:-} in
+  run) shift; cmd_run "$@" ;;
+  tail) shift; cmd_tail "$@" ;;
+  get) shift; cmd_get "$@" ;;
+  put) shift; cmd_put "$@" ;;
+  *) sed -n '2,12p' "$0"; exit 2 ;;
+esac

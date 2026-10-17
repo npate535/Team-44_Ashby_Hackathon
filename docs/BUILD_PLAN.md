@@ -234,7 +234,7 @@ eval/     metrics.py deletion_test.py queue_sim.py margin_eval.py cells_eval.py 
           results_md.py
 agent/    rules.py agent.py lumen.py
 backend/  app.py db.py simulator.py summary.py
-frontend/ Vite + React + TS + Tailwind v4, react-router, recharts
+team44-triage-frontend/ teammate's vanilla-JS app, connected to the API and extended (ruling R6); frontend/src/types.ts = contract mirror
 fixtures/ demo_0001.json demo_0001.jpg (synthetic)
 scripts/  sync-delta.sh (tar-over-ssh via delta.sh, or `ssh deltaai` fallback; push code / pull data)
 tests/    test_tiers test_conformal test_calibration test_stats test_summary_validator test_rules test_margin
@@ -510,37 +510,30 @@ surgical JSON + a generated non-tissue placeholder JPG), `frontend/src/types.ts`
 - Serves `artifacts/images`, `artifacts/cells` and `frontend/dist`.
 - Tests: sorting incl. safety rule, `eval_only` absent everywhere, each decision path, routing, timers, sim controls.
 
-### Task 7: Frontend (Wave 1)
-**Owns:** `frontend/**` except `frontend/src/types.ts`. Load the `frontend-design` skill first.
-- Stack: Vite + React + TS + Tailwind v4, react-router, recharts. Palette: ink #1B1A2E, paper #F5F2EC, hematoxylin
-  #4A3B8F (biopsy), eosin #B0335C (surgical). Poll 2 s. An API layer with a fixture-backed mock mode
-  (`VITE_MOCK=1`) lets it run before the backend merges.
-- **Views:**
-  1. Worklist: tier groups, live surgical timers (amber/red thresholds from config), reason badges, conformal-set
-     chips, risk, orders-drafted marker, arrival animation.
-  2. Biopsy case:
-     - heatmap overlay with a selector (risk / each concept / attention);
-     - Why chart: signed contributions; measured vs estimated, validated vs unvalidated; click highlights
-       top_tiles;
-     - How-sure panel; Compared-to panel (top-5 + contrast with "differs most in");
-     - summary with clickable finding refs;
-     - agent panel with five actions; Cells tab (CELLS_SPEC §7.3).
-  3. Surgical case: big timer; image with four segmented margin strips colored per segment; reliability; three
-     calls; "Simulated frozen section" banner; anterior/posterior note.
-  4. Surgeon screen.
-  5. Oncologist inbox.
-  6. Metrics (recharts from `/api/metrics`).
-  7. Spot-check view: concept tiles, cell overlays, optional margin review.
-  - Persistent "Research prototype — not for clinical use" banner.
-- Ported from the teammate prototype (credit in README):
-  - arrival-order vs AI-priority toggle;
-  - aging badge;
-  - OR board styling for the surgeon screen;
-  - blocked agent actions shown with their guard reason.
-- Explicit states: loading, backend down, empty before the simulator starts, cells disabled/failed, `margin: null`,
-  and a template vs LLM summary badge.
-- `data-testid`s on everything Playwright drives. Layout works at 390 px and desktop. `tsc --noEmit` and
-  `vite build` pass.
+### Task 7: Frontend — connect and extend the teammate's app (Wave 1)
+**Owns:** `team44-triage-frontend/**` (the teammate's vanilla-JS app; the user asked to connect it rather than build a
+new React app — ruling R6), `tests/e2e/frontend_smoke.*` if added. Read
+`.superpowers/sdd/BUILD_PLAN/research/frontend_connect.md` first if present.
+- Keep its no-build vanilla JS/HTML/CSS structure, visual language, light/dark styles and the author's ideas
+  (arrival vs AI-priority toggle, aging promotion at 75% of target, OR board, blocked agent actions). Extend, don't
+  rewrite; credit the author in its README.
+- Data layer: replace `data/cases.json` mock reads with the FastAPI endpoints of plan §10 (+ `/api/config`,
+  `/api/cases/{id}/events`, `/api/worklist?order=ai|arrival`), mapping the Case JSON contract (`core/contract.py`,
+  mirrored in `frontend/src/types.ts` → move/keep a JSDoc typedef copy in the app) to its view model. Keep a
+  `?mock=1` mode that loads `fixtures/*.json` so it runs without the backend. Remove colon/multi-organ mock data
+  from defaults (breast/BACH only); keep the old file as `data/legacy_mock.json` untouched for reference.
+- Views to support (plan §11 + CELLS_SPEC §7.3): worklist (tiers, timers with amber/red thresholds from config,
+  reason badges, conformal-set chips, risk, orders-drafted marker, arrival animation, order toggle); biopsy case
+  (tile heatmap over the display image with selector risk / each concept / attention; Why chart with signed
+  contributions marked measured vs estimated and caption-consistent; How-sure; Compared-to with contrast case;
+  summary sentences with clickable finding refs and template/LLM badge; agent panel with Order tests / Edit /
+  Take a closer look / Dismiss / Sign out; Cells tab with overlay toggle + legend); surgical case (big timer,
+  segmented margin strips, reliability, three calls, "Simulated frozen section" banner, anterior/posterior note);
+  OR/surgeon board; oncologist inbox; Metrics (charts from `/api/metrics`, plain SVG or a CDN-free inline approach);
+  Spot-check view. Persistent "Research prototype — not for clinical use" banner; explicit loading / backend-down /
+  empty / cells-disabled / `margin: null` states; ground truth never rendered.
+- `data-testid`s on everything Playwright drives; works at 390 px and desktop; no external CDNs (offline demo).
+  The backend (Task 6) serves this folder at `/`.
 
 ### Task 8: Cells module (Wave 1)
 **Owns:** `config/cell_features.yaml`, `pipeline/04a_select_tiles.py`, `pipeline/04b_cells.py`,
