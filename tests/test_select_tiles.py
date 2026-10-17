@@ -107,3 +107,19 @@ def test_disabled_flag(tmp_path):
 
 def test_select_tiles_is_portable():
     assert st.delta_import_problems("pipeline/04a_select_tiles.py") == []
+
+
+def test_stale_tile_risk_is_recomputed(tree, monkeypatch):
+    import os
+
+    cfg_path, cfg, data, cases, tiles = tree
+    assert sel.main(_argv(cfg_path, data)) == 0
+    risk_path = schemas.tile_risk_csv(data, oof=True)
+    calls = []
+    real = sel.tile_probe.oof_tile_risk
+    monkeypatch.setattr(sel.tile_probe, "oof_tile_risk", lambda *a, **k: calls.append(1) or real(*a, **k))
+    assert sel.main(_argv(cfg_path, data)) == 0 and calls == []  # fresh: reused
+    emb = schemas.emb_npy(data, "conch", "bach512", "probe")
+    t = risk_path.stat().st_mtime + 10
+    os.utime(emb, (t, t))  # embeddings recomputed after the risks
+    assert sel.main(_argv(cfg_path, data)) == 0 and calls == [1]
