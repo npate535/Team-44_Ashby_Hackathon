@@ -262,7 +262,7 @@ implementer and reviewer is dispatched with an explicit model (the user asked fo
 
 **Isolation for parallelism.** The skill's default is one implementer at a time, to avoid conflicts. The user asked
 for parallel subagents, so conflicts are prevented structurally instead:
-- each implementer runs with `isolation: "worktree"` on branch `task/<N>-<slug>` cut from `build/pathqueue`
+- each implementer runs with `isolation: "worktree"` on branch `task/<N>-<slug>` cut from `main`
   *after Task 1 merges*;
 - each task owns a disjoint set of paths (listed per task) and edits nothing else;
 - shared files (`pyproject.toml`, `Makefile`, `config/settings.yaml`, `core/contract.py`, `core/schemas.py`,
@@ -287,7 +287,7 @@ for parallel subagents, so conflicts are prevented structurally instead:
 3. On DONE: build the review package and dispatch the task reviewer (+ statistics reviewer for Tasks 4, 10, 11; +
    `pr-review-toolkit:silent-failure-hunter` for Tasks 2, 3, 6, 8).
 4. Fix loop ≤5 rounds (1–3 resume the implementer; 4–5 a fresh `opus`/`max`).
-5. Merge into `build/pathqueue`, run full `make test`, append to the ledger.
+5. Merge into `main`, run full `make test`, append to the ledger.
 
 Ledger: `.superpowers/sdd/<plan>/progress.md`, git-ignored. Rulings are logged as
 `Ruling: … — why — cost if wrong` and listed in the final message. Final whole-branch review (`opus`/`max`) +
