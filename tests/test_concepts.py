@@ -261,3 +261,18 @@ def test_a_vector_file_without_fitted_vectors_is_text_only(fake):
     _vectors(fake, w=np.full((9, 1), np.nan, np.float32))  # 04_cav ran before any embedding existed
     assert run(C, fake)[0] == 0
     assert np.isnan(io.load_npz(schemas.concepts_tile_npz(fake.root))["z_cav"]).all()
+
+
+def test_nct_only_smoke_mode_needs_only_text_and_nct_embeddings(tmp_path):
+    f = Fake(tmp_path / "root")
+    f.build(deg=False, comp=False)
+    for name in ("cases.csv", "tiles.csv"):
+        (f.root / name).unlink()  # the smoke root has neither
+    code, log = run(C, f, "--nct-only", "--encoders", "conch,musk")
+    assert code == 0, log
+    report = io.read_json(f.root / "nct_concepts.json")
+    assert report["musk"]["status"].startswith("skipped")
+    lym = report["conch"]["concepts"]["lymphocytes"]
+    assert lym["text"]["estimate"] > 0.8 and len(report["conch"]["per_phrasing_auroc"]["lymphocytes"]) == 4
+    assert any(line.startswith("[conch] NCT lymphocytes") for line in log)
+    assert not (f.root / "artifacts").exists()

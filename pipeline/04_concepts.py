@@ -299,6 +299,44 @@ def nct_check(root: Path, encoder: str, phr: Mapping[str, Any], ids: Sequence[st
     return out
 
 
+def phrasing_aurocs(arr: np.ndarray, labels: np.ndarray, phr: Mapping[str, Any], cfg: Mapping[str, Any]
+                    ) -> dict[str, list[float | None]]:
+    """Per positive phrasing p_i of each NCT-checked concept: AUROC of cos(x, p_i) - mean_j cos(x, q_j). Points at
+    the phrasings worth rewording (prompt-bank diagnostics; no CI)."""
+    x = _l2(arr)
+    out = {}
+    for cid, positives in cfg["nct"]["concept_checks"].items():
+        pos, con = phr[cid]
+        y = np.isin(labels, positives).astype(int)
+        s_i = x @ pos.T - (x @ con.T).mean(1, keepdims=True)
+        out[cid] = [_num(stats.auroc(y, s_i[:, i])) for i in range(s_i.shape[1])]
+    return out
+
+
+def nct_only(ctx: cli.StepContext, bank: schemas.ConceptBank, encoders: Sequence[str], log: Any) -> int:
+    """Smoke-job mode: cross-organ NCT concept AUROCs per text-aligned encoder from text/<enc>.npz +
+    emb/<enc>/nct_align.npy only (no cases, tiles or eval files). Writes <data root>/nct_concepts.json."""
+    report: dict[str, Any] = {"label": "cross-organ sanity check (NCT-CRC colorectal tiles; smoke-size sample)"}
+    ran = 0
+    for enc in encoders:
+        if not schemas.text_npz(ctx.data_root, enc).is_file() or load_tile_embeddings(ctx.data_root, enc, "nct") is None:
+            report[enc] = {"status": "skipped: no text npz or nct embeddings"}
+            continue
+        phr = phrasing_embeddings(bank, load_text(ctx.data_root, enc))
+        res = nct_check(ctx.data_root, enc, phr, bank.ids, ctx.cfg, None)
+        index, arr = load_tile_embeddings(ctx.data_root, enc, "nct")
+        res["per_phrasing_auroc"] = phrasing_aurocs(arr, index["label"].to_numpy(), phr, ctx.cfg)
+        report[enc] = res
+        ran += 1
+        for cid, entry in res["concepts"].items():
+            t = entry["text"]
+            log(f"[{enc}] NCT {cid} ({'+'.join(entry['positive_classes'])} vs rest, n={entry['n']}): AUROC "
+                f"{t['estimate']:.3f} [{t['lo']:.3f}, {t['hi']:.3f}]; per phrasing "
+                f"{[None if v is None else round(v, 3) for v in res['per_phrasing_auroc'][cid]]}")
+    io.write_json(Path(ctx.data_root) / "nct_concepts.json", report)
+    return 0 if ran else 2
+
+
 def bach_check(features: pd.DataFrame, cases: pd.DataFrame, bank: schemas.ConceptBank, cfg: Mapping[str, Any]
                ) -> dict[str, Any]:
     k = int(cfg["concepts"]["top_k"])
@@ -417,11 +455,17 @@ def main(argv: Sequence[str] | None = None, log: Any = print) -> int:
     parser = cli.step_parser(STEP, "Concept scores per tile and case + concept checks + zero-shot (plan §6.5).")
     parser.add_argument("--encoder", default=None, help="align space for concepts (default settings concepts.encoder)")
     parser.add_argument("--concepts", default=None, help="concepts.yaml path")
+    parser.add_argument("--nct-only", action="store_true",
+                        help="smoke mode: NCT concept AUROCs per text-aligned encoder only (Delta-safe, no eval files)")
+    parser.add_argument("--encoders", default=None, help="--nct-only: comma list (default settings encoders.text_aligned)")
     args = parser.parse_args(argv)
     ctx = cli.context(args)
     cfg, root, art = ctx.cfg, ctx.data_root, ctx.artifacts_root
     encoder = args.encoder or cfg["concepts"]["encoder"]
     bank = config.load_concept_bank(args.concepts, cfg)
+    if args.nct_only:
+        encs = [e for e in (args.encoders or "").split(",") if e] or list(cfg["encoders"]["text_aligned"])
+        return nct_only(ctx, bank, encs, log)
     ids = bank.ids
     k, zt = int(cfg["concepts"]["top_k"]), float(cfg["concepts"]["z_threshold"])
 

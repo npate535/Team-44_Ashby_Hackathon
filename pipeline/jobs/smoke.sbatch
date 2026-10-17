@@ -56,6 +56,8 @@ if [ -f pipeline/03_text.py ] && [ -f config/concepts.yaml ]; then
     RC_TEXT=$?
     set -e
     [ "$RC" -ne 0 ] || RC=$RC_TEXT
+    echo "== early prompt-bank signal: NCT cross-organ concept AUROCs per text-aligned encoder (+ per phrasing)"
+    python -m pipeline.04_concepts --data-root "$SMOKE" --nct-only || echo "nct-only concept check failed (diagnostic only)"
 fi
 echo "== meta per encoder (dims, checks, throughput)"
 for meta in "$SMOKE"/emb/*/meta.json; do
