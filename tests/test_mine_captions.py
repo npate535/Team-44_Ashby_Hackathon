@@ -163,7 +163,7 @@ def test_pathgen_used_only_when_inventory_reports_patches(tmp_path):
     man = pd.read_csv(schemas.embed_manifest_csv(data), dtype=str, keep_default_na=False)
     p = man[man["set"] == "pathgen"]
     assert "invasion:pos" in set(p["label"]) and "duct_confined:neg" in set(p["label"])
-    assert set(p["group"]) == {"tcga:TCGA-AA-3844-01Z-00-DX1.abc"}  # the colon entry is not breast
+    assert set(p["group"]) == {"tcga:TCGA-AA-3844"}  # patient barcode; the colon entry is not breast
 
 
 def test_missing_quilt_csv_fails(tmp_path):
@@ -175,3 +175,54 @@ def test_missing_quilt_csv_fails(tmp_path):
 
 def test_mine_captions_is_portable():
     assert st.delta_import_problems("pipeline/mine_captions.py", st.DELTA_ALLOWED - {"sklearn", "scipy"}) == []
+
+
+# ---- review regressions -----------------------------------------------------------------------------------------
+@pytest.mark.parametrize("caption,concept,expected", [
+    ("necrosis not identified; viable tumor cells", "necrosis", "neg"),      # trailing negation
+    ("No atypia. Mitoses are frequent", "mitoses", "pos"),                    # clause break stops the look-back
+    ("tumor cells without necrosis but with lymphocytes", "lymphocytes", "pos"),
+    ("rare mitoses in a bland tumor", "mitoses", "neg"),                      # excluded positive falls to negative
+])
+def test_negation_scope(caption, concept, expected):
+    assert RULES.classify(caption).get(concept) == expected
+
+
+def test_organ_filter_rules():
+    assert RULES.is_breast("['Breast']", "anything")
+    assert not RULES.is_breast("['Liver']", "liver with lobular inflammation and lymphocytes")
+    assert RULES.is_breast("['Liver']", "metastatic breast carcinoma in the liver")
+    assert RULES.is_breast("", "invasive ductal carcinoma")               # openpath/pubmed: weak term ok
+    assert not RULES.is_breast("['Breast', 'Gynecologic']", "endometrial glands")  # multi-organ video needs a term
+    assert RULES.is_breast("['Breast', 'Gynecologic']", "lobular carcinoma")
+
+
+def test_stain_filter_keeps_he_wording():
+    assert not RULES.stain.search("cytologic atypia with pleomorphic nuclei, breast")
+    assert not RULES.stain.search("grossly the tumor looked firm")
+    assert RULES.stain.search("breast FNA cytology smear")
+    assert RULES.stain.search("Ki-67 stain shown here")
+
+
+def test_image_level_breast_and_stain_flags(tmp_path):
+    cfg_path, cfg = st.small_settings(tmp_path)
+    rows = [
+        # image A: breast caption + a non-breast caption mentioning Ki-67 -> dropped (stain is image-level)
+        {"caption": "breast tissue with lymphocytes", "image_path": "VIDEOAAAAAA_image_0.jpg", "pathology": ""},
+        {"caption": "Ki-67 stain shown here", "image_path": "VIDEOAAAAAA_image_0.jpg", "pathology": ""},
+        # image B: second caption has no breast word but carries the necrosis vote
+        {"caption": "breast carcinoma", "image_path": "VIDEOBBBBBB_image_0.jpg", "pathology": ""},
+        {"caption": "necrosis is seen", "image_path": "VIDEOBBBBBB_image_0.jpg", "pathology": ""},
+        # image C: openpath row with empty not_histology is kept
+        {"caption": "breast: dense lymphocytic infiltrate", "image_path": "777_0.jpg", "subset": "openpath",
+         "pathology": "", "not_histology": ""},
+    ]
+    root = st.make_quilt_tree(tmp_path / "quilt", rows)
+    data = tmp_path / "data"
+    assert mine.main(["--config", str(cfg_path), "--data-root", str(data), "--quilt-root", str(root)]) == 0
+    man = pd.read_csv(schemas.embed_manifest_csv(data), dtype=str, keep_default_na=False)
+    assert not man["case_id"].str.startswith("VIDEOAAAAAA").any()
+    assert "necrosis:pos" in set(man.loc[man["case_id"] == "VIDEOBBBBBB_image_0", "label"])
+    assert "lymphocytes:pos" in set(man.loc[man["case_id"] == "777_0", "label"])
+    meta = json.loads(schemas.step_meta_json(data, "mine_captions").read_text())
+    assert meta["summary"]["stats"]["rows_histology_per_subset"]["openpath"] == 1
