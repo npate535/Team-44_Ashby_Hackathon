@@ -1,10 +1,14 @@
 #!/bin/bash
 # Deploy the committed repo tree (git archive HEAD: tracked files only, so never data, artifacts or secrets)
 # to ~/pathqueue on Delta through Open OnDemand. Local job logs and submissions.log on Delta are kept.
+# PQ_DEPLOY_DIR=<dir under home> deploys elsewhere (e.g. pathqueue_next) so jobs still running from ~/pathqueue
+# never see their code replaced mid-run; submit from there with PQ_CODE_DIR=$HOME/<dir>.
 set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OOD="$REPO/scripts/ood/ood"
 REMOTE_HOME="${PQ_REMOTE_HOME:-/u/rbansal3}"
+DEST="${PQ_DEPLOY_DIR:-pathqueue}"
+[[ $DEST =~ ^[A-Za-z0-9_.-]+$ ]] || { echo "push-code: PQ_DEPLOY_DIR must be a plain directory name" >&2; exit 2; }
 
 sha="$(git -C "$REPO" rev-parse --short HEAD)"
 archive="$(mktemp -d)/pathqueue-$sha.tar.gz"
@@ -12,11 +16,11 @@ git -C "$REPO" archive --format=tar.gz -o "$archive" HEAD
 "$OOD" run --wait 60 -- "mkdir -p ~/.pq/upload" >/dev/null
 "$OOD" put "$archive" "$REMOTE_HOME/.pq/upload"
 "$OOD" run --wait 120 -- "set -e
-mkdir -p ~/pathqueue
-cd ~/pathqueue
+mkdir -p ~/$DEST
+cd ~/$DEST
 find . -mindepth 1 -maxdepth 1 ! -name logs ! -name submissions.log ! -name .pq-deployed -exec rm -rf {} +
 tar -xzf ~/.pq/upload/$(basename "$archive")
 echo $sha > .pq-deployed
 rm -f ~/.pq/upload/$(basename "$archive")
-echo deployed $sha; ls | head -30"
+echo deployed $sha to ~/$DEST; ls | head -30"
 rm -f "$archive"
