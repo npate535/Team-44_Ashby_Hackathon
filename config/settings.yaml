@@ -1,0 +1,325 @@
+# PathQueue settings: the single source of class names, thresholds, alpha, paths and seeds
+# (plan.md §16; BUILD_PLAN §C.2 "no magic constants"). Loaded and validated by
+# core.config.load_settings(); every "{team_dir}" expands to team.dir.
+# Owned by the controller after Task 1: tasks request changes under "Requested shared changes".
+# Research prototype on public, de-identified data (BACH). Not for clinical use.
+
+organ: breast
+
+team:
+  dir: team44            # Delta team folder /work/nvme/bfqi/teams/<dir>: one edit renames every Delta path
+  name: Team 44
+
+# Model class order: every probability vector, predictions.csv column block and contract
+# prediction.classes uses exactly this order (plan §7).
+classes: [Normal, Benign, InSitu, Invasive]
+aggressive_class: Invasive          # "likely aggressive" = likely invasive carcinoma (plan §1)
+carcinoma_classes: [InSitu, Invasive]   # margin probe positives: ink on invasive carcinoma or DCIS (§A12)
+benign_classes: [Normal, Benign]    # benign calibration images set the margin threshold (§A12)
+seed: 44                            # default seed; blocks with randomness carry their own `seed`
+
+dataset:
+  name: bach
+  n_images: 400
+  per_class: 100
+  min_labeled_per_class: 80         # plan §5.2 inventory gate
+  image_size: [2048, 1536]          # [width, height] expected; 00_inventory verifies
+  mpp: 0.42                         # µm/px default; core.config.effective_mpp() prefers inventory.json measured_mpp
+  wsi_mpp: 0.467                    # BACH training WSIs (§A1/§F)
+  license: CC BY-NC-ND 4.0          # derived images (tiles, overlays, composites) are never committed (§A23)
+  citation: "Aresta G. et al. BACH: Grand challenge on breast cancer histology images. Medical Image Analysis (2019). doi:10.1016/j.media.2019.05.010"
+  official:                         # verified on the Zenodo record page 2026-10-17
+    zenodo_record: 3632035
+    url: https://zenodo.org/records/3632035/files/ICIAR2018_BACH_Challenge.zip?download=1
+    filename: ICIAR2018_BACH_Challenge.zip
+    md5: 8ae1801334aa943c44627c1eef3631b2
+    size_gb: 10.4
+    photos_subdir: ICIAR2018_BACH_Challenge/Photos    # expected layout; 00_inventory verifies
+    wsi_subdir: ICIAR2018_BACH_Challenge/WSI
+    patient_file: ICIAR2018_BACH_dataset_micro_patient.xlsx
+    class_folders: {Normal: Normal, Benign: Benign, InSitu: InSitu, Invasive: Invasive}
+
+split:
+  scheme: thunder
+  # eva/THUNDER fixed patient-safe ranges (BUILD_PLAN §A2; Task 2), half-open [start, end) over the
+  # 400 images ordered by class folder (class_order, alphabetical) and then file name. Verbatim:
+  #   train (0,15),(25,41),(59,60),(90,110),(120,139),(169,200),(210,240),(258,260),(273,305),(315,345),(368,380),(390,400)
+  #   cal   (15,25),(110,120),(200,210),(305,315),(380,390)
+  #   test  (41,59),(60,90),(139,169),(240,258),(260,273),(345,368)
+  class_order: [Benign, InSitu, Invasive, Normal]
+  ranges:
+    train: [[0, 15], [25, 41], [59, 60], [90, 110], [120, 139], [169, 200], [210, 240], [258, 260], [273, 305], [315, 345], [368, 380], [390, 400]]
+    calibration: [[15, 25], [110, 120], [200, 210], [305, 315], [380, 390]]
+    test: [[41, 59], [60, 90], [139, 169], [240, 258], [260, 273], [345, 368]]
+  expected_counts: {train: 218, calibration: 50, test: 132}
+  cv:                               # model selection inside train only (§A3)
+    folds: 5
+    repeats: 3
+    group_by: patient_else_block    # patient ID from the xlsx, else contiguous file-number blocks
+    block_size: 5
+    seed: 44
+  ids:                              # case_id = <prefix>_<n:04d>, n from a seeded permutation of the
+    prefix: BACH                    # sorted index: opaque, never encodes the label or class order
+    seed: 44
+
+tiles:
+  grids:
+    g512: {size: 512, rows: 3, cols: 4}   # contract tiles (Case JSON tiles[]); CONCH/MUSK native scale
+    g256: {size: 256, rows: 6, cols: 8}   # 224-input encoders and margin segments (§A7, §A12)
+  contract_grid: g512
+  display:
+    long_side: 1536                 # display JPEG long side (plan §6.1); contract coordinates stay in source pixels
+    jpeg_quality: 90
+
+qc:
+  saturation_min: 0.07              # a pixel is tissue when HSV saturation (0-1) > saturation_min ...
+  brightness_max: 0.92              # ... and HSV value (0-1) < brightness_max
+  min_tissue_frac: 0.5              # a tile passes QC when its tissue fraction >= min_tissue_frac
+  min_tiles_kept: 3                 # fewer QC-passing contract-grid tiles = insufficient tissue (tier 3; stain rule `insufficient`)
+
+lanes:
+  surgical_fraction: 0.25           # of test cases (plan §5.3)
+  surgical_source_split: test
+  surgical_must_cover: [[Invasive], [InSitu], [Normal, Benign]]   # at least one case from each group
+  seed: 44
+
+nct:                                # cross-organ concept sanity check (plan §5.4, §6.5)
+  classes: [ADI, BACK, DEB, LYM, MUC, MUS, NORM, STR, TUM]
+  per_class: 300
+  seed: 44
+  concept_checks:                   # concept -> NCT classes treated as positives for its AUROC
+    lymphocytes: [LYM]
+    necrosis: [DEB]
+    pleomorphism: [TUM]
+    benign_stroma_fat: [STR, ADI]
+
+encoders:                           # model loading details live in config/encoders.yaml (Task 3)
+  priority: [conch, musk, uni2h, hoptimus0, virchow2, phikonv2, pathgenclip]   # §A8 order
+  primary: conch                    # concepts, retrieval, OOD
+  agreement: musk                   # CONCH-MUSK agreement signal
+  text_aligned: [conch, musk, pathgenclip]
+  heads: [align, probe]             # align = text-aligned normalized embedding; probe = linear-probe features
+  native_grid: {conch: g512, musk: g512, uni2h: g256, hoptimus0: g256, virchow2: g256, phikonv2: g256, pathgenclip: g256}
+  margin_probe_encoders: [uni2h, hoptimus0]   # 224-native; CONCH 512 windows at stride 256 as fallback (§A12)
+  views: {g512: 8, g256: 4}         # dihedral views: train augmentation; cal/test reduced to TTA means (§A7)
+
+alpha: 0.1                          # conformal miscoverage (plan §6.6)
+conformal:
+  method: lac                       # lac | aps
+  mode: marginal                    # marginal | mondrian
+  secondary: [aps, mondrian]        # reported alongside, never drive tiers
+  aps_randomized: true
+  seed: 44
+
+calibration:
+  method: temperature
+  fit_on: train_oof                 # temperature from out-of-fold train logits (§A3)
+  temperature_bounds: [0.05, 20.0]
+  ece_bins: 10
+  ece_binning: equal_mass
+
+bootstrap:
+  n: 2000
+  ci: 0.95
+  cluster: true                     # resample patient / pseudo-patient groups (§A5)
+  seed: 44
+
+concepts:
+  file: config/concepts.yaml        # schema: core/schemas.py "concepts.yaml" (ruling R1)
+  ids: [tubules, pleomorphism, mitoses, invasion, duct_confined, normal_lobules, benign_stroma_fat, lymphocytes, necrosis]
+  groups:                           # plan §6.4 grouping, in UI order
+    nottingham: {label: Nottingham-style, ids: [tubules, pleomorphism, mitoses]}
+    insitu_vs_invasive: {label: In situ vs invasive, ids: [invasion, duct_confined]}
+    benign_normal: {label: Benign / normal, ids: [normal_lobules, benign_stroma_fat]}
+    microenvironment: {label: Microenvironment, ids: [lymphocytes, necrosis]}
+  top_k: 3                          # case value = mean of the top-k tile scores (plan §6.5)
+  z_threshold: 1.0                  # case feature = fraction of tiles with z > z_threshold
+  positives: [3, 5]                 # allowed number of positive phrasings per concept (plan §6.4)
+  contrasts: [2, 3]                 # allowed number of contrast phrasings per concept
+  cav:
+    min_auroc: 0.75                 # held-out AUROC for a concept vector to count as "caption-consistent" (§A11)
+    seed: 44
+
+model_choice:                       # selection by patient-grouped CV inside train (§A3, §A8)
+  rule: one_se
+  cv_metric: log_loss
+  tie_break: concept_bottleneck     # concept bottleneck B wins any tie
+  auroc_margin: 0.03                # B drives predictions iff AUROC(A) - AUROC(B) <= auroc_margin
+  bacc_margin: 0.05                 #   and BAcc(A) - BAcc(B) <= bacc_margin (plan §6.6)
+  candidates: [conch_probe_lr, uni2h_lr, hoptimus0_lr, abmil, fusion_top3, musk_lr]   # pre-registered (§A8)
+  concept_models: [cb_text, cb_text_cells, cb_cells]   # B, B+C, C (CELLS_SPEC §7.1)
+  agreement_model: musk_lr
+  production: null                  # recorded by the controller from eval/model_choice.json
+  finetune:
+    optional: true                  # first item cut (§I)
+    min_bacc_gain: 0.02             # adopt LoRA only with +2 BAcc points and no NLL regression (§A10)
+
+reliability:
+  k: 10                             # nearest TTA-averaged train tiles for OOD distance (plan §6.7)
+  target_error_recall: 0.8          # flag threshold chosen on calibration to catch this share of errors
+  ood_reference: train_tta
+  features: [ood_percentile, set_size, conch_musk_disagree]
+
+retrieval:
+  k: 5
+  encoder: conch
+  head: align
+  library_split: train
+  differs_most_in_k: 2              # contrast case: top-k concepts by |delta z|
+
+degrade:                            # simulated frozen-section artifacts (plan §6.7); list index i = severity i+1
+  types: [blur, jpeg, stain, resample]
+  severities: [1, 2, 3]
+  seed: 44
+  params:
+    blur: {sigma_px: [1.0, 2.0, 4.0]}                       # Gaussian blur sigma, pixels at source resolution
+    jpeg: {quality: [60, 30, 10]}                           # JPEG quality
+    stain: {alpha: [0.05, 0.10, 0.20], beta: [0.01, 0.03, 0.06]}   # HED jitter: c' = c * (1 + a) + b, a~U(-alpha,alpha), b~U(-beta,beta)
+    resample: {factor: [2, 4, 8]}                           # downsample by factor, then upsample back (bicubic)
+  display_severity: 3               # degraded display JPEGs for test-surgical cases
+
+composites:                         # margin localization test fields (§A12)
+  n: 64
+  orientations: 4
+  source_split: test
+  seed: 44
+
+wsi:                                # annotated BACH WSIs: clean tile labels + margin windows (§A9)
+  mpp: 0.467
+  target_mpp: 0.42
+  min_label_purity: 0.9
+  window: [2048, 1536]
+  folds: 5
+  seed: 44
+
+margin:                             # simulated surgical margin read (plan §6.9, §A12)
+  names: {top: superior, bottom: inferior, left: medial, right: lateral}
+  strip_px: 256                     # outermost strip (~107 µm at 0.42 µm/px)
+  segment_px: 256                   # 8 segments per long edge, 6 per short edge, corners shared
+  max_fpr: 0.05                     # threshold = (1 - max_fpr) quantile of benign calibration per-margin maxima
+  threshold_quantile_method: higher
+  timer: {amber_min: 15, red_min: 20}   # CAP Q-Probes: 90% of frozen sections within 20 min
+  note: "Anterior and posterior margins cannot be represented in a 2D field."
+
+aging:                              # ported from the teammate prototype (§A21); illustrative targets, not validated
+  enabled: true
+  promote_at_fraction: 0.75         # promote one tier when elapsed >= 0.75 x the tier's target (never above tier 2)
+  turnaround_target_min: {1: 20, 2: 1440, 3: 1440, 4: 2880}
+
+sim:                                # backend arrival replay (plan §10)
+  speed: 30
+  arrival:
+    process: poisson
+    mean_interarrival_s: 120
+    seed: 44
+
+queue_sim:                          # FIFO vs tiers vs tiers+aging (plan §12; Task 11)
+  reps: 1000
+  seed: 44
+  day_hours: 8
+  arrivals_per_hour: 6
+  read_time_min: 9
+  policies: [fifo, tiers, tiers_aging]
+
+demo:                               # hero cases auto-picked by step 08 and placed late (§A16)
+  heroes:
+    biopsy: {top_class: Invasive, conformal_set: [InSitu, Invasive], reliability_flag: false, agent_status: drafted, arrival: last}
+    surgical: {suggested_call: tumor_at_margin, involved: [superior], reliability_flag: false}
+    surgical_degraded: {simulated_variant: degraded, reliability_flag: true, suggested_call: defer}
+    surgical_composite: {simulated_variant: composite, suggested_call: tumor_at_margin}
+  prefer_correct: true              # picking may use eval labels offline; labels never reach the API or UI
+  fallback: closest_match           # if no case matches exactly, take the closest and log it
+  metrics_use_full_test_split: true
+
+findings:
+  max_concepts: 3                   # concept findings per case
+  min_abs_contribution: 0.05
+
+summary:
+  max_sentences: 4
+  min_valid_sentences: 2            # fewer validated sentences => deterministic template (plan §8.2)
+  template_generator: template      # value of summary.generator for template output
+
+llm:
+  provider: lumen
+  base_url: https://lumen.ncsa.illinois.edu/v1
+  api_key_env: LUMEN_API_KEY        # read from the environment or env_file; never printed or committed
+  base_url_env: LUMEN_BASE_URL
+  env_file: ~/.config/ashby-2026/lumen.env
+  model_preference: [ornith-1.0-35b, gemma-4-31b-it, qwen3-coder-next]   # first one also in live /v1/models wins
+  max_calls: 40                     # default --max-llm-calls budget (flagged/hero cases first)
+  temperature: 0.2
+  timeout_s: 60
+  retries: 3
+  cache_dir: llm_cache              # under the data root; keyed by (model, prompt hash)
+  live_demo_calls: false            # the live demo makes zero LLM calls (plan §2)
+
+agent:
+  stain_rules: config/stain_rules.yaml
+  blocked_lanes: [surgical]         # stains are never drafted in the frozen lane (§A21)
+
+hosted:                             # organizer servers, callable only inside Delta: 5-tile equivalence check (§A6)
+  env_file: ~/.config/ashby-2026/model-servers.env
+  conch: {url_env: CONCH_URL, key_env: CONCH_API_KEY}
+  musk: {url_env: MUSK_URL, key_env: MUSK_API_KEY}
+  batch_size: 32
+
+cells:                              # CELLS_SPEC §9 (backend order from BUILD_PLAN §F)
+  enabled: true
+  backend: tiatoolbox               # tiatoolbox | hovernet | hovernext
+  model: hovernet_fast-pannuke
+  checkpoint: /work/nvme/bfqi/teams/{team_dir}/pathqueue/weights/hovernet_fast-pannuke.pth
+  model_mpp: 0.25
+  tiles_per_case: 3
+  oof_folds: 5
+  min_neoplastic_nuclei: 20
+  min_total_nuclei: 50
+  til_radius_um: 30
+  reference_classes: [Normal, Benign]
+  findings_percentile_extremes: [0.1, 0.9]
+  hard_stop: "2026-10-18T10:00:00-05:00"   # disable the module if the full run is not done by then
+  types: [neoplastic, inflammatory, connective, dead, epithelial]   # PanNuke types; contract counts keys
+  overlay_colors: {neoplastic: "#B0335C", inflammatory: "#4A3B8F", connective: "#C9A227", dead: "#5A5A5A", epithelial: "#2E8BC0"}
+
+paths:
+  delta:
+    work_root: /work/nvme/bfqi      # exists => running on Delta (core.config.detect_site)
+    team_root: /work/nvme/bfqi/teams/{team_dir}
+    data_root: /work/nvme/bfqi/teams/{team_dir}/pathqueue   # event-readable: never keys or private files
+    artifacts_root: /work/nvme/bfqi/teams/{team_dir}/pathqueue/artifacts
+    bach_official: /work/nvme/bfqi/teams/{team_dir}/bach
+    weights: /work/nvme/bfqi/teams/{team_dir}/pathqueue/weights
+    shared:                         # read in place, never copied wholesale
+      nct_crc: /projects/bfqi/shared/datasets/NCT-CRC-HE-100K/data-samples
+      pathgen: /projects/bfqi/shared/datasets/pathgen_dataset
+      pathmmu: /projects/bfqi/shared/datasets/pathmmu
+      pathmmu_bach: /projects/bfqi/shared/datasets/pathmmu/BACH
+      quilt: /work/nvme/bfqi/shared/datasets/quilt
+  local:                            # relative to the repo root; all git-ignored except fixtures
+    data_root: data
+    synthetic_root: data_synthetic
+    artifacts_root: artifacts
+    fixtures: fixtures
+    logs: logs
+  hf_home: ~/.cache/huggingface     # private home cache, never /work/nvme (event-readable) (§A20)
+
+ui:
+  banner: "Research prototype — not for clinical use"
+  poll_ms: 2000
+  palette: {ink: "#1B1A2E", paper: "#F5F2EC", hematoxylin: "#4A3B8F", eosin: "#B0335C"}
+  class_labels: {Normal: Normal breast tissue, Benign: Benign lesion, InSitu: In situ carcinoma, Invasive: Invasive carcinoma}
+  tier_labels: {1: "Surgical frozen section (simulated)", 2: Likely invasive, 3: Low confidence, 4: Unflagged}
+  reason_labels:
+    aggressive_top: Invasive carcinoma suggested
+    aggressive_in_conformal_set: Invasive in the confidence set
+    set_size_gt_1: More than one class in the confidence set
+    empty_set: Empty confidence set
+    low_reliability: Low reliability
+    insufficient_tissue: Insufficient tissue
+    aging_promoted: "Promoted: waiting time"
+    surgical_frozen_section: Simulated frozen section
+
+backend:
+  host: 127.0.0.1
+  port: 8000
+  db_file: pathqueue.sqlite         # under the artifacts root
