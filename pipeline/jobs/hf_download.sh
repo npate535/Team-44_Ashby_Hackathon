@@ -63,6 +63,7 @@ RC_DOWNLOAD=$?
 set -e
 
 echo "== offline-readiness check (HF_HUB_OFFLINE=1)"
+set +e
 HF_HUB_OFFLINE=1 python - "$ONLY" <<'PY'
 import sys
 from pipeline import encoders as E
@@ -78,5 +79,6 @@ for name, spec in ecfg["encoders"].items():
 sys.exit(1 if bad else 0)
 PY
 RC_OFFLINE=$?
+set -e
 du -sh "$HF_HOME/hub" 2>/dev/null || true
 [ "$RC_DOWNLOAD" -eq 0 ] && [ "$RC_OFFLINE" -eq 0 ] && echo "hf_download: OK" || { echo "hf_download: INCOMPLETE (see GATED/FAIL/MISSING above)"; exit 1; }

@@ -23,8 +23,8 @@ cd "${PQ_CODE_DIR:-$HOME/pathqueue}"
 echo "== host $(hostname)  job ${SLURM_JOB_ID:-?}  $(date)"
 nvidia-smi --query-gpu=name,memory.total --format=csv || true
 
-python -m pipeline.02_embed --sets bach256,bach512,deg256 --max-views bach512=1 --encoders uni2h,hoptimus0 \
+python -m pipeline.02_embed --sets bach256,bach512,deg256 --max-views bach512=1 --encoders uni2h,hoptimus0 --device cuda \
     --skip-unavailable --keep-going
-python -m pipeline.02_embed --sets bach256,bach512 --max-views bach512=1 --encoders virchow2,phikonv2,pathgenclip \
+python -m pipeline.02_embed --sets bach256,bach512 --max-views bach512=1 --encoders virchow2,phikonv2,pathgenclip --device cuda \
     --skip-unavailable --keep-going
 echo "== embed_extra done $(date)"

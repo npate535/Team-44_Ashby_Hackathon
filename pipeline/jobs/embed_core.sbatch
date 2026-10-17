@@ -23,7 +23,7 @@ echo "== host $(hostname)  job ${SLURM_JOB_ID:-?}  $(date)"
 nvidia-smi --query-gpu=name,memory.total --format=csv || true
 
 # CONCH first: it is the primary encoder (concepts, retrieval, OOD), so it must finish even if the job runs long.
-python -m pipeline.02_embed --sets bach512,nct,deg512 --encoders conch
-python -m pipeline.02_embed --sets bach512,nct,deg512 --encoders musk
-python -m pipeline.03_text --encoders conch,musk,pathgenclip --skip-unavailable
+python -m pipeline.02_embed --sets bach512,nct,deg512 --encoders conch --device cuda
+python -m pipeline.02_embed --sets bach512,nct,deg512 --encoders musk --device cuda
+python -m pipeline.03_text --encoders conch,musk,pathgenclip --device cuda --skip-unavailable
 echo "== embed_core done $(date)"

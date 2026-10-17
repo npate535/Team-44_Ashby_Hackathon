@@ -24,7 +24,7 @@ GPU_SCRIPT = """#!/bin/bash
 #SBATCH --cpus-per-task={cpus}
 #SBATCH --mem={mem}
 #SBATCH --time={time}
-#SBATCH --output=/work/nvme/bfqi/teams/team44/pathqueue/logs/%x-%j.out
+#SBATCH --output={out}/%x-%j.out
 {extra}
 module load pytorch-conda/2.8
 unset PYTHONNOUSERSITE
@@ -65,7 +65,7 @@ class Env:
         self.jobid = "777"
         self._shim("date", 'if [ "${1:-}" = "+%s" ]; then echo "$FAKE_NOW"; else echo 2026-10-18T02:00:00Z; fi')
         self._shim("squeue", 'cat "$FAKE_SQUEUE"')
-        self._shim("sbatch", 'echo "$*" >> "$FAKE_SBATCH_CALLS"\n'
+        self._shim("sbatch", 'echo "$* env:${SBATCH_RESERVATION:-}${SBATCH_TIMELIMIT:-}" >> "$FAKE_SBATCH_CALLS"\n'
                              'case " $* " in *" --test-only "*) echo "sbatch: Job 1 to start at 2027-03-01T00:00:00 '
                              'using 1 processors" >&2; exit "$FAKE_TESTONLY_RC" ;; esac\necho "$FAKE_JOBID"')
         self.gpu("smoke", time="00:20:00")
@@ -81,19 +81,20 @@ class Env:
 
     def gpu(self, name, *, time="01:00:00", gpus=1, cpus=16, mem="60G", extra=""):
         (self.jobs / f"{name}.sbatch").write_text(GPU_SCRIPT.format(name=name, time=time, gpus=gpus, cpus=cpus,
-                                                                    mem=mem, extra=extra))
+                                                                    mem=mem, extra=extra, out=self.tmp / "slurm"))
 
     def cpu(self, name, *, time="00:30:00", account="bfqi-delta-cpu"):
         (self.jobs / f"{name}.sbatch").write_text(CPU_SCRIPT.format(time=time, account=account))
 
     @property
     def log(self) -> Path:
-        return self.tmp / "code" / "logs" / "submissions.log"
+        return self.tmp / "home" / "pathqueue" / "logs" / "submissions.log"
 
     def run(self, *args: str) -> subprocess.CompletedProcess:
         env = {**os.environ, "PATH": f"{self.bin}:{os.environ['PATH']}", "FAKE_NOW": str(self.now),
                "FAKE_SQUEUE": str(self.squeue), "FAKE_SBATCH_CALLS": str(self.sbatch_calls),
-               "FAKE_TESTONLY_RC": str(self.testonly_rc), "FAKE_JOBID": self.jobid, "USER": "rbansal3"}
+               "FAKE_TESTONLY_RC": str(self.testonly_rc), "FAKE_JOBID": self.jobid, "USER": "rbansal3",
+               "HOME": str(self.tmp / "home"), "SBATCH_RESERVATION": "sup-30434-17", "SBATCH_TIMELIMIT": "06:00:00"}
         return subprocess.run(["bash", str(self.jobs / "submit.sh"), *args], capture_output=True, text=True, env=env,
                               timeout=30)
 
@@ -116,7 +117,7 @@ def test_submits_and_logs_with_the_overnight_deadline(env):
     assert res.returncode == 0, res.stderr
     assert "SUBMITTED smoke as job 777" in res.stdout
     (call,) = env.submitted()
-    assert call.startswith("--parsable --deadline=2026-10-18T07:59:00 ") and call.endswith("smoke.sbatch")
+    assert call.startswith("--parsable --deadline=2026-10-18T07:59:00 ") and call.endswith("smoke.sbatch env:")
     (row,) = env.log_rows()
     assert row[1:6] == ["submitted", "smoke", "777", "1", "20"]
     assert "test_only" in row[8] and "one_gpu" in row[8] and "gpu_cap" in row[8]
@@ -319,3 +320,54 @@ def test_job_encoder_lists_match_settings():
     for name in ("embed_core", "text_cpu"):
         body = (REPO / "pipeline" / "jobs" / f"{name}.sbatch").read_text()
         assert "--encoders " + ",".join(cfg["encoders"]["text_aligned"]) in body
+
+
+@pytest.mark.parametrize("extra, message", [
+    ("#SBATCH --array=0-3", "--array is not allowed"),
+    ("#SBATCH --exclusive", "--exclusive is not allowed"),
+    ("#SBATCH --gres=gpu:4", "--gres is not allowed"),
+    ("#SBATCH --gpus=2", "--gpus is not allowed"),
+    ("#SBATCH -G 2", "-G / -a is not allowed"),
+    ("#SBATCH --mem-per-cpu=8G", "--mem-per-cpu is not allowed"),
+    ("#SBATCH --time=06:00:00", "--time appears 2 times"),
+    ("#SBATCH --nodes=2", "--nodes appears 2 times"),
+])
+def test_resource_escapes_are_refused(env, extra, message):
+    env.gpu("embed_core", extra=extra)
+    res = env.run("embed_core")
+    assert res.returncode == 1 and message in res.stderr and env.submitted() == []
+
+
+def test_whole_node_memory_is_refused(env):
+    env.gpu("embed_core", mem="0G")
+    assert "whole node" in env.run("embed_core").stderr
+
+
+def test_sbatch_input_environment_overrides_are_cleared(env):
+    assert env.run("smoke").returncode == 0
+    assert all(call.endswith("env:") for call in env.sbatch_calls.read_text().splitlines())
+
+
+def test_concurrent_submission_lock(env):
+    lock = env.log.parent / ".submit.lock"
+    lock.mkdir(parents=True)
+    res = env.run("smoke")
+    assert res.returncode == 1 and "another submission" in res.stderr
+    lock.rmdir()
+    assert env.run("smoke").returncode == 0 and not lock.exists()
+
+
+def test_team_users_are_all_checked(env):
+    calls = env.tmp / "squeue_args.txt"
+    env._shim("squeue", f'echo "$*" >> {calls}\ncat "$FAKE_SQUEUE"')
+    os.environ["PQ_TEAM_USERS"] = "rbansal3,teammate2"
+    try:
+        assert env.run("smoke").returncode == 0
+    finally:
+        del os.environ["PQ_TEAM_USERS"]
+    assert "-u rbansal3,teammate2" in calls.read_text()
+
+
+def test_output_folder_is_created_before_submission(env):
+    assert env.run("smoke").returncode == 0
+    assert (env.tmp / "slurm").is_dir()

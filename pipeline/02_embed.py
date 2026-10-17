@@ -10,7 +10,9 @@ stopped. When every chunk exists the final files are written atomically (core.sc
 
     <set>_<head>.npy + _index.csv               one row per item_id: mean over its views (TTA); align rows are
                                                 re-normalized after averaging, probe rows are raw means
-    <set>_<head>_views.npy + _views_index.csv   train split only, one row per (item, view), when items have > 1 view
+    <set>_<head>_views.npy + _views_index.csv   one row per (item, view) for every split when items have > 1 view
+                                                (ruling M9: cal/test view-0 rows are the clean baseline for degraded
+                                                view-0 reads; train views are the augmentation copies)
 
 Order inside one tile: crop -> degrade -> view. Degrading the cropped tile (not the whole image) keeps the work per
 row small; JPEG blocks still align because tile edges are multiples of 8, and blur differs only within ~3 sigma of
@@ -30,6 +32,7 @@ from __future__ import annotations
 import collections
 import hashlib
 import json
+import os
 import shutil
 import sys
 import time
@@ -85,14 +88,53 @@ def select_rows(df: pd.DataFrame, set_name: str, limit: int | None, max_views: i
     return rows.sort_values(["item_id", "view"], kind="stable").reset_index(drop=True)
 
 
-def plan_chunks(rows: pd.DataFrame, chunk_rows: int) -> list[tuple[int, str, pd.DataFrame]]:
-    """[(k, row-id hash, rows)] in order; the hash names the chunk file so a changed plan never reuses a chunk."""
+ROW_KEY_COLS = ["row_id", "path", "x", "y", "w", "h", "view", "degrade_type", "degrade_severity", "degrade_seed"]
+
+
+def encoder_fingerprint(name: str, spec: Mapping[str, Any]) -> str:
+    """What produced an embedding, known before the model loads: resolved revision, loader, preprocessing, heads."""
+    info = {"encoder": name, "revision": E._revision(spec), "loader": spec["loader"], "spec": spec.get("spec"),
+            "repo": spec.get("repo"), "preprocess": E.preprocess_info(spec), "heads": spec["heads"],
+            "autocast": spec["autocast"], "output": spec.get("output"), "timm_kwargs": spec.get("timm_kwargs")}
+    return hashlib.sha1(json.dumps(info, sort_keys=True, default=str).encode("utf-8")).hexdigest()[:16]
+
+
+def _rows_digest(rows: pd.DataFrame, fingerprint: str) -> str:
+    digest = hashlib.sha1(fingerprint.encode("utf-8"))
+    for record in rows[ROW_KEY_COLS].itertuples(index=False, name=None):
+        digest.update(("\x1f".join(map(str, record)) + "\n").encode("utf-8"))
+    return digest.hexdigest()
+
+
+def plan_key(rows: pd.DataFrame, fingerprint: str) -> str:
+    """Identity of a full (encoder, set) plan: every row's pixels-defining fields + the encoder fingerprint."""
+    return _rows_digest(rows, fingerprint)[:20]
+
+
+def plan_chunks(rows: pd.DataFrame, chunk_rows: int, fingerprint: str = "") -> list[tuple[int, str, pd.DataFrame]]:
+    """[(k, hash, rows)] in order. The hash covers the chunk's rows (ids, path, crop, view, degradation) and the
+    encoder fingerprint, so a changed manifest, revision or preprocessing never reuses a stale chunk."""
     out = []
     for k, start in enumerate(range(0, len(rows), chunk_rows)):
         part = rows.iloc[start:start + chunk_rows]
-        digest = hashlib.sha1("\n".join(part["row_id"]).encode("utf-8")).hexdigest()[:12]
-        out.append((k, digest, part))
+        out.append((k, _rows_digest(part, fingerprint)[:12], part))
     return out
+
+
+def resolve_device(requested: str | None) -> str:
+    """cuda when available. Inside a Slurm GPU allocation a missing CUDA device is fatal (never a silent CPU run)."""
+    import torch
+
+    gpu_job = bool(os.environ.get("SLURM_JOB_GPUS") or os.environ.get("SLURM_GPUS_ON_NODE"))
+    if requested is None:
+        if torch.cuda.is_available():
+            return "cuda"
+        if gpu_job:
+            raise CheckFailed("this Slurm job has GPUs allocated but torch sees no CUDA device")
+        return "cpu"
+    if requested.startswith("cuda") and not torch.cuda.is_available():
+        raise CheckFailed(f"--device {requested} requested but torch sees no CUDA device")
+    return requested
 
 
 # ---- dataset -----------------------------------------------------------------------------------------------------------
@@ -243,6 +285,24 @@ def _index_frame(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def set_done(root: Path, encoder: str, set_name: str, heads: Sequence[str], rows: pd.DataFrame, key: str,
+             fingerprint: str, limited: bool) -> bool:
+    """Finished outputs for this exact plan (meta plan_key), or — for a --limit run — finished outputs of the same
+    encoder fingerprint that already cover the limited items (a smoke run never shrinks a full set). A set whose
+    recorded NCT zero-shot check failed is never done."""
+    path = schemas.emb_meta_json(root, encoder)
+    meta = io.read_json(path) if path.is_file() else {}
+    info = meta.get("sets", {}).get(set_name)
+    if not info or meta.get("checks", {}).get(set_name, {}).get("nct_zero_shot", {}).get("status") == "fail":
+        return False
+    items = existing_items(root, encoder, set_name, heads)
+    if items is None:
+        return False
+    if info.get("plan_key") == key:
+        return True
+    return limited and info.get("fingerprint") == fingerprint and set(rows["item_id"]) <= items
+
+
 def existing_items(root: Path, encoder: str, set_name: str, heads: Sequence[str]) -> set[str] | None:
     """Item IDs of finished per-item outputs (all heads present and consistent), else None."""
     found: set[str] | None = None
@@ -268,12 +328,16 @@ def update_meta(root: Path, enc_info: Mapping[str, Any], cfg: Mapping[str, Any],
     all_checks[set_name] = dict(checks)
     preprocess = dict(enc_info["preprocess"])
     preprocess["mpp"] = config.effective_mpp(cfg, schemas.inventory_json(root))
+    sets[set_name].update(revision=enc_info["revision"], one_pass=enc_info.get("one_pass"),
+                          compute_dtype=enc_info["compute_dtype"], git_sha=prov["git_sha"],
+                          created_utc=prov["created_utc"])
+    revisions = sorted({str(v.get("revision")) for v in sets.values() if v.get("revision")})
     meta.update({
         "encoder": enc_info["encoder"], "model_card": enc_info["model_card"], "revision": enc_info["revision"],
         "repo": enc_info["repo"], "license": enc_info["license"], "loader": enc_info["loader"],
         "heads": enc_info["heads"], "sets": sets, "preprocess": preprocess, "dtype": "float16",
         "compute_dtype": enc_info["compute_dtype"], "one_pass": enc_info.get("one_pass"),
-        "testing_only": enc_info["testing_only"], "checks": all_checks,
+        "testing_only": enc_info["testing_only"], "checks": all_checks, "revisions_in_sets": revisions,
         "created_utc": prov["created_utc"], "git_sha": prov["git_sha"], "config_hash": prov["config_hash"],
         "versions": prov["versions"], "synthetic": bool(synthetic or meta.get("synthetic", False)),
     })
@@ -308,9 +372,12 @@ class Engine:
             if rows.empty:
                 report[set_name] = {"status": "no rows"}
                 continue
-            done = None if self.ctx.force else existing_items(self.ctx.data_root, name, set_name, heads)
-            if done is not None and set(rows["item_id"]) <= done:
-                self.log(f"[{name}/{set_name}] done: {len(done)} items already embedded (use --force to redo)")
+            fingerprint = encoder_fingerprint(name, spec)
+            key = plan_key(rows, fingerprint)
+            if not self.ctx.force and set_done(self.ctx.data_root, name, set_name, heads, rows, key, fingerprint,
+                                               self.ctx.limit is not None):
+                self.log(f"[{name}/{set_name}] done: {rows['item_id'].nunique()} items already embedded for this "
+                         f"plan (use --force to redo)")
                 report[set_name] = {"status": "skipped (done)"}
                 continue
             if enc is None:
@@ -320,16 +387,16 @@ class Engine:
                          f"compute {enc.info['compute_dtype']}, heads {enc.info['heads']}")
                 for note in enc.notes:
                     self.log(f"[{name}] note: {note}")
-            checks, first_batch_checked = self._embed_set(enc, set_name, rows, first_batch_checked)
+            checks, first_batch_checked = self._embed_set(enc, set_name, rows, first_batch_checked, fingerprint, key)
             report[set_name] = {"status": "embedded", **checks}
         return report
 
-    def _embed_set(self, enc: E.Encoder, set_name: str, rows: pd.DataFrame, checked: bool
-                   ) -> tuple[dict[str, Any], bool]:
+    def _embed_set(self, enc: E.Encoder, set_name: str, rows: pd.DataFrame, checked: bool, fingerprint: str,
+                   key: str) -> tuple[dict[str, Any], bool]:
         root, ecfg, name = self.ctx.data_root, self.ecfg, enc.name
         tol = float(ecfg["checks"]["align_norm_tol"])
         chunk_dir = schemas.emb_dir(root, name) / ".chunks" / set_name
-        chunks = plan_chunks(rows, int(ecfg["engine"]["chunk_rows"]))
+        chunks = plan_chunks(rows, int(ecfg["engine"]["chunk_rows"]), fingerprint)
         bsz = self.batch or E.batch_size(ecfg, name)
         pin = bool(ecfg["engine"]["pin_memory"]) and self.device.startswith("cuda")
         checks: dict[str, Any] = {}
@@ -363,6 +430,7 @@ class Engine:
             t_embed += time.time() - t0
             n_done += len(part)
             io.save_npz(path, row_id=np.asarray(part["row_id"].tolist(), dtype=str),
+                        one_pass=np.asarray(bool(enc.info.get("one_pass", True))),
                         **{h: np.concatenate(v) for h, v in outs.items()})
             self.log(f"[{name}/{set_name}] chunk {k + 1}/{len(chunks)}: {len(part)} rows, "
                      f"{len(part) / max(time.time() - t0, 1e-9):.1f} img/s")
@@ -386,7 +454,7 @@ class Engine:
         set_info = {"n_items": int(rows["item_id"].nunique()), "n_views": n_views, "n_rows": int(len(rows)),
                     "views_file": bool(self._has_views(rows)), "model_mpp": model_mpp,
                     "throughput_img_s": None if throughput is None else round(throughput, 2),
-                    "finished_utc": io.utc_now()}
+                    "finished_utc": io.utc_now(), "plan_key": key, "fingerprint": fingerprint}
         update_meta(root, enc.info, self.ctx.cfg, synthetic=self.ctx.synthetic, set_name=set_name,
                     set_info=set_info, checks=checks)
         if not bool(self.ecfg["engine"]["keep_chunks"]):
@@ -400,19 +468,24 @@ class Engine:
 
     @staticmethod
     def _has_views(rows: pd.DataFrame) -> bool:
-        train = rows[rows["split"] == "train"]
-        return bool(len(train)) and bool((train.groupby("item_id")["view"].nunique() > 1).any())
+        """Ruling M9: a _views file for every split whenever items carry more than one view (bach512/bach256)."""
+        return bool(len(rows)) and bool((rows.groupby("item_id")["view"].nunique() > 1).any())
 
     @staticmethod
     def _load_chunks(chunks: Sequence[tuple[int, str, pd.DataFrame]], chunk_dir: Path, heads: Sequence[str]
                      ) -> dict[str, np.ndarray]:
         parts: dict[str, list[np.ndarray]] = {h: [] for h in heads}
+        modes = set()
         for k, digest, part in chunks:
             data = io.load_npz(chunk_dir / f"{k:05d}_{digest}.npz")
             if data["row_id"].tolist() != part["row_id"].tolist():
                 raise RuntimeError(f"chunk {k} rows do not match the plan; rerun with --force")
+            modes.add(bool(data["one_pass"]))
             for h in heads:
                 parts[h].append(data[h])
+        if len(modes) > 1:
+            raise CheckFailed("chunks mix the one-pass and the adapter two-call paths (a resumed run fell back); "
+                              "rerun this set with --force")
         return {h: np.concatenate(v) for h, v in parts.items()}
 
     def _write_final(self, enc: E.Encoder, set_name: str, rows: pd.DataFrame, arrays: Mapping[str, np.ndarray]) -> None:
@@ -424,11 +497,10 @@ class Engine:
             io.write_csv(schemas.emb_index_csv(root, enc.name, set_name, head), index)
             self.outputs.append(npy)
         if self._has_views(rows):
-            train = rows["split"].to_numpy() == "train"
-            vindex = _index_frame(rows[train].reset_index(drop=True).assign(n_views=1))
+            vindex = _index_frame(rows.reset_index(drop=True).assign(n_views=1))
             for head in enc.heads:
                 io.save_npy(schemas.emb_npy(root, enc.name, set_name, head, views=True),
-                            arrays[head][train].astype(np.float16))
+                            arrays[head].astype(np.float16))
                 io.write_csv(schemas.emb_index_csv(root, enc.name, set_name, head, views=True), vindex)
         self.log(f"[{enc.name}/{set_name}] wrote {len(index)} items x heads {list(enc.heads)}")
 
@@ -587,11 +659,11 @@ def main(argv: Sequence[str] | None = None, log: Any = print) -> int:
     names = parse_list(args.encoders) or [ctx.cfg["encoders"]["primary"]]
     for name in names:
         E.encoder_spec(ecfg, name)
-    device = args.device
-    if device is None:
-        import torch
-
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+    try:
+        device = resolve_device(args.device)
+    except CheckFailed as exc:
+        log(f"ABORT: {exc}")
+        return 2
     engine = Engine(ctx, ecfg, device, workers=args.workers, batch=args.batch_size,
                     precision_check=args.precision_check, log=log, max_views=parse_max_views(args.max_views))
     summary: dict[str, Any] = {}
@@ -611,9 +683,18 @@ def main(argv: Sequence[str] | None = None, log: Any = print) -> int:
             failed = True
             if not args.keep_going:
                 break
+        except Exception as exc:  # --keep-going (smoke): record the real error, try the next encoder, exit 2
+            if not args.keep_going:
+                raise
+            log(f"ERROR {name}: {type(exc).__name__}: {exc}")
+            summary[name] = {"status": f"FAILED: {type(exc).__name__}: {exc}"}
+            failed = True
     for note in engine.notes:
         log(f"note: {note}")
     log("SUMMARY " + json.dumps(summary, default=str))
+    if not failed and all(str(r.get("status", "")).startswith("SKIPPED") for r in summary.values()):
+        log("ABORT: no encoder was available (all skipped): nothing was embedded")
+        failed = True
     io.write_meta(schemas.step_meta_json(root, META_STEP), step=META_STEP, cfg=ctx.cfg,
                   inputs=[manifest_path], outputs=engine.outputs, synthetic=ctx.synthetic,
                   args={"sets": sets, "encoders": names, "limit": ctx.limit, "force": ctx.force, "device": device,

@@ -6,23 +6,29 @@
 # Run on a Delta login node from anywhere (paths resolve from this file). It never loops and never resubmits.
 # Checks, in order (any failure refuses the submission, exit 1, nothing submitted):
 #   1. <job> is on the allow-list of reviewed scripts and pipeline/jobs/<job>.sbatch exists;
-#   2. the script's #SBATCH lines: --time present; no --reservation; GPU jobs use bfqi-delta-gpu / gpuA100x4,
-#      one GPU, <= 16 CPUs, <= 60G and <= 01:00:00; CPU jobs use bfqi-delta-cpu;
+#   2. the script's #SBATCH lines: each directive at most once; --time present; no --reservation / --array /
+#      --exclusive / --gres / --gpus / -G / --gpus-per-task / --mem-per-cpu, --nodes 1; GPU jobs use bfqi-delta-gpu /
+#      gpuA100x4, --gpus-per-node=1, <= 16 CPUs, 1-60G and <= 01:00:00; CPU jobs use bfqi-delta-cpu. SBATCH_* input
+#      environment variables (which would override #SBATCH lines) are unset before sbatch runs;
 #   3. event windows (CDT): now + --time must not cross Sun Oct 18 07:59 (end of the overnight reserved block),
 #      the 07:59-08:00 gap, or Sun 18:00 (end of the event); --deadline is added for the block the job is in;
-#   4. GPU jobs: no other GPU job of ours may be running or pending unless this one is chained after the TAIL of
-#      that chain with --after (one GPU per team at a time);
+#   4. GPU jobs: no other GPU job of ours (users in $PQ_TEAM_USERS, default $USER) may be running or pending unless
+#      this one is chained after the TAIL of that chain with --after (one GPU per team at a time);
 #   5. GPU jobs: cumulative requested GPU time in the submission log + this job <= 7 h (420 min);
 #   6. `sbatch --test-only` accepts the job. It validates syntax only: it ignores the magnetic reservations and
 #      reports a far-future start, which is NOT an error.
-# Every submission (and every refusal) is appended to logs/submissions.log (tab-separated). --print-only runs
-# all checks and prints the sbatch command without submitting or logging.
+# Every submission (and every refusal) is appended to ~/pathqueue/logs/submissions.log (tab-separated; one log per
+# user however many checkouts exist, so the 7 h cap is global). A mkdir lock serializes concurrent submissions.
+# --print-only runs all checks and prints the sbatch command without submitting or logging.
 # Bash 3.2 compatible (the tests run on macOS).
 set -euo pipefail
 
 JOBS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CODE_DIR="$(cd "$JOBS_DIR/../.." && pwd)"
-LOG="$CODE_DIR/logs/submissions.log"
+LOG_DIR="$HOME/pathqueue/logs"
+LOG="$LOG_DIR/submissions.log"
+LOCK="$LOG_DIR/.submit.lock"
+TEAM_USERS="${PQ_TEAM_USERS:-${USER:-$(id -un)}}"
 
 ALLOWED="download_bach prep_a prep_b smoke embed_core embed_extra embed_aux text_cpu cells_spike cells finetune"
 GPU_CAP_MIN=420                  # 7 h of Rishabh's 10 GPU-hours (BUILD_PLAN §G)
@@ -49,12 +55,18 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+for var in $(env | sed -n 's/^\(SBATCH_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$var"; done   # no input-env overrides
+mkdir -p "$LOG_DIR"
+if ! mkdir "$LOCK" 2>/dev/null; then
+    echo "REFUSED $JOB: another submission holds $LOCK (remove it if no submit.sh is running)" >&2
+    exit 1
+fi
+trap 'rmdir "$LOCK" 2>/dev/null || true' EXIT
 NOW="$(date +%s)"
 CHECKS=""
 note() { CHECKS="${CHECKS:+$CHECKS,}$1"; }
 
 log_line() {  # status job_id gpu minutes extra
-    mkdir -p "$(dirname "$LOG")"
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$JOB" "$2" "$3" "$4" \
         "${AFTER:--}" "${DEADLINE:--}" "$5" >> "$LOG"
 }
@@ -78,13 +90,24 @@ if [ -n "$AFTER" ]; then
 fi
 
 # 2. #SBATCH directives ---------------------------------------------------------------------------------------
-directive() {  # long-name short-flag -> value of the first matching #SBATCH line ('' if absent)
-    sed -n -E "s/^#SBATCH[[:space:]]+(--$1=|--$1[[:space:]]+${2:+|-$2[[:space:]]*})([^[:space:]#]+).*/\2/p" "$SCRIPT" | head -n 1
+directive() {  # long-name short-flag -> value of its #SBATCH line ('' if absent); a repeated directive refuses
+    local values n
+    values="$(sed -n -E "s/^#SBATCH[[:space:]]+(--$1=|--$1[[:space:]]+${2:+|-$2[[:space:]]*})([^[:space:]#]+).*/\2/p" "$SCRIPT")"
+    n="$(printf '%s' "$values" | grep -c . || true)"
+    [ "$n" -le 1 ] || refuse "#SBATCH --$1 appears $n times (sbatch would use the last one)"
+    printf '%s' "$values"
 }
 grep -Eq '^#SBATCH[[:space:]]+--reservation' "$SCRIPT" && refuse "--reservation is not allowed (magnetic reservations attach automatically)"
-TIME_RAW="$(directive time t)"
-PARTITION="$(directive partition p)"
-ACCOUNT="$(directive account A)"
+for forbidden in array exclusive gres gpus gpus-per-task mem-per-cpu mem-per-gpu; do
+    grep -Eq "^#SBATCH[[:space:]]+--$forbidden([=[:space:]]|\$)" "$SCRIPT" && refuse "#SBATCH --$forbidden is not allowed"
+done
+grep -Eq '^#SBATCH[[:space:]]+(-G|-a)([[:space:]]|$)' "$SCRIPT" && refuse "#SBATCH -G / -a is not allowed"
+NODES="$(directive nodes N)"
+[ -z "$NODES" ] || [ "$NODES" = "1" ] || refuse "--nodes must be 1 (got '$NODES')"
+TIME_RAW="$(directive time t)" || exit 1
+PARTITION="$(directive partition p)" || exit 1
+ACCOUNT="$(directive account A)" || exit 1
+OUTPUT="$(directive output o)" || exit 1
 [ -n "$TIME_RAW" ] || refuse "no #SBATCH --time in $SCRIPT"
 [ -n "$PARTITION" ] || refuse "no #SBATCH --partition in $SCRIPT"
 
@@ -110,18 +133,19 @@ case "$PARTITION" in *gpu*) IS_GPU=1 ;; esac
 if [ "$IS_GPU" -eq 1 ]; then
     [ "$ACCOUNT" = "bfqi-delta-gpu" ] || refuse "GPU job must use --account=bfqi-delta-gpu (got '$ACCOUNT')"
     [ "$PARTITION" = "gpuA100x4" ] || refuse "GPU job must use --partition=gpuA100x4 (got '$PARTITION')"
-    GPUS="$(directive gpus-per-node)"
+    GPUS="$(directive gpus-per-node)" || exit 1
     [ "$GPUS" = "1" ] || refuse "GPU job must request exactly --gpus-per-node=1 (got '${GPUS:-none}')"
-    CPUS="$(directive cpus-per-task c)"
+    CPUS="$(directive cpus-per-task c)" || exit 1
     case "$CPUS" in ''|*[!0-9]*) refuse "GPU job needs a numeric --cpus-per-task" ;; esac
     [ "$CPUS" -le 16 ] || refuse "--cpus-per-task=$CPUS exceeds 16 per GPU"
-    MEM="$(directive mem)"
+    MEM="$(directive mem)" || exit 1
     case "$MEM" in
         *[Gg]) MEM_G="${MEM%[Gg]}" ;;
         *[Mm]) MEM_G=$(( ${MEM%[Mm]} / 1024 )) ;;
         *) refuse "GPU job needs --mem in G or M (got '${MEM:-none}')" ;;
     esac
     case "$MEM_G" in ''|*[!0-9]*) refuse "cannot parse --mem=$MEM" ;; esac
+    [ "$MEM_G" -ge 1 ] || refuse "--mem=$MEM requests the whole node (0) or under 1G"
     [ "$MEM_G" -le 60 ] || refuse "--mem=$MEM exceeds 60G per GPU"
     [ "$MINUTES" -le "$GPU_MAX_MIN" ] || refuse "GPU --time=$TIME_RAW exceeds 01:00:00"
 else
@@ -147,7 +171,7 @@ note "window(deadline=$DEADLINE)"
 
 # 4. one GPU at a time -------------------------------------------------------------------------------------------
 if [ "$IS_GPU" -eq 1 ]; then
-    QUEUE="$(squeue -u "${USER:-$(id -un)}" -h -o '%i|%P|%T|%E')" || refuse "squeue failed"
+    QUEUE="$(squeue -u "$TEAM_USERS" -h -o '%i|%P|%T|%E')" || refuse "squeue failed"
     GPU_IDS=""
     while IFS='|' read -r jid part state dep; do
         [ -n "$jid" ] || continue
@@ -197,6 +221,9 @@ if [ "$PRINT_ONLY" -eq 1 ]; then
     echo "checks passed: $CHECKS"
     exit 0
 fi
+case "$OUTPUT" in   # Slurm does not create the --output folder; a missing one makes the job fail without a log
+    /*) mkdir -p "$(dirname "$OUTPUT")" 2>/dev/null || refuse "cannot create the --output folder $(dirname "$OUTPUT")" ;;
+esac
 OUT="$(sbatch --parsable $EXTRA "$SCRIPT")"
 JOB_ID="${OUT%%;*}"
 case "$JOB_ID" in ''|*[!0-9]*) refuse "sbatch returned an unexpected job id: $OUT" ;; esac
