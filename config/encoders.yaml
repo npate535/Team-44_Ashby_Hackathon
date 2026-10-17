@@ -171,6 +171,27 @@ encoders:
     autocast: fp16                                  # card
     text_aligned: true
     nct_floor: 0.35
+  pathgenclip_quickgelu:             # smoke A/B only (encoder_loading.md §7 QuickGELU caveat): same weights, QuickGELU
+    repo: jamessyx/PathGen-CLIP      # activations; the smoke job reports both NCT zero-shot accuracies and the master
+    files: [pathgenclip.pt]          # keeps the card's ViT-B-16 unless this variant is clearly better
+    loader: official_openclip
+    spec: "openclip:ViT-B-16-quickgelu@jamessyx/PathGen-CLIP/pathgenclip.pt"
+    model_card: https://huggingface.co/jamessyx/PathGen-CLIP
+    license: CC-BY-2.0 per HF metadata (gated, auto)
+    input_px: 224
+    resize: 224
+    crop: 224
+    interpolation: bicubic
+    mean: [0.48145466, 0.4578275, 0.40821073]
+    std: [0.26862954, 0.26130258, 0.27577711]
+    native_grid: g256
+    heads:
+      align: {dim: 512, normalized: true}
+      probe: {dim: 512, normalized: false}
+    one_pass: true
+    autocast: fp16
+    text_aligned: true
+    nct_floor: 0.0                   # comparison only: never aborts
   test:
     loader: official_test
     spec: test
@@ -221,7 +242,7 @@ hosted_check:
 
 # Smoke job manifest (pipeline/02_embed.py --smoke-manifest; smoke.sbatch).
 smoke:
-  nct_per_class: 8                    # 72 NCT tiles (>= checks.nct_min_items)
+  nct_per_class: 30                   # 270 NCT tiles: zero-shot + concept AUROCs with usable CIs (cheap on a GPU)
   bach_images: 4                      # readable BACH images (official Photos, else pathmmu) tiled on the g512 grid
   bach_views: 2                       # views 0..n-1 on BACH smoke tiles (exercises the TTA path)
   seed: 44

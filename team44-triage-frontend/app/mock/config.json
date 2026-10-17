@@ -1,0 +1,209 @@
+{
+  "organ": "breast",
+  "classes": [
+    "Normal",
+    "Benign",
+    "InSitu",
+    "Invasive"
+  ],
+  "aggressive_class": "Invasive",
+  "alpha": 0.1,
+  "banner": "Research prototype — not for clinical use",
+  "palette": {
+    "ink": "#1B1A2E",
+    "paper": "#F5F2EC",
+    "hematoxylin": "#4A3B8F",
+    "eosin": "#B0335C"
+  },
+  "poll_ms": 2000,
+  "labels": {
+    "tiers": {
+      "1": "Surgical frozen section (simulated)",
+      "2": "Likely invasive",
+      "3": "Low confidence",
+      "4": "Unflagged"
+    },
+    "reasons": {
+      "aggressive_top": "Invasive carcinoma suggested",
+      "aggressive_in_conformal_set": "Invasive in the confidence set",
+      "set_size_gt_1": "More than one class in the confidence set",
+      "empty_set": "Empty confidence set",
+      "low_reliability": "Low reliability",
+      "insufficient_tissue": "Insufficient tissue",
+      "aging_promoted": "Promoted: waiting time",
+      "surgical_frozen_section": "Simulated frozen section"
+    },
+    "classes": {
+      "Normal": "Normal breast tissue",
+      "Benign": "Benign lesion",
+      "InSitu": "In situ carcinoma",
+      "Invasive": "Invasive carcinoma"
+    },
+    "concept_groups": {
+      "nottingham": {
+        "label": "Nottingham-style",
+        "ids": [
+          "tubules",
+          "pleomorphism",
+          "mitoses"
+        ]
+      },
+      "insitu_vs_invasive": {
+        "label": "In situ vs invasive",
+        "ids": [
+          "invasion",
+          "duct_confined"
+        ]
+      },
+      "benign_normal": {
+        "label": "Benign / normal",
+        "ids": [
+          "normal_lobules",
+          "benign_stroma_fat"
+        ]
+      },
+      "microenvironment": {
+        "label": "Microenvironment",
+        "ids": [
+          "lymphocytes",
+          "necrosis"
+        ]
+      }
+    },
+    "cell_features": {
+      "neo_fraction": "Tumor cell fraction",
+      "neo_density": "Tumor cell density",
+      "nuc_area_mean": "Nuclear size",
+      "nuc_area_cv": "Variation in nuclear size",
+      "nuc_shape_cv": "Variation in nuclear shape",
+      "infl_fraction": "Immune cell fraction",
+      "til_proximity": "Immune cells near tumor",
+      "dead_fraction": "Dead cell fraction",
+      "epi_fraction": "Benign epithelial fraction"
+    },
+    "cell_types": {
+      "neoplastic": "Neoplastic (tumor) nuclei",
+      "inflammatory": "Inflammatory (immune) nuclei",
+      "connective": "Connective / soft-tissue nuclei",
+      "dead": "Dead (necrotic / apoptotic) nuclei",
+      "epithelial": "Non-neoplastic epithelial nuclei"
+    }
+  },
+  "cell_features": {
+    "neo_fraction": {
+      "label": "Tumor cell fraction",
+      "unit": "",
+      "direction": "up"
+    },
+    "neo_density": {
+      "label": "Tumor cell density",
+      "unit": "per mm²",
+      "direction": "up"
+    },
+    "nuc_area_mean": {
+      "label": "Nuclear size",
+      "unit": "µm²",
+      "direction": "up"
+    },
+    "nuc_area_cv": {
+      "label": "Variation in nuclear size",
+      "unit": "",
+      "direction": "up"
+    },
+    "nuc_shape_cv": {
+      "label": "Variation in nuclear shape",
+      "unit": "",
+      "direction": "up"
+    },
+    "infl_fraction": {
+      "label": "Immune cell fraction",
+      "unit": "",
+      "direction": "context"
+    },
+    "til_proximity": {
+      "label": "Immune cells near tumor",
+      "unit": "",
+      "direction": "context"
+    },
+    "dead_fraction": {
+      "label": "Dead cell fraction",
+      "unit": "",
+      "direction": "up"
+    },
+    "epi_fraction": {
+      "label": "Benign epithelial fraction",
+      "unit": "",
+      "direction": "down"
+    }
+  },
+  "margin": {
+    "names": {
+      "top": "superior",
+      "bottom": "inferior",
+      "left": "medial",
+      "right": "lateral"
+    },
+    "note": "Anterior and posterior margins cannot be represented in a 2D field.",
+    "timer": {
+      "amber_min": 15,
+      "red_min": 20
+    },
+    "order": [
+      "superior",
+      "inferior",
+      "medial",
+      "lateral"
+    ]
+  },
+  "timer": {
+    "amber_min": 15,
+    "red_min": 20
+  },
+  "aging": {
+    "enabled": true,
+    "promote_at_fraction": 0.75,
+    "turnaround_target_min": {
+      "1": 20,
+      "2": 1440,
+      "3": 1440,
+      "4": 2880
+    }
+  },
+  "cells": {
+    "enabled": true,
+    "types": [
+      "neoplastic",
+      "inflammatory",
+      "connective",
+      "dead",
+      "epithelial"
+    ],
+    "overlay_colors": {
+      "neoplastic": "#B0335C",
+      "inflammatory": "#4A3B8F",
+      "connective": "#C9A227",
+      "dead": "#5A5A5A",
+      "epithelial": "#2E8BC0"
+    }
+  },
+  "sim": {
+    "speed": 30,
+    "hold_surgical_for_injection": true,
+    "variants": [
+      "normal",
+      "degraded",
+      "composite"
+    ]
+  },
+  "flag_reasons": [
+    "aggressive_top",
+    "aggressive_in_conformal_set",
+    "set_size_gt_1",
+    "empty_set",
+    "low_reliability",
+    "insufficient_tissue",
+    "aging_promoted",
+    "surgical_frozen_section"
+  ],
+  "synthetic": true
+}

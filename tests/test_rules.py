@@ -39,9 +39,9 @@ def expected(top, conformal_set, reliability_flag, qc):
     if top == "InSitu":
         out.append("breast_insitu")
     if {"Benign", "InSitu"} <= set(conformal_set):
-        out.append("uncertain_benign_atypia")
+        out += ["uncertain_benign_atypia", "uncertain_benign_atypia_ihc"]
     if reliability_flag:
-        out.append("low_quality")
+        out += ["low_quality", "low_quality_levels"]
     if qc < MIN_KEPT:
         out.append("insufficient")
     return out
@@ -53,7 +53,8 @@ ALL_SETS = [tuple(c for i, c in enumerate(CLASSES) if mask >> i & 1) for mask in
 def test_rule_file_is_marked_illustrative_and_has_the_six_rules():
     assert "clinical review" in RULES.status.lower()
     assert [r.id for r in RULES.rules] == ["breast_insitu_vs_invasive", "breast_invasive", "breast_insitu",
-                                          "uncertain_benign_atypia", "low_quality", "insufficient"]
+                                          "uncertain_benign_atypia", "uncertain_benign_atypia_ihc", "low_quality",
+                                          "low_quality_levels", "insufficient"]
     text = R.rules_path(CFG).read_text(encoding="utf-8")
     assert text.splitlines()[0].startswith("# ILLUSTRATIVE; REQUIRES CLINICAL REVIEW")
     for citation in ("ASCO/CAP", "J Clin Oncol 2020", "Ki67", "SMMHC"):
@@ -74,8 +75,11 @@ def test_rule_items_match_the_spec():
     assert items["breast_insitu_vs_invasive"] == [("stain", ["p63", "calponin"])]
     assert items["breast_invasive"] == [("stain", ["ER", "PR", "HER2", "Ki-67"])]
     assert items["breast_insitu"] == [("stain", ["ER"])]
-    assert items["uncertain_benign_atypia"] == [("deeper_levels", ["deeper levels"]), ("stain", ["CK5/6", "ER"])]
-    assert [t for t, _ in items["low_quality"]] == ["recut", "deeper_levels"]
+    assert items["uncertain_benign_atypia"] == [("deeper_levels", ["deeper levels"])]
+    assert items["uncertain_benign_atypia_ihc"] == [("stain", ["CK5/6", "ER"])]
+    assert items["low_quality"] == [("recut", ["recut H&E section"])]
+    assert items["low_quality_levels"] == [("deeper_levels", ["deeper levels"])]
+    assert all(len(r.orders) == 1 for r in RULES.rules)
     assert items["insufficient"] == [("new_sample", ["new sample"])]
 
 
@@ -155,8 +159,9 @@ def _raw():
 @pytest.mark.parametrize("mutate,message", [
     (lambda d: d["rules"][0]["when"].update({"top_class": "Melanoma"}), "top_class"),
     (lambda d: d["rules"][0]["when"].update({"colour": "red"}), "unknown condition"),
-    (lambda d: d["rules"][0]["orders"][0].update({"type": "biopsy"}), "type must be one of"),
-    (lambda d: d["rules"][0]["orders"][0].update({"items": []}), "items"),
+    (lambda d: d["rules"][0]["order"].update({"type": "biopsy"}), "type must be one of"),
+    (lambda d: d["rules"][0]["order"].update({"items": []}), "items"),
+    (lambda d: d["rules"][0].update({"order": [{"type": "stain", "items": ["p63"]}]}), "one order per rule"),
     (lambda d: d["rules"][1].update({"id": d["rules"][0]["id"]}), "unique"),
     (lambda d: d["rules"][0].update({"rationale": "uses {unknown}"}), "unknown fields"),
     (lambda d: d.update({"status": "approved"}), "clinical review"),
@@ -173,3 +178,13 @@ def test_rule_metadata_is_json_ready():
     meta = R.rule_metadata(RULES)
     json.dumps(meta)
     assert meta[0]["rule_id"] == "breast_insitu_vs_invasive" and meta[0]["citations"] == ["CAP-IHC"]
+
+
+@pytest.mark.parametrize("top,conformal_set,reliability_flag,qc,lane", [
+    (top, s, flag, qc, lane) for top, s, flag, qc, lane in
+    itertools.product(CLASSES, ALL_SETS, [False, True], [1, 12], ["biopsy", "surgical"])
+])
+def test_rule_ids_are_unique_per_case_backend_addresses_orders_by_rule_id(top, conformal_set, reliability_flag, qc, lane):
+    agent = R.draft_orders(make_case(top, conformal_set, reliability_flag, qc, lane), CFG, RULES)
+    ids = [o["rule_id"] for o in agent["orders"]]
+    assert len(ids) == len(set(ids))

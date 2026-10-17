@@ -4,7 +4,7 @@ Frontend for Team 44's Ashby Prize Hackathon 2026 plan: a pathology worklist tha
 
 Plan: https://team44-triage-plan.rishabh-rb.workers.dev/
 
-Research prototype on public, de-identified data. Not clinically validated. All cases in `app/data/cases.json` are **mock data** until replaced with cached model outputs.
+Research prototype on public, de-identified data. Not clinically validated.
 
 ## Screens
 
@@ -47,3 +47,61 @@ Each object in `cases.json` holds the case record plus model output. Replace the
 ## Deploy to GitHub Pages
 
 Push the repo, then in Settings > Pages publish from the branch with the `/app` folder, or move `app/` contents to `/docs`.
+
+## Connected to the PathQueue API (Team 44, Oct 17 2026)
+
+The original vanilla-JS app (worklist, case view, OR board; author: adas286, Team 44) is now connected to the
+PathQueue backend (`backend/`, `docs/API.md`) and extended for breast/BACH. Its ideas are kept and credited:
+the **arrival-order vs AI-priority toggle**, the **aging promotion at 75% of target** (now computed server-side by
+`core.tiers`), the **OR board** (surgeon screen with room and countdown), **visibly blocked agent actions** (no stains
+in the frozen lane), the Tasks card, "Routine does not mean cleared", and the "Pathologist approval — the only place a
+diagnosis is made" card. Its look (tokens, Plex/Iowan type, light/dark) is unchanged; new styles are appended at the
+end of `styles.css`.
+
+Run modes:
+
+```bash
+make demo CASES=fixtures                       # backend serves this app at http://127.0.0.1:8000
+uv run python -m backend.dev_cases --out artifacts/dev && make demo ART=artifacts/dev   # 18 synthetic demo cases
+python3 -m http.server 8000                    # from the REPO ROOT, then open
+                                               # http://localhost:8000/team44-triage-frontend/app/?mock=1  (no backend)
+```
+
+`?mock=1` replays the committed synthetic fixtures in memory (`app/mock/`); `?api=http://host:port` points at a
+backend served elsewhere (set `PATHQUEUE_DEV_CORS=1` on it). No external CDNs: the demo runs offline.
+
+Layout added:
+
+```
+app/js/api.js        live client (polling every ui.poll_ms, backend-down state)
+app/js/mock.js       ?mock=1 in-memory backend over fixtures (same method surface)
+app/js/adapter.js    toView(): every contract field the UI reads; teammate helpers fmt/rem kept
+app/js/types.js      JSDoc mirror of core/contract.py / frontend/src/types.ts
+app/js/views/        worklist, case_biopsy, case_surgical, heatmap, why, agent, cells, surgeon, oncologist,
+                     metrics, spotcheck
+app/mock/            manifest.json (fixtures + patches), config.json (snapshot of GET /api/config, test-checked)
+app/data/legacy_mock.json   the original colon/multi-organ mock (data/cases.json), untouched, no longer read
+```
+
+Wording on every screen: "suggested", "associated with", "simulated", "Research prototype — not for clinical use".
+Ground truth is never fetched or rendered.
+
+## Presenter runbook (plan §14, ~3 minutes)
+
+Before: `make demo` (real artifacts) or `make demo ART=artifacts/dev` (synthetic); open http://127.0.0.1:8000 in a
+1280-px-wide window; click **Reset**. Every step below is covered by `make e2e`.
+
+1. **Start**. Biopsies stream in (the clock speeds up so the last one lands within `sim.max_replay_wall_s`, 90 s).
+   Toggle **Arrival order** → the last arrival is at the bottom; **AI priority** → it sits in *Tier 2 · Likely
+   invasive* with "Invasive in the confidence set".
+2. Open it. **Where**: heatmap. **Why**: click *Tumor infiltrating stroma* → its regions are outlined. **How sure**:
+   the 90% conformal set shows {InSitu, Invasive}. **Drafted follow-up orders**: p63 + calponin and ER/PR/HER2/Ki-67
+   (illustrative rules). Click **Order tests**, then **Sign out** → **Oncologist inbox** shows it.
+3. Back to the worklist, **+ Frozen**: a simulated frozen section jumps to the top with a running timer (amber at
+   15 min, red at 20). Open it: the superior margin strip is highlighted → **Tumor at margin…** (superior is
+   pre-checked) → **Send** → **Surgeon / OR board** shows the call; the timer has stopped.
+4. **+ Degraded**: reliability flag raised, suggestion "defer" → **Defer to permanent**.
+5. **Metrics**: queue simulation, calibration, concept checks, reliability vs artifacts; close on **Limitations**.
+
+If the backend dies mid-demo the page says so and keeps the last data; restart `make demo` (state resets), or open
+`?mock=1` for the fixture-only walkthrough.

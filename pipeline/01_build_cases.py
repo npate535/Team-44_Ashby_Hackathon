@@ -21,8 +21,8 @@ NCT: nct.per_class files per class, seeded per class, read in place (absolute pa
 Manifest (embed_manifest.csv, core sets; other sets already present are kept untouched):
   bach512 / bach256  every case x every tile x encoders.views[grid] dihedral views (path = the tile PNG)
   nct                whole 224-px tiles, view 0
-  deg512             calibration + test cases x degrade.types x degrade.severities x g512 tiles x the same views
-  deg256             test-surgical cases x degrade.types x degrade.display_severity x g256 tiles x views
+  deg512             calibration + test cases x degrade.types x degrade.severities x g512 tiles x degrade.embed_views
+  deg256             test-surgical cases x degrade.types x degrade.display_severity x g256 tiles x degrade.embed_views
   Degraded rows point at the clean tile PNG; 02_embed applies pipeline.degrade.apply on the fly with degrade_seed
   (one seed per case, type and severity, as for the display JPEG). Their case_id is the variant ID
   (schemas.variant_case_id) so per-case pooling never mixes variants; split is the source case's split.
@@ -214,6 +214,7 @@ def core_manifest(cases: pd.DataFrame, tiles: pd.DataFrame, nct_rows: list[dict[
     rows: list[dict[str, Any]] = []
 
     def tile_rows(set_name: str, case: Any, grid: str, kind: str = "", sev: int = 0) -> None:
+        n_views = int(dcfg["embed_views"][grid] if kind else views[grid])
         case_id = case.case_id
         item_case = schemas.variant_case_id(case_id, kind, sev) if kind else case_id
         seed = common.degrade_seed(cfg, case_id, kind, sev) if kind else 0
@@ -222,7 +223,7 @@ def core_manifest(cases: pd.DataFrame, tiles: pd.DataFrame, nct_rows: list[dict[
                 set_name=set_name, case_id=item_case, split=case.split, grid=grid, tile_idx=tile_idx, path=path,
                 x=0, y=0, w=size, h=size, view=0, degrade_type=kind, degrade_severity=sev, degrade_seed=seed)
             rows.append(first)
-            for view in range(1, int(views[grid])):
+            for view in range(1, n_views):
                 rows.append({**first, "row_id": f"{first['item_id']}|v{view}", "view": view})
 
     for case in cases.itertuples(index=False):
@@ -257,6 +258,22 @@ def assemble_cases(photos_dir: Path, pmap: Mapping[str, int] | None, cfg: Mappin
     return df.sort_values("case_id").reset_index(drop=True)
 
 
+def check_existing_cases(root: Path, cases: pd.DataFrame, force: bool) -> None:
+    """Tiles are reused by case_id; refuse a data root whose cases.csv maps a case_id to a different photo (another
+    --bach-root or a changed split.ids seed) unless --force rewrites everything."""
+    path = schemas.cases_csv(root)
+    if force or not path.is_file():
+        return
+    old = io.read_csv(path, dtype=str, keep_default_na=False)
+    if not {"case_id", "source_file"} <= set(old.columns):
+        return
+    new = cases.set_index("case_id")["source_file"]
+    clash = [c for c, f in zip(old["case_id"], old["source_file"]) if c in new.index and new[c] != f]
+    if clash:
+        raise ValueError(f"{path} maps {len(clash)} case IDs to other photos (e.g. {clash[0]}); existing tiles would be "
+                         "stale. Use a fresh --data-root or --force.")
+
+
 def summarize(cases: pd.DataFrame, tiles: pd.DataFrame, manifest: pd.DataFrame) -> dict[str, Any]:
     qc = tiles.groupby("grid")["qc_pass"].mean().round(4).to_dict()
     return {
@@ -273,15 +290,49 @@ def summarize(cases: pd.DataFrame, tiles: pd.DataFrame, manifest: pd.DataFrame) 
     }
 
 
+def rebuild_manifest(ctx: cli.StepContext, nct_root: Path) -> int:
+    """--manifest-only: core manifest sets from the cases.csv / tiles.csv already in the data root."""
+    cfg, root = ctx.cfg, ctx.data_root
+    try:
+        cases = io.read_csv(schemas.cases_csv(root), dtype=str, keep_default_na=False)
+        tiles = io.read_csv(schemas.tiles_csv(root), dtype=str, keep_default_na=False)
+        schemas.validate_frame(schemas.CASES, cases)
+        schemas.validate_frame(schemas.TILES, tiles)
+        keep = cli.limit_case_ids(cases["case_id"], ctx.limit)
+        cases = cases[cases["case_id"].isin(keep)].reset_index(drop=True)
+        tiles = tiles[tiles["case_id"].isin(keep)].reset_index(drop=True)
+        missing = sorted(set(cases["case_id"]) - set(tiles["case_id"]))
+        if missing:
+            raise ValueError(f"tiles.csv has no tiles for {len(missing)} cases (e.g. {missing[0]}); run 01 fully")
+        manifest = core_manifest(cases, tiles, nct_sample(nct_root, cfg, ctx.limit), cfg)
+    except (ValueError, FileNotFoundError, KeyError) as exc:
+        print(f"ERROR {STEP} --manifest-only: {exc}", file=sys.stderr)
+        return 2
+    full = common.replace_manifest_sets(root, CORE_SETS, manifest)
+    counts = manifest["set"].value_counts().sort_index().to_dict()
+    io.write_meta(schemas.step_meta_json(root, f"{STEP}_manifest"), step=f"{STEP}_manifest", cfg=cfg,
+                  inputs=[schemas.cases_csv(root), schemas.tiles_csv(root), str(nct_root)],
+                  outputs=[schemas.embed_manifest_csv(root)],
+                  args={"limit": ctx.limit, "force": ctx.force, "manifest_only": True}, synthetic=ctx.synthetic,
+                  extra={"manifest_rows_per_set": counts, "manifest_rows_total": int(len(full))})
+    print(json.dumps({"manifest_only": True, "manifest_rows_per_set": counts, "manifest_rows_total": len(full)}, indent=1))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = cli.step_parser(f"pipeline.{STEP}", "BACH cases, THUNDER split, tiles, displays, core manifest.")
     common.add_source_args(parser, ("bach_root", "nct_root"))
     parser.add_argument("--workers", type=int, default=None, help="processes (default $SLURM_CPUS_PER_TASK or 1)")
     parser.add_argument("--allow-missing-patients", action="store_true",
                         help="proceed without the micro patient workbook (no patient check; block groups only)")
+    parser.add_argument("--manifest-only", action="store_true",
+                        help="rebuild only the core manifest sets from the existing cases.csv + tiles.csv (no image "
+                             "reads, no tiling): e.g. after a views change in settings")
     args = parser.parse_args(argv)
     ctx = cli.context(args)
     cfg, root = ctx.cfg, ctx.data_root
+    if args.manifest_only:
+        return rebuild_manifest(ctx, common.source_root(cfg, args, "nct_root"))
     try:
         bach_root = common.source_root(cfg, args, "bach_root")
         nct_root = common.source_root(cfg, args, "nct_root")
@@ -300,6 +351,8 @@ def main(argv: list[str] | None = None) -> int:
         cases = all_cases[all_cases["case_id"].isin(keep)].reset_index(drop=True)
 
         common.check_grid_fits(cfg, *cfg["dataset"]["image_size"])
+        check_existing_cases(root, all_cases, ctx.force)
+        nct_rows = nct_sample(nct_root, cfg, ctx.limit)  # fail fast, before the long tile pass
         tasks = [{"cfg": cfg, "data_root": str(root), "case_id": c.case_id, "image_path": c.image_path,
                   "surgical": c.lane == "surgical", "force": ctx.force} for c in cases.itertuples(index=False)]
         results = sorted(run_cases(tasks, common.worker_count(args.workers)), key=lambda r: r["case_id"])
@@ -312,7 +365,6 @@ def main(argv: list[str] | None = None) -> int:
         schemas.validate_frame(schemas.CASES, cases)
         schemas.validate_frame(schemas.TILES, tiles)
 
-        nct_rows = nct_sample(nct_root, cfg, ctx.limit)
         manifest = core_manifest(cases, tiles, nct_rows, cfg)
     except (ValueError, FileNotFoundError, KeyError) as exc:
         print(f"ERROR {STEP}: {exc}", file=sys.stderr)

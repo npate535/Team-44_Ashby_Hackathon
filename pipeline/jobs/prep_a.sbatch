@@ -112,7 +112,7 @@ python -m pipeline.00_inventory
 echo "== 01_build_cases --limit 5 (smoke)"
 SMOKE=$(mktemp -d "$DATA/.smoke01.XXXXXX")
 python -m pipeline.01_build_cases --limit 5 --data-root "$SMOKE"
-ls -R "$SMOKE" | head -20
+find "$SMOKE" -maxdepth 3 | sed -n "1,20p"   # sed reads everything: no SIGPIPE under pipefail
 rm -rf "$SMOKE"
 echo "== 01_build_cases (full)"
 python -m pipeline.01_build_cases

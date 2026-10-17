@@ -1,7 +1,7 @@
 """Deterministic follow-up order engine over config/stain_rules.yaml (plan §9, BUILD_PLAN §A14).
 
-The rules are data. Each rule has `id`, `label`, `when` (conditions, all must hold), `orders` (one or more
-{type, items}), a template `rationale` (str.format fields below), an optional `note` and `citations`. The engine
+The rules are data. Each rule has `id`, `label`, `when` (conditions, all must hold), exactly one `order`
+{type, items} (the backend addresses drafted orders by rule_id, so rule_ids are unique per case), a template `rationale` (str.format fields below), an optional `note` and `citations`. The engine
 never invents an item: every drafted item comes verbatim from a rule that fired.
 
     rules = load_rules(cfg)                      # validated RuleSet (settings agent.stain_rules)
@@ -35,8 +35,8 @@ from core import config as core_config
 
 ORDER_TYPES = ("stain", "recut", "deeper_levels", "new_sample")
 CONDITION_KEYS = ("top_class", "in_set_all", "reliability_flag", "insufficient_tissue", "lanes")
-RULE_KEYS = ("id", "label", "when", "orders", "rationale", "note", "citations")
-RULE_REQUIRED = ("id", "label", "when", "orders", "rationale")
+RULE_KEYS = ("id", "label", "when", "order", "rationale", "note", "citations")
+RULE_REQUIRED = ("id", "label", "when", "order", "rationale")
 RATIONALE_FIELDS = ("top_class", "set", "qc_tiles_kept", "min_tiles_kept")
 LANES = ("biopsy", "surgical")
 
@@ -158,20 +158,18 @@ def parse_rules(data: Any, cfg: Mapping[str, Any]) -> RuleSet:
             elif key == "lanes" and (not isinstance(value, list) or any(v not in LANES for v in value)):
                 problems.append(f"{where}: lanes must be a list drawn from {list(LANES)}")
         orders: list[OrderSpec] = []
-        if not isinstance(raw["orders"], list) or not raw["orders"]:
-            problems.append(f"{where}: orders must be a non-empty list")
+        order = raw["order"]
+        otype = order.get("type") if isinstance(order, Mapping) else None
+        items = order.get("items") if isinstance(order, Mapping) else None
+        if not isinstance(order, Mapping):
+            problems.append(f"{where}: order must be one mapping {{type, items}} (one order per rule)")
+        elif otype not in ORDER_TYPES:
+            problems.append(f"{where}: order.type must be one of {list(ORDER_TYPES)}")
+        elif (not isinstance(items, list) or not items or len(set(items)) != len(items)
+              or not all(isinstance(it, str) and it.strip() for it in items)):
+            problems.append(f"{where}: order.items must be unique non-empty strings")
         else:
-            for j, order in enumerate(raw["orders"]):
-                otype = order.get("type") if isinstance(order, Mapping) else None
-                items = order.get("items") if isinstance(order, Mapping) else None
-                if otype not in ORDER_TYPES:
-                    problems.append(f"{where}: orders[{j}].type must be one of {list(ORDER_TYPES)}")
-                    continue
-                if (not isinstance(items, list) or not items or len(set(items)) != len(items)
-                        or not all(isinstance(it, str) and it.strip() for it in items)):
-                    problems.append(f"{where}: orders[{j}].items must be unique non-empty strings")
-                    continue
-                orders.append(OrderSpec(otype, tuple(items)))
+            orders.append(OrderSpec(otype, tuple(items)))
         rationale = raw["rationale"]
         if not isinstance(rationale, str) or not rationale.strip():
             problems.append(f"{where}: rationale must be a non-empty string")
@@ -306,5 +304,5 @@ def draft_orders(case: Mapping[str, Any], cfg: Mapping[str, Any], rules: RuleSet
 def rule_metadata(rules: RuleSet) -> list[dict[str, Any]]:
     """JSON-ready rule descriptions (for the UI's 'why was this drafted' panel and the LLM's lookup_rules tool)."""
     return [{"rule_id": r.id, "label": r.label, "when": dict(r.when),
-             "orders": [{"type": o.type, "items": list(o.items)} for o in r.orders],
+             "order": {"type": r.orders[0].type, "items": list(r.orders[0].items)},
              "rationale": r.rationale, "note": r.note, "citations": list(r.citations)} for r in rules.rules]
