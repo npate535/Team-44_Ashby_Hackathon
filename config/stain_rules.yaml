@@ -12,6 +12,8 @@
 #   reliability_flag: true|false  quality.reliability_flag
 #   insufficient_tissue: true     quality.qc_tiles_kept < settings qc.min_tiles_kept
 #   lanes: [biopsy, surgical]     restrict to lanes (default: both)
+# Each rule drafts exactly ONE order (`order: {type, items}`): the backend addresses drafted orders by rule_id, so a
+# request made of two order types is two rules with the same conditions (e.g. low_quality + low_quality_levels).
 # Lane guard: order types in `lane_guard.blocked_types` are never drafted for lanes in settings agent.blocked_lanes;
 # the agent shows one visible `blocked` action instead (stains are never drafted for simulated frozen sections).
 #
@@ -45,9 +47,7 @@ rules:
   - id: breast_insitu_vs_invasive
     label: In situ vs invasive (myoepithelial markers)
     when: {in_set_all: [InSitu, Invasive]}
-    orders:
-      - type: stain
-        items: [p63, calponin]
+    order: {type: stain, items: [p63, calponin]}
     rationale: "Myoepithelial markers help distinguish in situ from invasive disease."
     note: >-
       Panel of >= 2 markers including a nuclear one; SMMHC is the CAP-preferred alternative to calponin; use normal
@@ -58,9 +58,7 @@ rules:
   - id: breast_invasive
     label: Invasive carcinoma biomarker panel
     when: {top_class: Invasive}
-    orders:
-      - type: stain
-        items: [ER, PR, HER2, Ki-67]
+    order: {type: stain, items: [ER, PR, HER2, Ki-67]}
     rationale: "Standard biomarker panel if invasion is confirmed."
     note: >-
       HER2 by IHC (0/1+/2+/3+) with reflex ISH at 2+; Ki-67 is prognostic mainly in ER+/HER2- early disease (IKWG).
@@ -70,9 +68,7 @@ rules:
   - id: breast_insitu
     label: DCIS hormone receptor
     when: {top_class: InSitu}
-    orders:
-      - type: stain
-        items: [ER]
+    order: {type: stain, items: [ER]}
     rationale: "ER status is recommended for ductal carcinoma in situ (ASCO/CAP 2020)."
     note: "ASCO/CAP 2020 recommends ER testing for newly diagnosed DCIS; PR is optional."
     citations: [ASCO-ER]
@@ -81,12 +77,16 @@ rules:
   - id: uncertain_benign_atypia
     label: Benign vs atypia / in situ
     when: {in_set_all: [Benign, InSitu]}
-    orders:
-      - type: deeper_levels
-        items: [deeper levels]
-      - type: stain
-        items: [CK5/6, ER]
-    rationale: "Deeper levels and CK5/6 with ER help separate usual hyperplasia from atypical or in situ lesions."
+    order: {type: deeper_levels, items: [deeper levels]}
+    rationale: "Deeper levels can show whether an atypical or in situ lesion is present."
+    citations: [CAP-IHC]
+
+  # Same conditions: the immunohistochemistry half of the benign-vs-atypia work-up.
+  - id: uncertain_benign_atypia_ihc
+    label: Benign vs atypia / in situ (CK5/6, ER)
+    when: {in_set_all: [Benign, InSitu]}
+    order: {type: stain, items: [CK5/6, ER]}
+    rationale: "CK5/6 with ER helps separate usual hyperplasia from atypical or in situ lesions."
     note: "Usual ductal hyperplasia is typically CK5/6 mosaic and ER heterogeneous; atypia/low-grade DCIS is CK5/6 negative and ER diffusely positive."
     citations: [CAP-IHC]
 
@@ -94,20 +94,22 @@ rules:
   - id: low_quality
     label: Low reliability
     when: {reliability_flag: true}
-    orders:
-      - type: recut
-        items: [recut H&E section]
-      - type: deeper_levels
-        items: [deeper levels]
-    rationale: "The reliability check flagged this read; a recut or deeper levels may give a more reliable section."
+    order: {type: recut, items: [recut H&E section]}
+    rationale: "The reliability check flagged this read; a recut may give a more reliable section."
+    citations: []
+
+  # Same conditions: deeper levels as the second option for an unreliable read.
+  - id: low_quality_levels
+    label: Low reliability (deeper levels)
+    when: {reliability_flag: true}
+    order: {type: deeper_levels, items: [deeper levels]}
+    rationale: "The reliability check flagged this read; deeper levels may give a more reliable section."
     citations: []
 
   # Too little tissue passed quality control (settings qc.min_tiles_kept) to support a read.
   - id: insufficient
     label: Insufficient tissue
     when: {insufficient_tissue: true}
-    orders:
-      - type: new_sample
-        items: [new sample]
+    order: {type: new_sample, items: [new sample]}
     rationale: "Only {qc_tiles_kept} tissue regions passed quality control (fewer than {min_tiles_kept}); a new sample may be needed."
     citations: []
