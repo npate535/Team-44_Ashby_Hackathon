@@ -21,8 +21,8 @@ NCT: nct.per_class files per class, seeded per class, read in place (absolute pa
 Manifest (embed_manifest.csv, core sets; other sets already present are kept untouched):
   bach512 / bach256  every case x every tile x encoders.views[grid] dihedral views (path = the tile PNG)
   nct                whole 224-px tiles, view 0
-  deg512             calibration + test cases x degrade.types x degrade.severities x g512 tiles x the same views
-  deg256             test-surgical cases x degrade.types x degrade.display_severity x g256 tiles x views
+  deg512             calibration + test cases x degrade.types x degrade.severities x g512 tiles x degrade.embed_views
+  deg256             test-surgical cases x degrade.types x degrade.display_severity x g256 tiles x degrade.embed_views
   Degraded rows point at the clean tile PNG; 02_embed applies pipeline.degrade.apply on the fly with degrade_seed
   (one seed per case, type and severity, as for the display JPEG). Their case_id is the variant ID
   (schemas.variant_case_id) so per-case pooling never mixes variants; split is the source case's split.
@@ -214,6 +214,7 @@ def core_manifest(cases: pd.DataFrame, tiles: pd.DataFrame, nct_rows: list[dict[
     rows: list[dict[str, Any]] = []
 
     def tile_rows(set_name: str, case: Any, grid: str, kind: str = "", sev: int = 0) -> None:
+        n_views = int(dcfg["embed_views"][grid] if kind else views[grid])
         case_id = case.case_id
         item_case = schemas.variant_case_id(case_id, kind, sev) if kind else case_id
         seed = common.degrade_seed(cfg, case_id, kind, sev) if kind else 0
@@ -222,7 +223,7 @@ def core_manifest(cases: pd.DataFrame, tiles: pd.DataFrame, nct_rows: list[dict[
                 set_name=set_name, case_id=item_case, split=case.split, grid=grid, tile_idx=tile_idx, path=path,
                 x=0, y=0, w=size, h=size, view=0, degrade_type=kind, degrade_severity=sev, degrade_seed=seed)
             rows.append(first)
-            for view in range(1, int(views[grid])):
+            for view in range(1, n_views):
                 rows.append({**first, "row_id": f"{first['item_id']}|v{view}", "view": view})
 
     for case in cases.itertuples(index=False):
