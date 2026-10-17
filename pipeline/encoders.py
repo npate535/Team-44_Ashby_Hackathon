@@ -53,8 +53,8 @@ _TIMM_SYMBOLS = ("SwiGLUPacked", "SiLU")
 
 
 class EncoderUnavailable(RuntimeError):
-    """The encoder cannot be loaded here (weights not in the HF cache, package not installed). The smoke job skips
-    such encoders with --skip-unavailable; every other failure is a real error."""
+    """The encoder's weights are not in the local HF cache (gated access not granted / not downloaded yet). The smoke
+    job skips such encoders with --skip-unavailable; every other failure (imports included) is a real error."""
 
 
 # ---- config ------------------------------------------------------------------------------------------------------
@@ -358,8 +358,8 @@ def _load_official(name: str, spec: Mapping[str, Any], device: str) -> Encoder:
     mod = official_models()
     try:
         adapter = mod.resolve_adapter(spec["spec"], device=device)
-    except ImportError as exc:
-        raise EncoderUnavailable(f"{name}: package not installed ({exc}); run pipeline/jobs/enc_env.sh") from exc
+    except ImportError as exc:  # a broken install is a real failure, never "unavailable"
+        raise RuntimeError(f"{name}: import failed ({exc}); run pipeline/jobs/enc_env.sh") from exc
     loader = spec["loader"]
     one_pass = bool(spec.get("one_pass", True))
     reference: Callable[[Any], dict[str, np.ndarray]]
@@ -527,9 +527,6 @@ def load_encoder(name: str, ecfg: Mapping[str, Any], device: str = "cuda") -> En
     loader = spec["loader"]
     if loader.startswith("official_"):
         return _load_official(name, spec, device)
-    try:
-        if loader == "timm_hub":
-            return _load_timm(name, spec, device)
-        return _load_hf(name, spec, device)
-    except ImportError as exc:
-        raise EncoderUnavailable(f"{name}: package not installed ({exc})") from exc
+    if loader == "timm_hub":
+        return _load_timm(name, spec, device)
+    return _load_hf(name, spec, device)

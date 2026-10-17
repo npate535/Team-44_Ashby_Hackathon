@@ -260,7 +260,7 @@ COMPOSITES = Table(
     "composites.csv", "Task 2 · composites (prep_b)", "Tasks 3, 10, 11",
     key=("case_id",),
     columns=(
-        _c("case_id", "str", "composite case ID: composite_case_id(carcinoma_case_id, k), k = 0..composites.n-1"),
+        _c("case_id", "str", "opaque composite case ID: composite_case_id(carcinoma_case_id, k) = COMP_<k:03d>, k = 0..composites.n-1"),
         _c("carcinoma_case_id", "str", "test case giving the carcinoma half (InSitu or Invasive)"),
         _c("benign_case_id", "str", "test case giving the benign half (Normal or Benign)"),
         _c("orientation", "int", "0..composites.orientations-1"),
@@ -618,8 +618,14 @@ def variant_case_id(case_id: str, degrade_type: str, severity: int) -> str:
 
 
 def composite_case_id(carcinoma_case_id: str, k: int) -> str:
-    """Composite field k (global index) built on a carcinoma test case: '<case_id>_COMP_<k>'."""
-    return f"{check_case_id(carcinoma_case_id)}_COMP_{_index(k, 'k')}"
+    """Opaque ID of composite field k (global index): 'COMP_<k:03d>'.
+
+    The carcinoma source case is validated but deliberately NOT embedded: '<case_id>_COMP_<k>' would tell anyone
+    viewing the worklist that <case_id> is carcinoma (a ground-truth leak through the ID; master ruling M10). The
+    sources live in composites.csv and the case JSON's source_case_ids (sorted, so the carcinoma half is not marked).
+    """
+    check_case_id(carcinoma_case_id)
+    return f"COMP_{_index(k, 'k'):03d}"
 
 
 def make_item_id(set_name: str, case_id: str, tile_idx: int | None = None, degrade_type: str | None = None,

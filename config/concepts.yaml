@@ -1,0 +1,183 @@
+# PathQueue breast criterion prompt bank (plan.md §6.4; BUILD_PLAN §A11, §F; ruling R1 schema in core/schemas.py).
+# DRAFT; REQUIRES PATHOLOGIST REVIEW. Research prototype on BACH — not for clinical use.
+#
+# Concepts are "features associated with" invasive carcinoma, never causes and never a Nottingham grade: BACH labels
+# are diagnostic categories, so tubules / pleomorphism / mitoses are explanatory features, not grade components.
+# Phrasings use CAP breast-protocol descriptors (Nottingham pleomorphism scores 1-3: "small, regular, uniform" vs
+# "vesicular, prominent nucleoli, marked variation in size and shape"; positive margin = ink on invasive carcinoma or
+# DCIS) and the CONCH zero-shot recipe: pathologist-style synonyms x templates, embeddings averaged per phrasing.
+# Every phrasing is AFFIRMATIVE (CONCH cannot parse negation): a contrast describes the contrasting tissue itself,
+# never "no X" / "without X" (tests/test_concepts_yaml.py lints this).
+# `direction` is the expected association with the aggressive class (Invasive) and is a sanity reference only; the
+# model learns the real sign, and contradictions are surfaced on the Metrics page.
+# Prompt IDs = core.schemas.expand_prompts (concept:<id>:<pos|con>:<phrasing>:<template>, class:<cls>:<i>:<t>).
+version: draft-2026-10-17
+notes: >-
+  Draft written by Agent 2 from CAP descriptors and the CONCH/MUSK prompt recipes; requires pathologist review.
+  Templates: 12 CONCH zero-shot templates + the 4 MUSK benchmark templates.
+
+templates:
+  # CONCH zero-shot templates (CONCH paper / starter notebook)
+  - "{}."
+  - "a photomicrograph showing {}."
+  - "a photomicrograph of {}."
+  - "an image of {}."
+  - "an image showing {}."
+  - "an example of {}."
+  - "{} is shown."
+  - "a histopathological image showing {}."
+  - "a histopathological image of {}."
+  - "an H&E stained image of {}."
+  - "an H&E stained image showing {}."
+  - "{}, H&E stain."
+  # MUSK benchmark templates
+  - "a histopathology slide showing {}"
+  - "histopathology image of {}"
+  - "pathology tissue showing {}"
+  - "presence of {} tissue on image"
+
+concepts:
+  - id: tubules
+    group: nottingham
+    label: Gland / tubule formation
+    direction: down
+    weak: false
+    positives:
+      - "well-formed tubules lined by a single layer of cuboidal epithelial cells"
+      - "carcinoma forming numerous well-formed glands with open lumina"
+      - "tubule formation with gland lumens surrounded by polarized tumor cells"
+      - "well-differentiated tubular carcinoma with angulated open tubules"
+    contrasts:
+      - "solid sheets of tumor cells forming a confluent mass"
+      - "tumor cells growing in solid nests and trabeculae"
+
+  - id: pleomorphism
+    group: nottingham
+    label: Marked nuclear pleomorphism
+    direction: up
+    weak: false
+    positives:
+      - "marked nuclear pleomorphism with large vesicular nuclei and prominent nucleoli"
+      - "highly atypical tumor cells with enlarged, irregular, hyperchromatic nuclei"
+      - "high-grade carcinoma with marked variation in nuclear size and shape"
+      - "bizarre pleomorphic nuclei with coarse chromatin and multiple nucleoli"
+    contrasts:
+      - "small uniform nuclei with regular outlines and fine even chromatin"
+      - "bland monomorphic epithelial cells with small round nuclei"
+
+  - id: mitoses
+    group: nottingham
+    label: Frequent mitotic figures
+    direction: up
+    weak: true            # mitoses are rare per 512-px tile: expect a weak signal at tile scale (plan §6.4)
+    positives:
+      - "numerous mitotic figures in tumor cells"
+      - "frequent mitoses including atypical mitotic figures"
+      - "a highly proliferative carcinoma with many dividing cells"
+    contrasts:
+      - "quiescent epithelial cells with uniform resting nuclei"
+      - "low-grade tumor cells with small quiescent nuclei"
+
+  - id: invasion
+    group: insitu_vs_invasive
+    label: Tumor infiltrating stroma
+    direction: up
+    weak: false
+    positives:
+      - "invasive ductal carcinoma cells infiltrating desmoplastic stroma"
+      - "irregular nests, cords and single tumor cells invading fibrous stroma"
+      - "infiltrating carcinoma with haphazard angulated glands in reactive stroma"
+      - "single-file infiltration of tumor cells between collagen bundles"
+      - "invasive breast carcinoma infiltrating adipose tissue"
+    contrasts:
+      - "atypical cells confined to ducts with a smooth intact basement membrane"
+      - "rounded ducts and lobules with a preserved myoepithelial cell layer"
+
+  - id: duct_confined
+    group: insitu_vs_invasive
+    label: Atypical cells confined within ducts
+    direction: down       # in situ pattern: associated with InSitu rather than Invasive
+    weak: false
+    positives:
+      - "ductal carcinoma in situ with atypical cells filling and expanding ducts"
+      - "comedo-type ductal carcinoma in situ with central necrosis inside a duct"
+      - "cribriform ductal carcinoma in situ with punched-out spaces within a duct"
+      - "atypical epithelial proliferation confined within a duct surrounded by an intact myoepithelial layer"
+    contrasts:
+      - "invasive carcinoma cells infiltrating the surrounding stroma"
+      - "tumor cells breaching the basement membrane into fibrous stroma"
+
+  - id: normal_lobules
+    group: benign_normal
+    label: Normal lobules with two-layered epithelium
+    direction: down
+    weak: false
+    positives:
+      - "a normal breast terminal duct lobular unit with small acini"
+      - "a normal breast lobule with two-layered epithelium of luminal and myoepithelial cells"
+      - "benign breast ducts lined by an inner luminal layer and an outer myoepithelial layer"
+      - "normal mammary lobules embedded in loose intralobular stroma"
+    contrasts:
+      - "ducts distended by a proliferation of atypical tumor cells"
+      - "sheets of malignant epithelial cells replacing the lobular architecture"
+
+  - id: benign_stroma_fat
+    group: benign_normal
+    label: Benign fibrous stroma or fat
+    direction: down
+    weak: false
+    positives:
+      - "benign dense fibrous stroma of the breast"
+      - "mature adipose tissue with large empty fat cells"
+      - "hypocellular collagenous breast stroma"
+      - "fibroadipose breast tissue with bland stromal cells"
+    contrasts:
+      - "densely cellular carcinoma composed of crowded tumor cells"
+      - "desmoplastic stroma infiltrated by malignant epithelial cells"
+
+  - id: lymphocytes
+    group: microenvironment
+    label: Dense lymphocytic infiltrate (TILs)
+    direction: context    # context, not ranked (plan §6.4)
+    weak: false
+    positives:
+      - "a dense lymphocytic infiltrate of tumor-infiltrating lymphocytes"
+      - "sheets of small round lymphocytes with dark nuclei and scant cytoplasm"
+      - "prominent stromal lymphocytes and plasma cells surrounding tumor nests"
+      - "a lymphoid aggregate of densely packed lymphocytes"
+    contrasts:
+      - "tumor epithelium composed of large cohesive cells"
+      - "paucicellular fibrous stroma with scattered fibroblasts"
+
+  - id: necrosis
+    group: microenvironment
+    label: Tumor necrosis
+    direction: up
+    weak: false
+    positives:
+      - "tumor necrosis with eosinophilic necrotic debris and nuclear fragments"
+      - "comedonecrosis with karyorrhectic debris"
+      - "coagulative necrosis of tumor cells with ghost cell outlines"
+      - "necrotic debris with pyknotic and fragmented nuclei"
+    contrasts:
+      - "viable tumor cells with intact nuclei"
+      - "well-preserved viable breast tissue"
+
+class_prompts:            # zero-shot BACH 4-class baseline (eval/zeroshot.json); settings.classes order
+  Normal:
+    - "normal breast tissue"
+    - "normal breast parenchyma with terminal duct lobular units"
+    - "benign normal mammary lobules"
+  Benign:
+    - "a benign breast lesion"
+    - "fibroadenoma of the breast"
+    - "benign fibrocystic change of the breast"
+    - "usual ductal hyperplasia"
+  InSitu:
+    - "ductal carcinoma in situ"
+    - "breast carcinoma in situ"
+    - "in situ carcinoma of the breast confined to ducts"
+  Invasive:
+    - "invasive ductal carcinoma"
+    - "invasive breast carcinoma"
+    - "infiltrating carcinoma of the breast"

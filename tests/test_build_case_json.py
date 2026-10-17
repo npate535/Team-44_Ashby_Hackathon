@@ -183,7 +183,7 @@ def test_limit_restricts_clean_cases_and_their_variants(env):
     extra = run(env, limit=7)          # BACH_0101..0107 (sorted); BACH_0108 and its composite are left out
     cases = load_cases(env["art"])
     assert extra["by_kind"]["test"] == 7 and D.HERO_BIOPSY not in cases
-    assert "BACH_0108_COMP_1" not in cases and "BACH_0107_COMP_0" in cases
+    assert schemas.composite_case_id("BACH_0108", 1) not in cases and schemas.composite_case_id("BACH_0107", 0) in cases
 
 
 def test_clean_removes_stale_case_files(env):

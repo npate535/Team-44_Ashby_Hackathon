@@ -1,0 +1,93 @@
+# Measured cell features (CELLS_SPEC §6; pipeline/04c_cell_features.py, eval/cells_eval.py; Agent 1).
+# Single source of feature ids, definitions, display names, units and expected directions. The UI and summaries
+# read display names from here (no hard-coded strings elsewhere).
+# Wording: "measured features associated with invasive carcinoma" — never "this cell caused". Mitoses are out of
+# scope (PanNuke has no mitosis class); the text concept `mitoses` stays, marked weak.
+# Draft; requires pathologist review.
+
+version: 1
+
+# PanNuke type ids (HoVer-Net fast PanNuke / TIAToolbox nuc_type_dict); 0 = background (counted as n_untyped,
+# never emitted). Keys are the schema CELL_TYPES (settings cells.types); colors live in settings cells.overlay_colors.
+types:
+  1: {key: neoplastic, display_name: Neoplastic (tumor) nuclei}
+  2: {key: inflammatory, display_name: Inflammatory (immune) nuclei}
+  3: {key: connective, display_name: Connective / soft-tissue nuclei}
+  4: {key: dead, display_name: Dead (necrotic / apoptotic) nuclei}
+  5: {key: epithelial, display_name: Non-neoplastic epithelial nuclei}
+
+type_prob_kind: majority_vote_fraction   # HoVer-Net type_prob is the instance's majority-type pixel fraction, not a softmax
+
+rules:
+  edge_nuclei: count_only            # nuclei truncated at the tile border (edge: true) count in ratios/densities but are excluded from nuc_* morphology
+  simplify_px: 1.0                   # Douglas-Peucker tolerance for stored contours (model px)
+  edge_px: 2                         # a nucleus within this many model px of the border is an edge nucleus
+  min_count_rules:                   # thresholds come from settings cells.min_neoplastic_nuclei / min_total_nuclei
+    morphology: min_neoplastic_nuclei   # nuc_* need >= this many non-edge neoplastic nuclei in the case, else missing
+    ratio: min_total_nuclei             # fractions / proximity need >= this many nuclei in the case, else missing
+    density: min_total_nuclei
+  case_aggregation: >-
+    Case values pool the nuclei of the case's selected tiles (cell_tiles.csv), which equals the nucleus-count-weighted
+    mean of per-tile ratios; densities pool counts over pooled tissue area. Per-tile values use the tile's nuclei only
+    (no minimum count; reported for display).
+  tissue_area: tile area x tiles.csv tissue_frac, at the source mpp (inventory.json measured_mpp)
+  imputation: train median of each feature (04c records it; the risk model applies it) plus a <feature>__missing indicator
+  reference: percentile among train cases whose label is in settings cells.reference_classes (Normal, Benign)
+
+# id: CELLS_SPEC §6 feature id. direction: expected direction for Invasive vs benign/normal (up | down | context);
+# a sanity reference only — the model learns the actual weights, and wrong-way features are reported (cells_eval).
+features:
+  - id: neo_fraction
+    definition: neoplastic nuclei / all typed nuclei
+    display_name: Tumor cell fraction
+    unit: ""
+    direction: up
+    min_count: ratio
+  - id: neo_density
+    definition: neoplastic nuclei per mm² of tissue
+    display_name: Tumor cell density
+    unit: per mm²
+    direction: up
+    min_count: density
+  - id: nuc_area_mean
+    definition: mean area of non-edge neoplastic nuclei (µm²)
+    display_name: Nuclear size
+    unit: µm²
+    direction: up
+    min_count: morphology
+  - id: nuc_area_cv
+    definition: coefficient of variation (std / mean) of non-edge neoplastic nuclear area
+    display_name: Variation in nuclear size
+    unit: ""
+    direction: up
+    min_count: morphology
+  - id: nuc_shape_cv
+    definition: mean of the coefficients of variation of eccentricity and of solidity of non-edge neoplastic nuclei
+    display_name: Variation in nuclear shape
+    unit: ""
+    direction: up
+    min_count: morphology
+  - id: infl_fraction
+    definition: inflammatory nuclei / all typed nuclei
+    display_name: Immune cell fraction
+    unit: ""
+    direction: context
+    min_count: ratio
+  - id: til_proximity
+    definition: fraction of inflammatory nuclei with a neoplastic nucleus centroid within settings cells.til_radius_um (same tile)
+    display_name: Immune cells near tumor
+    unit: ""
+    direction: context
+    min_count: ratio
+  - id: dead_fraction
+    definition: dead nuclei / all typed nuclei
+    display_name: Dead cell fraction
+    unit: ""
+    direction: up
+    min_count: ratio
+  - id: epi_fraction
+    definition: non-neoplastic epithelial nuclei / all typed nuclei
+    display_name: Benign epithelial fraction
+    unit: ""
+    direction: down
+    min_count: ratio

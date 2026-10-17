@@ -40,15 +40,19 @@ import torch
 print("cuda", torch.version.cuda, "available", torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else "")
 PY
 
+rm -rf "$SMOKE/emb" "$SMOKE/text" "$SMOKE/meta"   # only this run's results are reported below
 python -m pipeline.02_embed --data-root "$SMOKE" --smoke-manifest
 set +e
-python -m pipeline.02_embed --data-root "$SMOKE" --sets nct,bach512,deg512 --encoders "$ENCODERS" \
-    --skip-unavailable --keep-going --precision-check --force
+python -m pipeline.02_embed --data-root "$SMOKE" --sets nct,bach512,deg512 --encoders "$ENCODERS" --device cuda \
+    --skip-unavailable --keep-going --precision-check --force 2>&1 | tee "$SMOKE/embed_run.log"
 RC=$?
 set -e
+echo "== QuickGELU A/B for PathGen-CLIP (comparison only; compare the two nct zero-shot accuracies)"
+python -m pipeline.02_embed --data-root "$SMOKE" --sets nct --encoders pathgenclip_quickgelu --device cuda \
+    --skip-unavailable --force || echo "pathgenclip_quickgelu A/B failed (comparison only)"
 if [ -f pipeline/03_text.py ] && [ -f config/concepts.yaml ]; then
     set +e
-    python -m pipeline.03_text --data-root "$SMOKE" --encoders conch,musk,pathgenclip --skip-unavailable --force
+    python -m pipeline.03_text --data-root "$SMOKE" --encoders conch,musk,pathgenclip --device cuda --skip-unavailable --force
     RC_TEXT=$?
     set -e
     [ "$RC" -ne 0 ] || RC=$RC_TEXT
@@ -64,7 +68,12 @@ for s, info in m["sets"].items():
           "checks", m["checks"].get(s))
 PY
 done
-echo "== grep for weight-loading warnings (MUSK prints missing/unexpected keys instead of raising)"
-grep -inE "missing key|unexpected key|not initialized|were not used" "${SLURM_JOB_NAME:+/work/nvme/bfqi/teams/team44/pathqueue/logs/${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out}" 2>/dev/null | head -20 || true
-echo "== smoke exit code $RC"
+echo "== weight-loading warnings (MUSK prints missing/unexpected keys instead of raising; CONCH loads strict=False)"
+if grep -inE "missing key|unexpected key|not initialized from pretrained|not used in" "$SMOKE/embed_run.log"; then
+    echo "WEIGHT-LOADING WARNINGS above: inspect them before any full embedding job (exit code 3)"
+    [ "$RC" -ne 0 ] || RC=3
+else
+    echo "none"
+fi
+echo "== smoke exit code $RC (0 ok, 2 a check failed or nothing embedded, 3 weight-loading warnings)"
 exit "$RC"
