@@ -435,7 +435,7 @@ def test_unsafe_or_unknown_names_are_rejected(tmp_path, call):
 
 def test_derived_case_and_item_ids():
     assert schemas.variant_case_id("BACH_0042", "blur", 3) == "BACH_0042_FSIM_blur3"
-    assert schemas.composite_case_id("BACH_0042", 7) == "BACH_0042_COMP_7"
+    assert schemas.composite_case_id("BACH_0042", 7) == "COMP_007"   # opaque: never names the carcinoma source (M10)
     assert schemas.make_item_id("bach512", "BACH_0042", tile_idx=5) == "bach512:BACH_0042:5"
     assert schemas.make_item_id("deg512", "BACH_0042", tile_idx=5, degrade_type="jpeg", severity=2) == (
         "deg512:BACH_0042:5:jpeg2"

@@ -48,6 +48,8 @@ STEP = "00_inventory"
 ICIAR_NAME = re.compile(r"^(b|is|iv|n)\d{3}\.tif$")
 TCGA_SVS = re.compile(r"^TCGA-[A-Z0-9]{2}-[A-Z0-9]{4}.*\.svs$")
 PATCH_NAME = re.compile(r"_\d+_\d+\.(png|jpe?g)$", re.IGNORECASE)
+QUILT_PEEK_COLUMNS = ("caption", "image_path", "subset", "split", "pathology", "magnification", "not_histology",
+                      "single_wsi")
 
 
 # ---- helpers ------------------------------------------------------------------------------------------------------
@@ -270,13 +272,16 @@ def inventory_quilt(root: Path, cfg: Mapping[str, Any]) -> dict[str, Any]:
         return out
     path = next((p for p in csvs if "lookup" in p.name), csvs[0])
     nrows = int(cfg["inventory"]["quilt_peek_rows"])
-    peek = pd.read_csv(path, nrows=nrows, dtype=str, keep_default_na=False)
-    out.update({"csv": path.name, "csv_bytes": path.stat().st_size, "columns": list(peek.columns),
-                "peek_rows": len(peek)})
+    header = list(pd.read_csv(path, nrows=0).columns)
+    light = [c for c in header if c in QUILT_PEEK_COLUMNS]  # skip the long transcript / UMLS columns
+    peek = pd.read_csv(path, nrows=nrows, dtype=str, keep_default_na=False, usecols=light or None)
+    out.update({"csv": path.name, "csv_bytes": path.stat().st_size, "columns": header, "peek_rows": len(peek)})
     if "pathology" in peek.columns and len(peek):
         breast = peek["pathology"].map(_is_breast)
-        avg_row_bytes = max(1.0, len(peek.to_csv(index=False).encode("utf-8")) / len(peek))
-        est_rows = int(path.stat().st_size / avg_row_bytes)
+        with open(path, "rb") as handle:  # bytes per row from the raw head (captions may hold newlines: estimate)
+            head = handle.read(1 << 22)
+        lines = max(1, head.count(b"\n"))
+        est_rows = int(path.stat().st_size / (len(head) / lines)) if len(head) < path.stat().st_size else len(peek)
         out.update({"peek_breast_fraction": round(float(breast.mean()), 4), "estimated_total_rows": est_rows,
                     "estimated_breast_rows": int(est_rows * float(breast.mean())),
                     "estimate_note": f"bounded peek of the first {len(peek)} rows; may not be representative"})
@@ -312,6 +317,15 @@ def inventory_pathgen(root: Path, cfg: Mapping[str, Any]) -> dict[str, Any]:
 
 
 # ---- main ---------------------------------------------------------------------------------------------------------
+def _isolated(fn: Any, root: Path, cfg: Mapping[str, Any]) -> dict[str, Any]:
+    """Informational sections never stop the step: an unreadable tree is recorded with its error (the BACH gate
+    alone decides the exit status)."""
+    try:
+        return fn(root, cfg)
+    except Exception as exc:  # noqa: BLE001 - recorded in inventory.json and printed in the summary
+        return {"root": str(root), "present": root.exists(), "error": f"{type(exc).__name__}: {exc}"}
+
+
 def build_inventory(cfg: Mapping[str, Any], roots: Mapping[str, Path], *, synthetic: bool) -> dict[str, Any]:
     bach = inventory_bach(roots["bach_root"], cfg)
     minimum = int(cfg["dataset"]["min_labeled_per_class"])
@@ -328,13 +342,13 @@ def build_inventory(cfg: Mapping[str, Any], roots: Mapping[str, Path], *, synthe
         "bach_root": str(roots["bach_root"]),
         "patient_file": bach["patient_file"],
         "wsi": bach["wsi"],
-        "pathmmu_bach": inventory_pathmmu_bach(roots["pathmmu_bach_root"], cfg),
+        "pathmmu_bach": _isolated(inventory_pathmmu_bach, roots["pathmmu_bach_root"], cfg),
         "gate_passed": bool(gate),
         "gate_rule": f">= {minimum} labeled photos per class in the official BACH release",
         "bach": bach,
-        "nct": inventory_nct(roots["nct_root"], cfg),
-        "quilt": inventory_quilt(roots["quilt_root"], cfg),
-        "pathgen": inventory_pathgen(roots["pathgen_root"], cfg),
+        "nct": _isolated(inventory_nct, roots["nct_root"], cfg),
+        "quilt": _isolated(inventory_quilt, roots["quilt_root"], cfg),
+        "pathgen": _isolated(inventory_pathgen, roots["pathgen_root"], cfg),
     }
     problems = schemas.INVENTORY.problems(inv)
     if problems:
@@ -352,10 +366,12 @@ def summary_lines(inv: Mapping[str, Any]) -> list[str]:
         f"WSI: {inv['wsi']['n_svs']} svs, {inv['wsi']['n_xml']} xml",
         f"patient xlsx: present={inv['patient_file'].get('present')} md5_ok={inv['patient_file'].get('md5_ok')} "
         f"identified={inv['patient_file'].get('n_identified')}",
-        f"pathmmu/BACH: {inv['pathmmu_bach'].get('note', 'absent')}",
-        f"NCT: {inv['nct'].get('per_class_counts', 'absent')}",
-        f"Quilt: csv={inv['quilt'].get('csv')} est. breast rows={inv['quilt'].get('estimated_breast_rows')}",
-        f"PathGen: patch images={inv['pathgen'].get('has_patch_images')} json={inv['pathgen'].get('json_files')}",
+        f"pathmmu/BACH: {inv['pathmmu_bach'].get('note') or inv['pathmmu_bach'].get('error') or 'absent'}",
+        f"NCT: {inv['nct'].get('per_class_counts') or inv['nct'].get('error') or 'absent'}",
+        f"Quilt: csv={inv['quilt'].get('csv')} est. breast rows={inv['quilt'].get('estimated_breast_rows')} "
+        f"{inv['quilt'].get('error', '')}",
+        f"PathGen: patch images={inv['pathgen'].get('has_patch_images')} json={inv['pathgen'].get('json_files')} "
+        f"{inv['pathgen'].get('error', '')}",
         f"GATE {'PASSED' if inv['gate_passed'] else 'FAILED'}: {inv['gate_rule']}",
     ]
     return lines

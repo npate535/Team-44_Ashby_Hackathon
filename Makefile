@@ -46,7 +46,7 @@ fixtures:
 
 synthetic:
 	@if [ -f pipeline/make_synthetic.py ]; then \
-		$(PY) -m pipeline.make_synthetic --out data_synthetic; \
+		$(PY) -m pipeline.make_synthetic --out data_synthetic --with-cells; \
 	else echo "-- pipeline/make_synthetic.py not built yet"; fi
 
 # Laptop analytics in dependency order (BUILD_PLAN §B). Each step is idempotent/resumable and reads the roots

@@ -1,0 +1,248 @@
+# Encoder loading specs for pipeline/encoders.py and the embedding engine pipeline/02_embed.py (BUILD_PLAN Task 3).
+# Owned by Agent 2. Every value below comes from the model card / source code cited in
+# docs/research/encoder_loading.md (researched 2026-10-17); loaders follow the cards exactly.
+#
+# Per encoder:
+#   repo           Hugging Face repo id, exact casing (the HF cache directory is case-sensitive)
+#   files          files pipeline/jobs/hf_download.sh pre-downloads into $HF_HOME (login node)
+#   loader         official_conch | official_musk | official_openclip | official_test | timm_hub | hf_automodel
+#   spec           resources/official/models.py resolve_adapter() spec (official_* loaders)
+#   input_px       model input edge; resize/crop/interpolation/mean/std = preprocessing (official loaders use
+#                  the organizers' adapter.preprocess, recorded here for meta.json)
+#   native_grid    tile grid fed to the encoder (settings.encoders.native_grid must agree)
+#   heads          {head: {dim, normalized}}: align = text-aligned unit vector, probe = linear-probe features
+#   autocast       fp16 | bf16 | null (fp32) on CUDA; CPU always runs fp32
+#   text_aligned   true when encode_texts gives the align space
+#   nct_floor      NCT-CRC 9-class zero-shot accuracy floor (untemplated prompts_nct.json); a value near chance
+#                  (1/9 = 0.11) means misaligned image/text spaces. Organizer reference ~0.63 CONCH, ~0.77 MUSK.
+#   testing_only   the official `test` adapter: deterministic CPU stand-in for tests, never for results
+version: 1
+
+encoders:
+  conch:
+    repo: MahmoodLab/CONCH
+    files: [pytorch_model.bin, meta.yaml]          # meta.yaml: the adapter's hf_hub: path reads it
+    loader: official_conch
+    spec: conch
+    model_card: https://huggingface.co/MahmoodLab/CONCH
+    license: CC-BY-NC-ND-4.0 (gated, institutional access)
+    input_px: 448
+    resize: 448
+    crop: 448
+    interpolation: bicubic
+    mean: [0.48145466, 0.4578275, 0.40821073]       # OpenAI CLIP
+    std: [0.26862954, 0.26130258, 0.27577711]
+    native_grid: g512
+    heads:
+      align: {dim: 512, normalized: true}           # encode_image(proj_contrast=True, normalize=True) == hosted /embed
+      probe: {dim: 512, normalized: false}          # encode_image(proj_contrast=False, normalize=False)
+    one_pass: true                                  # one trunk pass feeds both heads (coca_model.py L207-223)
+    autocast: null                                  # fp32 (TRIDENT); ViT-B/448 is cheap on an A100
+    text_aligned: true
+    nct_floor: 0.45
+  musk:
+    repo: xiangjx/musk
+    files: [model.safetensors, tokenizer.spm]       # not image_tokenizer.pth (pretraining only)
+    loader: official_musk
+    spec: musk
+    model_card: https://huggingface.co/xiangjx/musk
+    license: CC-BY-NC-ND-4.0 (gated, manual approval)
+    input_px: 384
+    resize: 384
+    crop: 384
+    interpolation: bicubic
+    mean: [0.5, 0.5, 0.5]                           # IMAGENET_INCEPTION_MEAN
+    std: [0.5, 0.5, 0.5]
+    native_grid: g512
+    heads:
+      align: {dim: 1024, normalized: true}          # with_head=True, out_norm=True, ms_aug=False == hosted /embed
+      probe: {dim: 2048, normalized: false}         # ms_aug=True, with_head=False, out_norm=False (card probe setting)
+    one_pass: true                                  # align = normalize(vision_head(probe[:, :1024])) from the same call
+    autocast: null                                  # the adapter itself loads MUSK in fp16 on CUDA (card)
+    text_aligned: true
+    nct_floor: 0.55
+  uni2h:
+    repo: MahmoodLab/UNI2-h
+    files: [config.json, pytorch_model.bin]
+    loader: timm_hub
+    timm_kwargs:                                    # card, verbatim
+      img_size: 224
+      patch_size: 14
+      depth: 24
+      num_heads: 24
+      init_values: 1.0e-5
+      embed_dim: 1536
+      mlp_ratio: 5.33334                            # card: 2.66667 * 2
+      num_classes: 0
+      no_embed_class: true
+      mlp_layer: SwiGLUPacked
+      act_layer: SiLU
+      reg_tokens: 8
+      dynamic_img_size: true
+    output: cls                                     # [B, 1536] class token (num_classes=0 pooled output)
+    model_card: https://huggingface.co/MahmoodLab/UNI2-h
+    license: CC-BY-NC-ND-4.0 (gated, auto)
+    input_px: 224
+    resize: 224                                     # explicit Resize(224): never crop a 256 tile (keeps µm/px)
+    crop: 224
+    interpolation: bilinear                         # torchvision default in the card's manual transform
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]
+    native_grid: g256
+    heads:
+      probe: {dim: 1536, normalized: false}
+    autocast: bf16                                  # trained bf16 (card); TRIDENT bf16
+    text_aligned: false
+  hoptimus0:
+    repo: bioptimus/H-optimus-0
+    files: [config.json, pytorch_model.bin]
+    loader: timm_hub
+    timm_kwargs: {init_values: 1.0e-5, dynamic_img_size: false}   # card, verbatim
+    output: cls
+    model_card: https://huggingface.co/bioptimus/H-optimus-0
+    license: Apache-2.0 (gated, accept form)
+    input_px: 224
+    resize: 224
+    crop: 224
+    interpolation: bilinear
+    mean: [0.707223, 0.578729, 0.703617]            # card
+    std: [0.211883, 0.230117, 0.177517]
+    native_grid: g256
+    heads:
+      probe: {dim: 1536, normalized: false}
+    autocast: fp16                                  # card
+    text_aligned: false
+  virchow2:
+    repo: paige-ai/Virchow2
+    files: [config.json, model.safetensors]         # not the duplicate pytorch_model.bin
+    loader: timm_hub
+    timm_kwargs: {mlp_layer: SwiGLUPacked, act_layer: SiLU}       # card, verbatim
+    output: cls_meanpatch                           # cat(CLS, mean of tokens 5:) -> 2560; tokens 1-4 are registers
+    register_tokens: 4
+    model_card: https://huggingface.co/paige-ai/Virchow2
+    license: CC-BY-NC-ND-4.0 + Paige terms (research only; not clinical support, incl. RUO)
+    input_px: 224
+    resize: 224
+    crop: 224
+    interpolation: bicubic
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]
+    native_grid: g256
+    heads:
+      probe: {dim: 2560, normalized: false}
+    autocast: fp16                                  # card
+    text_aligned: false
+  phikonv2:
+    repo: owkin/phikon-v2
+    files: [config.json, model.safetensors, preprocessor_config.json]
+    loader: hf_automodel
+    output: cls                                     # last_hidden_state[:, 0]
+    model_card: https://huggingface.co/owkin/phikon-v2
+    license: Owkin non-commercial (not gated)
+    input_px: 224
+    resize: 224
+    crop: 224
+    interpolation: bicubic                          # preprocessor_config.json resample=3
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]
+    native_grid: g256
+    heads:
+      probe: {dim: 1024, normalized: false}
+    autocast: null                                  # fp32 (TRIDENT)
+    text_aligned: false
+  pathgenclip:
+    repo: jamessyx/PathGen-CLIP
+    files: [pathgenclip.pt]
+    loader: official_openclip
+    spec: "openclip:ViT-B-16@jamessyx/PathGen-CLIP/pathgenclip.pt"   # card arch, checked against tensor shapes
+    model_card: https://huggingface.co/jamessyx/PathGen-CLIP
+    license: CC-BY-2.0 per HF metadata (gated, auto)
+    input_px: 224
+    resize: 224
+    crop: 224
+    interpolation: bicubic
+    mean: [0.48145466, 0.4578275, 0.40821073]
+    std: [0.26862954, 0.26130258, 0.27577711]
+    native_grid: g256
+    heads:
+      align: {dim: 512, normalized: true}           # encode_image, L2-normalized (adapter output)
+      probe: {dim: 512, normalized: false}          # encode_image before normalization
+    one_pass: true
+    autocast: fp16                                  # card
+    text_aligned: true
+    nct_floor: 0.35
+  pathgenclip_quickgelu:             # smoke A/B only (encoder_loading.md §7 QuickGELU caveat): same weights, QuickGELU
+    repo: jamessyx/PathGen-CLIP      # activations; the smoke job reports both NCT zero-shot accuracies and the master
+    files: [pathgenclip.pt]          # keeps the card's ViT-B-16 unless this variant is clearly better
+    loader: official_openclip
+    spec: "openclip:ViT-B-16-quickgelu@jamessyx/PathGen-CLIP/pathgenclip.pt"
+    model_card: https://huggingface.co/jamessyx/PathGen-CLIP
+    license: CC-BY-2.0 per HF metadata (gated, auto)
+    input_px: 224
+    resize: 224
+    crop: 224
+    interpolation: bicubic
+    mean: [0.48145466, 0.4578275, 0.40821073]
+    std: [0.26862954, 0.26130258, 0.27577711]
+    native_grid: g256
+    heads:
+      align: {dim: 512, normalized: true}
+      probe: {dim: 512, normalized: false}
+    one_pass: true
+    autocast: fp16
+    text_aligned: true
+    nct_floor: 0.0                   # comparison only: never aborts
+  test:
+    loader: official_test
+    spec: test
+    model_card: resources/official/models.py load_test (deterministic stand-in; never for results)
+    license: MIT (organizer tooling)
+    input_px: 8
+    resize: 8
+    crop: 8
+    interpolation: bilinear
+    mean: [0.0, 0.0, 0.0]
+    std: [1.0, 1.0, 1.0]
+    native_grid: g512
+    heads:
+      align: {dim: 3, normalized: true}
+      probe: {dim: 3, normalized: false}
+    one_pass: true
+    autocast: null
+    text_aligned: true
+    nct_floor: 0.0
+    testing_only: true
+
+# Embedding engine (pipeline/02_embed.py).
+engine:
+  batch_size: {default: 128, conch: 128, musk: 64, uni2h: 128, hoptimus0: 96, virchow2: 128, phikonv2: 128, pathgenclip: 256}
+  num_workers: 14                     # DataLoader workers (<= 16 CPUs per GPU job)
+  pin_memory: true
+  chunk_rows: 4096                    # manifest rows per float16 chunk file (resume unit)
+  image_cache: 2                      # decoded source images kept per DataLoader worker (tiles of one image are adjacent)
+  keep_chunks: false                  # delete chunk files once the final arrays are written
+  text_batch_size: 64
+
+# Aborting checks (02_embed exits non-zero with a clear message when one fails).
+checks:
+  align_norm_tol: 0.01                # | ||align|| - 1 | per raw view embedding
+  parity_min_cosine: 0.999            # our align (and CONCH probe) vs the official adapter on the first batch
+  precision_min_cosine: 0.995         # autocast vs fp32 on the first batch (--precision-check, smoke job)
+  nct_min_items: 45                   # fewer labeled NCT items -> zero-shot check reported as skipped
+  text_norm_tol: 0.001                # 03_text: | ||text|| - 1 |
+
+# Hosted-server equivalence check (pipeline/hosted_check.py; login-node HTTP client only).
+hosted_check:
+  n_tiles: 5
+  set: nct                            # whole tiles at view 0, so our per-item row is the un-augmented embedding
+  min_cosine: 0.99
+  timeout_s: 60
+  retries: 4
+  backoff_s: 2.0
+
+# Smoke job manifest (pipeline/02_embed.py --smoke-manifest; smoke.sbatch).
+smoke:
+  nct_per_class: 8                    # 72 NCT tiles (>= checks.nct_min_items)
+  bach_images: 4                      # readable BACH images (official Photos, else pathmmu) tiled on the g512 grid
+  bach_views: 2                       # views 0..n-1 on BACH smoke tiles (exercises the TTA path)
+  seed: 44

@@ -148,3 +148,17 @@ def test_wsi_patient_parser(tmp_path):
     got = common.load_wsi_patients(path)
     assert got["A03"] == {"type": "labeled", "patient": 3}
     assert got["05"]["patient"] == 3 and got["06"]["patient"] == 3 and got["01"]["patient"] == 1
+
+
+def test_unreadable_optional_section_is_recorded_not_fatal(tmp_path, monkeypatch):
+    cfg_path, cfg = st.small_settings(tmp_path)
+    roots = _trees(tmp_path, cfg)
+
+    def boom(root, cfg):
+        raise PermissionError("denied")
+
+    monkeypatch.setattr(inventory, "inventory_quilt", boom)
+    code = inventory.main(_argv(cfg_path, tmp_path / "data", roots))
+    inv = json.loads(schemas.inventory_json(tmp_path / "data").read_text())
+    assert code == 0 and inv["gate_passed"] is True
+    assert inv["quilt"]["error"] == "PermissionError: denied"

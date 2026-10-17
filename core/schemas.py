@@ -227,7 +227,8 @@ EMBED_MANIFEST = Table(
         _c("group", "str", "leakage group for held-out splits: WSI patient, Quilt video, PathGen slide; empty for BACH"),
     ),
     notes="Views: train items get settings encoders.views[grid] rows (views 0..n-1); calibration/test items get the "
-          "same views and are reduced to their TTA mean on the node; whole-image sets use view 0 only.",
+          "same views and are reduced to their TTA mean on the node; whole-image sets use view 0 only; degraded sets "
+          "(deg512, deg256) use view 0 only (ruling M9).",
 )
 
 EMB_INDEX = Table(
@@ -250,14 +251,16 @@ EMB_INDEX = Table(
     ),
     notes="Two files per (encoder, set, head): <set>_<head>.npy + _index.csv with one row per item_id (TTA mean; "
           "the only file most consumers read), and <set>_<head>_views.npy + _views_index.csv with one row per "
-          "(item, view) for train augmentation (train split only).",
+          "(item, view) for every split of the clean multi-view sets (bach512, bach256): train rows feed augmentation, "
+          "calibration/test view-0 rows are the like-for-like clean baseline for degraded reads (ruling M9: deg512 / "
+          "deg256 are embedded at view 0 only).",
 )
 
 COMPOSITES = Table(
     "composites.csv", "Task 2 · composites (prep_b)", "Tasks 3, 10, 11",
     key=("case_id",),
     columns=(
-        _c("case_id", "str", "composite case ID: composite_case_id(carcinoma_case_id, k), k = 0..composites.n-1"),
+        _c("case_id", "str", "opaque composite case ID: composite_case_id(carcinoma_case_id, k) = COMP_<k:03d>, k = 0..composites.n-1"),
         _c("carcinoma_case_id", "str", "test case giving the carcinoma half (InSitu or Invasive)"),
         _c("benign_case_id", "str", "test case giving the benign half (Normal or Benign)"),
         _c("orientation", "int", "0..composites.orientations-1"),
@@ -502,7 +505,8 @@ EMB_NPY = ArraySpec(
     "emb/<encoder>/<set>_<head>.npy", "Task 3 · 02_embed / export", "Tasks 8, 9, 10, 11",
     arrays=(("(array)", "float16 [N, D]; row i = emb_row i of <set>_<head>_index.csv"),),
     doc="One row per item_id (mean over n_views TTA views). Align-head rows are re-normalized to unit L2 norm after "
-        "averaging (cosine = dot); probe rows are raw means. '_views' variant: one row per (item, view), train only. "
+        "averaging (cosine = dot); probe rows are raw means. '_views' variant: one row per (item, view) for every "
+        "split of bach512/bach256 (ruling M9). "
         "Never mix encoders in one index.",
 )
 TEXT_NPZ = ArraySpec(
@@ -614,8 +618,14 @@ def variant_case_id(case_id: str, degrade_type: str, severity: int) -> str:
 
 
 def composite_case_id(carcinoma_case_id: str, k: int) -> str:
-    """Composite field k (global index) built on a carcinoma test case: '<case_id>_COMP_<k>'."""
-    return f"{check_case_id(carcinoma_case_id)}_COMP_{_index(k, 'k')}"
+    """Opaque ID of composite field k (global index): 'COMP_<k:03d>'.
+
+    The carcinoma source case is validated but deliberately NOT embedded: '<case_id>_COMP_<k>' would tell anyone
+    viewing the worklist that <case_id> is carcinoma (a ground-truth leak through the ID; master ruling M10). The
+    sources live in composites.csv and the case JSON's source_case_ids (sorted, so the carcinoma half is not marked).
+    """
+    check_case_id(carcinoma_case_id)
+    return f"COMP_{_index(k, 'k'):03d}"
 
 
 def make_item_id(set_name: str, case_id: str, tile_idx: int | None = None, degrade_type: str | None = None,
