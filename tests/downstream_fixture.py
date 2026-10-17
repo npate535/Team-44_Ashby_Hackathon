@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from collections.abc import Sequence
 from typing import Any
 
 import numpy as np
@@ -336,3 +337,157 @@ if __name__ == "__main__":  # pragma: no cover - manual inspection helper
 
     out = write_downstream(Path(sys.argv[1]), config.load_settings())
     print(json.dumps(out, indent=1))
+
+
+# ---- eval fixture: a larger synthetic root with planted signal (eval suite tests) -------------------------------------
+def write_eval_root(root: Path, cfg: dict[str, Any], *, n_test_per_class: int = 12, n_cal_per_class: int = 10,
+                    seed: int = 7) -> dict[str, Any]:
+    """cases.csv, tiles.csv, predictions.csv (Model A conch_probe_lr, Model B / production cb_text, LAC/APS/Mondrian
+    sets fit on calibration with core.conformal), reliability.csv, composites.csv, wsi_windows.csv and margins.json
+    for every test case, composite and WSI window. Returns ids by role."""
+    from core import conformal
+
+    rng = np.random.default_rng(seed)
+    root.mkdir(parents=True, exist_ok=True)
+    io.write_json(root / cli.SYNTHETIC_MARKER, {"synthetic": True, "writer": "tests/downstream_fixture.py:eval"})
+    classes = list(cfg["classes"])
+    rows, n = [], 0
+    for split, per in (("train", 2), ("calibration", n_cal_per_class), ("test", n_test_per_class)):
+        for ci_, cls in enumerate(classes):
+            for j in range(per):
+                cid = f"EV_{n:04d}"
+                lane = "surgical" if split == "test" and j % 4 == 0 else "biopsy"
+                rows.append({"case_id": cid, "source": "synthetic", "source_file": f"Photos/{cls}/{cid}.tif",
+                             "source_index": n, "image_path": f"/synthetic/{cid}.tif", "label": cls, "split": split,
+                             "patient_id": "", "group": f"b{n // 3}", "lane": lane, "width": WIDTH, "height": HEIGHT,
+                             "display_path": f"display/{cid}.jpg"})
+                n += 1
+    cases = pd.DataFrame(rows)
+    io.write_csv(schemas.cases_csv(root), cases)
+    y = cases["label"].map({c: i for i, c in enumerate(classes)}).to_numpy()
+
+    def softmax(z):
+        z = z - z.max(axis=1, keepdims=True)
+        e = np.exp(z)
+        return e / e.sum(axis=1, keepdims=True)
+
+    onehot = np.eye(len(classes))[y]
+    neighbour = np.roll(np.eye(len(classes)), 1, axis=1)[y]          # confusable class (e.g. InSitu <-> Invasive)
+    logits_a = 2.6 * onehot + 0.9 * neighbour + rng.normal(0, 0.9, onehot.shape)
+    logits_b = 2.0 * onehot + 1.0 * neighbour + rng.normal(0, 1.0, onehot.shape)
+    from core import calibration
+
+    raw_logits = logits_b * 3.0                                      # B is overconfident before temperature
+    p_a, p_b_raw = softmax(logits_a), softmax(raw_logits)
+    cal = (cases["split"] == "calibration").to_numpy()
+    temperature = calibration.fit_temperature(raw_logits[cal], y[cal], cfg["calibration"]["temperature_bounds"])
+    p_cal = softmax(raw_logits / temperature)
+    alpha = float(cfg["alpha"])
+    qhat = conformal.fit_lac(p_cal[cal], y[cal], alpha)
+    lac = conformal.lac_sets(p_cal, qhat)
+    q_aps = conformal.fit_aps(p_cal[cal], y[cal], alpha, 44, True)
+    aps = conformal.aps_sets(p_cal, q_aps, 45, True)
+    mond = conformal.mondrian_sets(p_cal, conformal.mondrian_quantiles(p_cal[cal], y[cal], alpha))
+    k = classes.index(cfg["aggressive_class"])
+    pred_rows = []
+    for i, row in cases.iterrows():
+        if row["split"] == "train":
+            continue
+        r = {"case_id": row["case_id"], "split": row["split"], "model": "cb_text", "temperature": temperature,
+             "set_lac": schemas.format_set(conformal.set_labels(lac[i], classes), classes), "qhat_lac": qhat,
+             "set_size": int(lac[i].sum()), "risk": float(p_cal[i, k]), "top": classes[int(p_cal[i].argmax())],
+             "set_aps": schemas.format_set(conformal.set_labels(aps[i], classes), classes),
+             "set_mondrian": schemas.format_set(conformal.set_labels(mond[i], classes), classes),
+             "agree_top": int(p_a[i].argmax() == p_cal[i].argmax())}
+        for c_i, c in enumerate(classes):
+            r[schemas.cal_prob_col(c)] = float(p_cal[i, c_i])
+            r[schemas.prob_col("cb_text", c)] = float(p_b_raw[i, c_i])
+            r[schemas.prob_col("conch_probe_lr", c)] = float(p_a[i, c_i])
+        pred_rows.append(r)
+    # one degraded variant row (must never enter headline metrics)
+    variant = dict(pred_rows[-1], case_id=schemas.variant_case_id(pred_rows[-1]["case_id"], "blur", 3))
+    pred_rows.append(variant)
+    io.write_csv(schemas.predictions_csv(root), pd.DataFrame(pred_rows))
+
+    test = cases[cases["split"] == "test"].reset_index(drop=True)
+    tile_rows = []
+    for _, row in test.iterrows():
+        keep = 2 if row["case_id"] == test["case_id"].iloc[1] else 12
+        for t in range(12):
+            r_, c_ = divmod(t, 4)
+            tile_rows.append({"case_id": row["case_id"], "grid": "g512", "tile_idx": t, "row": r_, "col": c_,
+                              "x": c_ * 512, "y": r_ * 512, "size": 512, "tissue_frac": 0.9 if t < keep else 0.1,
+                              "qc_pass": int(t < keep), "path": f"tiles/g512/{row['case_id']}/{r_}_{c_}.png"})
+    io.write_csv(schemas.tiles_csv(root), pd.DataFrame(tile_rows))
+    rel_rows = []
+    for i, row in test.iterrows():
+        flag = int(i % 10 == 3)
+        rel_rows.append({"case_id": row["case_id"], "source_case_id": row["case_id"], "variant": "clean",
+                         "split": "test", "ood_distance": 0.3, "ood_percentile": 0.5, "set_size": 1,
+                         "conch_musk_disagree": 0, "p_error": 0.6 if flag else 0.1,
+                         "reliability": 0.4 if flag else 0.9, "reliability_flag": flag, "threshold": 0.5})
+    io.write_csv(schemas.reliability_csv(root), pd.DataFrame(rel_rows))
+
+    geometry = margin.strip_segments(WIDTH, HEIGHT, int(cfg["margin"]["segment_px"]), cfg["margin"]["names"])
+    carcinoma = set(cfg["carcinoma_classes"])
+
+    def segments_for(hot_margins: Sequence[str], hot_p: float = 0.85) -> list[dict[str, Any]]:
+        out = []
+        for s in geometry:
+            p = float(rng.uniform(0.01, 0.3))
+            if s["margin"] in hot_margins and rng.uniform() < 0.5:
+                p = hot_p
+            out.append({**s, "p": round(p, 4)})
+        for m in hot_margins:                                   # at least one hot segment per hot margin
+            first = next(j for j, s in enumerate(out) if s["margin"] == m)
+            out[first]["p"] = hot_p
+        return out
+
+    mcases: dict[str, Any] = {}
+    names = list(schemas.MARGINS)
+    for i, row in test.iterrows():
+        if row["label"] in carcinoma:
+            hot = [] if i % 5 == 0 else [names[i % 4]]
+        else:
+            hot = [names[0]] if i % 11 == 0 else []             # occasional benign false positive
+        segs = segments_for(hot)
+        mcases[row["case_id"]] = {"width": WIDTH, "height": HEIGHT, "segments": segs,
+                                  "per_margin": margin.per_margin_scores(geometry, [s["p"] for s in segs])}
+    carc_ids = test.loc[test["label"].isin(carcinoma), "case_id"].tolist()
+    ben_ids = test.loc[~test["label"].isin(carcinoma), "case_id"].tolist()
+    sides = {"top": "superior", "bottom": "inferior", "left": "medial", "right": "lateral"}
+    opposite = {"superior": "inferior", "inferior": "superior", "medial": "lateral", "lateral": "medial"}
+    comp_rows = []
+    for kk in range(6):
+        side = list(sides)[kk % 4]
+        cid = schemas.composite_case_id(carc_ids[kk], kk)
+        tumor = sides[side]
+        truth = {m: "mixed" for m in names}
+        truth[tumor], truth[opposite[tumor]] = "tumor_side", "exact_negative"
+        comp_rows.append({"case_id": cid, "carcinoma_case_id": carc_ids[kk], "benign_case_id": ben_ids[kk],
+                          "orientation": kk % 4, "carcinoma_side": side, "width": WIDTH, "height": HEIGHT,
+                          "path": f"composites/{cid}.png", "display_path": f"display/{cid}.jpg",
+                          **{f"truth_{m}": truth[m] for m in names}})
+        hot = [tumor] + ([opposite[tumor]] if kk == 5 else [])   # one echo-like composite
+        segs = segments_for(hot)
+        mcases[cid] = {"width": WIDTH, "height": HEIGHT, "segments": segs,
+                       "per_margin": margin.per_margin_scores(geometry, [s["p"] for s in segs])}
+    io.write_csv(schemas.composites_csv(root), pd.DataFrame(comp_rows))
+    win_rows = []
+    for w in range(8):
+        wid = f"WSI_A{w // 2:02d}_{w:02d}"
+        tumor_edges = [names[w % 4]] if w % 3 != 2 else []
+        win_rows.append({"window_id": wid, "wsi_id": f"A{w // 2:02d}", "patient_id": f"P{w // 2}", "fold": w % 2,
+                         "x": 0, "y": 0, "width": WIDTH, "height": HEIGHT,
+                         "stratum": "edge_tumor" if tumor_edges else "none", "path": f"wsi_windows/{wid}.png",
+                         **{f"truth_{m}": ("tumor" if m in tumor_edges else "clear") for m in names}})
+        segs = segments_for(tumor_edges if w != 7 else [])
+        mcases[wid] = {"width": WIDTH, "height": HEIGHT, "segments": segs,
+                       "per_margin": margin.per_margin_scores(geometry, [s["p"] for s in segs])}
+    io.write_csv(schemas.wsi_windows_csv(root), pd.DataFrame(win_rows))
+    io.write_json(schemas.margins_json(root), {
+        "probe": "fine_probe", "strip_px": 256, "segment_px": 256, "max_fpr": 0.05, "threshold": 0.5,
+        "threshold_ci": [0.4, 0.6], "n_benign_cal_images": 12, "cases": mcases, "created_utc": io.utc_now(),
+        "config_hash": "test", "synthetic": True})
+    return {"test": test["case_id"].tolist(), "composites": [r["case_id"] for r in comp_rows],
+            "windows": [r["window_id"] for r in win_rows], "variant": variant["case_id"]}

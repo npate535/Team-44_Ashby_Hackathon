@@ -303,6 +303,16 @@ spotcheck:                          # step 08 review items (plan §5.4, CELLS_SP
   crop_px: 256                      # crop edge in the review image (cut from the display JPEG, rescaled)
   seed: 44
 
+eval:                               # Agent 4 evaluation suite (plan §12, BUILD_PLAN Task 11)
+  thunder_reference:                # published THUNDER BACH results on our exact test split (BUILD_PLAN §A4, §F)
+    metric: macro_f1_percent
+    split_note: "same split, different protocol (published: whole-image resize; ours: tiles + TTA)"
+    linear_probe: {conch: 84.4, uni2h: 84.7, musk: 69.9}
+    zero_shot: {conch: 56.1, musk: 62.5}
+    source: "THUNDER benchmark (BACH), as recorded in BUILD_PLAN §F; verify before quoting in the deck"
+  queue_policies: {fifo: FIFO (arrival order), tiers: PathQueue tiers, tiers_aging: PathQueue tiers + aging guard}
+  figure_dpi: 200
+
 hosted:                             # organizer servers, callable only inside Delta: 5-tile equivalence check (§A6)
   env_file: ~/.config/ashby-2026/model-servers.env
   conch: {url_env: CONCH_URL, key_env: CONCH_API_KEY}
