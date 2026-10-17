@@ -121,7 +121,7 @@ def test_degraded_and_composite_variants_use_variant_ids_and_source_splits(fake)
     src = deg.iloc[0]["source_case_id"]
     assert deg.iloc[0]["case_id"] in {schemas.variant_case_id(src, "blur", 3), schemas.variant_case_id(src, "jpeg", 1)}
     comp = feats[feats["variant"] == "composite"]
-    assert len(comp) == 1 and "_COMP_" in comp.iloc[0]["case_id"] and comp.iloc[0]["split"] == "test"
+    assert len(comp) == 1 and comp.iloc[0]["case_id"].startswith("COMP_") and comp.iloc[0]["split"] == "test"   # opaque IDs (M10)
     assert comp.iloc[0]["n_tiles"] == 12
 
 
