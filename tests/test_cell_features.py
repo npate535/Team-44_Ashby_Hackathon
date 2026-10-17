@@ -71,11 +71,13 @@ def test_min_counts_units_pooling_and_edge_rule(tree):
     case, tile = _run(cfg_path, data)
     schemas.validate_frame(schemas.CELL_FEATURES, case.reset_index())
     a = case.loc["C_0001"]
-    assert a["n_nuclei"] == 54 and a["n_neoplastic"] == 24 and a["insufficient_tumor_nuclei"] == 0
+    # 24 neoplastic but only 19 non-edge: morphology missing AND flagged (flag == the blanking rule)
+    assert a["n_nuclei"] == 54 and a["n_neoplastic"] == 24 and a["insufficient_tumor_nuclei"] == 1
     assert np.isnan(a["nuc_area_mean"]) and a["nuc_area_mean__missing"] == 1  # 19 non-edge < 20
     assert a["neo_fraction"] == pytest.approx(24 / 54) and a["neo_fraction__missing"] == 0
     b = case.loc["C_0002"]
     assert b["nuc_area_mean"] == pytest.approx(np.mean(range(30, 50)))  # µm² straight from the JSON
+    assert b["insufficient_tumor_nuclei"] == 0
     assert b["nuc_area_cv"] == pytest.approx(np.std(range(30, 50)) / np.mean(range(30, 50)))
     assert np.isnan(b["neo_fraction"]) and b["infl_fraction__missing"] == 1  # 30 < 50 total
     # density: pooled neoplastic / pooled tissue (two 16-px tiles at 0.5 µm/px, tissue_frac 0.9)
