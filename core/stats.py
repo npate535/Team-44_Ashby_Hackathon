@@ -33,7 +33,9 @@ def _labels(values: np.ndarray, n_classes: int) -> np.ndarray:
 
 
 def _safe(metric: Callable[..., float], arrays: Sequence[np.ndarray]) -> float:
-    """metric(*arrays) as float; NaN when the metric is undefined (returns NaN/inf or raises ValueError)."""
+    """metric(*arrays) as float for one bootstrap replicate; NaN when the metric is undefined on it (returns NaN/inf
+    or raises ValueError, e.g. a resample with a single class). bootstrap_ci calls the metric once on the full data
+    first without this guard, so input misuse raises instead of turning into NaN."""
     try:
         value = float(metric(*arrays))
     except (ValueError, ZeroDivisionError, FloatingPointError):
@@ -111,6 +113,8 @@ def bootstrap_ci(
         raise ValueError(f"n_boot must be a positive integer, got {n_boot!r}")
     if not 0.0 < float(ci) < 1.0:
         raise ValueError(f"ci must be in (0, 1), got {ci!r}")
+    estimate = float(metric(*arrays))                      # misuse (bad labels, shapes) raises here, before resampling
+    estimate = estimate if math.isfinite(estimate) else math.nan
     draw = _resampler(n, groups, strata)
     rng = np.random.default_rng(seed)
     reps = []
@@ -120,7 +124,7 @@ def bootstrap_ci(
         if not math.isnan(value):
             reps.append(value)
     lo, hi = _percentiles(reps, ci)
-    return {"estimate": _safe(metric, arrays), "lo": lo, "hi": hi, "ci": float(ci), "n_boot": int(n_boot),
+    return {"estimate": estimate, "lo": lo, "hi": hi, "ci": float(ci), "n_boot": int(n_boot),
             "n_valid": len(reps), "n_skipped": int(n_boot) - len(reps), "n": int(n),
             "n_groups": int(n if groups is None else len(np.unique(np.asarray(groups))))}
 
@@ -145,8 +149,8 @@ def paired_difference_ci(
 
     out = bootstrap_ci(diff, [np.asarray(y_true), np.asarray(score_a), np.asarray(score_b)], groups, strata,
                        n_boot, ci, seed)
-    out["a"] = _safe(metric, [np.asarray(y_true), np.asarray(score_a)])
-    out["b"] = _safe(metric, [np.asarray(y_true), np.asarray(score_b)])
+    out["a"] = float(metric(np.asarray(y_true), np.asarray(score_a)))
+    out["b"] = float(metric(np.asarray(y_true), np.asarray(score_b)))
     return out
 
 

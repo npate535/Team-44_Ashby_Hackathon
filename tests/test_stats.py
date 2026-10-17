@@ -229,3 +229,10 @@ def test_paired_difference_narrower_than_unpaired_when_scores_correlated():
     paired = stats.paired_difference_ci(stats.auroc, y, a, b, None, None, 500, 0.95, 1)
     single = stats.bootstrap_ci(stats.auroc, [y, a], None, None, 500, 0.95, 1)
     assert (paired["hi"] - paired["lo"]) < (single["hi"] - single["lo"])
+
+
+def test_caller_misuse_raises_instead_of_nan():
+    """A 4-class y passed to the binary auroc is a caller error, not an undefined replicate."""
+    y = np.array([0, 1, 2, 3] * 5)
+    with pytest.raises(ValueError):
+        stats.bootstrap_ci(stats.auroc, [y, np.arange(20.0)], None, None, 50, 0.95, 1)

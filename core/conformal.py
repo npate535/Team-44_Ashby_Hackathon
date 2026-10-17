@@ -10,6 +10,9 @@ Conventions:
   * alpha comes from settings.alpha (0.1); seeds come from settings.conformal.seed. No defaults hide config.
   * Finite-sample quantile: k = ceil((n + 1) * (1 - alpha)); q-hat = k-th smallest calibration score;
     k > n => q-hat = +inf (every class is in every set). Empty sets are allowed (reported, never "fixed").
+  * Randomized APS draws one U per row from np.random.default_rng(seed) on every call, so U depends on the seed and
+    the row position. Fit on calibration with one seed and build test sets ONCE on the whole test matrix with a
+    different seed (05_risk_model uses conformal.seed and conformal.seed + 1); never call aps_sets row by row.
 Laptop only (numpy).
 """
 
