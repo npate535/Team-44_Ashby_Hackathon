@@ -14,7 +14,7 @@ Tile score (plan §6.4/§6.5, BUILD_PLAN §A11), in the CONCH align space (setti
 Case features (core.schemas CASE_FEATURES, concept_feature_columns): c__top<k> = mean of the top-k QC tile z,
 c__frac = fraction of QC tiles with z > concepts.z_threshold, c__spread = mean spread of those top-k tiles, plus
 components c__text_top<k> / c__cav_top<k>, and n_tiles / variant / source_case_id. Rows: every clean case of every
-split plus degraded (deg512 -> schemas.variant_case_id) and composite (comp512 -> composite IDs) variants when
+split plus degraded (deg512 -> schemas.variant_case_id) and composite (comp512 -> opaque COMP_<k> IDs, ruling M10) variants when
 their embeddings exist, z-scored with the clean train statistics; split = the source case's split. Variants are
 recognized by ID and never enter headline metrics. concepts_tile.npz (CONCEPTS_TILE_NPZ) holds the tiles each case
 was aggregated over (QC-passing; all tiles only for a case with none) plus an extra `variant` array.
@@ -181,14 +181,14 @@ def split_variant_id(case_id: str, degrade_type: str, severity: int) -> tuple[st
 
 
 def tile_rows(cases: pd.DataFrame, tiles: pd.DataFrame, index: pd.DataFrame, kind: str, cfg: Mapping[str, Any],
-              root: Path) -> pd.DataFrame:
+              root: Path, grid: str = GRID) -> pd.DataFrame:
     """Frame of embedded g512 tiles to score: emb_row, case_id (output ID), source_case_id, split, tile_idx, variant,
     qc. Clean and degraded tiles take the source case's QC flags; composite tiles are all used (no tiles.csv rows)."""
-    df = index[index["grid"].isin([GRID, ""])].copy()
+    df = index[index["grid"].isin([grid, ""])].copy()
     df["tile_idx"] = df["tile_idx"].astype(int)
     df = df[df["tile_idx"] >= 0]
     split_of = dict(zip(cases["case_id"], cases["split"]))
-    qc = tiles[tiles["grid"] == GRID][["case_id", "tile_idx", "qc_pass"]].copy()
+    qc = tiles[tiles["grid"] == grid][["case_id", "tile_idx", "qc_pass"]].copy()
     qc["qc_pass"] = qc["qc_pass"].astype(str).str.lower().isin(["1", "true", "1.0"])
     qc_map = {(c, int(t)): bool(q) for c, t, q in qc.itertuples(index=False, name=None)}
     if kind == "clean":
@@ -203,12 +203,11 @@ def tile_rows(cases: pd.DataFrame, tiles: pd.DataFrame, index: pd.DataFrame, kin
         df["case_id"] = [var for _, var in pairs]
         df["variant"] = "degraded"
     else:
-        comp_path = schemas.composites_csv(root)
-        comps = read_csv_str(comp_path) if comp_path.is_file() else pd.DataFrame(columns=["case_id", "carcinoma_case_id"])
-        src = dict(zip(comps["case_id"], comps.get("carcinoma_case_id", comps["case_id"])))
-        df["source_case_id"] = [src.get(c, c) for c in df["case_id"]]
+        # Opaque composite IDs (ruling M10): never link a composite to its carcinoma half here; the sources stay in
+        # composites.csv. Composites are built from composites.source_split cases only.
+        df["source_case_id"] = df["case_id"]
         df["variant"] = "composite"
-    df["split"] = [s if s else split_of.get(src_id, cfg["composites"]["source_split"] if kind == "composite" else "")
+    df["split"] = [s if s else (cfg["composites"]["source_split"] if kind == "composite" else split_of.get(src_id, ""))
                    for s, src_id in zip(df["split"], df["source_case_id"])]
     if kind == "composite":
         df["qc"] = True
@@ -358,7 +357,8 @@ def spotcheck_summary(artifacts_root: Path) -> dict[str, Any] | None:
 def zero_shot(root: Path, cases: pd.DataFrame, tiles: pd.DataFrame, bank: schemas.ConceptBank,
               cfg: Mapping[str, Any], limit_ids: set[str] | None) -> dict[str, Any]:
     classes = list(cfg["classes"])
-    out: dict[str, Any] = {"method": "case embedding = normalized mean of QC g512 tile align embeddings; class "
+    out: dict[str, Any] = {"method": "case embedding = normalized mean of QC tile align embeddings (bach512, else "
+                                     "bach256); class "
                                      "embedding = normalized mean over class phrasings x templates; argmax cosine",
                            "split": "test", "encoders": {}}
     test_cases = cases[cases["split"] == "test"]
@@ -368,12 +368,15 @@ def zero_shot(root: Path, cases: pd.DataFrame, tiles: pd.DataFrame, bank: schema
         if not schemas.text_npz(root, enc).is_file():
             out["encoders"][enc] = {"status": "skipped: no text npz"}
             continue
-        loaded = load_tile_embeddings(root, enc, "bach512")
+        for set_name, grid in (("bach512", "g512"), ("bach256", "g256")):  # 224-native encoders may lack bach512
+            loaded = load_tile_embeddings(root, enc, set_name)
+            if loaded is not None:
+                break
         if loaded is None:
-            out["encoders"][enc] = {"status": "skipped: no bach512 align embeddings"}
+            out["encoders"][enc] = {"status": "skipped: no bach512 / bach256 align embeddings"}
             continue
         index, arr = loaded
-        meta = tile_rows(cases, tiles, index, "clean", cfg, root)
+        meta = tile_rows(cases, tiles, index, "clean", cfg, root, grid)
         meta = meta[meta["case_id"].isin(test_cases["case_id"])]
         text = load_text(root, enc)
         cls_emb = class_embeddings(bank, text, classes)
@@ -392,7 +395,7 @@ def zero_shot(root: Path, cases: pd.DataFrame, tiles: pd.DataFrame, bank: schema
         y_arr, p_arr, g_arr = np.array(y), np.array(pred), np.array(grp)
         n_c = len(classes)
         out["encoders"][enc] = {
-            "status": "ok", "n_cases": int(len(y)), "n_groups": int(len(set(grp))),
+            "status": "ok", "set": set_name, "n_cases": int(len(y)), "n_groups": int(len(set(grp))),
             "macro_f1": boot(cfg, lambda a, b: stats.macro_f1(a, b, n_c), [y_arr, p_arr], g_arr, None),
             "balanced_accuracy": boot(cfg, lambda a, b: stats.balanced_accuracy(a, b, n_c), [y_arr, p_arr], g_arr, None),
             "accuracy": boot(cfg, lambda a, b: float(np.mean(a == b)), [y_arr, p_arr], g_arr, None),

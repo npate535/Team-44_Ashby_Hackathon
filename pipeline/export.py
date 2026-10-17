@@ -1,11 +1,13 @@
 """Pack the Delta data root into one archive for the laptop, and unpack it with hash verification (Task 3; Agent 2).
 
-    python -m pipeline.export [--out <file.tgz>] [--with-views] [--dry-run]       # on Delta (login node is fine)
+    python -m pipeline.export [--out <file.tgz>] [--no-views] [--dry-run]         # on Delta (login node is fine)
     python -m pipeline.export --unpack <file.tgz> --dest data                      # on the laptop
 
 Contents (paths relative to the data root, kept as is):
-    emb/<encoder>/<set>_<head>.npy + _index.csv + meta.json   per-item (TTA-reduced) arrays; *_views files only with
-                                                              --with-views; float16 chunk folders never
+    emb/<encoder>/<set>_<head>.npy + _index.csv + meta.json   per-item (TTA-reduced) arrays, plus the *_views files
+                                                              (05_risk_model train augmentation and the ruling-M9
+                                                              clean view-0 baselines of 06_reliability need them;
+                                                              --no-views drops them); float16 chunk folders never
     text/*.npz                                                prompt embeddings
     top-level *.csv / *.json                                  cases, tiles, composites, wsi_windows, inventory,
                                                               cell_tiles, cell_features*, tile_risk_oof, SYNTHETIC
@@ -162,7 +164,8 @@ def unpack(archive: Path, dest: Path, *, log: Any = print) -> dict[str, Any]:
 def main(argv: Sequence[str] | None = None, log: Any = print) -> int:
     parser = cli.step_parser(STEP, "Pack the data root for the laptop / unpack with sha256 verification.")
     parser.add_argument("--out", default=None, help="archive path (default <data-root>/exports/pathqueue_<utc>.tgz)")
-    parser.add_argument("--with-views", action="store_true", help="also pack train *_views files")
+    parser.add_argument("--no-views", action="store_true",
+                        help="skip the *_views files (05/06 then lose train augmentation and M9 view-0 baselines)")
     parser.add_argument("--with-manifest", action="store_true", help="also pack embed_manifest.csv")
     parser.add_argument("--encoders", default=None, help="comma list of encoders to pack (default all)")
     parser.add_argument("--dry-run", action="store_true", help="print the file count and size, write nothing")
@@ -178,8 +181,9 @@ def main(argv: Sequence[str] | None = None, log: Any = print) -> int:
             return 2
         return 0
     root = ctx.data_root
+    with_views = not args.no_views
     encoders = [e for e in (args.encoders or "").split(",") if e] or None
-    rel = collect(root, with_views=args.with_views, with_manifest=args.with_manifest, encoders=encoders)
+    rel = collect(root, with_views=with_views, with_manifest=args.with_manifest, encoders=encoders)
     total = sum((root / p).stat().st_size for p in rel)
     by_top: dict[str, int] = {}
     for p in rel:
@@ -193,11 +197,11 @@ def main(argv: Sequence[str] | None = None, log: Any = print) -> int:
     if args.dry_run:
         return 0
     out = Path(args.out) if args.out else root / "exports" / f"pathqueue_{io.utc_now().replace(':', '')}.tgz"
-    manifest = pack(root, out, rel, with_views=args.with_views)
+    manifest = pack(root, out, rel, with_views=with_views)
     log(f"wrote {out} ({out.stat().st_size / 1e6:.1f} MB compressed, {manifest['n_files']} files, sha256 listed)")
     io.write_meta(schemas.step_meta_json(root, "export"), step="export", cfg=ctx.cfg, inputs=[str(root)],
                   outputs=[out], synthetic=ctx.synthetic,
-                  args={"with_views": args.with_views, "encoders": encoders, "out": str(out)},
+                  args={"with_views": with_views, "encoders": encoders, "out": str(out)},
                   extra={"n_files": manifest["n_files"], "total_bytes": manifest["total_bytes"]})
     return 0
 

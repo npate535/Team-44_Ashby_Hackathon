@@ -8,6 +8,18 @@ if (!pinned) {
 } else {
   console.log(`PQ_TAB ${pinned.targetId}`);
   await attachBrowserTab(pinned.targetId);
+  // OnDemand drops idle SSH sessions ("Your connection to the remote server has been terminated."); reconnecting
+  // the same tab re-opens a shell without a password or Duo (OnDemand holds the auth), so heal it before typing.
+  const bodyText = await page.evaluate(() => document.body.innerText.slice(-400));
+  if (/connection to the remote server has been terminated|connection closed/i.test(bodyText)) {
+    console.log('PQ_RECONNECT');
+    await page.goto(pinned.url, { waitUntil: 'domcontentloaded' });
+    for (let i = 0; i < 30; i++) {
+      await sleep(1000);
+      const t = await page.evaluate(() => document.body.innerText.slice(-200));
+      if (/\$\s*$/.test(t.trim() + ' ') || /\]\$/.test(t)) break;
+    }
+  }
   const snap = await snapshot(page, { interactive: true });
   const term = snap.tree.match(/log [^\n]*\[ref=(f\d+e\d+)\]/);
   if (!term) {

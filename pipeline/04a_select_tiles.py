@@ -7,7 +7,8 @@ folds over train cases. Train tiles are scored out of fold (a case's own label n
 calibration/test tiles by the full-train fit. Ties break by tile_idx; cases with fewer QC tiles take what exists
 (n_tiles records it).
 
-Writes tile_risk_oof.csv (TILE_RISK_OOF) if absent (reused unless --force; Agent 3's 05 reads the same file) and
+Writes tile_risk_oof.csv (TILE_RISK_OOF) if absent (reused unless --force, another probe name, or embeddings newer
+than it; Agent 3's 05 reads the same file) and
 cell_tiles.csv (CELL_TILES), meta/04a_select_tiles.json. With cells.enabled false it writes only a "disabled" meta
 record and exits 0. --limit N selects tiles for the first N cases only (the probe always fits on all train cases).
 
@@ -91,7 +92,13 @@ def main(argv: list[str] | None = None) -> int:
             risk = io.read_csv(risk_path, dtype={"case_id": str, "grid": str, "split": str, "probe": str},
                                keep_default_na=False)
             schemas.validate_frame(schemas.TILE_RISK_OOF, risk)
-        else:
+            c = cfg["cells"]
+            emb = schemas.emb_npy(root, c["probe_encoder"], c["probe_set"], c["probe_head"])
+            stale = (set(risk["probe"]) != {c["probe_name"]}
+                     or (emb.is_file() and emb.stat().st_mtime > risk_path.stat().st_mtime))
+            if stale:  # other probe, or embeddings recomputed after the risks: recompute
+                reused = False
+        if not reused:
             risk = compute_risk(root, cases, tiles, cfg)
         keep = cli.limit_case_ids(cases["case_id"], ctx.limit)
         sel = select_tiles(risk, tiles, cases[cases["case_id"].isin(keep)], cfg)

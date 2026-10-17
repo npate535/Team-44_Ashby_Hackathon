@@ -182,11 +182,23 @@ class TileDataset:
         return self.preprocess(self.image(i))
 
 
+def loader_workers(workers: int) -> tuple[int, Any]:
+    """(workers, multiprocessing context). The adapters' preprocess functions are closures, which only 'fork'
+    workers can use (spawn/forkserver must pickle them). Linux (Delta) forks explicitly — Python 3.14 changes the
+    Linux default — elsewhere (macOS laptop tests) the images load in-process."""
+    import multiprocessing as mp
+
+    if workers > 0 and sys.platform.startswith("linux") and "fork" in mp.get_all_start_methods():
+        return workers, mp.get_context("fork")
+    return 0, None
+
+
 def make_loader(dataset: TileDataset, batch: int, workers: int, pin: bool) -> Any:
     from torch.utils.data import DataLoader
 
-    return DataLoader(dataset, batch_size=batch, shuffle=False, num_workers=workers, pin_memory=pin,
-                      persistent_workers=False)
+    n, ctx = loader_workers(workers)
+    return DataLoader(dataset, batch_size=batch, shuffle=False, num_workers=n, pin_memory=pin,
+                      persistent_workers=False, multiprocessing_context=ctx)
 
 
 # ---- checks ------------------------------------------------------------------------------------------------------------
@@ -437,7 +449,7 @@ class Engine:
         throughput = n_done / t_embed if t_embed > 0 else None
         if throughput is not None:
             self.log(f"[{name}/{set_name}] THROUGHPUT {throughput:.1f} images/s over {n_done} rows "
-                     f"(batch {bsz}, {self.workers} workers, {self.device})")
+                     f"(batch {bsz}, {loader_workers(self.workers)[0]} workers, {self.device})")
         arrays = self._load_chunks(chunks, chunk_dir, list(enc.heads))
         self._write_final(enc, set_name, rows, arrays)
         if set_name == "nct" and enc.text_aligned:
