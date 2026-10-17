@@ -130,16 +130,19 @@ def section_queue(q: Mapping[str, Any]) -> list[str]:
 def section_margin(m: Mapping[str, Any]) -> list[str]:
     out = ["## Simulated margin read", "", f"Source: `eval/margin.json` · threshold {m['threshold']:.3f} "
            f"(CI {m.get('threshold_ci')}, from {m.get('n_benign_cal_images')} benign calibration images).", "",
-           f"- Benign test images with a false tumor-at-margin call (any margin): {fmt(m['benign_fpr'].get('any_margin'), pct=True)} "
-           f"(target ≤ {100 * m['benign_fpr']['target_max_fpr']:.0f}%; {m['benign_fpr']['n_scored']} of "
-           f"{m['benign_fpr']['n_benign_test']} benign test images scored).",
+           f"- Benign test images, false tumor-at-margin per margin (pooled over 4 margins): "
+           f"{fmt(m['benign_fpr'].get('pooled_per_margin'), pct=True)} (the threshold targets ≤ "
+           f"{100 * m['benign_fpr']['target_max_fpr']:.0f}% per margin; {m['benign_fpr']['n_scored']} of "
+           f"{m['benign_fpr']['n_benign_test']} benign test images scored). Image-level, any of 4 margins: "
+           f"{fmt(m['benign_fpr'].get('any_margin'), pct=True)} (no 5% target at image level).",
            f"- Carcinoma test images with ≥ 1 margin called clear: {fmt(m['echo'].get('p_at_least_one_clear_margin'), pct=True)}; "
            f"Spearman(max margin score, case risk) {fmt(m['echo'].get('spearman_max_margin_vs_risk'))}."]
     if "composite" in m:
         c = m["composite"]
-        out += [f"- Composite fields ({c['n_composites']}): exact-negative margin called clear "
-                f"{fmt(c['exact_negative_margin_clear_rate'], pct=True)}; exact-negative segments below threshold "
-                f"{fmt(c['exact_negative_segment_clear_rate'], pct=True)}; tumor-side margin involved "
+        out += [f"- Composite fields ({c['n_composites']} of {c['n_expected']} scored): exact-negative margin called clear "
+                f"{fmt(c['exact_negative_margin_clear_rate'], pct=True)}; benign-half segments below threshold "
+                f"{fmt(c['benign_half_segment_clear_rate'], pct=True)}; carcinoma-half segments above threshold "
+                f"{fmt(c['carcinoma_half_segment_hit_rate'], pct=True)}; tumor-side margin involved "
                 f"{fmt(c['tumor_side_margin_sensitivity'], pct=True)}. An echo of the diagnosis would score ~0% clear."]
     w = m.get("wsi_windows")
     if w and w.get("sensitivity"):

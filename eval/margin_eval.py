@@ -8,12 +8,15 @@ A margin is "involved" when its score (max segment p) is strictly above the thre
 These are raw-score evaluations: the reliability defer rule is not applied (it is a separate safety layer).
 
 Writes <artifacts>/eval/margin.json:
-  benign_fpr        clean TEST benign (settings benign_classes) images with margin scores: per-margin and any-margin
-                    rate of a false "tumor at margin" (target <= settings margin.max_fpr); cluster CI over groups.
-  composite         per-segment test on composite fields (half carcinoma, half benign, test images only): the margin
-                    on the benign side is an EXACT negative inside a carcinoma case. Exact-negative margins called clear
-                    (and exact-negative segments below threshold): an echo of the diagnosis scores ~0%, a localizer
-                    scores high. Tumor-side margins called involved = sensitivity. Clustered by carcinoma-case group.
+  benign_fpr        clean TEST benign (settings benign_classes) images with margin scores: the pooled per-margin rate
+                    of a false "tumor at margin" (what the threshold controls: target <= settings margin.max_fpr), each
+                    margin's rate, and the image-level any-margin rate (no 5% target); cluster CI over groups.
+  composite         per-segment test on composite fields (half carcinoma, half benign, test images only): every
+                    benign-half segment (classified against pipeline.composites.half_mask, on all four margins, corner
+                    squares once) is an EXACT negative inside a carcinoma case. Benign-half segments below threshold and
+                    exact-negative margins called clear: an echo of the diagnosis scores ~0%, a localizer scores high.
+                    Tumor-side margins called involved = sensitivity. Clustered by both source images' groups.
+                    Composites / windows without scores are counted (n_missing) and are an error on a real run.
   echo              clean TEST carcinoma images: P(>= 1 clear margin), mean involved margins, and Spearman correlation
                     of the image's max margin score with the case risk (a pure echo correlates ~1).
   wsi_windows       per-margin sensitivity / specificity against annotated WSI 256-px strip truth (clustered by
@@ -70,24 +73,42 @@ def benign_block(cases, scores, threshold, cfg) -> dict[str, Any]:
                            "target_max_fpr": float(cfg["margin"]["max_fpr"]), "per_margin": {}}
     for j, m in enumerate(MARGINS):
         out["per_margin"][m] = rate_ci([p[m] > threshold for p in pm], groups, cfg, 500 + j)
+    # The threshold controls the PER-MARGIN false-positive rate (core.margin.fit_threshold pools per-margin maxima),
+    # so the pooled per-margin rate is the one compared with max_fpr; the image-level any-margin rate has no 5% target.
+    pooled = [p[m] > threshold for p in pm for m in MARGINS]
+    pooled_groups = [g for g in groups for _ in MARGINS]
+    out["pooled_per_margin"] = rate_ci(pooled, pooled_groups, cfg, 504)
     out["any_margin"] = rate_ci([any(p[m] > threshold for m in MARGINS) for p in pm], groups, cfg, 505)
+    out["any_margin_note"] = ("image-level rate: a benign image counts if any of its 4 margins is called; it can exceed "
+                              "max_fpr (up to ~1 - (1 - max_fpr)^4) while the per-margin threshold works as designed")
     if len(have) < len(benign):
         out["note"] = (f"only {len(have)} of {len(benign)} benign test images have margin scores in margins.json "
                        "(the producer scores surgical / variant cases); the rate is over those")
     return out
 
 
+def segment_half(seg: Mapping[str, Any], mask: np.ndarray) -> str:
+    """'carcinoma' / 'benign' / 'straddle' for a segment against the composite's carcinoma-half mask."""
+    block = mask[int(seg["y"]):int(seg["y"]) + int(seg["size"]), int(seg["x"]):int(seg["x"]) + int(seg["size"])]
+    return "carcinoma" if block.all() else ("benign" if not block.any() else "straddle")
+
+
 def composite_block(comps, cases, entries, threshold, cfg) -> dict[str, Any]:
+    from pipeline.composites import half_mask
+
     group_of = cases.set_index("case_id")["group"].astype(str).to_dict()
-    neg_clear, neg_groups, seg_clear, seg_groups, tum_hit, tum_groups = [], [], [], [], [], []
-    per_comp = []
+    neg_clear, neg_groups, seg_clear, seg_groups, seg_hit, hit_groups, tum_hit, tum_groups = ([] for _ in range(8))
+    per_comp, missing, straddle = [], [], 0
     for _, row in comps.iterrows():
         cid = row["case_id"]
         if cid not in entries:
+            missing.append(cid)
             continue
         entry = entries[cid]
         pm = _per_margin(entry)
-        g = group_of.get(row["carcinoma_case_id"], str(row["carcinoma_case_id"]))
+        # cluster on both source images: exact negatives come from the benign image, tumor from the carcinoma image
+        g = "+".join(sorted({group_of.get(str(row[c]), str(row[c])) for c in ("carcinoma_case_id", "benign_case_id")}))
+        mask = half_mask(int(row["width"]), int(row["height"]), str(row["carcinoma_side"]))
         summary = {"case_id": cid, "carcinoma_side": row["carcinoma_side"], "per_margin": pm, "truth": {}}
         for m in MARGINS:
             truth = row[f"truth_{m}"]
@@ -95,21 +116,36 @@ def composite_block(comps, cases, entries, threshold, cfg) -> dict[str, Any]:
             if truth == "exact_negative":
                 neg_clear.append(pm[m] <= threshold)
                 neg_groups.append(g)
-                for s in entry["segments"]:
-                    if s["margin"] == m:
-                        seg_clear.append(float(s["p"]) <= threshold)
-                        seg_groups.append(g)
             elif truth == "tumor_side":
                 tum_hit.append(pm[m] > threshold)
                 tum_groups.append(g)
+        seen: set[tuple[int, int]] = set()          # corner squares belong to two margins: count each square once
+        for seg in entry["segments"]:
+            key = (int(seg["x"]), int(seg["y"]))
+            if key in seen:
+                continue
+            seen.add(key)
+            half = segment_half(seg, mask)
+            if half == "benign":                     # every benign-half segment is an exact negative (§A12)
+                seg_clear.append(float(seg["p"]) <= threshold)
+                seg_groups.append(g)
+            elif half == "carcinoma":
+                seg_hit.append(float(seg["p"]) > threshold)
+                hit_groups.append(g)
+            else:
+                straddle += 1
         per_comp.append(summary)
     return {
-        "n_composites": len(per_comp), "n_groups": len(set(neg_groups) | set(tum_groups)),
+        "n_expected": int(len(comps)), "n_composites": len(per_comp), "n_missing": len(missing),
+        "missing": missing[:20], "n_groups": len(set(neg_groups) | set(tum_groups)),
         "exact_negative_margin_clear_rate": rate_ci(neg_clear, neg_groups, cfg, 510),
-        "exact_negative_segment_clear_rate": rate_ci(seg_clear, seg_groups, cfg, 511),
+        "benign_half_segment_clear_rate": rate_ci(seg_clear, seg_groups, cfg, 511),
+        "carcinoma_half_segment_hit_rate": rate_ci(seg_hit, hit_groups, cfg, 513),
         "tumor_side_margin_sensitivity": rate_ci(tum_hit, tum_groups, cfg, 512),
+        "n_straddling_segments": straddle,
+        "clustering": "groups of both source images (carcinoma + benign) joined",
         "interpretation": "An echo of the case diagnosis calls every margin of a carcinoma field involved (clear rate "
-                          "~0% on exact negatives); a localizer clears them (rate near 1).",
+                          "~0% on exact negatives and benign-half segments); a localizer clears them (rate near 1).",
         "fields": per_comp,
     }
 
@@ -144,9 +180,11 @@ def wsi_block(root, entries, threshold, cfg) -> dict[str, Any] | None:
         return None
     windows = io.read_csv(path)
     schemas.validate_frame(schemas.WSI_WINDOWS, windows)
+    n_expected = int(len(windows))
     windows = windows[windows["window_id"].isin(entries)]
     if windows.empty:
-        return {"n_windows": 0, "note": "wsi_windows.csv present but no window has margin scores in margins.json"}
+        return {"n_windows": 0, "n_expected": n_expected, "n_missing": n_expected,
+                "note": "wsi_windows.csv present but no window has margin scores in margins.json"}
     tp_g, tn_g, sens, spec = [], [], [], []
     per_margin: dict[str, dict[str, list]] = {m: {"sens": [], "sg": [], "spec": [], "cg": []} for m in MARGINS}
     for _, w in windows.iterrows():
@@ -165,7 +203,8 @@ def wsi_block(root, entries, threshold, cfg) -> dict[str, Any] | None:
                 per_margin[m]["spec"].append(not hit)
                 per_margin[m]["cg"].append(g)
     return {
-        "n_windows": int(len(windows)), "n_patients": int(windows["patient_id"].nunique()),
+        "n_windows": int(len(windows)), "n_expected": n_expected, "n_missing": n_expected - int(len(windows)),
+        "n_patients": int(windows["patient_id"].nunique()),
         "sensitivity": rate_ci(sens, tp_g, cfg, 530), "specificity": rate_ci(spec, tn_g, cfg, 531),
         "per_margin": {m: {"sensitivity": rate_ci(v["sens"], v["sg"], cfg, 540 + j),
                            "specificity": rate_ci(v["spec"], v["cg"], cfg, 550 + j)} for j, (m, v) in enumerate(per_margin.items())},
@@ -204,6 +243,11 @@ def run(ctx: cli.StepContext) -> Any:
     wsi = wsi_block(root, entries, threshold, cfg)
     if wsi is not None:
         payload["wsi_windows"] = wsi
+    gaps = {k: payload[k]["n_missing"] for k in ("composite", "wsi_windows") if k in payload and payload[k].get("n_missing")}
+    if gaps and not ctx.synthetic:
+        raise ValueError(f"margins.json lacks scores for {gaps} (real run: every composite and WSI window must be scored)")
+    if gaps:
+        payload["incomplete"] = gaps
     payload["notes"] = ["Simulated margins: image borders stand in for inked margins (top superior, bottom inferior, "
                         "left medial, right lateral); anterior/posterior are not representable in 2D.",
                         "Raw-score evaluation: the reliability defer rule is a separate safety layer.",

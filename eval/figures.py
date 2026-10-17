@@ -215,11 +215,13 @@ def fig_queue(data: Mapping[str, Any], path: Path, dpi: int) -> Path:
 
 def fig_margin(data: Mapping[str, Any], path: Path, dpi: int) -> Path:
     rows: list[tuple[str, Mapping[str, Any] | None]] = [
-        ("Benign images: false tumor-at-margin (any margin)", data["benign_fpr"].get("any_margin")),
+        ("Benign images: false tumor-at-margin, per margin", data["benign_fpr"].get("pooled_per_margin")),
+        ("Benign images: false call at any of 4 margins", data["benign_fpr"].get("any_margin")),
         ("Carcinoma images: >= 1 margin called clear", data["echo"].get("p_at_least_one_clear_margin")),
     ]
     if "composite" in data:
         rows += [("Composites: exact-negative margin called clear", data["composite"]["exact_negative_margin_clear_rate"]),
+                 ("Composites: benign-half segments below threshold", data["composite"]["benign_half_segment_clear_rate"]),
                  ("Composites: tumor-side margin called involved", data["composite"]["tumor_side_margin_sensitivity"])]
     if data.get("wsi_windows", {}).get("sensitivity"):
         rows += [("WSI windows: sensitivity", data["wsi_windows"]["sensitivity"]),
@@ -229,7 +231,7 @@ def fig_margin(data: Mapping[str, Any], path: Path, dpi: int) -> Path:
     ax.set_xlim(0, 1.05)
     if data.get("max_fpr"):
         ax.axvline(data["max_fpr"], color=MUTED, linestyle=":", linewidth=1)
-        ax.text(data["max_fpr"], 1.01, f"benign FPR target {100 * data['max_fpr']:.0f}%", color=INK2, fontsize=8,
+        ax.text(data["max_fpr"], 1.01, f"per-margin FPR target {100 * data['max_fpr']:.0f}%", color=INK2, fontsize=8,
                 transform=ax.get_xaxis_transform())
     ax.set_xlabel("Rate (95% cluster-bootstrap CI)", color=INK2)
     return _finish(fig, f"Simulated margin read: localizer or echo? (threshold {data['threshold']:.2f})",

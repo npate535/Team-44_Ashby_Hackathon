@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 
+import pandas as pd
 import pytest
 
 from core import config, io, schemas
@@ -116,3 +117,29 @@ def test_thunder_comparison(outputs):
     prod = th["ours"][0]
     assert prod["role"].startswith("production") and 0 <= prod["macro_f1"]["estimate"] <= 100
     assert "87%" in " ".join(th["notes"]) and "different, hidden test set" in " ".join(th["notes"])
+
+
+def test_model_choice_naming_absent_models_is_an_error(tmp_path):
+    D.write_eval_root(tmp_path / "data", CFG)
+    io.write_json(schemas.eval_json(tmp_path / "art", "model_choice"), {"model_a": "uni2h_lr", "model_b": "cb_text"})
+    with pytest.raises(ValueError, match="uni2h_lr"):
+        M.run(D.make_ctx(CFG, tmp_path / "data", tmp_path / "art"))
+
+
+def test_model_choice_names_are_used(tmp_path):
+    D.write_eval_root(tmp_path / "data", CFG)
+    io.write_json(schemas.eval_json(tmp_path / "art", "model_choice"), {"model_a": "cb_text", "model_b": "conch_probe_lr"})
+    out = io.read_json(M.run(D.make_ctx(CFG, tmp_path / "data", tmp_path / "art"))["metrics"])
+    assert out["models"]["a"] == "cb_text" and out["models"]["source"] == "eval/model_choice.json"
+
+
+def test_calibration_variants_do_not_count_toward_n_calibration(tmp_path):
+    D.write_eval_root(tmp_path / "data", CFG)
+    path = schemas.predictions_csv(tmp_path / "data")
+    df = io.read_csv(path)
+    extra = df[df["split"] == "calibration"].head(3).copy()
+    extra["case_id"] = [schemas.variant_case_id(c, "jpeg", 2) for c in extra["case_id"]]
+    io.write_csv(path, pd.concat([df, extra]))
+    out = M.run(D.make_ctx(CFG, tmp_path / "data", tmp_path / "art"))
+    assert io.read_json(out["conformal"])["finite_sample"]["n_calibration"] == 40
+    assert io.read_json(out["metrics"])["variants_excluded"] == 4

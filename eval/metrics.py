@@ -5,7 +5,8 @@
 Inputs (data root): cases.csv (label, split, group), predictions.csv (pcal__<class>, p__<model>__<class>, set_lac,
 optional set_aps / set_mondrian, temperature); optional <artifacts>/eval/model_choice.json for the model names.
 Only clean test cases (rows of cases.csv with split == test) are scored: degraded and composite variants never enter
-these metrics (their count is recorded as `variants_excluded`).
+these metrics (`variants_excluded` counts predictions rows that are not cases.csv cases, any split), and only clean
+calibration cases count toward n_calibration in the finite-sample note.
 
 Writes <artifacts>/eval/:
   metrics.json      Invasive-vs-rest AUROC for Model A (black-box ceiling) and Model B (concept bottleneck) with a
@@ -113,7 +114,7 @@ def load_test(cfg: Mapping[str, Any], root: Path) -> tuple[pd.DataFrame, int]:
     cases = load_cases(cfg, root)
     preds = load_predictions(cfg, root)
     test = cases[cases["split"] == "test"][["case_id", "label", "group", "lane"]]
-    variants = int((preds["split"] == "test").sum() - preds["case_id"].isin(test["case_id"]).sum())
+    variants = int((~preds["case_id"].isin(cases["case_id"])).sum())        # rows that are not cases.csv cases
     df = test.merge(preds, on="case_id", how="left", validate="one_to_one")
     missing = df.loc[df[schemas.cal_prob_col(cfg["classes"][0])].isna(), "case_id"].tolist()
     if missing:
@@ -156,7 +157,10 @@ def pick_models(df: pd.DataFrame, cfg: Mapping[str, Any], art: Path) -> dict[str
     out: dict[str, Any] = {"production": production[0], "available": models}
     path = schemas.eval_json(art, "model_choice")
     choice = io.read_json(path) if path.is_file() else {}
-    if choice.get("model_a") in models and choice.get("model_b") in models:
+    if choice.get("model_a") or choice.get("model_b"):
+        absent = [m for m in (choice.get("model_a"), choice.get("model_b")) if m not in models]
+        if absent:
+            raise ValueError(f"eval/model_choice.json names models {absent} without p__ columns in predictions.csv")
         out.update(a=choice["model_a"], b=choice["model_b"], source="eval/model_choice.json")
         return out
     a = next((m for m in cfg["model_choice"]["candidates"] if m in models), None)
@@ -295,11 +299,13 @@ def beta_note(n_cal: int, alpha: float) -> dict[str, Any]:
                     f"1 - alpha = {1 - alpha:.2f} guarantee holds on average over calibration sets."}
 
 
-def conformal_payload(df: pd.DataFrame, preds: pd.DataFrame, cfg: Mapping[str, Any]) -> dict[str, Any]:
+def conformal_payload(df: pd.DataFrame, preds: pd.DataFrame, cfg: Mapping[str, Any],
+                      calibration_ids: Sequence[str]) -> dict[str, Any]:
+    """calibration_ids: clean calibration cases from cases.csv (variants never count toward n_calibration)."""
     classes = list(cfg["classes"])
     y, groups = df["y"].to_numpy(), df["group"].to_numpy()
     alpha = float(cfg["alpha"])
-    n_cal = int((preds["split"] == "calibration").sum())
+    n_cal = int(preds["case_id"].isin(set(calibration_ids)).sum())
     out: dict[str, Any] = {"split": "test", "n": int(len(df)), "n_groups": int(len(set(groups))), "alpha": alpha,
                            "target_coverage": 1 - alpha, "drives_tiers": f"{cfg['conformal']['method']}_{cfg['conformal']['mode']}",
                            "finite_sample": beta_note(n_cal, alpha), "methods": {}}
@@ -335,11 +341,13 @@ def run(ctx: cli.StepContext) -> dict[str, Path]:
     cfg, root, art = ctx.cfg, ctx.data_root, ctx.artifacts_root
     df, variants = load_test(cfg, root)
     preds = load_predictions(cfg, root)
+    cases = load_cases(cfg, root)
+    calibration_ids = cases.loc[cases["split"] == "calibration", "case_id"].tolist()
     metrics = metrics_payload(df, variants, cfg, art)
     outputs = {
         "metrics": write_eval(art, "metrics", metrics, cfg, ctx.synthetic),
         "calibration": write_eval(art, "calibration", calibration_payload(df, cfg, metrics["models"]), cfg, ctx.synthetic),
-        "conformal": write_eval(art, "conformal", conformal_payload(df, preds, cfg), cfg, ctx.synthetic),
+        "conformal": write_eval(art, "conformal", conformal_payload(df, preds, cfg, calibration_ids), cfg, ctx.synthetic),
     }
     io.write_meta(schemas.step_meta_json(root, STEP), step=STEP, cfg=cfg,
                   inputs=[schemas.cases_csv(root), schemas.predictions_csv(root)], outputs=list(outputs.values()),
