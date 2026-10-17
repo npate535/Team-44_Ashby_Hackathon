@@ -106,6 +106,7 @@ def test_manifest_covers_every_set_with_views(synthetic_root):
     assert (views.loc[b512] == CFG["encoders"]["views"]["g512"]).all()
     assert (views.loc[m[m["set"] == "nct"].item_id.unique()] == 1).all()
     deg = m[m["set"] == "deg512"]
+    assert (deg.view == 0).all()                                     # ruling M9
     assert set(deg.degrade_type) == set(CFG["degrade"]["types"]) and set(deg.split) == {"calibration", "test"}
     assert (m[m["set"] == "quilt"].label.str.match(r"^[a-z_]+:(pos|neg)$")).all()
 
@@ -132,7 +133,10 @@ def test_embeddings_for_every_encoder_head_and_set(synthetic_root):
                 if info["views_file"]:
                     xv = np.load(schemas.emb_npy(root, enc, set_name, head, views=True))
                     vi = read(root, schemas.EMB_INDEX, schemas.emb_index_csv(root, enc, set_name, head, views=True))
-                    assert set(vi.split) == {"train"} and len(vi) == len(xv) == (idx.split == "train").sum() * info["n_views"]
+                    assert set_name in ("bach512", "bach256")             # ruling M9: every split
+                    assert set(vi.split) == set(schemas.SPLITS) and len(vi) == len(xv) == len(idx) * info["n_views"]
+                    v0 = xv[(vi.view == 0).to_numpy()]
+                    assert v0.shape == x.shape
     # dims differ between encoders (never comparable)
     dims = {enc: json.loads(schemas.emb_meta_json(root, enc).read_text())["heads"]["probe"]["dim"]
             for enc in ("conch", "musk")}
@@ -327,6 +331,10 @@ def test_deterministic_for_a_seed(tmp_path, synthetic_root):
     before = (out / "meta/make_synthetic.json").stat().st_mtime_ns
     assert make_synthetic.main(["--out", str(out), "--small"]) == 0
     assert (out / "meta/make_synthetic.json").stat().st_mtime_ns == before
+    # different arguments without --force: refuse, keep downstream outputs
+    (out / "downstream.csv").write_text("x")
+    assert make_synthetic.main(["--out", str(out), "--small", "--seed", "3"]) == 3
+    assert (out / "downstream.csv").exists()
 
 
 def test_refuses_non_synthetic_non_empty_dir(tmp_path):
@@ -339,3 +347,15 @@ def test_different_seed_changes_data():
     a, b = make_synthetic.World(CFG, 44, True), make_synthetic.World(CFG, 7, True)
     assert a.cases.label.tolist() != b.cases.label.tolist()      # same ID set, different seeded permutation
     assert not np.allclose(a.lat256, b.lat256)
+
+
+def test_every_manifest_path_exists_and_crop_fits(synthetic_root):
+    from PIL import Image
+    m = read(synthetic_root, schemas.EMBED_MANIFEST)
+    first = m.drop_duplicates("path")
+    sample = first.groupby("set").head(3)
+    for row in sample.itertuples():
+        path = schemas.resolve(synthetic_root, row.path)
+        assert path.is_file(), row.path
+        with Image.open(path) as img:
+            assert row.x + row.w <= img.width and row.y + row.h <= img.height, (row.path, img.size)

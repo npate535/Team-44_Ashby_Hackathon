@@ -33,8 +33,13 @@ Choices a consumer should know (also listed in agent3.md):
   * embed_manifest.csv and emb/* list EVERY tile (QC pass and fail); consumers filter with tiles.csv qc_pass.
   * deg512/deg256 items keep the SOURCE case_id plus degrade_type/severity; the variant ID is
     core.schemas.variant_case_id(case_id, type, severity). comp*/wsi_margin256 items use the composite / window ID.
+  * Ruling M9: degraded sets are embedded at view 0 only (degrade.views when that key exists, else 1); bach512/bach256
+    `_views` files cover every split (view-0 clean rows are the like-for-like baseline for degraded reads).
   * Case IDs are "SYN_<n:04d>" (seeded permutation), so synthetic IDs can never collide with real BACH IDs.
-  * image_path points at the display JPEG (no full-size source images are generated); tile PNGs are thumbnails.
+  * image_path points at the display JPEG (no full-size source images are generated). Every manifest `path` exists
+    and its crop box fits the file: tile PNGs are full-size flat squares, composites and WSI windows are full-size
+    (2048x1536) block pictures cropped per tile, whole-image sets (NCT, Quilt, PathGen, WSI tiles) are small PNGs
+    under aux/<set>/ with (0, 0, width, height).
 
 Laptop only (numpy, pandas, Pillow, PyYAML via core.config).
 """
@@ -42,6 +47,7 @@ Laptop only (numpy, pandas, Pillow, PyYAML via core.config).
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import shutil
@@ -95,6 +101,8 @@ ENCODER_SPEC: dict[str, tuple[float, tuple[int | None, int], float]] = {
     "pathgenclip": (0.60, (32, 36), 0.8),
 }
 VIEW_NOISE = 0.12
+DEGRADED_SETS = ("deg512", "deg256")
+VIEWS_FILE_SETS = ("bach512", "bach256")
 CELL_FEATURES_BUILTIN = ("neo_fraction", "neo_density", "nuc_area_mean", "nuc_area_cv", "nuc_shape_cv",
                          "infl_fraction", "til_proximity", "dead_fraction", "epi_fraction")
 CELL_MIX = {  # type probabilities (neoplastic, inflammatory, connective, dead, epithelial) and neo area mean/cv
@@ -239,10 +247,10 @@ class World:
             lesional = self._lesion_mask(rng, LESIONAL_FRACTION[label])
             n_bg = int(round(BACKGROUND_FRACTION * r * c))
             if row.case_id in self.insufficient:
-                n_bg = r * c - 6                     # leaves ~2 QC-passing 512 tiles (< qc.min_tiles_kept)
+                n_bg = r * c - 8                     # leaves 2 QC-passing 512 tiles (< qc.min_tiles_kept)
             background = np.zeros(r * c, dtype=bool)
             if row.case_id in self.insufficient:
-                keep = [(0, 0), (0, 1), (1, 0), (1, 1), (0, 2), (1, 2)]   # two full 512 tiles in the top-left
+                keep = [(a, b) for a in (0, 1) for b in range(4)]          # 512 tiles 0 and 1 (top-left)
                 background[:] = True
                 for rr, cc in keep:
                     background[rr * c + cc] = False
@@ -367,8 +375,10 @@ def nct_prompts() -> dict[str, str]:
 
 # ---- the generator ----------------------------------------------------------------------------------------------------------
 class Generator:
-    def __init__(self, cfg: Mapping[str, Any], out: Path, seed: int, small: bool, with_cells: bool):
+    def __init__(self, cfg: Mapping[str, Any], out: Path, seed: int, small: bool, with_cells: bool,
+                 build: Mapping[str, Any] | None = None):
         self.cfg, self.out, self.seed, self.small, self.with_cells = cfg, out, int(seed), small, with_cells
+        self.build = dict(build or build_key(cfg, seed, small, with_cells))
         self.world = World(cfg, seed, small)
         self.mpp = float(cfg["dataset"]["mpp"])
         self.views = {g: int(v) for g, v in cfg["encoders"]["views"].items()}
@@ -380,7 +390,8 @@ class Generator:
         self.n_wsi = 10
         self.wsi_tiles = 8 if small else 40
         self.display_long = 384 if small else int(cfg["tiles"]["display"]["long_side"])
-        self.thumb = {"g512": 16 if small else 48, "g256": 8 if small else 24}
+        self.aux_px = {"nct": 224, "quilt": 256, "pathgen": 256, "wsi256": 256, "wsi512": 512}
+        self._png_cache: dict[tuple[Any, ...], bytes] = {}
 
     # -- driver ----------------------------------------------------------------------------------------------------------
     def run(self) -> None:
@@ -388,7 +399,7 @@ class Generator:
         marker = self.out / cli.SYNTHETIC_MARKER
         self._emit(io.write_json(marker, {"synthetic": True, "generator": "pipeline.make_synthetic", "seed": self.seed,
                                           "small": self.small, "with_cells": self.with_cells,
-                                          "note": "Synthetic data root: generated non-tissue images and planted "
+                                          "build": self.build, "note": "Synthetic data root: generated non-tissue images and planted "
                                                   "embeddings. Never report its numbers as results."}))
         self.write_inventory()
         self.write_cases_tiles()
@@ -444,7 +455,8 @@ class Generator:
         self._emit(_write_frame(self.out, schemas.TILES, self.tiles))
 
     # -- images --------------------------------------------------------------------------------------------------------------
-    def _picture(self, lat256: np.ndarray, classes: np.ndarray | None, label: str) -> Image.Image:
+    def _picture(self, lat256: np.ndarray, classes: np.ndarray | None, label: str, width: int | None = None
+                 ) -> Image.Image:
         """Non-tissue picture: one flat color block per 256-px tile (hue from the latent), grid lines, a banner."""
         r, c = lat256.shape[:2]
         k = len(self.world.concepts)
@@ -455,7 +467,7 @@ class Generator:
         if classes is not None:
             rgb[classes == "background"] = 0.96
         small = Image.fromarray((np.clip(rgb, 0, 1) * 255).astype(np.uint8))
-        w = self.display_long
+        w = width or self.display_long
         h = int(round(w * self.world.height / self.world.width))
         img = small.resize((w, h), Image.NEAREST)
         draw = ImageDraw.Draw(img)
@@ -472,21 +484,11 @@ class Generator:
         for n, row in w.cases.iterrows():
             img = self._picture(w.lat256[n], w.class256[n], row.case_id)
             self._emit(io.save_image(schemas.display_jpg(self.out, row.case_id), img, quality=85))
-        # tile thumbnails (both grids): flat squares, PNG bytes cached per (grid, shade) -> thousands of tiny writes
-        cache: dict[tuple[str, int, int], bytes] = {}
+        # tile PNGs (both grids): full-size flat squares; PNG bytes cached per (size, shade) -> thousands of writes
         made: set[Path] = set()
         for t in self.tiles.itertuples(index=False):
-            key = (t.grid, int(8 * t.tissue_frac), w.case_row[t.case_id] % 3)
-            if key not in cache:
-                gray = 80 + 18 * key[1]
-                buf = BytesIO()
-                Image.new("RGB", (self.thumb[t.grid],) * 2, (gray, (gray + 40 * key[2]) % 256, 200)).save(buf, "PNG")
-                cache[key] = buf.getvalue()
-            path = self.out / t.path
-            if path.parent not in made:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                made.add(path.parent)
-            path.write_bytes(cache[key])                          # plain write: derived thumbnails, regenerated whole
+            shade = (int(8 * t.tissue_frac), w.case_row[t.case_id] % 3)
+            self.flat_png(self.out / t.path, int(t.size), int(t.size), shade, made)
         self._emit(self.out / "tiles")
         # degraded displays for test-surgical cases at degrade.display_severity
         sev = int(self.cfg["degrade"]["display_severity"])
@@ -496,6 +498,19 @@ class Generator:
                 vid = schemas.variant_case_id(row.case_id, dtype, sev)
                 img = self._picture(w.degrade_latent(w.lat256[n], sev), w.class256[n], f"{vid}")
                 self._emit(io.save_image(schemas.display_jpg(self.out, vid), img, quality=85))
+
+    def flat_png(self, path: Path, width: int, height: int, shade: tuple[int, int], made: set[Path]) -> None:
+        """Write a flat-color PNG (cached encoded bytes per size and shade); plain write, the root is rebuilt whole."""
+        key = (width, height, shade)
+        if key not in self._png_cache:
+            gray = 80 + 18 * shade[0]
+            buf = BytesIO()
+            Image.new("RGB", (width, height), (gray, (gray + 40 * shade[1]) % 256, 200)).save(buf, "PNG")
+            self._png_cache[key] = buf.getvalue()
+        if path.parent not in made:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            made.add(path.parent)
+        path.write_bytes(self._png_cache[key])
 
     # -- composites ---------------------------------------------------------------------------------------------------------------
     def composite_layout(self) -> list[dict[str, Any]]:
@@ -556,7 +571,7 @@ class Generator:
                          **{f"truth_{m}": truth[m] for m in schemas.MARGINS}})
             img = self._picture(lat, cls, cid)
             self._emit(io.save_image(schemas.display_jpg(self.out, cid), img, quality=85))
-            self._emit(io.save_image(self.out / f"composites/{cid}.png", img.resize((64, 48))))
+            self._emit(io.save_image(self.out / f"composites/{cid}.png", self._picture(lat, cls, cid, w.width)))
         self.composites = pd.DataFrame(rows)
         self._emit(_write_frame(self.out, schemas.COMPOSITES, self.composites))
 
@@ -617,7 +632,7 @@ class Generator:
                          "fold": fold_of[self.wsi_patients[wsi_id]], "x": 2048 * i, "y": 1536 * (i % 3),
                          "width": w.width, "height": w.height, "stratum": stratum, "path": f"wsi_windows/{wid}.png",
                          **{f"truth_{m}": truth[m] for m in schemas.MARGINS}})
-            self._emit(io.save_image(self.out / f"wsi_windows/{wid}.png", self._picture(lat, cls, wid).resize((64, 48))))
+            self._emit(io.save_image(self.out / f"wsi_windows/{wid}.png", self._picture(lat, cls, wid, w.width)))
         self.wsi_windows = pd.DataFrame(rows)
         self._emit(_write_frame(self.out, schemas.WSI_WINDOWS, self.wsi_windows))
 
@@ -660,19 +675,23 @@ class Generator:
         rows: list[dict[str, Any]] = []
 
         def tiled(case_id: str, split: str, grid: str, lat_grid: np.ndarray, label: str = "", group: str = "",
-                  degrade: tuple[str, int] | None = None, path_case: str | None = None) -> None:
+                  degrade: tuple[str, int] | None = None, path_case: str | None = None, image: str = "") -> None:
+            """Tile rows; path = the tile PNG of path_case (crop = whole PNG) or a full-size field image (crop box)."""
             cols = lat_grid.shape[1]
+            size = int(self.world.g512["size"] if grid == "g512" else self.world.g256["size"])
             for r in range(lat_grid.shape[0]):
                 for c in range(cols):
                     idx = r * cols + c
+                    if path_case:
+                        path, x, y = schemas.tile_png(self.out, grid, path_case, r, c).relative_to(self.out).as_posix(), 0, 0
+                    else:
+                        path, x, y = image, c * size, r * size
                     rows.append({
                         "item_id": schemas.make_item_id(set_name, case_id, idx, *(degrade or (None, None))),
                         "set": set_name, "case_id": case_id, "split": split, "grid": grid, "tile_idx": idx,
                         "degrade_type": degrade[0] if degrade else "", "degrade_severity": degrade[1] if degrade else 0,
-                        "label": label, "group": group, "lat": lat_grid[r, c],
-                        "path": (schemas.tile_png(self.out, grid, path_case, r, c).relative_to(self.out).as_posix()
-                                 if path_case else ""),
-                        "size": self.world.g512["size"] if grid == "g512" else self.world.g256["size"], "x": c, "y": r})
+                        "label": label, "group": group, "lat": lat_grid[r, c], "path": path,
+                        "x": x, "y": y, "w": size, "h": size})
 
         if set_name in ("bach512", "bach256"):
             grid = "g512" if set_name == "bach512" else "g256"
@@ -696,11 +715,11 @@ class Generator:
         elif set_name in ("comp512", "comp256"):
             for cid, comp in self.comp.items():
                 lat = w.pool512(comp["lat256"]) if set_name == "comp512" else comp["lat256"]
-                tiled(cid, "test", "g512" if set_name == "comp512" else "g256", lat)
+                tiled(cid, "test", "g512" if set_name == "comp512" else "g256", lat, image=f"composites/{cid}.png")
         elif set_name == "wsi_margin256":
             for wid, win in self.windows.items():
                 before = len(rows)
-                tiled(wid, "", "g256", win["lat256"])
+                tiled(wid, "", "g256", win["lat256"], image=f"wsi_windows/{wid}.png")
                 for j, cls in enumerate(win["class256"].ravel()):       # row-major, same order as tiled()
                     rows[before + j]["label"] = str(cls)
                     rows[before + j]["group"] = self.wsi_patients[wid.split("_")[1]]
@@ -709,14 +728,16 @@ class Generator:
                 rows.append({"item_id": schemas.make_item_id(set_name, it["case_id"]), "set": set_name,
                              "case_id": it["case_id"], "split": "", "grid": "", "tile_idx": -1, "degrade_type": "",
                              "degrade_severity": 0, "label": it["label"], "group": it["group"], "lat": it["lat"],
-                             "path": f"wsi_tiles/{it['case_id']}.png", "size": 0, "x": 0, "y": 0})
+                             "path": f"aux/{set_name}/{it['case_id']}.png", "x": 0, "y": 0,
+                             "w": self.aux_px[set_name], "h": self.aux_px[set_name]})
         elif set_name == "nct" or set_name in ("quilt", "pathgen"):
             source = self.nct_items if set_name == "nct" else self.concept_items[set_name]
             for it in source:
                 rows.append({"item_id": schemas.make_item_id(set_name, it["case_id"]), "set": set_name,
                              "case_id": it["case_id"], "split": "", "grid": "", "tile_idx": -1, "degrade_type": "",
                              "degrade_severity": 0, "label": it["label"], "group": it["group"], "lat": it["lat"],
-                             "path": f"/synthetic/{set_name}/{it['case_id']}.png", "size": 0, "x": 0, "y": 0})
+                             "path": f"aux/{set_name}/{it['case_id']}.png", "x": 0, "y": 0,
+                             "w": self.aux_px[set_name], "h": self.aux_px[set_name]})
         else:
             raise ValueError(f"unknown embedding set {set_name!r}")
         df = pd.DataFrame(rows)
@@ -726,6 +747,8 @@ class Generator:
         return df
 
     def n_views(self, set_name: str, grid: str) -> int:
+        if set_name in DEGRADED_SETS:
+            return int(self.cfg["degrade"].get("views", 1))      # ruling M9: degraded sets at view 0 only
         return self.views[grid] if grid in self.views else 1
 
     # -- manifest --------------------------------------------------------------------------------------------------------------
@@ -738,10 +761,12 @@ class Generator:
             grid = items["grid"].iloc[0]
             nv = self.n_views(set_name, grid)
             base = items.drop(columns=["lat"]).copy()
-            whole = base["tile_idx"] < 0
-            base["w"] = np.where(whole, 0, base["size"])
-            base["h"] = np.where(whole, 0, base["size"])
-            base["x"], base["y"] = 0, 0
+            if set_name in self.aux_px:                           # whole-image sets: write the small image files
+                made: set[Path] = set()
+                for p, lab in zip(base["path"], base["label"]):
+                    self.flat_png(self.out / p, self.aux_px[set_name], self.aux_px[set_name],
+                                  (zlib.crc32(str(lab).encode()) % 8, 0), made)
+                self._emit(self.out / "aux" / set_name)
             base["degrade_seed"] = [int(self.cfg["degrade"]["seed"]) + (zlib.crc32(i.encode()) % 100000)
                                     if t else 0 for i, t in zip(base["item_id"], base["degrade_type"])]
             for v in range(nv):
@@ -791,19 +816,20 @@ class Generator:
                         spec = (dtype, int(sev)) if dtype else None
                         m, v = enc.embed(lat[rows], rng, nv, spec)
                         mean[rows], views[rows] = m, v
-                    index = items.drop(columns=["lat", "path", "size", "x", "y"]).copy()
+                    index = items.drop(columns=["lat", "path", "x", "y", "w", "h"]).copy()
                     index.insert(0, "emb_row", np.arange(len(index)))
                     index["view"] = -1
                     index["n_views"] = nv
                     self._emit(io.save_npy(schemas.emb_npy(self.out, encoder, set_name, head), mean.astype(np.float16)))
                     self._emit(_write_frame(self.out, schemas.EMB_INDEX, index[index_cols],
                                             schemas.emb_index_csv(self.out, encoder, set_name, head)))
-                    train = (index["split"] == "train").to_numpy()
-                    has_views = bool(train.any() and nv > 1)
+                    # ruling M9: _views files for every split of the clean multi-view sets (bach512/bach256)
+                    in_views = np.full(len(index), set_name in VIEWS_FILE_SETS)
+                    has_views = bool(in_views.any() and nv > 1)
                     if has_views:
-                        vt = views[train]
-                        vidx = index[train].loc[index.index[train].repeat(nv)].copy()
-                        vidx["view"] = np.tile(np.arange(nv), int(train.sum()))
+                        vt = views[in_views]
+                        vidx = index[in_views].loc[index.index[in_views].repeat(nv)].copy()
+                        vidx["view"] = np.tile(np.arange(nv), int(in_views.sum()))
                         vidx["n_views"] = 1
                         vidx["emb_row"] = np.arange(len(vidx))
                         self._emit(io.save_npy(schemas.emb_npy(self.out, encoder, set_name, head, views=True),
@@ -1007,6 +1033,19 @@ class Generator:
         return {f: float(values.get(f, math.nan)) for f in feature_ids}
 
 
+def _file_hash(path: Path) -> str | None:
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16] if path.is_file() else None
+
+
+def build_key(cfg: Mapping[str, Any], seed: int, small: bool, with_cells: bool) -> dict[str, Any]:
+    """Everything the output depends on: a root is reused only when this matches its marker exactly."""
+    return {"seed": int(seed), "small": bool(small), "with_cells": bool(with_cells),
+            "config_hash": config.config_hash(cfg),
+            "concepts_yaml": _file_hash(config.resolve_repo_path(cfg["concepts"]["file"])),
+            "cell_features_yaml": _file_hash(io.REPO_ROOT / "config" / "cell_features.yaml"),
+            "generator": _file_hash(Path(__file__))}
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m pipeline.make_synthetic", description=__doc__.splitlines()[0])
     parser.add_argument("--out", required=True, help="output data root (e.g. data_synthetic)")
@@ -1024,14 +1063,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     if out.exists() and any(out.iterdir()) and not marker.is_file():
         print(f"refusing to write into {out}: it exists, is not empty and is not a synthetic root", file=sys.stderr)
         return 2
-    if marker.is_file() and meta.is_file() and not args.force:
-        prev = io.read_json(marker)
-        if (prev.get("seed"), prev.get("small"), prev.get("with_cells")) == (seed, args.small, args.with_cells):
+    build = build_key(cfg, seed, args.small, args.with_cells)
+    if marker.is_file() and not args.force:
+        prev = io.read_json(marker).get("build")
+        if prev == build and meta.is_file():
             print(f"{out}: synthetic root already built (seed {seed}); use --force to rebuild")
             return 0
+        print(f"{out}: an existing synthetic root was built with different arguments, settings or concept bank; "
+              f"rerun with --force to delete and rebuild it (this also deletes downstream outputs under it)",
+              file=sys.stderr)
+        return 3
     if marker.is_file():
         shutil.rmtree(out)                                     # only ever deletes a root we generated (marker present)
-    Generator(cfg, out, seed, args.small, args.with_cells).run()
+    Generator(cfg, out, seed, args.small, args.with_cells, build).run()
     print(f"wrote synthetic data root {out} (seed {seed}{', small' if args.small else ''}"
           f"{', with cells' if args.with_cells else ''})")
     return 0
