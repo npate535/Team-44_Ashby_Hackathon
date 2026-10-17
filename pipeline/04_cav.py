@@ -123,7 +123,7 @@ def main(argv: Sequence[str] | None = None, log: Any = print) -> int:
     ids = list(cfg["concepts"]["ids"])
     index, x, used = load_mined(root, encoder, cav["sets"])
     out_path = concepts_step.concept_vectors_npz(root)
-    inputs = [p for s in list(cav["sets"]) + ["wsi512"] for p in (schemas.emb_npy(root, encoder, s, "align"),)
+    inputs = [p for s in list(cav["sets"]) + ["wsi512", "bach512"] for p in (schemas.emb_npy(root, encoder, s, "align"),)
               if p.is_file()] + [p for p in [schemas.text_npz(root, encoder)] if p.is_file()]
     fp = concepts_step.inputs_fingerprint(inputs, json.dumps([config.config_hash(cfg), encoder], default=str))
     meta_path = schemas.step_meta_json(root, META_STEP)

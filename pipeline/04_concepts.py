@@ -16,7 +16,8 @@ c__frac = fraction of QC tiles with z > concepts.z_threshold, c__spread = mean s
 components c__text_top<k> / c__cav_top<k>, and n_tiles / variant / source_case_id. Rows: every clean case of every
 split plus degraded (deg512 -> schemas.variant_case_id) and composite (comp512 -> composite IDs) variants when
 their embeddings exist, z-scored with the clean train statistics; split = the source case's split. Variants are
-recognized by ID and never enter headline metrics. concepts_tile.npz (CONCEPTS_TILE_NPZ) holds every tile row.
+recognized by ID and never enter headline metrics. concepts_tile.npz (CONCEPTS_TILE_NPZ) holds the tiles each case
+was aggregated over (QC-passing; all tiles only for a case with none) plus an extra `variant` array.
 
 Eval (core.schemas eval_json; NaN -> null):
     concepts.json       section "nct": cross-organ sanity check on NCT-CRC (settings nct.concept_checks), AUROC
@@ -131,18 +132,25 @@ def raw_scores(x: np.ndarray, phr: Mapping[str, tuple[np.ndarray, np.ndarray]], 
 
 
 # ---- concept vectors (04_cav) -------------------------------------------------------------------------------------------
-def load_vectors(root: Path, ids: Sequence[str], dim: int) -> dict[str, Any] | None:
+def load_vectors(root: Path, ids: Sequence[str], dim: int, encoder: str) -> dict[str, Any] | None:
     path = concept_vectors_npz(root)
     if not path.is_file():
         return None
     data = io.load_npz(path)
+    if str(data["encoder"]) != encoder:
+        raise ValueError(f"{path} was fit on {str(data['encoder'])!r} embeddings, not {encoder!r}: rerun 04_cav "
+                         f"--encoder {encoder}")
+    if not np.isfinite(data["w"]).all(axis=1).any():
+        return None  # 04_cav fit no vector (no mined images yet): text-only
     order = {c: i for i, c in enumerate(data["concept_ids"].tolist())}
     if data["w"].shape[1] != dim:
         raise ValueError(f"{path}: vector dim {data['w'].shape[1]} != embedding dim {dim} (different encoder?)")
     use = np.array([bool(data["caption_consistent"][order[c]]) if c in order else False for c in ids])
+    auroc = np.array([float(data["auroc"][order[c]]) if c in order else np.nan for c in ids])
     w = np.stack([data["w"][order[c]] if c in order else np.full(dim, np.nan, np.float32) for c in ids])
     b = np.array([data["b"][order[c]] if c in order else np.nan for c in ids], np.float32)
-    return {"use": use, "w": w.astype(np.float32), "b": b, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+    return {"use": use, "w": w.astype(np.float32), "b": b, "auroc": auroc,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
 
 
 # ---- data ------------------------------------------------------------------------------------------------------------------
@@ -163,6 +171,15 @@ def load_tile_embeddings(root: Path, encoder: str, set_name: str) -> tuple[pd.Da
     return index, arr
 
 
+def split_variant_id(case_id: str, degrade_type: str, severity: int) -> tuple[str, str]:
+    """(source case ID, variant case ID) of a degraded manifest row. 01_build_cases stores the variant ID
+    (schemas.variant_case_id) as case_id; a bare source ID is accepted too."""
+    suffix = f"_FSIM_{degrade_type}{severity}"
+    if case_id.endswith(suffix):
+        return case_id[: -len(suffix)], case_id
+    return case_id, schemas.variant_case_id(case_id, degrade_type, severity)
+
+
 def tile_rows(cases: pd.DataFrame, tiles: pd.DataFrame, index: pd.DataFrame, kind: str, cfg: Mapping[str, Any],
               root: Path) -> pd.DataFrame:
     """Frame of embedded g512 tiles to score: emb_row, case_id (output ID), source_case_id, split, tile_idx, variant,
@@ -180,9 +197,10 @@ def tile_rows(cases: pd.DataFrame, tiles: pd.DataFrame, index: pd.DataFrame, kin
         df["variant"] = "clean"
     elif kind == "degraded":
         df = df[df["degrade_type"] != ""]
-        df["source_case_id"] = df["case_id"]
-        df["case_id"] = [schemas.variant_case_id(c, t, int(s)) for c, t, s in
-                         zip(df["case_id"], df["degrade_type"], df["degrade_severity"])]
+        pairs = [split_variant_id(c, t, int(s)) for c, t, s in
+                 zip(df["case_id"], df["degrade_type"], df["degrade_severity"])]
+        df["source_case_id"] = [src for src, _ in pairs]
+        df["case_id"] = [var for _, var in pairs]
         df["variant"] = "degraded"
     else:
         comp_path = schemas.composites_csv(root)
@@ -203,14 +221,11 @@ def tile_rows(cases: pd.DataFrame, tiles: pd.DataFrame, index: pd.DataFrame, kin
 # ---- case aggregation ------------------------------------------------------------------------------------------------------
 def aggregate_cases(meta: pd.DataFrame, z: np.ndarray, z_text: np.ndarray, z_cav: np.ndarray, spread: np.ndarray,
                     ids: Sequence[str], top_k: int, z_threshold: float, log: Any = print) -> pd.DataFrame:
-    """One row per case: c__top<k>, c__frac, c__spread, c__text_top<k>, c__cav_top<k> over the case's QC tiles (all
-    embedded tiles when none passes QC, logged)."""
+    """One row per case: c__top<k>, c__frac, c__spread, c__text_top<k>, c__cav_top<k> over the case's `used` tiles
+    (see used_tiles)."""
     rows = []
     for case_id, group in meta.groupby("case_id", sort=True):
-        sel = group.index[group["qc"]].to_numpy()
-        if len(sel) == 0:
-            log(f"note: {case_id} has no QC-passing embedded tile; aggregating all {len(group)} tiles")
-            sel = group.index.to_numpy()
+        sel = group.index[group["used"]].to_numpy()
         first = group.iloc[0]
         row: dict[str, Any] = {"case_id": case_id, "split": first["split"], "variant": first["variant"],
                                "source_case_id": first["source_case_id"], "n_tiles": int(len(sel))}
@@ -226,6 +241,16 @@ def aggregate_cases(meta: pd.DataFrame, z: np.ndarray, z_text: np.ndarray, z_cav
             row[f"{cid}__cav_top{top_k}"] = float(np.sort(cav)[::-1][:k].mean()) if np.isfinite(cav).all() else np.nan
         rows.append(row)
     return pd.DataFrame(rows)
+
+
+def used_tiles(meta: pd.DataFrame, log: Any = print) -> np.ndarray:
+    """QC-passing tiles; for a case with none, all its embedded tiles (logged) so every case keeps a read."""
+    used = meta["qc"].to_numpy(bool).copy()
+    for case_id, idx in meta.groupby("case_id").groups.items():
+        if not used[idx].any():
+            log(f"note: {case_id} has no QC-passing embedded tile; using all {len(idx)} tiles")
+            used[idx] = True
+    return used
 
 
 # ---- eval ------------------------------------------------------------------------------------------------------------------
@@ -423,7 +448,7 @@ def main(argv: Sequence[str] | None = None, log: Any = print) -> int:
 
     text = load_text(root, encoder)
     phr = phrasing_embeddings(bank, text)
-    vectors = load_vectors(root, ids, clean[1].shape[1])
+    vectors = load_vectors(root, ids, clean[1].shape[1], encoder)
     limit_ids = set(cli.limit_case_ids(cases["case_id"], ctx.limit)) if ctx.limit else None
 
     frames, embs = [], []
@@ -464,7 +489,9 @@ def main(argv: Sequence[str] | None = None, log: Any = print) -> int:
             cav_stats[cid] = {"train_mean": m, "train_std": s}
     z = np.where(np.isfinite(z_cav), (z_text + z_cav) / 2.0, z_text).astype(np.float32)
 
+    meta["used"] = used_tiles(meta, log)
     features = aggregate_cases(meta, z, z_text, z_cav, spread, ids, k, zt, log)
+    keep = meta["used"].to_numpy(bool)
     feat_cols = schemas.concept_feature_columns(cfg)
     order = (["case_id", "split", "variant", "source_case_id", "n_tiles"] + feat_cols
              + schemas.concept_spread_columns(cfg)
@@ -475,17 +502,19 @@ def main(argv: Sequence[str] | None = None, log: Any = print) -> int:
         raise ValueError("case_features has NaN model features")
     io.write_csv(schemas.case_features_csv(root), features)
     io.save_npz(schemas.concepts_tile_npz(root),
-                case_id=np.asarray(meta["case_id"].tolist(), dtype=str),
-                tile_idx=meta["tile_idx"].to_numpy(np.int32), grid=np.asarray(GRID),
-                concept_ids=np.asarray(ids, dtype=str), z=z, z_text=z_text.astype(np.float32),
-                z_cav=z_cav.astype(np.float32), spread=spread.astype(np.float32), encoder=np.asarray(encoder),
-                synthetic=np.asarray(bool(ctx.synthetic)), qc_pass=meta["qc"].to_numpy(bool),
-                variant=np.asarray(meta["variant"].tolist(), dtype=str))
+                case_id=np.asarray(meta.loc[keep, "case_id"].tolist(), dtype=str),
+                tile_idx=meta.loc[keep, "tile_idx"].to_numpy(np.int32), grid=np.asarray(GRID),
+                concept_ids=np.asarray(ids, dtype=str), z=z[keep], z_text=z_text[keep].astype(np.float32),
+                z_cav=z_cav[keep].astype(np.float32), spread=spread[keep].astype(np.float32),
+                encoder=np.asarray(encoder), synthetic=np.asarray(bool(ctx.synthetic)),
+                variant=np.asarray(meta.loc[keep, "variant"].tolist(), dtype=str))
     counts = features["variant"].value_counts().to_dict()
     log(f"04_concepts: {len(meta)} tiles, cases by variant {counts}; sources {dict(zip(ids, source))}")
 
     concepts_section = {c.id: {"label": c.label, "group": c.group, "direction": c.direction, "weak": c.weak,
-                               "source": source[j], "text_train_mean": float(mu[j]), "text_train_std": float(sd[j]),
+                               "source": source[j], "caption_consistent": bool(vectors is not None and vectors["use"][j]),
+                               "cav_auroc": None if vectors is None else _num(vectors["auroc"][j]),
+                               "text_train_mean": float(mu[j]), "text_train_std": float(sd[j]),
                                **({"cav_train": cav_stats[c.id]} if c.id in cav_stats else {})}
                         for j, c in enumerate(bank.concepts)}
     merge_eval_json(art, "concepts", cfg, ctx.synthetic,

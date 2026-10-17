@@ -78,7 +78,7 @@ def test_z_scoring_uses_clean_train_qc_tiles_only(fake):
     tile = io.load_npz(schemas.concepts_tile_npz(fake.root))
     cases = fake.cases()
     train = set(cases.loc[cases["split"] == "train", "case_id"])
-    mask = np.isin(tile["case_id"], list(train)) & tile["qc_pass"] & (tile["variant"] == "clean")
+    mask = np.isin(tile["case_id"], list(train)) & (tile["variant"] == "clean")  # npz rows = QC tiles used
     np.testing.assert_allclose(tile["z_text"][mask].mean(0), 0.0, atol=1e-4)
     np.testing.assert_allclose(tile["z_text"][mask].std(0), 1.0, atol=1e-3)
     others = ~mask
@@ -91,7 +91,7 @@ def test_top_k_and_fraction_aggregation_by_hand(fake):
     feats = _features(fake).set_index("case_id")
     k, zt = fake.cfg["concepts"]["top_k"], fake.cfg["concepts"]["z_threshold"]
     case = "BACH_0000"
-    sel = (tile["case_id"] == case) & tile["qc_pass"]
+    sel = tile["case_id"] == case
     assert sel.sum() == 11 and feats.loc[case, "n_tiles"] == 11  # the QC-failing tile is excluded
     for j, cid in enumerate(fake.ids):
         z = tile["z"][sel, j]
@@ -115,7 +115,9 @@ def test_degraded_and_composite_variants_use_variant_ids_and_source_splits(fake)
     assert run(C, fake)[0] == 0
     feats = _features(fake)
     deg = feats[feats["variant"] == "degraded"]
-    assert len(deg) == 6 and all("_FSIM_" in c for c in deg["case_id"]) and set(deg["split"]) == {"test"}
+    assert len(deg) == 6 and all(c.count("_FSIM_") == 1 for c in deg["case_id"]) and set(deg["split"]) == {"test"}
+    assert set(deg["n_tiles"]) == {11}  # source-case QC flags apply to degraded tiles
+    assert set(deg["source_case_id"]) <= set(feats.loc[feats["variant"] == "clean", "case_id"])
     src = deg.iloc[0]["source_case_id"]
     assert deg.iloc[0]["case_id"] in {schemas.variant_case_id(src, "blur", 3), schemas.variant_case_id(src, "jpeg", 1)}
     comp = feats[feats["variant"] == "composite"]
@@ -173,6 +175,9 @@ def test_concept_vectors_combine_only_when_caption_consistent(fake):
     np.testing.assert_allclose(tile["z"][:, j], (tile["z_text"][:, j] + tile["z_cav"][:, j]) / 2, atol=1e-5)
     concepts = io.read_json(schemas.eval_json(fake.root / "artifacts", "concepts"))
     assert concepts["concepts"]["invasion"]["source"] == "cav" and concepts["concepts"]["tubules"]["source"] == "text"
+    assert concepts["concepts"]["invasion"]["caption_consistent"] is True
+    assert concepts["concepts"]["invasion"]["cav_auroc"] == pytest.approx(0.9)
+    assert concepts["concepts"]["tubules"]["caption_consistent"] is False
     assert "cav" in concepts["nct"]["concepts"]["pleomorphism"]  # vectors are also scored on NCT when present
     feats = _features(fake)
     assert feats["invasion__cav_top3"].notna().all()
@@ -223,3 +228,35 @@ def test_chain_02_embed_03_text_04_concepts_on_the_cpu_test_encoder(tmp_path, mo
     feats = _features(f)
     assert set(feats.loc[feats["variant"] == "clean", "case_id"]) == set(cases["case_id"])
     assert (feats["variant"] == "degraded").sum() == 2
+
+
+def test_variant_ids_from_the_manifest_are_not_suffixed_twice():
+    assert C.split_variant_id("BACH_0001_FSIM_blur3", "blur", 3) == ("BACH_0001", "BACH_0001_FSIM_blur3")
+    assert C.split_variant_id("BACH_0001", "jpeg", 1) == ("BACH_0001", "BACH_0001_FSIM_jpeg1")
+
+
+def test_npz_holds_only_the_tiles_each_case_was_aggregated_over(fake):
+    assert run(C, fake)[0] == 0
+    tile = io.load_npz(schemas.concepts_tile_npz(fake.root))
+    clean = tile["variant"] == "clean"
+    assert 11 not in set(tile["tile_idx"][clean].tolist())  # the QC-failing tile is absent
+    assert "qc_pass" not in tile and set(tile["variant"].tolist()) == {"clean", "degraded", "composite"}
+
+
+def _vectors(fake, encoder="conch", w=None):
+    np.savez(C.concept_vectors_npz(fake.root), concept_ids=np.asarray(fake.ids),
+             w=np.zeros((9, 24), np.float32) if w is None else w, b=np.zeros(9, np.float32),
+             caption_consistent=np.ones(9, bool), auroc=np.full(9, 0.9), encoder=np.asarray(encoder),
+             synthetic=np.asarray(True))
+
+
+def test_vectors_from_another_encoder_are_refused(fake):
+    _vectors(fake, encoder="pathgenclip")
+    with pytest.raises(ValueError, match="pathgenclip"):
+        run(C, fake)
+
+
+def test_a_vector_file_without_fitted_vectors_is_text_only(fake):
+    _vectors(fake, w=np.full((9, 1), np.nan, np.float32))  # 04_cav ran before any embedding existed
+    assert run(C, fake)[0] == 0
+    assert np.isnan(io.load_npz(schemas.concepts_tile_npz(fake.root))["z_cav"]).all()

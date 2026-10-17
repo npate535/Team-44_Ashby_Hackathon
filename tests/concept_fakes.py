@@ -136,8 +136,9 @@ class Fake:
             for case_id in test_cases[:3]:
                 for dtype, sev in (("blur", 3), ("jpeg", 1)):
                     for t in range(12):
-                        rows.append({"item_id": f"deg512:{case_id}:{t}:{dtype}{sev}", "set": "deg512",
-                                     "case_id": case_id, "split": "test", "grid": "g512", "tile_idx": t,
+                        var_id = schemas.variant_case_id(case_id, dtype, sev)  # 01_build_cases convention
+                        rows.append({"item_id": f"deg512:{var_id}:{t}:{dtype}{sev}", "set": "deg512",
+                                     "case_id": var_id, "split": "test", "grid": "g512", "tile_idx": t,
                                      "degrade_type": dtype, "degrade_severity": sev})
                         emb.append(self.tile_vec(label[case_id], strength=0.6, noise=0.8))
             self.write_index("conch", "deg512", rows, np.asarray(emb))
