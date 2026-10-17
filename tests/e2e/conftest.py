@@ -1,6 +1,10 @@
 """Playwright end-to-end fixtures (Agent 5). Skipped unless PQ_E2E=1 and Chromium is installed (`make e2e`;
 install once with `uv run playwright install chromium`). Starts the backend on a free port over a fresh
-backend.dev_cases root (synthetic, generated non-tissue media) and saves screenshots to docs/screenshots/."""
+backend.dev_cases root (synthetic, generated non-tissue media) and saves screenshots to docs/screenshots/.
+
+PQ_E2E_VIDEO=1 additionally records a watchable desktop run (slowed actions) to docs/screenshots/video/ for the deck:
+    PQ_E2E=1 PQ_E2E_VIDEO=1 uv run pytest -q tests/e2e -k "demo_script and desktop"
+Set PATHQUEUE_E2E_ARTIFACTS=<artifacts root> to drive real artifacts instead of fresh dev cases."""
 
 from __future__ import annotations
 
@@ -20,6 +24,7 @@ from core import config
 REPO = config.REPO_ROOT
 SHOTS = REPO / "docs" / "screenshots"
 VIEWPORTS = {"desktop": {"width": 1280, "height": 900}, "phone": {"width": 390, "height": 844}}
+VIDEO = os.environ.get("PQ_E2E_VIDEO") == "1"
 
 if os.environ.get("PQ_E2E") != "1":
     pytest.skip("browser e2e tests are opt-in: run `make e2e` (PQ_E2E=1)", allow_module_level=True)
@@ -46,6 +51,9 @@ def _post(url: str, body: dict | None = None) -> dict:
 
 @pytest.fixture(scope="session")
 def dev_root(tmp_path_factory) -> Path:
+    real = os.environ.get("PATHQUEUE_E2E_ARTIFACTS", "").strip()
+    if real:
+        return config.resolve_repo_path(real)
     root = tmp_path_factory.mktemp("e2e") / "dev"
     subprocess.run([sys.executable, "-m", "backend.dev_cases", "--out", str(root), "--with-eval",
                     "--mean-interarrival-s", "6", "--fill", "4"], cwd=REPO, check=True, capture_output=True)
@@ -54,8 +62,18 @@ def dev_root(tmp_path_factory) -> Path:
 
 @pytest.fixture(scope="session")
 def roles(dev_root) -> dict[str, str]:
-    """role -> case_id from the dev files' eval_only.role (test-only knowledge, never sent to the UI)."""
-    return {json.loads(p.read_text())["eval_only"]["role"]: p.stem for p in (dev_root / "cases").glob("*.json")}
+    """role -> case_id: dev files carry eval_only.role (test-only, never sent to the UI); for real artifacts the
+    biopsy hero is the latest-arriving tier-2 biopsy with the demo conformal set, routine = a tier-4 biopsy."""
+    cases = [json.loads(p.read_text()) for p in sorted((dev_root / "cases").glob("*.json"))]
+    out = {c["eval_only"]["role"]: c["case_id"] for c in cases if "role" in (c.get("eval_only") or {})}
+    if "hero_biopsy" not in out:
+        want = config.load_settings()["demo"]["heroes"]["biopsy"]["conformal_set"]
+        biopsies = sorted((c for c in cases if c["lane"] == "biopsy"), key=lambda c: c["arrived_offset_s"])
+        heroes = [c for c in biopsies if c["flag"]["tier"] == 2 and c["prediction"]["conformal_set"] == want
+                  and c["agent"]["status"] == "drafted"]
+        out["hero_biopsy"] = (heroes or biopsies)[-1]["case_id"]
+        out["routine_normal"] = next(c["case_id"] for c in biopsies if c["flag"]["tier"] == 4)
+    return out
 
 
 @pytest.fixture(scope="session")
@@ -97,7 +115,7 @@ def api(server):
 def browser():
     with sync_api.sync_playwright() as p:
         try:
-            b = p.chromium.launch()
+            b = p.chromium.launch(slow_mo=450 if VIDEO else 0)
         except Exception as exc:  # noqa: BLE001 - any launch failure means "no browser installed"
             pytest.skip(f"Chromium not available ({exc.__class__.__name__}); run `uv run playwright install chromium`")
         yield b
@@ -140,7 +158,8 @@ class Page:
 def page(request, browser, server, api):
     api.post("/api/sim/reset")
     scheme = "dark" if request.param == "phone" else "light"
-    ctx = browser.new_context(viewport=VIEWPORTS[request.param], color_scheme=scheme)
+    video = {"record_video_dir": str(SHOTS / "video"), "record_video_size": VIEWPORTS[request.param]} if VIDEO else {}
+    ctx = browser.new_context(viewport=VIEWPORTS[request.param], color_scheme=scheme, **video)
     pg = ctx.new_page()
     pg.set_default_timeout(15000)
     wrapped = Page(pg, server)
