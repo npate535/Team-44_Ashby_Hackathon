@@ -129,22 +129,30 @@ export async function createMockApi() {
   const cmp = (a, b) => { for (let i = 0; i < a.length; i++) { if (a[i] < b[i]) return -1; if (a[i] > b[i]) return 1; } return 0; };
 
   function decide(id, action, payload) {
+    if (!['approve_orders', 'edit_orders', 'closer_look', 'dismiss_flag', 'sign_out', 'margin_call'].includes(action))
+      throw new ApiError(422, 'unknown action ' + action);      // same order of checks as backend.db
     const x = find(id);
     const allowed = runtime(x).allowed_actions;
-    if (!['approve_orders', 'edit_orders', 'closer_look', 'dismiss_flag', 'sign_out', 'margin_call'].includes(action))
-      throw new ApiError(422, 'unknown action ' + action);
     if (!allowed.includes(action)) throw new ApiError(409, action + ' is not allowed now (mock)');
     const from = x.status;
     const now = new Date().toISOString();
+    if (!['margin_call', 'edit_orders'].includes(action) && Object.keys(payload).length)
+      throw new ApiError(422, action + ' takes no payload');
     if (action === 'margin_call') {
-      const margins = payload.margins || [];
-      if (payload.call === 'tumor_at_margin' && !margins.length) throw new ApiError(422, 'pick at least one margin');
+      const ORDER = ['superior', 'inferior', 'medial', 'lateral'];
+      if (!['clear', 'tumor_at_margin', 'defer'].includes(payload.call)) throw new ApiError(422, 'unknown margin call');
+      const raw = payload.margins || [];
+      if (raw.some(m => !ORDER.includes(m)) || new Set(raw).size !== raw.length) throw new ApiError(422, 'unknown or repeated margin');
+      if (payload.call === 'tumor_at_margin' && !raw.length) throw new ApiError(422, 'tumor_at_margin needs at least one margin');
+      if (payload.call !== 'tumor_at_margin' && raw.length) throw new ApiError(422, 'call ' + payload.call + ' takes no margins');
+      const margins = ORDER.filter(m => raw.includes(m));
       x.call = {call: payload.call, margins, at: now, wall: Date.now()};
       const elapsed = (x.call.wall - x.arrivedWall) / 1000;
       state.routed.surgeon.unshift({case_id: id, to: 'surgeon', kind: 'margin_call', call: payload.call, margins, at: now,
                                     timer_elapsed_s: elapsed, simulated: true, or_room: room(id), synthetic: true,
                                     suggested_call: x.c.margin && x.c.margin.suggested_call});
-      log(x, 'margin_call', {action, payload});
+      log(x, 'routed', {action, payload: {to: 'surgeon'}});
+      log(x, 'margin_call', {action, payload: {call: payload.call, margins}});
     } else if (action === 'sign_out') {
       x.signedOut = {at: now, sim: simNow()};
       const placed = x.orders.filter((_, i) => ['approved', 'edited'].includes(x.orderStatus[i]))
@@ -155,6 +163,7 @@ export async function createMockApi() {
                                                     risk_score: x.c.prediction.risk_score,
                                                     conformal_set: x.c.prediction.conformal_set,
                                                     conformal_alpha: x.c.prediction.conformal_alpha}});
+      log(x, 'routed', {action, payload: {to: 'oncologist'}});
       log(x, 'signed_out', {action});
     } else {
       if (action === 'edit_orders') {

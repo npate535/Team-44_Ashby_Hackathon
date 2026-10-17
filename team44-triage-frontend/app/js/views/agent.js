@@ -39,7 +39,7 @@ export function agentPanel(v, ST) {
       `<div class="sub">${esc(rationale[o.rule_id] || '')} · rule <code>${esc(o.rule_id)}</code> · ${esc(ORDER_STATUS[o.status] || o.status)}</div></div>`;
   }
   if (!detail.length) orders = '<div class="note">No orders drafted. The agent drafts orders only for flagged cases.</div>';
-  const can = a => v.agent.allowed.includes(a);
+  const can = a => v.agent.allowed.includes(a) && !ST.busy;
   const btn = (act, label, cls = '') => `<button class="btn${cls}" data-act="${act}" data-testid="action-${act === 'approve_orders' ? 'approve' : act === 'edit_orders' ? 'edit' : act === 'closer_look' ? 'closer' : act === 'dismiss_flag' ? 'dismiss' : 'signout'}"${can(act) ? '' : ' disabled'}>${label}</button>`;
   const actions = editing
     ? '<div class="btns"><button class="btn p" data-act="edit_save" data-testid="action-edit-save">Order selected</button><button class="btn" data-act="edit_cancel" data-testid="action-edit-cancel">Cancel</button><span class="sub">Edits can only remove drafted items.</span></div>'

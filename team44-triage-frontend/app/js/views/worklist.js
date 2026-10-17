@@ -1,6 +1,6 @@
 // Worklist (adapts the teammate's row/worklist/tasks): tier groups, live timers, reason badges, conformal chips,
 // arrival-order vs AI-priority toggle, lane filter, aging badge, tasks card.
-import {esc, toView} from '../adapter.js';
+import {esc, num, toView} from '../adapter.js';
 
 const NOTE = {
   ai: 'Simulated frozen sections first, then likely invasive, low confidence, unflagged; within a tier by risk, then ' +
@@ -37,7 +37,7 @@ function row(v, ST) {
   const lane = v.lane === 'surgical'
     ? `<span class="lanetag surg">${esc(v.laneLabel)}${v.variantLabel ? ' · ' + esc(v.variantLabel) : ''}${v.room ? ' · ' + esc(v.room) : ''}</span>`
     : `<span class="lanetag">${esc(v.laneLabel)} · ${esc(v.question)}</span>`;
-  return `<tr class="row${isNew ? ' new' : ''}${v.done ? ' done' : ''}" tabindex="0" data-testid="worklist-row" data-case-id="${esc(v.id)}" data-tier="${v.tier}" data-lane="${esc(v.lane)}" data-done="${v.done}">` +
+  return `<tr class="row${isNew ? ' new' : ''}${v.done ? ' done' : ''}" tabindex="0" data-testid="worklist-row" data-case-id="${esc(v.id)}" data-tier="${num(v.tier)}" data-lane="${esc(v.lane)}" data-done="${v.done}">` +
     `<td><b>${esc(v.id)}</b><div>${lane}</div>${reasonBadges(v)}${v.aged && ST.order === 'ai' ? '<div class="aged">Aged: promoted at 75% of target</div>' : ''}</td>` +
     `<td><span class="tier ${v.tierCls}" data-testid="tier-badge">${esc(v.tierLabel)}</span><div class="sub">${v.risk === null ? 'no score' : v.risk + '% P(Invasive), calibrated'}</div></td>` +
     `<td><div class="chips">${setChips(v)}</div>${v.alphaPct ? `<div class="sub">${v.alphaPct}% conformal set</div>` : ''}</td>` +
@@ -89,8 +89,8 @@ export function render(ST, ctx) {
       if (g !== group) {
         group = g;
         const n = views.filter(x => (x.done ? 'done' : x.tier) === g).length;
-        const label = g === 'done' ? 'Completed (signed out or called)' : `Tier ${g} · ${esc(v.tierLabel)}`;
-        h += `<tr class="grp" data-testid="tier-group" data-group="${g}"><td colspan="5">${label} (${n})</td></tr>`;
+        const label = g === 'done' ? 'Completed (signed out or called)' : `Tier ${num(g)} · ${esc(v.tierLabel)}`;
+        h += `<tr class="grp" data-testid="tier-group" data-group="${esc(g)}"><td colspan="5">${label} (${n})</td></tr>`;
       }
     }
     h += row(v, ST);

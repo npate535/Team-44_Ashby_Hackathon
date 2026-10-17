@@ -24,6 +24,8 @@ window.__PQ_ST__ = ST;     // debugging + e2e introspection (no secrets or groun
 let api = null;
 let lastFp = null;
 let pollTimer = null;
+let pollSeq = 0;           // a response older than the latest request is dropped (lane/sort clicks race the timer)
+let dragging = false;      // heatmap opacity slider held: do not re-render under it
 
 const $ = sel => document.querySelector(sel);
 const ctx = () => ({now: Date.now(), assetUrl: p => api.assetUrl(p)});
@@ -70,18 +72,14 @@ async function loadCase(id) {
   }
 }
 
-async function refresh(force) {
+async function refresh(force, seq) {
   const wl = await api.worklist({lane: ST.route === 'surgeon' ? 'surgical' : ST.lane, order: ST.order});
+  if (seq !== pollSeq) return;
   ST.items = wl.items || [];
   ST.sim = wl.sim || ST.sim;
   ST.synthetic = wl.synthetic || ST.items.some(c => c.synthetic);
   if (ST.route === 'case' && ST.caseId) {
-    const known = ST.events[ST.caseId];
-    if (force || !ST.cases[ST.caseId] || !known) await loadCase(ST.caseId);
-    else {
-      const events = await api.events(ST.caseId);
-      if (events.length !== known.length) await loadCase(ST.caseId);
-    }
+    await loadCase(ST.caseId);       // every poll: live tier (aging), timers and decisions; local and cheap
   } else if (ST.route === 'surgeon') {
     ST.routed.surgeon = await api.routed('surgeon');
   } else if (ST.route === 'oncologist') {
@@ -96,8 +94,9 @@ async function refresh(force) {
 async function poll(force = false) {
   clearTimeout(pollTimer);
   if (document.hidden && !force) { pollTimer = setTimeout(poll, ST.cfg ? ST.cfg.poll_ms : 2000); return; }
+  const seq = ++pollSeq;
   try {
-    await refresh(force);
+    await refresh(force, seq);
     if (ST.fail >= 2) toast('Backend reachable again');
     ST.fail = 0; ST.staleSince = null;
   } catch (err) {
@@ -131,11 +130,14 @@ function view() {
 }
 
 function currentFp() {
-  const parts = [ST.route, ST.caseId, ST.order, ST.lane, ST.tab, ST.editing, ST.notFound, fingerprint(ST.items),
+  const sim = ST.sim || {};
+  const parts = [ST.route, ST.caseId, ST.order, ST.lane, ST.tab, ST.editing, ST.notFound, ST.busy, fingerprint(ST.items),
+                 sim.running, JSON.stringify(sim.pending),
                  JSON.stringify([ST.hm.sel, ST.hm.hl, ST.hm.why]), ST.cellsOverlay, ST.cellsTile, JSON.stringify(ST.marginPick), JSON.stringify(ST.editDraft)];
   if (ST.route === 'case') {
     const c = ST.cases[ST.caseId];
-    parts.push(c ? JSON.stringify([c.agent, c.runtime && c.runtime.decision, c.runtime && c.runtime.orders]) : '');
+    parts.push(c ? JSON.stringify([c.agent, c.runtime && [c.runtime.decision, c.runtime.orders, c.runtime.tier,
+                                                          c.runtime.reasons, c.runtime.timer && c.runtime.timer.state]]) : '');
     parts.push((ST.events[ST.caseId] || []).length);
   }
   if (ST.route === 'surgeon') parts.push(JSON.stringify(ST.routed.surgeon.map(r => r.id)));
@@ -152,7 +154,7 @@ function draw(forceRender = false) {
   const active = document.activeElement;
   const typing = active && $('#app').contains(active) && /^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName) && active.type !== 'checkbox' && active.type !== 'range';
   const fp = currentFp();
-  if (!forceRender && (fp === lastFp || typing)) { tick(); return; }
+  if (!forceRender && (fp === lastFp || typing || dragging)) { tick(); return; }
   lastFp = fp;
   const y = window.scrollY;
   $('#app').innerHTML = view();
@@ -233,10 +235,12 @@ async function act(fn, okMsg) {
 }
 
 async function decide(action, payload) {
+  if (ST.busy) return;                  // no double submits (would only produce a confusing 409)
   const id = ST.caseId;
+  ST.busy = true; draw(true);
   const res = await act(() => api.decide(id, action, payload));
-  if (res && res.case) ST.cases[id] = res.case;
-  ST.editing = null;
+  ST.busy = false;
+  if (res && res.case) { ST.cases[id] = res.case; ST.editing = null; }   // a rejected edit keeps the editor open
   draw(true);
 }
 
@@ -254,7 +258,8 @@ function findingClick(fid) {
   const f = c && (c.findings || []).find(x => x.id === fid);
   if (!f) return;
   if (f.kind === 'concept') {
-    ST.hm.sel = f.data.concept; ST.hm.hl = f.data.tiles || []; ST.hm.why = f.data.concept; ST.flashTarget = '[data-testid=heatmap]';
+    if ((c.tiles || []).some(t => t.concepts && f.data.concept in t.concepts)) ST.hm.sel = f.data.concept;
+    ST.hm.hl = f.data.tiles || []; ST.hm.why = f.data.concept; ST.flashTarget = '[data-testid=heatmap]';
   } else if (f.kind === 'cells') {
     ST.tab = 'cells'; ST.cellsTile = (f.data.tiles || [])[0] ?? null;
     ST.flashTarget = ST.cellsTile !== null ? `[data-testid=cells-tile][data-tile="${ST.cellsTile}"]` : '[data-testid=cells-tab]';
@@ -349,6 +354,8 @@ document.addEventListener('input', e => {
   }
 });
 
+document.addEventListener('pointerdown', e => { if (e.target.dataset && e.target.dataset.hm === 'opacity') dragging = true; });
+document.addEventListener('pointerup', () => { if (dragging) { dragging = false; draw(); } });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(true); });
 window.addEventListener('hashchange', onRoute);
 

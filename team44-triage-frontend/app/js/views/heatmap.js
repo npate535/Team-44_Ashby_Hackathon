@@ -1,7 +1,7 @@
 // Display image + absolutely positioned SVG in source-pixel coordinates (the downscaled JPEG scales for free).
 // Biopsy: per-tile heatmap (risk / a concept's tile z / ABMIL attention) with highlighted tiles.
 // Surgical: the four margins as per-segment colored strips (BUILD_PLAN §A12).
-import {esc, MARGINS} from '../adapter.js';
+import {esc, MARGINS, num} from '../adapter.js';
 
 const clamp01 = x => Math.max(0, Math.min(1, x));
 
@@ -26,8 +26,8 @@ const hatch = '<defs><pattern id="hatch" width="40" height="40" patternUnits="us
 
 export function heatmap(v, hm, assetUrl) {
   if (!v.image) return '<div class="note">No display image.</div>';
-  const {w, h, tile, grid} = v.image;
-  const [rows, cols] = grid;
+  const w = num(v.image.w), h = num(v.image.h), tile = num(v.image.tile);
+  const [rows, cols] = v.image.grid.map(num);
   const maxA = Math.max(0, ...v.tiles.map(t => t.attention || 0));
   const byIdx = new Map(v.tiles.map(t => [t.idx, t]));
   const hl = new Set(hm.hl || []);
@@ -40,12 +40,12 @@ export function heatmap(v, hm, assetUrl) {
         continue;
       }
       const val = tileValue(t, hm.sel, maxA);
-      rects += `<rect class="hm-tile" data-testid="hm-tile" data-tile="${idx}" data-v="${val.toFixed(4)}" x="${t.x}" y="${t.y}" width="${tile}" height="${tile}" fill-opacity="${(val * hm.opacity).toFixed(3)}"><title>Region ${idx}: ${esc(hm.sel)} ${val.toFixed(2)}</title></rect>`;
+      rects += `<rect class="hm-tile" data-testid="hm-tile" data-tile="${idx}" data-v="${val.toFixed(4)}" x="${num(t.x)}" y="${num(t.y)}" width="${tile}" height="${tile}" fill-opacity="${(val * hm.opacity).toFixed(3)}"><title>Region ${idx}: ${esc(hm.sel)} ${val.toFixed(2)}</title></rect>`;
     }
   }
   for (const idx of hl) {
     const t = byIdx.get(idx);
-    if (t) rects += `<rect class="hl" data-hl="${idx}" x="${t.x}" y="${t.y}" width="${tile}" height="${tile}"/>`;
+    if (t) rects += `<rect class="hl" data-hl="${idx}" x="${num(t.x)}" y="${num(t.y)}" width="${tile}" height="${tile}"/>`;
   }
   return `<div class="hm"><img src="${esc(assetUrl(v.image.src))}" alt="Display image for ${esc(v.id)} (tile heatmap overlay)" data-testid="heatmap-img">` +
     `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">${hatch}${rects}</svg></div>`;
@@ -61,7 +61,7 @@ export function heatmapControls(v, hm) {
 /** Margin strips: eosin when p > threshold, amber when p > threshold/2, else a thin green outline only. */
 export function marginOverlay(v, assetUrl) {
   if (!v.image) return '<div class="note">No display image.</div>';
-  const {w, h} = v.image;
+  const w = num(v.image.w), h = num(v.image.h);
   const m = v.margin;
   let rects = '';
   if (m) {
@@ -72,7 +72,7 @@ export function marginOverlay(v, assetUrl) {
       const fill = hot ? 'var(--eos)' : warm ? 'var(--amb)' : 'none';
       const op = hot ? 0.75 : warm ? 0.45 : 0;
       const stroke = hot || warm ? 'var(--sf)' : 'var(--grn)';
-      rects += `<rect class="mseg" data-testid="margin-seg" data-margin="${esc(s.margin)}" data-p="${s.p}" data-involved="${hot && m.involved.includes(s.margin)}" x="${s.x}" y="${s.y}" width="${s.size}" height="${s.size}" fill="${fill}" fill-opacity="${op}" stroke="${stroke}"><title>${esc(s.margin)} segment p=${s.p.toFixed(2)}</title></rect>`;
+      rects += `<rect class="mseg" data-testid="margin-seg" data-margin="${esc(s.margin)}" data-p="${num(s.p)}" data-involved="${hot && m.involved.includes(s.margin)}" x="${num(s.x)}" y="${num(s.y)}" width="${num(s.size)}" height="${num(s.size)}" fill="${fill}" fill-opacity="${op}" stroke="${stroke}"><title>${esc(s.margin)} segment p=${num(s.p).toFixed(2)}</title></rect>`;
     }
   }
   return `<div class="hm"><img src="${esc(assetUrl(v.image.src))}" alt="Display image for ${esc(v.id)} with margin strips" data-testid="surgical-img">` +

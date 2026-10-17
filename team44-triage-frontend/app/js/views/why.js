@@ -1,5 +1,5 @@
 // Evidence panels (plan §8.1): Why (signed contributions), How sure, Compared to, Summary with finding refs.
-import {classLabel, esc, FINDING_ID, pct, signed} from '../adapter.js';
+import {classLabel, esc, FINDING_ID, num, pct, signed} from '../adapter.js';
 
 export function why(v, hm) {
   const rows = v.why;
@@ -43,7 +43,7 @@ export function howSure(v, cfg) {
     kv('Prompt-ensemble spread', spread) +
     kv('Reliability', (r.score === null ? '—' : r.score.toFixed(2)) + (r.flag ? ' <span class="pill warn" data-testid="reliability-flag">flag raised</span>' : ''), ' data-f-target="quality"') +
     kv('Input check (OOD percentile)', r.oodPct === null ? '—' : Math.round(r.oodPct * 100)) +
-    kv('Regions kept by QC', r.qcTiles ?? '—') +
+    kv('Regions kept by QC', r.qcTiles === null ? '—' : num(r.qcTiles)) +
     `<div class="kv"><span>Stamp</span><span class="sub">${esc(v.model || '—')} · contract ${esc(v.schema || '—')}</span></div></div>`;
 }
 

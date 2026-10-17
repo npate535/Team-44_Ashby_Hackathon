@@ -1,12 +1,12 @@
 // Cells tab (CELLS_SPEC §7.3): top tiles with the overlay toggle, type legend, per-tile counts, measured features
 // with reference-percentile bars. Wording: "measured features associated with invasive carcinoma".
-import {esc, humanize, signed} from '../adapter.js';
+import {cssColor, cssUrl, esc, humanize, num, signed} from '../adapter.js';
 
 function crop(v, t, assetUrl) {
   const {w, h, tile} = v.image;
   const size = `${(w / tile) * 100}% ${(h / tile) * 100}%`;
   const pos = `${w > tile ? (t.x / (w - tile)) * 100 : 0}% ${h > tile ? (t.y / (h - tile)) * 100 : 0}%`;
-  return `<div class="crop" role="img" aria-label="Region ${t.idx} of the display image" style="background-image:url('${esc(assetUrl(v.image.src))}');background-size:${size};background-position:${pos}"></div>`;
+  return `<div class="crop" role="img" aria-label="Region ${t.idx} of the display image" style="background-image:url('${esc(cssUrl(assetUrl(v.image.src)))}');background-size:${size};background-position:${pos}"></div>`;
 }
 
 function value(f) {
@@ -23,14 +23,14 @@ export function cellsTab(v, ST, assetUrl) {
   }
   const types = cfg.cells.types;
   const colors = cfg.cells.overlay_colors;
-  const legend = `<div class="legend" data-testid="cells-legend" style="flex-wrap:wrap">${types.map(t => `<span data-testid="cells-legend-item"><i class="sw" style="background:${esc(colors[t])}"></i>${esc(humanize(t))}</span>`).join('')}</div>`;
+  const legend = `<div class="legend" data-testid="cells-legend" style="flex-wrap:wrap">${types.map(t => `<span data-testid="cells-legend-item"><i class="sw" style="background:${cssColor(colors[t])}"></i>${esc(humanize(t))}</span>`).join('')}</div>`;
   const tileById = new Map(v.tiles.map(t => [t.idx, t]));
   const figs = cells.tiles.map(ct => {
     const t = tileById.get(ct.idx);
-    const img = ST.cellsOverlay ? `<img src="${esc(assetUrl(ct.overlay))}" alt="Cell overlay, region ${ct.idx}" data-testid="cells-overlay-img">`
+    const img = ST.cellsOverlay ? `<img src="${esc(assetUrl(ct.overlay))}" alt="Cell overlay, region ${num(ct.idx)}" data-testid="cells-overlay-img">`
       : (t ? crop(v, t, assetUrl) : '<div class="note">Region not in the display grid.</div>');
-    const counts = types.map(type => `<div class="kv"><span><i class="sw" style="background:${esc(colors[type])};display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px"></i>${esc(humanize(type))}</span><b>${ct.counts[type] ?? 0}</b></div>`).join('');
-    return `<figure data-testid="cells-tile" data-tile="${ct.idx}"${ST.cellsTile === ct.idx ? ' class="flash"' : ''}>${img}<figcaption class="sub">Region ${ct.idx}</figcaption>${counts}</figure>`;
+    const counts = types.map(type => `<div class="kv"><span><i class="sw" style="background:${cssColor(colors[type])};display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px"></i>${esc(humanize(type))}</span><b>${num(ct.counts[type])}</b></div>`).join('');
+    return `<figure data-testid="cells-tile" data-tile="${num(ct.idx)}"${ST.cellsTile === ct.idx ? ' class="flash"' : ''}>${img}<figcaption class="sub">Region ${num(ct.idx)}</figcaption>${counts}</figure>`;
   }).join('');
   const label = id => (v.concepts.find(c => c.id === id) || {}).label
     || (cfg.labels && cfg.labels.cell_features && cfg.labels.cell_features[id]) || humanize(id);

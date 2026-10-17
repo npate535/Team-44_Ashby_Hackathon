@@ -38,6 +38,11 @@ export function mmss(seconds) {
   const pad = n => String(n).padStart(2, '0');
   return (h ? h + ':' + pad(m) : pad(m)) + ':' + pad(r);
 }
+/** A URL safe inside CSS url('...') within a style attribute. */
+export function cssUrl(u) { return encodeURI(String(u)).replace(/['()]/g, c => '%' + c.charCodeAt(0).toString(16)); }
+/** Only #rgb / #rrggbb colors from config are inlined into styles. */
+export function cssColor(c) { return /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(String(c)) ? c : 'var(--mut)'; }
+export const num = v => (Number.isFinite(Number(v)) ? Number(v) : 0);
 export const pct = p => p === null || p === undefined ? '—' : Math.round(p * 100) + '%';
 export const signed = v => (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v).toFixed(2);
 export const humanize = id => String(id).replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());

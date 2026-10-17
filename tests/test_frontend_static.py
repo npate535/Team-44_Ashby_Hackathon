@@ -128,3 +128,10 @@ def test_adapter_logic_with_node():
     assert out["esc"] == "&lt;b onclick=&quot;x&quot;&gt;&amp;&lt;/b&gt;"
     assert out["allowed"] == ["approve_orders", "edit_orders", "closer_look", "dismiss_flag"]
     assert out["mmss"] == ["01:05", "1:02:05"]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
+@pytest.mark.parametrize("path", sorted(p.relative_to(APP).as_posix() for p in APP.rglob("*.js")))
+def test_every_module_parses(path):
+    res = subprocess.run(["node", "--check", str(APP / path)], capture_output=True, text=True, timeout=30)
+    assert res.returncode == 0, res.stderr

@@ -1,5 +1,5 @@
 // Oncologist inbox: signed-out biopsy summaries with the orders the pathologist placed.
-import {esc} from '../adapter.js';
+import {esc, isLLM} from '../adapter.js';
 
 const STATUS = {none: 'no orders drafted', approved: 'drafted orders approved', edited_and_approved: 'orders edited and approved',
                 dismissed: 'flag dismissed, no orders'};
@@ -14,6 +14,7 @@ export function render(ST) {
     const sentences = ((r.summary && r.summary.sentences) || []).map(s => `<p style="margin:5px 0">${esc(s.text)}</p>`).join('');
     return `<article class="card" data-testid="oncologist-item" data-case-id="${esc(r.case_id)}" style="margin-bottom:12px">` +
       `<h2>${esc(r.case_id)}</h2><div class="sub">Signed out ${esc(new Date(r.at).toLocaleString())} · ${esc(STATUS[r.agent_status] || r.agent_status)}${r.synthetic ? ' · synthetic' : ''}</div>` +
+      `<div style="margin-top:6px"><span class="badge${isLLM(r.summary && r.summary.generator) ? ' llm' : ''}">${isLLM(r.summary && r.summary.generator) ? 'LLM-written from findings · ' + esc(r.summary.generator.slice(6)) : 'Template summary'}</span></div>` +
       `${sentences}<h3>Orders placed</h3><div class="chips">${orders}</div>` +
       '<p class="sub">Research prototype; suggestions only. The pathologist’s sign-out is the result of record.</p></article>';
   }).join('');

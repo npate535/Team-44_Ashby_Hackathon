@@ -1,5 +1,5 @@
 // Surgical case view (simulated frozen section): big wall-clock timer, margin strips, reliability, three calls.
-import {CALL_TEXT, esc, MARGINS, toView} from '../adapter.js';
+import {CALL_TEXT, esc, MARGINS, num, toView} from '../adapter.js';
 import {agentPanel} from './agent.js';
 import {activity, header} from './case_biopsy.js';
 import {marginOverlay} from './heatmap.js';
@@ -20,14 +20,14 @@ export function render(ST, ctx) {
   let h = `<section data-testid="case-view" data-lane="surgical" data-case-id="${esc(v.id)}">` + header(v) + '</div>';
   h += `<div class="simbanner" data-testid="sim-banner" style="margin-top:14px"><b>Simulated frozen section</b> — image borders stand in for inked margins (top = ${esc(names.top)}, bottom = ${esc(names.bottom)}, left = ${esc(names.left)}, right = ${esc(names.right)}).` +
     (v.variant === 'degraded' ? ' This field carries simulated frozen-section artifacts to test the reliability flag.' : '') +
-    (v.variant === 'composite' ? ' Composite test field: half carcinoma and half benign tissue, stitched for the margin-localization test.' : '') + '</div>';
+    (v.variant === 'composite' ? ' Composite test field stitched from two source images for the margin-localization test (simulated).' : '') + '</div>';
   h += '<div class="grid"><div>';
   h += `<div class="card"><h2>Margins</h2>${m ? '' : '<div class="note" data-testid="margin-null">Margin read unavailable. You can still make the call.</div>'}${marginOverlay(v, ctx.assetUrl)}` +
     `<p class="sub" data-testid="margin-2d-note">${esc(ST.cfg.margin.note)}</p>` +
     (m && m.stripUm ? `<p class="sub">Each margin = the outermost ${Math.round(m.stripUm)} µm strip, scored per segment${m.threshold !== null ? `; involved when p > ${m.threshold.toFixed(2)}` : ''}.</p>` : '') + '</div>';
   h += `<div class="card" style="margin-top:14px" data-testid="summary"><h2>Summary</h2>${summary(v)}</div>`;
   h += '</div><div>';
-  h += `<div class="card"><div class="sub">Time since received (wall clock) · target ${ST.cfg.timer.red_min} min</div>` +
+  h += `<div class="card"><div class="sub">Time since received (wall clock) · target ${num(ST.cfg.timer.red_min)} min</div>` +
     `<div class="big timer ${t.state}" data-testid="surgical-timer" data-timer="${esc(v.id)}" data-state="${esc(t.state)}">${esc(t.text)}</div>` +
     `<div class="sub" data-timer-sub="${esc(v.id)}">${esc(t.countdown)}</div>` +
     (v.room ? `<div class="sub">${esc(v.room)} (simulated)</div>` : '') + '</div>';
@@ -40,7 +40,7 @@ export function render(ST, ctx) {
   if (done) {
     h += `<div class="verdict" data-testid="verdict">${esc(callText(done))} — sent to the surgeon ${esc(new Date(done.at).toLocaleTimeString())}</div>`;
   } else {
-    const can = v.agent.allowed.includes('margin_call');
+    const can = v.agent.allowed.includes('margin_call') && !ST.busy;
     const dis = can ? '' : ' disabled';
     h += `<div class="btns"><button class="btn" data-call="clear" data-testid="call-clear"${dis}>Margins clear</button>` +
       `<button class="btn d" data-call="tumor" data-testid="call-tumor"${dis}>Tumor at margin…</button>` +
