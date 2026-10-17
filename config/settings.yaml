@@ -203,7 +203,7 @@ degrade:                            # simulated frozen-section artifacts (plan �
     stain: {alpha: [0.05, 0.10, 0.20], beta: [0.01, 0.03, 0.06]}   # HED jitter: c' = c * (1 + a) + b, a~U(-alpha,alpha), b~U(-beta,beta)
     resample: {factor: [2, 4, 8]}                           # downsample by factor, then upsample back (bicubic)
   display_severity: 3               # degraded display JPEGs for test-surgical cases
-  embed_views: {g512: 8, g256: 4}   # dihedral views per degraded item in deg512/deg256 (= encoders.views: like-for-like with clean TTA); {g512: 1, g256: 1} cuts deg rows 8x/4x (cut order §I-5)
+  embed_views: {g512: 1, g256: 1}   # ruling M9: deg512/deg256 at view 0 only; compared against clean view-0 reads (_views files), never TTA means
 
 composites:                         # margin localization test fields (§A12)
   n: 64

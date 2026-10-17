@@ -255,3 +255,21 @@ def test_degraded_view_count_is_configurable(tmp_path, run):
     man = pd.read_csv(schemas.embed_manifest_csv(data), dtype=str, keep_default_na=False)
     assert set(man.loc[man["set"].isin(["deg512", "deg256"]), "view"]) == {"0"}
     assert set(man.loc[man["set"] == "bach512", "view"].astype(int)) == set(range(cfg["encoders"]["views"]["g512"]))
+
+
+def test_manifest_only_rebuilds_without_reading_images(tmp_path, run):
+    import shutil
+
+    data = tmp_path / "data"
+    for name in ("cases.csv", "tiles.csv", "embed_manifest.csv"):
+        shutil.copy(run["data"] / name, data / name) if data.exists() else (data.mkdir(), shutil.copy(run["data"] / name, data / name))
+    cfg_path, cfg = st.small_settings(tmp_path, **{"degrade.embed_views": {"g512": 2, "g256": 1}})
+    # no tiles/ or photos needed: point --bach-root nowhere
+    assert build.main(["--config", str(cfg_path), "--data-root", str(data), "--bach-root", str(tmp_path / "x"),
+                       "--nct-root", str(run["nct"]), "--manifest-only"]) == 0
+    man = pd.read_csv(schemas.embed_manifest_csv(data), dtype=str, keep_default_na=False)
+    assert set(man.loc[man["set"] == "deg512", "view"]) == {"0", "1"}
+    ref = run["manifest"]
+    pd.testing.assert_frame_equal(man[man["set"] == "bach512"].reset_index(drop=True),
+                                  ref[ref["set"] == "bach512"].reset_index(drop=True))
+    assert not (data / "tiles").exists()

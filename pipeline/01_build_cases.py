@@ -290,15 +290,49 @@ def summarize(cases: pd.DataFrame, tiles: pd.DataFrame, manifest: pd.DataFrame) 
     }
 
 
+def rebuild_manifest(ctx: cli.StepContext, nct_root: Path) -> int:
+    """--manifest-only: core manifest sets from the cases.csv / tiles.csv already in the data root."""
+    cfg, root = ctx.cfg, ctx.data_root
+    try:
+        cases = io.read_csv(schemas.cases_csv(root), dtype=str, keep_default_na=False)
+        tiles = io.read_csv(schemas.tiles_csv(root), dtype=str, keep_default_na=False)
+        schemas.validate_frame(schemas.CASES, cases)
+        schemas.validate_frame(schemas.TILES, tiles)
+        keep = cli.limit_case_ids(cases["case_id"], ctx.limit)
+        cases = cases[cases["case_id"].isin(keep)].reset_index(drop=True)
+        tiles = tiles[tiles["case_id"].isin(keep)].reset_index(drop=True)
+        missing = sorted(set(cases["case_id"]) - set(tiles["case_id"]))
+        if missing:
+            raise ValueError(f"tiles.csv has no tiles for {len(missing)} cases (e.g. {missing[0]}); run 01 fully")
+        manifest = core_manifest(cases, tiles, nct_sample(nct_root, cfg, ctx.limit), cfg)
+    except (ValueError, FileNotFoundError, KeyError) as exc:
+        print(f"ERROR {STEP} --manifest-only: {exc}", file=sys.stderr)
+        return 2
+    full = common.replace_manifest_sets(root, CORE_SETS, manifest)
+    counts = manifest["set"].value_counts().sort_index().to_dict()
+    io.write_meta(schemas.step_meta_json(root, f"{STEP}_manifest"), step=f"{STEP}_manifest", cfg=cfg,
+                  inputs=[schemas.cases_csv(root), schemas.tiles_csv(root), str(nct_root)],
+                  outputs=[schemas.embed_manifest_csv(root)],
+                  args={"limit": ctx.limit, "force": ctx.force, "manifest_only": True}, synthetic=ctx.synthetic,
+                  extra={"manifest_rows_per_set": counts, "manifest_rows_total": int(len(full))})
+    print(json.dumps({"manifest_only": True, "manifest_rows_per_set": counts, "manifest_rows_total": len(full)}, indent=1))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = cli.step_parser(f"pipeline.{STEP}", "BACH cases, THUNDER split, tiles, displays, core manifest.")
     common.add_source_args(parser, ("bach_root", "nct_root"))
     parser.add_argument("--workers", type=int, default=None, help="processes (default $SLURM_CPUS_PER_TASK or 1)")
     parser.add_argument("--allow-missing-patients", action="store_true",
                         help="proceed without the micro patient workbook (no patient check; block groups only)")
+    parser.add_argument("--manifest-only", action="store_true",
+                        help="rebuild only the core manifest sets from the existing cases.csv + tiles.csv (no image "
+                             "reads, no tiling): e.g. after a views change in settings")
     args = parser.parse_args(argv)
     ctx = cli.context(args)
     cfg, root = ctx.cfg, ctx.data_root
+    if args.manifest_only:
+        return rebuild_manifest(ctx, common.source_root(cfg, args, "nct_root"))
     try:
         bach_root = common.source_root(cfg, args, "bach_root")
         nct_root = common.source_root(cfg, args, "nct_root")
