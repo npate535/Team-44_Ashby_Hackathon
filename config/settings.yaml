@@ -34,6 +34,8 @@ dataset:
     filename: ICIAR2018_BACH_Challenge.zip
     md5: 8ae1801334aa943c44627c1eef3631b2
     size_gb: 10.4
+    api_url: https://zenodo.org/api/records/3632035/files/ICIAR2018_BACH_Challenge.zip/content   # supports HTTP Range (prep_a)
+    bytes: 10419148291
     photos_subdir: ICIAR2018_BACH_Challenge/Photos    # layout per docs/research/data_formats.md §1.1; 00_inventory verifies
     wsi_subdir: ICIAR2018_BACH_Challenge/WSI
     ground_truth_csv: ICIAR2018_BACH_Challenge/Photos/microscopy_ground_truth.csv   # cross-check only; folder = label
@@ -43,6 +45,15 @@ dataset:
     micro_url: https://www.dropbox.com/scl/fo/efjnzcjydcjc4ebz1py7n/AF1Dx2gYEZRjo3eWw29IMIE/ICIAR2018_BACH_dataset_micro_patient.xlsx?rlkey=w5ebtg9dlwrk57663chvodzy6&dl=1
     micro_md5: 7a23a77e4531c06c05d8e08e39498b06
     wsi_file: ICIAR2018_BACH_dataset_WSI_patient.xlsx
+    wsi_md5: e1e736043692114041d96fd73f7901d3
+    wsi_url: https://www.dropbox.com/sh/8un9pwrhtqu99r3/AADX3De88B_iJdDtp359X5jHa?dl=1   # folder zip holding wsi_file
+
+inventory:                          # 00_inventory (Agent 1): login-node safe, bounded reads only
+  sample_per_class: 5               # photos per class whose headers are opened (size, mode, bit depth, dpi)
+  examples_per_folder: 3            # example paths recorded per folder
+  max_walk_entries: 20000           # cap on directory entries scanned per dataset tree (pathmmu, PathGen)
+  quilt_peek_rows: 50000            # nrows of the Quilt CSV read to estimate the breast fraction
+  mpp_source: "published scale: ICIAR 2018 challenge Dataset page and THUNDER bach.yaml (mpp 0.42); the TIFF resolution tag (96 dpi) is meaningless and is not used"
 
 split:
   scheme: thunder
@@ -75,6 +86,7 @@ tiles:
   display:
     long_side: 1536                 # display JPEG long side (plan §6.1); contract coordinates stay in source pixels
     jpeg_quality: 90
+  png_compress_level: 1             # tile PNGs (lossless; low level = fast writes in prep_a)
 
 qc:
   saturation_min: 0.07              # a pixel is tissue when HSV saturation (0-1) > saturation_min ...
@@ -171,6 +183,12 @@ retrieval:
   head: align
   library_split: train
   differs_most_in_k: 2              # contrast case: top-k concepts by |delta z|
+
+tile_probe:                         # pipeline.tile_probe.oof_tile_risk (CELLS_SPEC §4; plan §6.6 tile-level probe)
+  C: 0.1                            # inverse L2 strength of the multinomial logistic regression (sklearn C)
+  max_iter: 3000
+  class_weight: balanced            # balanced | null (case labels propagated to tiles; cases differ in QC tile counts)
+  seed: 44                          # grouped, class-stratified fold assignment over train cases
 
 degrade:                            # simulated frozen-section artifacts (plan §6.7); list index i = severity i+1
   types: [blur, jpeg, stain, resample]
