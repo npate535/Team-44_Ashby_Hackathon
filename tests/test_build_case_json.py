@@ -117,12 +117,28 @@ def test_hero_cases_are_picked_and_placed_late(env):
     assert heroes["surgical_composite"]["exact"]
     clean = {c: v["arrived_offset_s"] for c, v in cases.items() if v["simulated_variant"] is None}
     assert max(clean, key=clean.get) == D.HERO_BIOPSY
-    others = [t for c, t in clean.items() if c not in (D.HERO_BIOPSY, "BACH_0107")]
-    assert clean["BACH_0107"] > max(others)
-    variant_times = [v["arrived_offset_s"] for v in cases.values() if v["simulated_variant"] is not None]
-    assert min(variant_times) > max(clean.values())
+    assert clean["BACH_0107"] == min(clean.values())           # surgical hero: earliest, so the backend injects it
+    variants = {c: v["arrived_offset_s"] for c, v in cases.items() if v["simulated_variant"] is not None}
+    assert min(variants.values()) > max(clean.values())
+    for kind in ("surgical_degraded", "surgical_composite"):
+        hero = heroes[kind]["case_id"]
+        same = [t for c, t in variants.items() if cases[c]["simulated_variant"] == cases[hero]["simulated_variant"]]
+        assert variants[hero] == min(same)
     hero = cases[D.HERO_BIOPSY]
     assert hero["agent"]["status"] == "drafted" and hero["prediction"]["conformal_set"] == ["InSitu", "Invasive"]
+
+
+def test_backend_injection_picks_the_heroes_08_chose(env, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    import backend.app as app_mod
+
+    extra = run(env)
+    monkeypatch.setenv("PATHQUEUE_ARTIFACTS_ROOT", str(env["art"]))
+    with TestClient(app_mod.create_app()) as client:
+        for variant, kind in (("normal", "surgical"), ("degraded", "surgical_degraded"), ("composite", "surgical_composite")):
+            got = client.post("/api/sim/inject_surgical", json={"variant": variant}).json()["injected"]
+            assert got == extra["heroes"][kind]["case_id"], variant
 
 
 def test_arrivals_are_seeded_and_deterministic(env):
@@ -349,3 +365,12 @@ def test_margin_geometry_must_match_settings(env):
     io.write_json(path, data)
     with pytest.raises(STEP.InputError, match="strip_px"):
         run(env)
+
+
+def test_every_case_loads_into_the_backend(env):
+    """Agent 5's backend skips cases whose orders repeat a rule_id (edits address orders by rule_id)."""
+    from backend import db
+
+    run(env)
+    loaded = db.load_case_dir(env["art"] / "cases")
+    assert loaded.skipped == [] and len(loaded.cases) == 18

@@ -394,3 +394,12 @@ def test_all_encoders_unavailable_exits_non_zero(tmp_path, fake_degrade, monkeyp
     monkeypatch.setattr(E, "load_encoder", unavailable)
     code, log = run_embed(tmp_path, make_encoders_yaml(tmp_path), "--sets", "nct", "--skip-unavailable")
     assert code == 2 and any("no encoder was available" in line for line in log)
+
+
+def test_dataloader_workers_fork_on_linux_and_run_in_process_elsewhere(monkeypatch):
+    monkeypatch.setattr(embed.sys, "platform", "linux")
+    n, ctx = embed.loader_workers(14)
+    assert n == 14 and ctx.get_start_method() == "fork"
+    monkeypatch.setattr(embed.sys, "platform", "darwin")
+    assert embed.loader_workers(14) == (0, None)
+    assert embed.loader_workers(0) == (0, None)

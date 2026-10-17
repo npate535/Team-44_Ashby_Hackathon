@@ -121,7 +121,8 @@ def test_degraded_and_composite_variants_use_variant_ids_and_source_splits(fake)
     src = deg.iloc[0]["source_case_id"]
     assert deg.iloc[0]["case_id"] in {schemas.variant_case_id(src, "blur", 3), schemas.variant_case_id(src, "jpeg", 1)}
     comp = feats[feats["variant"] == "composite"]
-    assert len(comp) == 1 and "_COMP_" in comp.iloc[0]["case_id"] and comp.iloc[0]["split"] == "test"
+    assert len(comp) == 1 and comp.iloc[0]["case_id"].startswith("COMP_") and comp.iloc[0]["split"] == "test"
+    assert comp.iloc[0]["source_case_id"] == comp.iloc[0]["case_id"]  # M10: no link to the carcinoma half
     assert comp.iloc[0]["n_tiles"] == 12
 
 
@@ -260,3 +261,18 @@ def test_a_vector_file_without_fitted_vectors_is_text_only(fake):
     _vectors(fake, w=np.full((9, 1), np.nan, np.float32))  # 04_cav ran before any embedding existed
     assert run(C, fake)[0] == 0
     assert np.isnan(io.load_npz(schemas.concepts_tile_npz(fake.root))["z_cav"]).all()
+
+
+def test_nct_only_smoke_mode_needs_only_text_and_nct_embeddings(tmp_path):
+    f = Fake(tmp_path / "root")
+    f.build(deg=False, comp=False)
+    for name in ("cases.csv", "tiles.csv"):
+        (f.root / name).unlink()  # the smoke root has neither
+    code, log = run(C, f, "--nct-only", "--encoders", "conch,musk")
+    assert code == 0, log
+    report = io.read_json(f.root / "nct_concepts.json")
+    assert report["musk"]["status"].startswith("skipped")
+    lym = report["conch"]["concepts"]["lymphocytes"]
+    assert lym["text"]["estimate"] > 0.8 and len(report["conch"]["per_phrasing_auroc"]["lymphocytes"]) == 4
+    assert any(line.startswith("[conch] NCT lymphocytes") for line in log)
+    assert not (f.root / "artifacts").exists()

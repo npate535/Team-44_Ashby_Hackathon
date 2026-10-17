@@ -7,8 +7,9 @@ Feature ids, definitions, units and min-count rules: config/cell_features.yaml (
     tile ratios; densities = pooled counts / pooled tissue area (tile area x tiles.csv tissue_frac at the measured
     source mpp). Morphology (nuc_*) uses non-edge neoplastic nuclei only and needs >= cells.min_neoplastic_nuclei of
     them; ratios/densities need >= cells.min_total_nuclei typed nuclei; til_proximity also needs >= 1 inflammatory
-    nucleus. Otherwise the value is missing (empty) and f__missing = 1. insufficient_tumor_nuclei = n_neoplastic <
-    cells.min_neoplastic_nuclei.
+    nucleus. Otherwise the value is missing (empty) and f__missing = 1. insufficient_tumor_nuclei = 1 exactly when the
+    nuc_* features are missing for lack of non-edge neoplastic nuclei (< cells.min_neoplastic_nuclei); n_neoplastic
+    counts all neoplastic nuclei.
   * f__ref_pct: mid-rank percentile of the case value among train cases labeled cells.reference_classes (Normal,
     Benign), in [0, 1]; missing when the value is missing.
   * Train medians (imputation for the risk model, which also adds f__missing) are recorded in the meta file.
@@ -138,8 +139,11 @@ def build(root: Any, cfg: Mapping[str, Any], fcfg: Mapping[str, Any], limit: int
             til_near, til_n, n_tiles = til_near + near, til_n + n_infl, n_tiles + 1
         feats = compute_features(pool, tissue_mm2, (til_near, til_n), cfg, fcfg, enforce_min=True)
         n_neo = sum(n["type"] == "neoplastic" for n in pool)
+        n_neo_core = sum(n["type"] == "neoplastic" and not n["edge"] for n in pool)
+        # flag == the rule that blanks the nuc_* features (non-edge neoplastic nuclei below the minimum)
         case_rows.append({"case_id": case_id, "n_tiles": n_tiles, "n_nuclei": len(pool), "n_neoplastic": n_neo,
-                          "insufficient_tumor_nuclei": int(n_neo < int(cfg["cells"]["min_neoplastic_nuclei"])), **feats})
+                          "insufficient_tumor_nuclei": int(n_neo_core < int(cfg["cells"]["min_neoplastic_nuclei"])),
+                          **feats})
     per_case = pd.DataFrame(case_rows)
     per_case = per_case.merge(cases[["case_id", "split", "label"]], on="case_id", how="left")
     if per_case["split"].isna().any():

@@ -14,7 +14,7 @@ Tile score (plan §6.4/§6.5, BUILD_PLAN §A11), in the CONCH align space (setti
 Case features (core.schemas CASE_FEATURES, concept_feature_columns): c__top<k> = mean of the top-k QC tile z,
 c__frac = fraction of QC tiles with z > concepts.z_threshold, c__spread = mean spread of those top-k tiles, plus
 components c__text_top<k> / c__cav_top<k>, and n_tiles / variant / source_case_id. Rows: every clean case of every
-split plus degraded (deg512 -> schemas.variant_case_id) and composite (comp512 -> composite IDs) variants when
+split plus degraded (deg512 -> schemas.variant_case_id) and composite (comp512 -> opaque COMP_<k> IDs, ruling M10) variants when
 their embeddings exist, z-scored with the clean train statistics; split = the source case's split. Variants are
 recognized by ID and never enter headline metrics. concepts_tile.npz (CONCEPTS_TILE_NPZ) holds the tiles each case
 was aggregated over (QC-passing; all tiles only for a case with none) plus an extra `variant` array.
@@ -181,14 +181,14 @@ def split_variant_id(case_id: str, degrade_type: str, severity: int) -> tuple[st
 
 
 def tile_rows(cases: pd.DataFrame, tiles: pd.DataFrame, index: pd.DataFrame, kind: str, cfg: Mapping[str, Any],
-              root: Path) -> pd.DataFrame:
+              root: Path, grid: str = GRID) -> pd.DataFrame:
     """Frame of embedded g512 tiles to score: emb_row, case_id (output ID), source_case_id, split, tile_idx, variant,
     qc. Clean and degraded tiles take the source case's QC flags; composite tiles are all used (no tiles.csv rows)."""
-    df = index[index["grid"].isin([GRID, ""])].copy()
+    df = index[index["grid"].isin([grid, ""])].copy()
     df["tile_idx"] = df["tile_idx"].astype(int)
     df = df[df["tile_idx"] >= 0]
     split_of = dict(zip(cases["case_id"], cases["split"]))
-    qc = tiles[tiles["grid"] == GRID][["case_id", "tile_idx", "qc_pass"]].copy()
+    qc = tiles[tiles["grid"] == grid][["case_id", "tile_idx", "qc_pass"]].copy()
     qc["qc_pass"] = qc["qc_pass"].astype(str).str.lower().isin(["1", "true", "1.0"])
     qc_map = {(c, int(t)): bool(q) for c, t, q in qc.itertuples(index=False, name=None)}
     if kind == "clean":
@@ -203,12 +203,11 @@ def tile_rows(cases: pd.DataFrame, tiles: pd.DataFrame, index: pd.DataFrame, kin
         df["case_id"] = [var for _, var in pairs]
         df["variant"] = "degraded"
     else:
-        comp_path = schemas.composites_csv(root)
-        comps = read_csv_str(comp_path) if comp_path.is_file() else pd.DataFrame(columns=["case_id", "carcinoma_case_id"])
-        src = dict(zip(comps["case_id"], comps.get("carcinoma_case_id", comps["case_id"])))
-        df["source_case_id"] = [src.get(c, c) for c in df["case_id"]]
+        # Opaque composite IDs (ruling M10): never link a composite to its carcinoma half here; the sources stay in
+        # composites.csv. Composites are built from composites.source_split cases only.
+        df["source_case_id"] = df["case_id"]
         df["variant"] = "composite"
-    df["split"] = [s if s else split_of.get(src_id, cfg["composites"]["source_split"] if kind == "composite" else "")
+    df["split"] = [s if s else (cfg["composites"]["source_split"] if kind == "composite" else split_of.get(src_id, ""))
                    for s, src_id in zip(df["split"], df["source_case_id"])]
     if kind == "composite":
         df["qc"] = True
@@ -300,6 +299,44 @@ def nct_check(root: Path, encoder: str, phr: Mapping[str, Any], ids: Sequence[st
     return out
 
 
+def phrasing_aurocs(arr: np.ndarray, labels: np.ndarray, phr: Mapping[str, Any], cfg: Mapping[str, Any]
+                    ) -> dict[str, list[float | None]]:
+    """Per positive phrasing p_i of each NCT-checked concept: AUROC of cos(x, p_i) - mean_j cos(x, q_j). Points at
+    the phrasings worth rewording (prompt-bank diagnostics; no CI)."""
+    x = _l2(arr)
+    out = {}
+    for cid, positives in cfg["nct"]["concept_checks"].items():
+        pos, con = phr[cid]
+        y = np.isin(labels, positives).astype(int)
+        s_i = x @ pos.T - (x @ con.T).mean(1, keepdims=True)
+        out[cid] = [_num(stats.auroc(y, s_i[:, i])) for i in range(s_i.shape[1])]
+    return out
+
+
+def nct_only(ctx: cli.StepContext, bank: schemas.ConceptBank, encoders: Sequence[str], log: Any) -> int:
+    """Smoke-job mode: cross-organ NCT concept AUROCs per text-aligned encoder from text/<enc>.npz +
+    emb/<enc>/nct_align.npy only (no cases, tiles or eval files). Writes <data root>/nct_concepts.json."""
+    report: dict[str, Any] = {"label": "cross-organ sanity check (NCT-CRC colorectal tiles; smoke-size sample)"}
+    ran = 0
+    for enc in encoders:
+        if not schemas.text_npz(ctx.data_root, enc).is_file() or load_tile_embeddings(ctx.data_root, enc, "nct") is None:
+            report[enc] = {"status": "skipped: no text npz or nct embeddings"}
+            continue
+        phr = phrasing_embeddings(bank, load_text(ctx.data_root, enc))
+        res = nct_check(ctx.data_root, enc, phr, bank.ids, ctx.cfg, None)
+        index, arr = load_tile_embeddings(ctx.data_root, enc, "nct")
+        res["per_phrasing_auroc"] = phrasing_aurocs(arr, index["label"].to_numpy(), phr, ctx.cfg)
+        report[enc] = res
+        ran += 1
+        for cid, entry in res["concepts"].items():
+            t = entry["text"]
+            log(f"[{enc}] NCT {cid} ({'+'.join(entry['positive_classes'])} vs rest, n={entry['n']}): AUROC "
+                f"{t['estimate']:.3f} [{t['lo']:.3f}, {t['hi']:.3f}]; per phrasing "
+                f"{[None if v is None else round(v, 3) for v in res['per_phrasing_auroc'][cid]]}")
+    io.write_json(Path(ctx.data_root) / "nct_concepts.json", report)
+    return 0 if ran else 2
+
+
 def bach_check(features: pd.DataFrame, cases: pd.DataFrame, bank: schemas.ConceptBank, cfg: Mapping[str, Any]
                ) -> dict[str, Any]:
     k = int(cfg["concepts"]["top_k"])
@@ -358,7 +395,8 @@ def spotcheck_summary(artifacts_root: Path) -> dict[str, Any] | None:
 def zero_shot(root: Path, cases: pd.DataFrame, tiles: pd.DataFrame, bank: schemas.ConceptBank,
               cfg: Mapping[str, Any], limit_ids: set[str] | None) -> dict[str, Any]:
     classes = list(cfg["classes"])
-    out: dict[str, Any] = {"method": "case embedding = normalized mean of QC g512 tile align embeddings; class "
+    out: dict[str, Any] = {"method": "case embedding = normalized mean of QC tile align embeddings (bach512, else "
+                                     "bach256); class "
                                      "embedding = normalized mean over class phrasings x templates; argmax cosine",
                            "split": "test", "encoders": {}}
     test_cases = cases[cases["split"] == "test"]
@@ -368,12 +406,15 @@ def zero_shot(root: Path, cases: pd.DataFrame, tiles: pd.DataFrame, bank: schema
         if not schemas.text_npz(root, enc).is_file():
             out["encoders"][enc] = {"status": "skipped: no text npz"}
             continue
-        loaded = load_tile_embeddings(root, enc, "bach512")
+        for set_name, grid in (("bach512", "g512"), ("bach256", "g256")):  # 224-native encoders may lack bach512
+            loaded = load_tile_embeddings(root, enc, set_name)
+            if loaded is not None:
+                break
         if loaded is None:
-            out["encoders"][enc] = {"status": "skipped: no bach512 align embeddings"}
+            out["encoders"][enc] = {"status": "skipped: no bach512 / bach256 align embeddings"}
             continue
         index, arr = loaded
-        meta = tile_rows(cases, tiles, index, "clean", cfg, root)
+        meta = tile_rows(cases, tiles, index, "clean", cfg, root, grid)
         meta = meta[meta["case_id"].isin(test_cases["case_id"])]
         text = load_text(root, enc)
         cls_emb = class_embeddings(bank, text, classes)
@@ -392,7 +433,7 @@ def zero_shot(root: Path, cases: pd.DataFrame, tiles: pd.DataFrame, bank: schema
         y_arr, p_arr, g_arr = np.array(y), np.array(pred), np.array(grp)
         n_c = len(classes)
         out["encoders"][enc] = {
-            "status": "ok", "n_cases": int(len(y)), "n_groups": int(len(set(grp))),
+            "status": "ok", "set": set_name, "n_cases": int(len(y)), "n_groups": int(len(set(grp))),
             "macro_f1": boot(cfg, lambda a, b: stats.macro_f1(a, b, n_c), [y_arr, p_arr], g_arr, None),
             "balanced_accuracy": boot(cfg, lambda a, b: stats.balanced_accuracy(a, b, n_c), [y_arr, p_arr], g_arr, None),
             "accuracy": boot(cfg, lambda a, b: float(np.mean(a == b)), [y_arr, p_arr], g_arr, None),
@@ -414,11 +455,17 @@ def main(argv: Sequence[str] | None = None, log: Any = print) -> int:
     parser = cli.step_parser(STEP, "Concept scores per tile and case + concept checks + zero-shot (plan §6.5).")
     parser.add_argument("--encoder", default=None, help="align space for concepts (default settings concepts.encoder)")
     parser.add_argument("--concepts", default=None, help="concepts.yaml path")
+    parser.add_argument("--nct-only", action="store_true",
+                        help="smoke mode: NCT concept AUROCs per text-aligned encoder only (Delta-safe, no eval files)")
+    parser.add_argument("--encoders", default=None, help="--nct-only: comma list (default settings encoders.text_aligned)")
     args = parser.parse_args(argv)
     ctx = cli.context(args)
     cfg, root, art = ctx.cfg, ctx.data_root, ctx.artifacts_root
     encoder = args.encoder or cfg["concepts"]["encoder"]
     bank = config.load_concept_bank(args.concepts, cfg)
+    if args.nct_only:
+        encs = [e for e in (args.encoders or "").split(",") if e] or list(cfg["encoders"]["text_aligned"])
+        return nct_only(ctx, bank, encs, log)
     ids = bank.ids
     k, zt = int(cfg["concepts"]["top_k"]), float(cfg["concepts"]["z_threshold"])
 

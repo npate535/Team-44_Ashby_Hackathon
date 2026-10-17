@@ -15,8 +15,9 @@ Every tile is pre-resized bicubically by measured mpp / cells.model_mpp (invento
 core.config.effective_mpp; ~512 -> 860 px), segmented, converted by pipeline.cells_convert to CELL_JSON (µm units,
 contours in original tile pixels) and drawn as an overlay on the original tile (settings cells.overlay_colors).
 Outputs per tile: cells/<case_id>/<tile_idx>_overlay.png, then cells/<case_id>/<tile_idx>.json (written last: its
-existence marks the tile done, so reruns resume). Tiles are processed in chunks of cells.chunk_size; a crash loses
-at most one chunk; a failing chunk is logged and the step exits 1 after the remaining chunks.
+existence marks the tile done when its backend, model and source mpp match the current run, so reruns resume;
+--spike always recomputes). Tiles are processed in chunks of cells.chunk_size; a crash loses
+at most one chunk; a failing chunk is retried tile by tile, failing tiles are logged and the step exits 1 at the end.
 
 Modes:
   default   tiles of cell_tiles.csv (04a), sharded (--shard k --nshards n: rows k, k+n, ... of the case_id/tile_idx
@@ -77,6 +78,7 @@ class TiatoolboxBackend:
         if not self.weights.is_file():
             raise FileNotFoundError(f"weights missing: {self.weights} (pipeline/jobs/cells_env.sh downloads them)")
         self.engine = self._engine()
+        self.rebuilt = False
 
     def _engine(self) -> Any:
         from tiatoolbox.models import MultiTaskSegmentor
@@ -97,8 +99,11 @@ class TiatoolboxBackend:
                       overwrite=False)
         try:
             out = self.engine.run(**kwargs)
-        except Exception:  # run() re-entrancy is unverified: rebuild the engine once and retry the chunk
+        except Exception:  # run() re-entrancy is unverified: rebuild the engine once per process and retry
             shutil.rmtree(save_dir, ignore_errors=True)
+            if self.rebuilt:
+                raise
+            self.rebuilt = True
             self.engine = self._engine()
             out = self.engine.run(**kwargs)
         result = {}
@@ -118,6 +123,7 @@ class HovernetBackend:
     def __init__(self, cfg: Mapping[str, Any]):
         self.repo = Path(os.path.expanduser(cfg["cells"]["hovernet_repo"]))
         self.ckpt = Path(cfg["cells"]["hovernet_checkpoint"])
+        self.batch = int(cfg["cells"]["batch_size"])  # 4 shards share one GPU
         for p in (self.repo / "run_infer.py", self.ckpt):
             if not p.exists():
                 raise FileNotFoundError(f"hover_net fallback asset missing: {p} (see cells_backends.md §2)")
@@ -134,7 +140,7 @@ class HovernetBackend:
         out_dir = scratch / f"hn_{uuid.uuid4().hex[:8]}"
         in_dir = Path(pngs[0]).parent  # the chunk's input dir holds only these images
         cmd = [sys.executable, "run_infer.py", f"--gpu={os.environ.get('CUDA_VISIBLE_DEVICES', '0')}", "--nr_types=6",
-               "--type_info_path=type_info.json", "--batch_size=64", "--model_mode=fast",
+               "--type_info_path=type_info.json", f"--batch_size={self.batch}", "--model_mode=fast",
                f"--model_path={self.ckpt}", "--nr_inference_workers=4", "--nr_post_proc_workers=4",
                "tile", f"--input_dir={in_dir}", f"--output_dir={out_dir}", "--mem_usage=0.1"]
         subprocess.run(cmd, cwd=self.repo, check=True)
@@ -180,12 +186,30 @@ def spike_tiles(cases: pd.DataFrame, tiles: pd.DataFrame, cfg: Mapping[str, Any]
     return t[["case_id", "tile_idx", "path"]].reset_index(drop=True)
 
 
-def todo_tiles(rows: pd.DataFrame, root: Path, shard: int, nshards: int, force: bool) -> pd.DataFrame:
+def tile_done(root: Path, case_id: str, tile_idx: int, identity: Mapping[str, Any]) -> bool:
+    """JSON + overlay exist and the JSON came from the same backend, model and source mpp (a backend switch after a
+    failed spike review must not keep the old outputs)."""
+    jpath = schemas.cell_json(root, case_id, tile_idx)
+    if not (jpath.is_file() and schemas.cell_overlay_png(root, case_id, tile_idx).is_file()):
+        return False
+    try:
+        doc = io.read_json(jpath)
+    except (OSError, ValueError):
+        return False
+    return all(doc.get(k) == v for k, v in identity.items())
+
+
+def todo_tiles(rows: pd.DataFrame, root: Path, shard: int, nshards: int, force: bool,
+               identity: Mapping[str, Any]) -> pd.DataFrame:
     rows = rows.sort_values(["case_id", "tile_idx"]).reset_index(drop=True).iloc[shard::nshards]
     if force:
         return rows.reset_index(drop=True)
-    done = [schemas.cell_json(root, c, int(i)).is_file() for c, i in zip(rows["case_id"], rows["tile_idx"])]
+    done = [tile_done(root, c, int(i), identity) for c, i in zip(rows["case_id"], rows["tile_idx"])]
     return rows[~np.asarray(done, dtype=bool)].reset_index(drop=True)
+
+
+def run_identity(cfg: Mapping[str, Any], backend_name: str, mpp_src: float) -> dict[str, Any]:
+    return {"backend_name": backend_name, "model": cfg["cells"]["model"], "mpp_source": mpp_src}
 
 
 # ---- processing ---------------------------------------------------------------------------------------------------
@@ -245,7 +269,7 @@ def spike_markdown(rows: pd.DataFrame, root: Path, info: Mapping[str, Any]) -> s
         f"- source mpp {info['mpp_source']} → model mpp {info['model_mpp']} (scale ≈ {info['scale']:.3f})",
         f"- engine setup {info['setup_s']:.1f} s; {info['s_per_tile']:.2f} s/tile over {info['n_tiles']} tiles",
         f"- gate (cells_backends.md §1.5): 1,200 tiles × s/tile / {info['shards']} shards = {info['gate_min']:.1f} min "
-        f"({'OK' if info['gate_min'] <= 35 else 'TOO SLOW: raise shards or cut tiles'})",
+        f"({'NOT MEASURED (no tile segmented)' if info['gate_min'] != info['gate_min'] else 'OK' if info['gate_min'] <= 35 else 'TOO SLOW: raise shards or cut tiles'})",
         "",
         "| # | case_id | tile_idx | overlay | nuclei | per type | outlines on nuclei? | tumor vs lymphocyte plausible? | verdict |",
         "|---|---|---|---|---|---|---|---|---|",
@@ -266,12 +290,13 @@ def spike_markdown(rows: pd.DataFrame, root: Path, info: Mapping[str, Any]) -> s
     return "\n".join(lines)
 
 
-def verify(root: Path, cfg: Mapping[str, Any], ctx: cli.StepContext) -> int:
+def verify(root: Path, cfg: Mapping[str, Any], ctx: cli.StepContext, backend_name: str) -> int:
     sel = io.read_csv(schemas.cell_tiles_csv(root), dtype={"case_id": str}, keep_default_na=False)
     keep = cli.limit_case_ids(sel["case_id"], ctx.limit)
     sel = sel[sel["case_id"].isin(keep)]
+    identity = run_identity(cfg, backend_name, config.effective_mpp(cfg, schemas.inventory_json(root)))
     missing = [(c, int(i)) for c, i in zip(sel["case_id"], sel["tile_idx"])
-               if not (schemas.cell_json(root, c, int(i)).is_file() and schemas.cell_overlay_png(root, c, int(i)).is_file())]
+               if not tile_done(root, c, int(i), identity)]
     shards = [io.read_json(p) for p in sorted((root / "meta").glob(f"{STEP}_shard*.json"))]
     secs = sum(s.get("summary", {}).get("seconds_segmenting", 0.0) for s in shards)
     n_done = sum(s.get("summary", {}).get("tiles_done", 0) for s in shards)
@@ -308,7 +333,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"status": "disabled"}))
         return 0
     if args.verify:
-        return verify(root, cfg, ctx)
+        return verify(root, cfg, ctx, args.backend or cfg["cells"]["backend"])
     if not 0 <= args.shard < args.nshards:
         print(f"ERROR {STEP}: --shard must be in [0, --nshards)", file=sys.stderr)
         return 2
@@ -325,16 +350,21 @@ def main(argv: list[str] | None = None) -> int:
             schemas.validate_frame(schemas.CELL_TILES, rows)
         keep = cli.limit_case_ids(rows["case_id"], ctx.limit)
         rows = rows[rows["case_id"].isin(keep)]
-        todo = todo_tiles(rows, root, args.shard, args.nshards, ctx.force)
         name = args.backend or cfg["cells"]["backend"]
+        identity = run_identity(cfg, name, mpp_src)
+        # --spike always re-measures (a rerun must never report a throughput gate from nothing)
+        todo = todo_tiles(rows, root, args.shard, args.nshards, ctx.force or args.spike, identity)
+        weights = Path(cfg["cells"]["checkpoint"]) if name == "tiatoolbox" else Path(cfg["cells"]["hovernet_checkpoint"])
+        weights_sha = sha256_file(weights) if name == "tiatoolbox" and len(todo) else None
+        if weights_sha is not None and weights_sha != cfg["cells"]["weights_sha256"]:
+            raise ValueError(f"{weights} sha256 {weights_sha} != settings cells.weights_sha256")
         t0 = time.time()
         backend = BACKENDS[name](cfg) if len(todo) else None
         setup_s = time.time() - t0
     except (ValueError, FileNotFoundError, KeyError, NotImplementedError, ImportError) as exc:
         print(f"ERROR {STEP}: {exc}", file=sys.stderr)
         return 2
-    weights = Path(cfg["cells"]["checkpoint"]) if name == "tiatoolbox" else Path(cfg["cells"]["hovernet_checkpoint"])
-    meta_common = {"backend": backend.version() if backend else name, "model": cfg["cells"]["model"],
+    meta_common = {**identity, "backend": backend.version() if backend else name, "model": cfg["cells"]["model"],
                    "weights": str(weights), "weights_sha256": cfg["cells"]["weights_sha256"] if name == "tiatoolbox" else None}
     counts = {t: 0 for t in cfg["cells"]["types"]}
     failures, done, seg_s = [], 0, 0.0
@@ -348,14 +378,23 @@ def main(argv: list[str] | None = None) -> int:
             done += len(part)
             seg_s += time.time() - t1
             print(f"[shard {args.shard}] {done}/{len(todo)} tiles, {(time.time() - t1) / len(part):.2f} s/tile", flush=True)
-        except Exception as exc:  # noqa: BLE001 - one chunk lost at most; logged, exit 1 at the end
-            failures.append({"first_tile": f"{part.iloc[0]['case_id']}:{int(part.iloc[0]['tile_idx'])}",
-                             "n": int(len(part)), "error": f"{type(exc).__name__}: {exc}"})
-            print(f"[shard {args.shard}] chunk failed: {failures[-1]}", file=sys.stderr, flush=True)
+        except Exception as exc:  # noqa: BLE001 - retry tile by tile so one bad tile never sinks its chunk
+            print(f"[shard {args.shard}] chunk failed ({type(exc).__name__}: {exc}); retrying its tiles one by one",
+                  file=sys.stderr, flush=True)
+            for i in range(len(part)):
+                one = part.iloc[i:i + 1]
+                try:
+                    for k, v in process_chunk(one, backend, root, scratch, mpp_src, cfg, fcfg, meta_common).items():
+                        counts[k] += v
+                    done += 1
+                except Exception as tile_exc:  # noqa: BLE001 - logged; exit 1 at the end
+                    failures.append({"tile": f"{one.iloc[0]['case_id']}:{int(one.iloc[0]['tile_idx'])}",
+                                     "error": f"{type(tile_exc).__name__}: {tile_exc}"})
+            seg_s += time.time() - t1
     shutil.rmtree(scratch, ignore_errors=True)
     summary = {"backend": meta_common["backend"], "shard": args.shard, "nshards": args.nshards,
                "tiles_selected_in_shard": int(len(rows.iloc[args.shard::args.nshards])), "tiles_todo": int(len(todo)),
-               "tiles_done": done, "failed_chunks": failures, "nuclei_by_type": counts, "setup_seconds": round(setup_s, 1),
+               "tiles_done": done, "failed_tiles": failures, "nuclei_by_type": counts, "setup_seconds": round(setup_s, 1),
                "seconds_segmenting": round(seg_s, 1), "seconds_per_tile": round(seg_s / done, 3) if done else None,
                "mpp_source": mpp_src, "model_mpp": cfg["cells"]["model_mpp"]}
     step = f"{STEP}_spike" if args.spike else f"{STEP}_shard{args.shard}"
@@ -365,10 +404,10 @@ def main(argv: list[str] | None = None) -> int:
                                                   "shard": args.shard, "nshards": args.nshards, "spike": args.spike},
                   synthetic=ctx.synthetic,
                   extra={"summary": summary, "weights": str(weights), "weights_sha256_expected": meta_common["weights_sha256"],
-                         "weights_sha256_actual": sha256_file(weights) if args.spike else None,
+                         "weights_sha256_actual": weights_sha,
                          "license": cfg["cells"]["weights_license"]})
     if args.spike:
-        spt = summary["seconds_per_tile"] or 0.0
+        spt = summary["seconds_per_tile"] or float("nan")
         info = {**meta_common, "colors": cfg["cells"]["overlay_colors"], "mpp_source": mpp_src,
                 "model_mpp": cfg["cells"]["model_mpp"], "scale": mpp_src / float(cfg["cells"]["model_mpp"]),
                 "setup_s": setup_s, "s_per_tile": spt, "n_tiles": done, "shards": int(cfg["cells"]["shards"]),
