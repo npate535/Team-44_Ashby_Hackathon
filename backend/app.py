@@ -45,6 +45,9 @@ FRONTEND_DIR = config.REPO_ROOT / "team44-triage-frontend" / "app"
 GROUND_TRUTH_KEYS = frozenset({"eval_only", "true_label", "true_labels", "y_true", "label_true"})
 _FILE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.\-]{0,127}$")
 FIGURE_SUFFIXES = (".png", ".svg", ".jpg", ".jpeg")
+# Static routes serve media only: case JSONs and eval JSONs go through the API (which strips ground truth).
+MEDIA_SUFFIXES = {"images": (".jpg", ".jpeg", ".png"), "cells": (".png", ".jpg", ".jpeg"), "eval": FIGURE_SUFFIXES,
+                  "spotcheck": (".png", ".jpg", ".jpeg"), "fixtures": (".jpg", ".jpeg", ".png", ".json")}
 
 
 def iso(ts: float | None) -> str | None:
@@ -118,8 +121,9 @@ class Backend:
 
     # ---- paths ----------------------------------------------------------------------------------------------------
     def media_path(self, kind: str, name: str) -> Path:
-        if not _FILE_RE.fullmatch(name) or ".." in name:
-            raise db.NotFoundError(f"invalid file name {name!r}")
+        if not _FILE_RE.fullmatch(name) or ".." in name or kind not in MEDIA_SUFFIXES or \
+                not name.lower().endswith(MEDIA_SUFFIXES[kind]):
+            raise db.NotFoundError(f"{kind}/{name} not found")
         if kind in ("images", "cells"):
             if self.flat_media:
                 return schemas.fixture_media(self.fixtures_dir, f"{kind}/{name}")
@@ -155,9 +159,11 @@ class Backend:
                 state = "ok"
             return {"kind": "surgical", "clock": "wall", "started_at": iso(started), "stopped_at": iso(stopped),
                     "elapsed_s": elapsed, "state": state, "amber_s": self.amber_s, "red_s": self.red_s}
-        elapsed = max(0.0, sim - float(row["arrived_sim_s"]))
-        target = float(self.targets[tier]) * 60.0   # aging.turnaround_target_min (minutes, int tier keys)
-        return {"kind": "biopsy", "clock": "sim", "elapsed_s": elapsed, "target_s": target, "state": "none"}
+        end = row["done_sim_s"] if row["done_sim_s"] is not None else sim     # frozen once signed out
+        elapsed = max(0.0, end - float(row["arrived_sim_s"]))
+        target = float(self.targets[tier]) * 60.0   # aging.turnaround_target_min of the tier before any promotion
+        return {"kind": "biopsy", "clock": "sim", "elapsed_s": elapsed, "target_s": target,
+                "state": "stopped" if row["done_sim_s"] is not None else "none"}
 
     def runtime(self, row: Mapping[str, Any], case: Mapping[str, Any], wall: float, sim: float) -> dict[str, Any]:
         tier, reasons = tiers.assign_tier(self._effective(row, case), self.cfg, now=sim)
@@ -169,7 +175,7 @@ class Backend:
             "arrived_sim_s": float(row["arrived_sim_s"]),
             "arrived_at": iso(row["arrived_wall"]),
             "injected": bool(row["injected"]),
-            "timer": self._timer(row, tier, wall, sim),
+            "timer": self._timer(row, tier + int(tiers.AGING_PROMOTED in reasons), wall, sim),
             "decision": {
                 "signed_out_at": iso(row["signed_out_wall"]),
                 "margin_call": None if call is None else {**call, "at": iso(row["margin_called_wall"])},
@@ -334,6 +340,10 @@ class Backend:
         return {"available": True, **data}
 
     def record_spotcheck(self, body: SpotcheckIn) -> dict[str, Any]:
+        with self.store.lock:                    # read-merge-write of eval/spotcheck.json: one writer at a time
+            return self._record_spotcheck(body)
+
+    def _record_spotcheck(self, body: SpotcheckIn) -> dict[str, Any]:
         items = self.spotcheck_items()
         if not items["available"]:
             raise db.TransitionError("no spot-check items are available (spotcheck/items.json is missing)")
@@ -342,23 +352,32 @@ class Backend:
         if unknown:
             raise db.PayloadError(f"unknown spot-check item ids {unknown[:5]}")
         out_path = schemas.eval_json(self.artifacts_root, "spotcheck")
-        previous = io.read_json(out_path).get("reviews", []) if out_path.is_file() else []
+        previous: list[dict[str, Any]] = []
+        if out_path.is_file():
+            existing = io.read_json(out_path)
+            if "reviews" not in existing:
+                raise db.ServerDataError(f"{out_path} exists but has no 'reviews'; refusing to overwrite it")
+            previous = existing["reviews"]
         now = iso(self.sim.wall_now())
         new = {(body.reviewer, r.item_id): {"item_id": r.item_id, "reviewer": body.reviewer,
                                            "reviewer_kind": body.reviewer_kind, "verdict": r.verdict,
                                            "note": r.note, "at": now} for r in body.reviews}
         kept = [r for r in previous if (r.get("reviewer"), r.get("item_id")) not in new]
         reviews = kept + list(new.values())
-        kinds = sorted({r.get("reviewer_kind", "human") for r in reviews})
-        summary: dict[str, Any] = {"concept": {}, "cells": {"n": 0, "acceptable": 0}}
+        kinds = sorted({r["reviewer_kind"] for r in reviews})
+        summary: dict[str, Any] = {"concept": {}, "cells": {"n": 0, "acceptable": 0}, "orphaned": 0}
         for review in reviews:
             item = by_id.get(review["item_id"])
-            if item is None:
+            if item is None:                     # item removed from a regenerated items.json: kept, not counted
+                summary["orphaned"] += 1
                 continue
             bucket = summary["cells"] if item["kind"] == "cells" else \
                 summary["concept"].setdefault(item["target"], {"n": 0, "acceptable": 0})
             bucket["n"] += 1
             bucket["acceptable"] += int(review["verdict"] == "acceptable")
+        if summary["orphaned"]:
+            log.warning("spotcheck: %d earlier review(s) refer to items no longer in items.json",
+                        summary["orphaned"])
         payload = {
             "name": "spotcheck",
             **io.provenance(self.cfg, synthetic=bool(items.get("synthetic")) or self.synthetic),
@@ -374,12 +393,13 @@ class Backend:
 
     def health(self) -> dict[str, Any]:
         wall = self.sim.wall_now()
+        loaded = len(self.sim.loaded.cases)
         return {
-            "status": "ok",
+            "status": "ok" if loaded and not self.sim.loaded.skipped else "degraded",
             "cases_dir": str(self.cases_dir),
             "artifacts_root": str(self.artifacts_root),
             "media": "fixtures" if self.flat_media else "artifacts",
-            "loaded": len(self.sim.loaded.cases),
+            "loaded": loaded,
             "skipped": self.sim.loaded.skipped,
             "synthetic": self.synthetic,
             "sim": self.sim.status(),
@@ -423,6 +443,8 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
         fixtures_dir=Path(fixtures_dir) if fixtures_dir is not None else paths["fixtures_dir"], clock=clock)
     log.info("PathQueue backend: %d cases from %s (%d skipped)", len(backend.sim.loaded.cases), cases,
              len(backend.sim.loaded.skipped))
+    if not backend.sim.loaded.cases:
+        log.warning("no valid case JSONs in %s: the worklist will stay empty", cases)
 
     app = FastAPI(title="PathQueue demo API", version=contract.SCHEMA_VERSION,
                   description="Research prototype — not for clinical use. See docs/API.md.")
@@ -498,10 +520,15 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
         return backend.record_spotcheck(body)
 
     def media(kind: str):
-        def serve(name: str) -> FileResponse:
+        def serve(name: str) -> Any:
             path = backend.media_path(kind, name)
             if not path.is_file():
                 raise db.NotFoundError(f"{kind}/{name} not found")
+            if path.suffix == ".json":          # fixture cases for ?mock=1: public form only (no eval_only)
+                try:
+                    return contract.to_public(io.read_json(path))
+                except (ValueError, OSError) as exc:
+                    raise db.ServerDataError(f"fixtures/{name} is not a valid case: {exc}") from exc
             return FileResponse(path)
         serve.__name__ = f"media_{kind}"
         return serve
@@ -509,9 +536,12 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
     for kind in ("images", "cells", "eval", "spotcheck", "fixtures"):
         app.get(f"/{kind}/{{name}}", include_in_schema=False)(media(kind))
 
-    if frontend_dir is not None and Path(frontend_dir).is_dir():
-        mimetypes.add_type("text/javascript", ".js")
-        app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+    if frontend_dir is not None:
+        if Path(frontend_dir).is_dir():
+            mimetypes.add_type("text/javascript", ".js")
+            app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+        else:
+            log.warning("frontend folder %s is missing: only the API is served", frontend_dir)
     return app
 
 
@@ -524,7 +554,14 @@ class _LazyApp:
     async def __call__(self, scope, receive, send) -> None:
         if self._app is None:
             logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
-            self._app = create_app()
+            try:
+                self._app = create_app()
+            except Exception as exc:
+                if scope["type"] != "lifespan":
+                    raise
+                await receive()                  # lifespan.startup: report the failure so uvicorn exits at once
+                await send({"type": "lifespan.startup.failed", "message": f"{type(exc).__name__}: {exc}"})
+                return
         await self._app(scope, receive, send)
 
 

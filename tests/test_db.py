@@ -37,6 +37,13 @@ def test_load_case_dir_skips_invalid_with_reason(tmp_path):
     assert "JSONDecodeError" in reasons["empty.json"]
 
 
+def test_load_case_dir_rejects_repeated_rule_ids(tmp_path):
+    case = fixture_case("demo_0001")
+    case["agent"]["orders"][1]["rule_id"] = case["agent"]["orders"][0]["rule_id"]
+    loaded = db.load_case_dir(write_cases(tmp_path / "c", [case]))
+    assert loaded.cases == [] and "repeat a rule_id" in loaded.skipped[0]["error"]
+
+
 def test_load_case_dir_missing_folder(tmp_path):
     with pytest.raises(FileNotFoundError):
         db.load_case_dir(tmp_path / "missing")

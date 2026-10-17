@@ -154,7 +154,8 @@ def _segments(hot: Mapping[str, Sequence[float]]) -> list[dict[str, Any]]:
 def _margin(hot: Mapping[str, Sequence[float]], defer: bool, mpp: float) -> dict[str, Any]:
     segs = _segments(hot)
     per = {m: max(s["p"] for s in segs if s["margin"] == m) for m in contract.MARGIN_NAMES}
-    involved = [m for m in contract.MARGIN_NAMES if per[m] > THRESHOLD]
+    above = [m for m in contract.MARGIN_NAMES if per[m] > THRESHOLD]
+    involved = [] if defer else above                 # ruling M8: a deferred read lists no involved margins
     call = "defer" if defer else ("tumor_at_margin" if involved else "clear")
     lengths = {m: round(sum(1 for s in segs if s["margin"] == m and s["p"] > THRESHOLD) * SEG * mpp, 1)
                for m in involved}

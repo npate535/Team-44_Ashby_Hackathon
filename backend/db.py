@@ -80,7 +80,8 @@ CREATE TABLE cases (
     timer_stopped_wall REAL,
     signed_out_wall    REAL,
     margin_call_json   TEXT,
-    margin_called_wall REAL
+    margin_called_wall REAL,
+    done_sim_s         REAL
 );
 CREATE TABLE orders (
     case_id       TEXT NOT NULL,
@@ -146,6 +147,11 @@ class PayloadError(StoreError):
     status = 422
 
 
+class ServerDataError(StoreError):
+    """A file on the server side (artifacts) is malformed: not the client's fault."""
+    status = 500
+
+
 @dataclass(frozen=True)
 class LoadResult:
     cases: list[dict[str, Any]]           # CasePublic dicts (no eval_only), sorted by case_id
@@ -166,12 +172,18 @@ def load_case_dir(cases_dir: str | Path) -> LoadResult:
             with open(path, encoding="utf-8") as handle:
                 raw = json.load(handle)
             public = contract.to_public(raw)
-        except (OSError, json.JSONDecodeError, ValidationError, ValueError, TypeError) as exc:
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValidationError) as exc:
             reason = _short_error(exc)
             log.warning("skipping invalid case file %s: %s", path.name, reason)
             skipped.append({"file": path.name, "error": reason})
             continue
         case_id = public["case_id"]
+        rule_ids = [o["rule_id"] for o in public["agent"]["orders"]]
+        if len(set(rule_ids)) != len(rule_ids):
+            reason = f"agent.orders repeat a rule_id ({rule_ids}); edits address orders by rule_id"
+            log.warning("skipping %s: %s", path.name, reason)
+            skipped.append({"file": path.name, "error": reason})
+            continue
         if case_id in cases:
             log.warning("skipping %s: duplicate case_id %s (already loaded from %s)", path.name, case_id,
                         sources[case_id])
@@ -452,7 +464,7 @@ class Store:
             },
             "synthetic": case.get("synthetic", False),
         }
-        cur.execute("UPDATE cases SET signed_out_wall = ? WHERE case_id = ?", (wall, case_id))
+        cur.execute("UPDATE cases SET signed_out_wall = ?, done_sim_s = ? WHERE case_id = ?", (wall, sim, case_id))
         self._route(cur, case_id, "oncologist", "sign_out", routed, wall=wall, sim=sim)
         self._event(cur, case_id, "signed_out", from_state=status, to_state=status, action="sign_out",
                     payload={"orders": placed}, wall=wall, sim=sim)
@@ -466,12 +478,13 @@ class Store:
         elapsed = None if started is None else max(0.0, wall - started)
         record = {"call": call, "margins": margins}
         cur.execute(
-            "UPDATE cases SET margin_call_json = ?, margin_called_wall = ?, timer_stopped_wall = ? WHERE case_id = ?",
-            (_dumps(record), wall, wall if started is not None else None, case_id),
+            "UPDATE cases SET margin_call_json = ?, margin_called_wall = ?, timer_stopped_wall = ?, done_sim_s = ?"
+            " WHERE case_id = ?",
+            (_dumps(record), wall, wall if started is not None else None, sim, case_id),
         )
         case = json.loads(row["public_json"])
         routed = {**record, "timer_elapsed_s": elapsed, "simulated": True,
-                  "suggested_call": (case.get("margin") or {}).get("suggested_call"),
+                  "suggested_call": case["margin"]["suggested_call"],   # surgical cases always carry a margin
                   "simulated_variant": case.get("simulated_variant"), "synthetic": case.get("synthetic", False)}
         self._route(cur, case_id, "surgeon", "margin_call", routed, wall=wall, sim=sim)
         self._event(cur, case_id, "margin_call", action="margin_call", payload=record, wall=wall, sim=sim)
@@ -504,7 +517,7 @@ def allowed_actions(row: Mapping[str, Any]) -> list[str]:
         return []
     if row["lane"] == "surgical":
         return ["margin_call"]
-    return list(_BIOPSY_ALLOWED.get(row["agent_status"], ()))
+    return list(_BIOPSY_ALLOWED[row["agent_status"]])
 
 
 def _refusal(row: Mapping[str, Any], action: str) -> str:
@@ -534,7 +547,7 @@ def _validate_edit(payload: Mapping[str, Any], orders: Sequence[sqlite3.Row]) ->
         if not isinstance(entry, Mapping) or set(entry) != {"rule_id", "items"}:
             raise PayloadError("each edited order is {rule_id, items}")
         rule_id, items = entry["rule_id"], entry["items"]
-        if rule_id not in drafted:
+        if not isinstance(rule_id, str) or rule_id not in drafted:
             raise PayloadError(f"rule {rule_id!r} did not draft any order for this case")
         if rule_id in kept:
             raise PayloadError(f"rule {rule_id!r} is listed twice")
@@ -557,7 +570,8 @@ def _validate_margin_call(payload: Mapping[str, Any]) -> tuple[str, list[str]]:
     margins = payload.get("margins", [])
     if call not in get_args(contract.MarginCall):
         raise PayloadError(f"unknown margin call {call!r}")
-    if not isinstance(margins, list) or len(set(margins)) != len(margins) or \
+    if not isinstance(call, str) or not isinstance(margins, list) or not all(isinstance(m, str) for m in margins) \
+            or len(set(margins)) != len(margins) or \
             any(m not in contract.MARGIN_NAMES for m in margins):
         raise PayloadError(f"margins must be unique names from {list(contract.MARGIN_NAMES)}")
     if call == "tumor_at_margin" and not margins:

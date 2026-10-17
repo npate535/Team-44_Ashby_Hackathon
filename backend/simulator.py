@@ -20,12 +20,15 @@ simulator clock driven by Clock.mono. Tests pass a fake Clock.
 from __future__ import annotations
 
 import json
+import logging
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
 from backend import db
+
+log = logging.getLogger("pathqueue.backend")
 
 VARIANTS = ("normal", "degraded", "composite")
 _HERO_KEY = {"normal": "surgical", "degraded": "surgical_degraded", "composite": "surgical_composite"}
@@ -99,6 +102,9 @@ class Simulator:
         self.clock_sim = SimClock(speed=float(sim_cfg["speed"]))
         self.hold_surgical = bool(sim_cfg["hold_surgical_for_injection"])
         self.heroes: Mapping[str, Any] = cfg["demo"]["heroes"]
+        missing = [k for k in _HERO_KEY.values() if k not in self.heroes]
+        if missing:
+            raise KeyError(f"settings demo.heroes is missing {missing} (needed by inject_surgical)")
         self.loaded: db.LoadResult = loader()
         self.store.seed(self.loaded, wall=self.clock.wall(), sim=0.0)
 
@@ -111,8 +117,11 @@ class Simulator:
 
     def status(self) -> dict[str, Any]:
         with self.store.lock:
-            pending = self.store.pending_rows()
-            counts = self.store.counts()
+            return self._status()
+
+    def _status(self) -> dict[str, Any]:
+        pending = self.store.pending_rows()
+        counts = self.store.counts()
         surgical = {v: 0 for v in VARIANTS}
         biopsy = 0
         for row in pending:
@@ -159,13 +168,17 @@ class Simulator:
             if not candidates:
                 raise db.TransitionError(f"no pending simulated frozen section of variant {variant!r} is left;"
                                          " reset the simulator to replay")
-            spec = self.heroes.get(_HERO_KEY[variant], {})
+            spec = self.heroes[_HERO_KEY[variant]]
 
             def rank(row: Any) -> tuple[int, float, str]:
                 case = json.loads(row["public_json"])
                 return -_hero_score(case, spec), float(row["arrived_offset_s"]), row["case_id"]
 
             chosen = min(candidates, key=rank)
+            score = _hero_score(json.loads(chosen["public_json"]), spec)
+            if score < len(spec):                # settings demo.fallback: closest_match, logged
+                log.info("inject_surgical(%s): no exact demo.heroes.%s match; closest is %s (%d/%d criteria)",
+                         variant, _HERO_KEY[variant], chosen["case_id"], score, len(spec))
             sim, wall = self.sim_now(), self.wall_now()
             self.store.mark_arrived(chosen["case_id"], arrived_sim=sim, arrived_wall=wall, injected=True, wall=wall,
                                     sim=sim)

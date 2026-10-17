@@ -80,6 +80,13 @@ def test_missing_sim_setting_raises(tmp_path):
         _sim(tmp_path, [fixture_case("demo_0001")], cfg=cfg)
 
 
+def test_missing_demo_hero_key_raises(tmp_path):
+    heroes = {k: v for k, v in CFG["demo"]["heroes"].items() if k != "surgical_degraded"}
+    cfg = {**CFG, "demo": {**CFG["demo"], "heroes": heroes}}
+    with pytest.raises(KeyError, match="surgical_degraded"):
+        _sim(tmp_path, [fixture_case("demo_0001")], cfg=cfg)
+
+
 def test_hero_score_and_unknown_criteria():
     hero = fixture_case("demo_0002")
     assert _hero_score(hero, CFG["demo"]["heroes"]["surgical"]) == 3

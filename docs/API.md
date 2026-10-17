@@ -44,8 +44,9 @@ client-side interpolation.
          "cases": 18, "arrived": 0, "pending": {"biopsy": 14, "surgical": {"normal": 2, "degraded": 1, "composite": 1}}},
  "server_time": 1792270000.0, "server_time_iso": "2026-10-17T20:46:40.000Z"}
 ```
-`media` is `fixtures` (flat fixtures folder) or `artifacts`. `skipped` lists invalid or duplicate case files (never
-served).
+`status` is `ok`, or `degraded` when no valid case loaded or any file was skipped. `media` is `fixtures` (flat
+fixtures folder) or `artifacts`. `skipped` lists invalid or duplicate case files, and cases whose orders repeat a
+`rule_id` (never served).
 
 ## GET /api/config
 
@@ -113,7 +114,10 @@ Invalid `lane`/`order` → 422.
 - `flag` is the static flag from step 08; `runtime.tier` / `runtime.reasons` are live (aging on the sim clock).
 - `runtime.timer`: surgical → wall clock, `state` `ok | amber | red | stopped` (amber at `margin.timer.amber_min`, red
   at `red_min`, stopped once the margin call is sent; `elapsed_s` then stays frozen). Biopsy → sim-clock waiting time
-  and the tier's turnaround target (`aging.turnaround_target_min`), `state: "none"`.
+  and the turnaround target of the case's tier before any aging promotion (`aging.turnaround_target_min`), `state`
+  `none`, or `stopped` (frozen) once signed out.
+- Items carry the case file's `arrived_offset_s`; the actual arrival on the simulator clock (differs for injected
+  cases) is `runtime.arrived_sim_s`.
 - `runtime.or_room` is set for surgical cases only (simulated).
 
 ## GET /api/cases/{case_id}
@@ -262,8 +266,10 @@ concept and for cell overlays. Unknown item ids → 422; no items file → 409.
 | `/images/<file>`, `/cells/<file>` | `<artifacts>/images`, `<artifacts>/cells`; `fixtures/<file>` when the cases folder is `fixtures/` |
 | `/eval/<file>` | `<artifacts>/eval/<file>` (figures) |
 | `/spotcheck/<file>` | `<artifacts>/spotcheck/<file>` (crops) |
-| `/fixtures/<file>` | `fixtures/` (the frontend's `?mock=1` mode) |
+| `/fixtures/<file>` | `fixtures/` media, and fixture case JSONs **in their public form** (no `eval_only`) for the frontend's `?mock=1` mode |
 | `/` | `team44-triage-frontend/app` (index.html; `.js` served as `text/javascript`) |
 
-File names must match `[A-Za-z0-9][A-Za-z0-9_.-]*` (no paths); anything else is 404. Every response carries
-`Cache-Control: no-store` (local demo; avoids stale ES modules).
+File names must match `[A-Za-z0-9][A-Za-z0-9_.-]*` (no paths) and carry a media suffix (`.jpg/.jpeg/.png`, plus
+`.svg` for `/eval`): JSON is only ever served through the API, so it is always ground-truth free. Anything else is
+404. Every response carries `Cache-Control: no-store` (local demo; avoids stale ES modules). A malformed server-side
+file (e.g. an `eval/spotcheck.json` without `reviews`) returns 500 with a `detail` naming it.

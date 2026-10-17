@@ -156,8 +156,9 @@ def test_aging_guard_promotes_one_tier_on_the_sim_clock(tmp_path):
     assert row_for(wl, "routine")["runtime"]["tier"] == 3            # one tier only
     assert row_for(wl, "unsure")["runtime"]["tier"] == 2             # never above tier 2
     timer = row_for(wl, "routine")["runtime"]["timer"]
+    # the progress target stays the case's own tier target (no jump on promotion)
     assert timer["kind"] == "biopsy" and timer["clock"] == "sim" and timer["target_s"] == \
-        aging["turnaround_target_min"][3] * 60
+        aging["turnaround_target_min"][4] * 60
 
 
 def test_done_cases_sort_after_open_ones(dev):
@@ -378,7 +379,8 @@ def test_inject_variants_prefer_demo_heroes(tmp_path):
         "generator": "template", "sentences": hero["summary"]["sentences"][:3]})
     degraded = variant(hero, "deg_case", offset=2, reliability_flag=True, simulated_variant="degraded",
                        degradation={"type": "blur", "severity": 3}, source_case_ids=["demo_0002"],
-                       margin={**hero["margin"], "suggested_call": "defer"})
+                       margin={**hero["margin"], "suggested_call": "defer", "involved": [],
+                               "involved_length_um": None})
     client, clock = make_client(tmp_path, cases_dir=write_cases(tmp_path / "c", [hero, clear, degraded]))
     first = client.post("/api/sim/inject_surgical", json={"variant": "normal"}).json()
     assert first["injected"] == "demo_0002"                 # demo hero beats the earlier clear case
@@ -412,7 +414,53 @@ def test_fixture_media_is_served_flat(tmp_path):
     assert client.get("/cells/demo_0001_5_overlay.png").status_code == 200
     assert client.get("/images/missing.jpg").status_code == 404
     assert client.get("/images/..%2Fpyproject.toml").status_code == 404
-    assert client.get("/fixtures/demo_0001.json").status_code == 200
+    fixture_json = client.get("/fixtures/demo_0001.json")        # ?mock=1 reads it: public form only
+    assert fixture_json.status_code == 200 and find_keys(fixture_json.json()) == []
+    contract.CasePublic.model_validate(fixture_json.json())
+    for url in ("/images/demo_0001.json", "/cells/demo_0002.json", "/fixtures/pyproject.toml"):
+        assert client.get(url).status_code == 404, url
+
+
+def test_static_routes_never_serve_json(tmp_path):
+    root = dev_root(tmp_path)
+    io.write_json(root / "eval" / "metrics.json", {"name": "metrics", "true_label": ["Invasive"]})
+    client, _ = make_client(tmp_path, artifacts_root=root)
+    for url in ("/eval/metrics.json", "/spotcheck/items.json", "/images/x.json", "/cells/y.json"):
+        assert client.get(url).status_code == 404, url
+    assert client.get("/fixtures/demo_0001.json").status_code == 200       # public form, artifacts mode too
+    assert "true_label" not in client.get("/fixtures/demo_0001.json").text
+
+
+def test_non_string_payload_values_are_422(dev):
+    client, clock, roles, _ = dev
+    arrive_all_biopsies(client, clock)
+    hero = roles["hero_biopsy"]
+    assert decide(client, hero, "edit_orders", {"orders": [{"rule_id": ["x"], "items": ["ER"]}]}).status_code == 422
+    assert decide(client, hero, "edit_orders", {"orders": [{"rule_id": "breast_invasive",
+                                                            "items": [{"a": 1}]}]}).status_code == 422
+    surgical = client.post("/api/sim/inject_surgical", json={"variant": "normal"}).json()["injected"]
+    assert decide(client, surgical, "margin_call", {"call": "tumor_at_margin",
+                                                    "margins": [{"m": 1}]}).status_code == 422
+    assert decide(client, surgical, "margin_call", {"call": ["clear"]}).status_code == 422
+
+
+def test_biopsy_timer_freezes_at_sign_out(dev):
+    client, clock, roles, _ = dev
+    arrive_all_biopsies(client, clock)
+    case_id = roles["routine_normal"]
+    client.post("/api/sim/start")
+    decide(client, case_id, "sign_out")
+    before = row_for(client.get("/api/worklist").json(), case_id)["runtime"]["timer"]
+    clock.advance(100)
+    after = row_for(client.get("/api/worklist").json(), case_id)["runtime"]["timer"]
+    assert after["state"] == "stopped" and after["elapsed_s"] == before["elapsed_s"]
+
+
+def test_health_is_degraded_without_valid_cases(tmp_path):
+    folder = tmp_path / "empty"
+    folder.mkdir()
+    client, _ = make_client(tmp_path, cases_dir=folder)
+    assert client.get("/api/health").json()["status"] == "degraded"
 
 
 def test_artifact_media_and_frontend(tmp_path):
@@ -526,3 +574,27 @@ def test_no_response_contains_ground_truth(dev):
     # the files on disk do carry it (so the test is meaningful)
     assert "true_label" in (root / "cases" / f"{roles['hero_biopsy']}.json").read_text()
     assert json.loads((root / "cases" / f"{roles['hero_biopsy']}.json").read_text())["eval_only"]
+
+
+def test_lazy_app_reports_startup_failure_to_uvicorn(monkeypatch, tmp_path):
+    import asyncio
+
+    from backend import app as app_module
+
+    def boom():
+        raise FileNotFoundError("cases folder missing")
+
+    monkeypatch.setattr(app_module, "create_app", boom)
+    lazy = app_module._LazyApp()
+    sent = []
+
+    async def receive():
+        return {"type": "lifespan.startup"}
+
+    async def send(message):
+        sent.append(message)
+
+    asyncio.run(lazy({"type": "lifespan"}, receive, send))
+    assert sent == [{"type": "lifespan.startup.failed", "message": "FileNotFoundError: cases folder missing"}]
+    with pytest.raises(FileNotFoundError):
+        asyncio.run(lazy({"type": "http"}, receive, send))
