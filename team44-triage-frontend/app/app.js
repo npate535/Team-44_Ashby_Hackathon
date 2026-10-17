@@ -143,7 +143,7 @@ function currentFp() {
   if (ST.route === 'surgeon') parts.push(JSON.stringify(ST.routed.surgeon.map(r => r.id)));
   if (ST.route === 'oncologist') parts.push(JSON.stringify(ST.routed.oncologist.map(r => r.id)));
   if (ST.route === 'metrics') parts.push(ST.metrics ? Object.keys(ST.metrics.eval || {}).join() + (ST.metrics.figures || []).length : 'none');
-  if (ST.route === 'spotcheck') parts.push(ST.spot ? ST.spot.items.length : 'none', JSON.stringify(ST.spotDraft), ST.spotResult || '');
+  if (ST.route === 'spotcheck') parts.push(ST.spot ? ST.spot.items.length : 'none', JSON.stringify(ST.spotDraft), ST.spotResult || '', ST.spotGroup || '');
   return parts.join('|');
 }
 
@@ -344,6 +344,7 @@ document.addEventListener('change', e => {
   } else if (d.cells === 'overlay') { ST.cellsOverlay = t.checked; draw(true); }
   else if (d.spotVerdict) { ST.spotDraft[d.spotItem] = d.spotVerdict; draw(true); }
   else if (t.id === 'spot-kind') ST.spotKind = t.value;
+  else if (d.spotGroup) { ST.spotGroup = t.value; draw(true); }
 });
 
 document.addEventListener('input', e => {

@@ -21,7 +21,16 @@ export function render(ST, ctx) {
     `<label>Kind <select data-testid="spot-kind" id="spot-kind"><option value="human"${ST.spotKind === 'ai' ? '' : ' selected'}>human</option><option value="ai"${ST.spotKind === 'ai' ? ' selected' : ''}>ai</option></select></label>` +
     `<button class="btn p" data-spot="submit" data-testid="spot-submit">Submit ${done} review${done === 1 ? '' : 's'}</button>` +
     (ST.spotResult ? `<span class="verdict" data-testid="spot-result" style="margin:0">${esc(ST.spotResult)}</span>` : '') + '</div></div>';
+  const names = Object.keys(groups);
+  const current = names.includes(ST.spotGroup) ? ST.spotGroup : names[0];
+  const opts = names.map(n => {
+    const done = groups[n].filter(i => ST.spotDraft[i.item_id]).length;
+    return `<option value="${esc(n)}"${n === current ? ' selected' : ''}>${esc(n)} (${done}/${groups[n].length})</option>`;
+  }).join('');
+  h += `<div class="hmctl" style="margin-top:14px"><label>Criterion <select data-testid="spot-group" data-spot-group="1">${opts}</select></label>` +
+    '<span class="sub">one criterion at a time; marks are kept when you switch</span></div>';
   for (const [title, items] of Object.entries(groups)) {
+    if (title !== current) continue;
     h += `<div class="card" style="margin-top:14px"><h2>${esc(title)}</h2><div class="cells-grid">`;
     for (const item of items) {
       const radios = VERDICTS.map(([value, tid, label]) => `<label><input type="radio" name="v-${esc(item.item_id)}" data-spot-item="${esc(item.item_id)}" data-spot-verdict="${value}" data-testid="spot-verdict-${tid}"${ST.spotDraft[item.item_id] === value ? ' checked' : ''}> ${label}</label>`).join(' ');

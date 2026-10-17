@@ -616,3 +616,18 @@ def test_surgical_recut_drafts_can_be_approved_alongside_the_margin_call(tmp_pat
     assert decide(client, "surg_recut", "sign_out").status_code == 409
     wl = client.get("/api/worklist").json()
     assert row_for(wl, "surg_recut")["runtime"]["done"] is True
+
+
+def test_config_carries_cell_feature_names_from_the_features_file(tmp_path):
+    import yaml
+    client, _ = make_client(tmp_path, cases_dir=FIXTURES)
+    body = client.get("/api/config").json()
+    spec = yaml.safe_load((config_root() / CFG["cells"]["features_file"]).read_text())
+    assert body["labels"]["cell_features"] == {f["id"]: f["display_name"] for f in spec["features"]}
+    assert set(body["labels"]["cell_types"]) == set(CFG["cells"]["types"])
+    assert body["cell_features"]["neo_density"]["unit"] == "per mm²"
+
+
+def config_root():
+    from core import config
+    return config.REPO_ROOT
