@@ -234,3 +234,14 @@ def test_parallel_workers_match_serial(tmp_path, run):
                                      "pipeline/degrade.py"])
 def test_delta_side_modules_are_portable(relpath):
     assert st.delta_import_problems(relpath, st.DELTA_ALLOWED - {"sklearn", "scipy"}) == []
+
+
+def test_existing_cases_csv_with_other_photos_is_refused(tmp_path, run):
+    data = tmp_path / "data"
+    argv = _argv(run["cfg_path"], data, run["bach"], run["nct"], "--limit", "2")
+    assert build.main(argv) == 0
+    cases = pd.read_csv(schemas.cases_csv(data), dtype=str, keep_default_na=False)
+    cases.loc[0, "source_file"] = "Photos/Benign/b999.tif"
+    cases.to_csv(schemas.cases_csv(data), index=False)
+    assert build.main(argv) == 2
+    assert build.main(argv + ["--force"]) == 0
