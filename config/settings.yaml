@@ -34,10 +34,15 @@ dataset:
     filename: ICIAR2018_BACH_Challenge.zip
     md5: 8ae1801334aa943c44627c1eef3631b2
     size_gb: 10.4
-    photos_subdir: ICIAR2018_BACH_Challenge/Photos    # expected layout; 00_inventory verifies
+    photos_subdir: ICIAR2018_BACH_Challenge/Photos    # layout per docs/research/data_formats.md §1.1; 00_inventory verifies
     wsi_subdir: ICIAR2018_BACH_Challenge/WSI
-    patient_file: ICIAR2018_BACH_dataset_micro_patient.xlsx
+    ground_truth_csv: ICIAR2018_BACH_Challenge/Photos/microscopy_ground_truth.csv   # cross-check only; folder = label
     class_folders: {Normal: Normal, Benign: Benign, InSitu: InSitu, Invasive: Invasive}
+  patients:                         # NOT in the zip: separate public download from the challenge Dataset page
+    micro_file: ICIAR2018_BACH_dataset_micro_patient.xlsx
+    micro_url: https://www.dropbox.com/scl/fo/efjnzcjydcjc4ebz1py7n/AF1Dx2gYEZRjo3eWw29IMIE/ICIAR2018_BACH_dataset_micro_patient.xlsx?rlkey=w5ebtg9dlwrk57663chvodzy6&dl=1
+    micro_md5: 7a23a77e4531c06c05d8e08e39498b06
+    wsi_file: ICIAR2018_BACH_dataset_WSI_patient.xlsx
 
 split:
   scheme: thunder
@@ -278,7 +283,7 @@ cells:                              # CELLS_SPEC §9 (backend order from BUILD_P
   reference_classes: [Normal, Benign]
   findings_percentile_extremes: [0.1, 0.9]
   hard_stop: "2026-10-18T10:00:00-05:00"   # disable the module if the full run is not done by then
-  types: [neoplastic, inflammatory, connective, dead, epithelial]   # PanNuke types; contract counts keys
+  types: [neoplastic, inflammatory, connective, dead, epithelial]   # PanNuke type ids 1..5 in order; contract counts keys
   overlay_colors: {neoplastic: "#B0335C", inflammatory: "#4A3B8F", connective: "#C9A227", dead: "#5A5A5A", epithelial: "#2E8BC0"}
 
 paths:

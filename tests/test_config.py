@@ -410,6 +410,11 @@ def test_artifact_paths_and_contract_refs(tmp_path):
     assert schemas.display_ref("BACH_0123") == "images/BACH_0123.jpg"
     assert schemas.cell_overlay_ref("BACH_0123", 5) == "cells/BACH_0123_5_overlay.png"
     assert schemas.fixture_case_json(a, "demo_0001") == a / "demo_0001.json"
+    # fixtures/ is flat: contract media refs resolve by basename (team44-triage-frontend ?mock=1 does the same)
+    assert schemas.fixture_media(a, "images/demo_0001.jpg") == a / "demo_0001.jpg"
+    assert schemas.fixture_media(a, "cells/demo_0001_5_overlay.png") == a / "demo_0001_5_overlay.png"
+    with pytest.raises(ValueError):
+        schemas.fixture_media(a, "images/../../secret.txt")
 
 
 @pytest.mark.parametrize(
