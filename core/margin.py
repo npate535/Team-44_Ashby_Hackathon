@@ -16,6 +16,7 @@ Laptop only (numpy).
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from functools import lru_cache
 from typing import Any
 
 import numpy as np
@@ -25,6 +26,12 @@ from core.config import load_settings
 
 MARGIN_ORDER: tuple[str, ...] = schemas.MARGINS   # contract order (= core.contract.MARGIN_NAMES)
 _EDGES = ("top", "bottom", "left", "right")
+
+
+@lru_cache(maxsize=1)
+def _quantile_method() -> str:
+    """settings.margin.threshold_quantile_method from the default settings file (read once per process)."""
+    return str(load_settings()["margin"]["threshold_quantile_method"])
 
 
 def _probs(probs: Sequence[float], n: int) -> np.ndarray:
@@ -85,7 +92,7 @@ def fit_threshold(benign_per_margin: np.ndarray, max_fpr: float) -> float:
         raise ValueError("benign per-margin maxima must be finite")
     if not 0.0 < float(max_fpr) < 1.0:
         raise ValueError(f"max_fpr must be in (0, 1), got {max_fpr!r}")
-    method = load_settings()["margin"]["threshold_quantile_method"]
+    method = _quantile_method()
     return float(np.quantile(values, 1.0 - float(max_fpr), method=method))
 
 

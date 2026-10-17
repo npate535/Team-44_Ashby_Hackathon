@@ -38,9 +38,10 @@ Blocks follow core.contract exactly (fixtures/demo_0001.json, demo_0002.json):
   agent        agent.agent.draft (rules; LLM rationales only with --llm-agent and budget)
   eval_only    true_label, split, source ids, group (+ composite margin truth) — the ONLY place ground truth appears
 
-Arrivals: a seeded Poisson process (settings sim.arrival) over a seeded order of the clean cases, hero cases
-(settings demo.heroes, picked from these cases; labels may break ties offline when demo.prefer_correct) placed
-last — the biopsy hero arrives last of all clean cases — then the variants. Metrics never depend on this.
+Arrivals: a seeded Poisson process (settings sim.arrival) over a seeded order of the clean cases; hero cases (settings
+demo.heroes, picked from these cases; labels may break ties offline when demo.prefer_correct): the biopsy hero arrives
+last of all clean cases; surgical heroes take the earliest offsets of their kind, because the backend holds surgical
+cases for injection and injects the earliest best match (see arrival_offsets). Metrics never depend on this.
 
 Also writes artifacts/images/*.jpg (every written case and every referenced train case), artifacts/cells/*.png,
 artifacts/reference_index.json and artifacts/spotcheck/{items.json, *.png} (settings spotcheck).
@@ -723,7 +724,13 @@ def pick_heroes(cases: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]) -> d
 
 def arrival_offsets(cases: Sequence[Mapping[str, Any]], heroes: Mapping[str, Mapping[str, Any]],
                     cfg: Mapping[str, Any]) -> dict[str, float]:
-    """Seeded Poisson arrivals: shuffled clean non-hero cases, then heroes (biopsy hero last), then variants."""
+    """Seeded Poisson arrivals over one clock. Order: clean surgical heroes first, then the shuffled clean non-hero
+    cases, then the biopsy hero (arrives last of the replayed cases), then the variant heroes, then the other variants.
+
+    The backend holds surgical cases for injection and injects, per variant, the best demo.heroes match with the
+    EARLIEST offset (backend.simulator.inject_surgical); several cases can match every criterion, so surgical heroes
+    get the earliest surgical offsets of their kind and the injection picks the hero 08 chose (08 may prefer a correct
+    read offline; the backend never sees labels)."""
     arrival = cfg["sim"]["arrival"]
     if arrival["process"] != "poisson":
         raise ValueError(f"sim.arrival.process {arrival['process']!r} is not supported (poisson)")
@@ -736,7 +743,7 @@ def arrival_offsets(cases: Sequence[Mapping[str, Any]], heroes: Mapping[str, Map
     clean_heroes = [h for h in hero_ids if any(c["case_id"] == h and c["simulated_variant"] is None for c in cases)]
     variant_heroes = [h for h in hero_ids if h not in clean_heroes]
     variants = sorted(c["case_id"] for c in cases if c["simulated_variant"] is not None and c["case_id"] not in special)
-    order = clean + clean_heroes + biopsy_hero + variant_heroes + variants
+    order = clean_heroes + clean + biopsy_hero + variant_heroes + variants
     mean = float(arrival["mean_interarrival_s"])
     t, out = 0.0, {}
     for cid in order:

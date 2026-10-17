@@ -46,8 +46,8 @@ client-side interpolation.
  "server_time": 1792270000.0, "server_time_iso": "2026-10-17T20:46:40.000Z"}
 ```
 `status` is `ok`, or `degraded` when no valid case loaded or any file was skipped. `media` is `fixtures` (flat
-fixtures folder) or `artifacts`. `skipped` lists invalid or duplicate case files, and cases whose orders repeat a
-`rule_id` (never served).
+fixtures folder) or `artifacts`. `skipped` lists invalid or duplicate case files, and surgical cases carrying stain
+orders (never served).
 
 ## GET /api/config
 
@@ -136,9 +136,9 @@ merged in, plus `runtime` (as in the worklist, with `orders`) and `server_time`/
     "rationale": "Standard biomarker panel if invasion is confirmed."}], "blocked": []},
  "runtime": {"tier": 2, "...": "...",
    "allowed_actions": ["approve_orders", "edit_orders", "closer_look", "dismiss_flag"],
-   "orders": [{"rule_id": "breast_insitu_vs_invasive", "type": "stain", "status": "drafted",
+   "orders": [{"seq": 0, "rule_id": "breast_insitu_vs_invasive", "type": "stain", "status": "drafted",
                "drafted_items": ["p63", "calponin"], "items": ["p63", "calponin"]},
-              {"rule_id": "breast_invasive", "type": "stain", "status": "drafted",
+              {"seq": 1, "rule_id": "breast_invasive", "type": "stain", "status": "drafted",
                "drafted_items": ["ER", "PR", "HER2", "Ki-67"], "items": ["ER", "PR", "HER2", "Ki-67"]}]},
  "server_time": 1792270040.0, "server_time_iso": "2026-10-17T20:47:20.000Z"}
 ```
@@ -152,14 +152,16 @@ Body `{"action": <action>, "payload": {...}}` (`payload` defaults to `{}`; unkno
 | Action | Allowed when | Payload | Effect |
 |---|---|---|---|
 | `approve_orders` | biopsy, agent `drafted` or `deferred_closer_look` | none | agent → `approved`; orders approved ("Order tests") |
-| `edit_orders` | same | `{"orders": [{"rule_id", "items": [...]}]}` | agent → `edited_and_approved`. Items must be ones that rule drafted (removal only, no free-text stains); rules left out are removed; at least one item must remain |
+| `edit_orders` | same | `{"orders": [{"seq", "rule_id"?, "items": [...]}]}` | agent → `edited_and_approved`. Orders are addressed by `seq` (position in `runtime.orders`; one rule may draft several orders); an optional `rule_id` must match. Items must be ones that order drafted (removal only, no free-text stains); orders left out are removed; at least one item must remain |
 | `closer_look` | biopsy, agent `drafted` | none | agent → `deferred_closer_look` |
 | `dismiss_flag` | biopsy, agent `drafted` or `deferred_closer_look` | none | agent → `dismissed`; orders dismissed |
 | `sign_out` | biopsy, agent `none`, `approved`, `edited_and_approved` or `dismissed`; not yet signed out | none | routes the summary + placed orders to the oncologist; case done |
+| (agent actions) | surgical too, on drafted **non-stain** orders (e.g. a recut for a reliability-flagged read) | as above | as above; independent of the margin call; no sign-out in this lane |
 | `margin_call` | surgical, no call sent yet | `{"call": "clear" \| "tumor_at_margin" \| "defer", "margins": [...]}` | routes to the surgeon, stops the timer; case done. `tumor_at_margin` needs ≥1 margin of `superior, inferior, medial, lateral`; the other calls take none |
 
 - **409** for a transition the state does not allow (e.g. `sign_out` while orders are drafted; anything after sign-out;
-  any agent action or `sign_out` on a surgical case — stains are never ordered in the simulated frozen-section lane;
+  `sign_out` on a surgical case, or an agent action there when nothing is drafted — stains are never ordered in the
+  simulated frozen-section lane (a surgical case file carrying stain orders is rejected at load);
   `margin_call` on a biopsy; a second margin call). `runtime.allowed_actions` always lists what is allowed.
 - **422** for an unknown action or a malformed payload (invented stain, unknown rule, unknown margin, extra keys).
 - **404** for an unknown or not-yet-arrived case.

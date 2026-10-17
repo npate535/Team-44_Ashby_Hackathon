@@ -37,11 +37,14 @@ def test_load_case_dir_skips_invalid_with_reason(tmp_path):
     assert "JSONDecodeError" in reasons["empty.json"]
 
 
-def test_load_case_dir_rejects_repeated_rule_ids(tmp_path):
+def test_one_rule_may_draft_several_orders(tmp_path):
     case = fixture_case("demo_0001")
     case["agent"]["orders"][1]["rule_id"] = case["agent"]["orders"][0]["rule_id"]
-    loaded = db.load_case_dir(write_cases(tmp_path / "c", [case]))
-    assert loaded.cases == [] and "repeat a rule_id" in loaded.skipped[0]["error"]
+    store = _store(tmp_path, [case])
+    store.mark_arrived("demo_0001", arrived_sim=1, arrived_wall=WALL, injected=False, wall=WALL, sim=1)
+    store.decide("demo_0001", "edit_orders", {"orders": [{"seq": 1, "items": ["HER2"]}]}, wall=WALL, sim=2)
+    assert [(o["seq"], o["status"], o["items"]) for o in store.orders("demo_0001")] == [
+        (0, "removed", []), (1, "edited", ["HER2"])]
 
 
 def test_load_case_dir_missing_folder(tmp_path):
@@ -76,7 +79,7 @@ def test_seed_creates_every_table_and_drafted_orders(tmp_path):
 def test_reseed_restores_state(tmp_path):
     store = _store(tmp_path, [fixture_case("demo_0001")])
     store.mark_arrived("demo_0001", arrived_sim=340, arrived_wall=WALL, injected=False, wall=WALL, sim=340)
-    store.decide("demo_0001", "edit_orders", {"orders": [{"rule_id": "breast_invasive", "items": ["ER"]}]},
+    store.decide("demo_0001", "edit_orders", {"orders": [{"seq": 1, "items": ["ER"]}]},
                  wall=WALL, sim=340)
     store.decide("demo_0001", "sign_out", {}, wall=WALL, sim=341)
     assert store.routed("oncologist")
@@ -140,13 +143,15 @@ def test_allowed_actions_terminal_and_surgical():
 def test_edit_keeps_drafted_order_of_items(tmp_path):
     store = _store(tmp_path, [fixture_case("demo_0001")])
     rows = store._conn.execute("SELECT * FROM orders WHERE case_id='demo_0001' ORDER BY seq").fetchall()
-    kept = db._validate_edit({"orders": [{"rule_id": "breast_invasive", "items": ["Ki-67", "PR"]},
-                                         {"rule_id": "breast_insitu_vs_invasive", "items": ["p63"]}]}, rows)
-    assert kept == {"breast_invasive": ["PR", "Ki-67"], "breast_insitu_vs_invasive": ["p63"]}
-    for bad in ({"orders": [{"rule_id": "breast_invasive", "items": ["ER", "ER"]}]},
-                {"orders": [{"rule_id": "breast_invasive", "items": ["ER"]},
-                            {"rule_id": "breast_invasive", "items": ["PR"]}]},
-                {"orders": [{"rule_id": "breast_invasive", "items": ["ER"], "note": "x"}]},
+    kept = db._validate_edit({"orders": [{"seq": 1, "rule_id": "breast_invasive", "items": ["Ki-67", "PR"]},
+                                         {"seq": 0, "items": ["p63"]}]}, rows)
+    assert kept == {1: ["PR", "Ki-67"], 0: ["p63"]}
+    for bad in ({"orders": [{"seq": 1, "items": ["ER", "ER"]}]},
+                {"orders": [{"seq": 1, "items": ["ER"]}, {"seq": 1, "items": ["PR"]}]},
+                {"orders": [{"seq": 1, "items": ["ER"], "note": "x"}]},
+                {"orders": [{"seq": 1, "rule_id": "breast_insitu_vs_invasive", "items": ["ER"]}]},
+                {"orders": [{"seq": 7, "items": ["ER"]}]}, {"orders": [{"seq": True, "items": ["ER"]}]},
+                {"orders": [{"rule_id": "breast_invasive", "items": ["ER"]}]},
                 {"orders": []}, {}, {"orders": [], "extra": 1}):
         with pytest.raises(db.PayloadError):
             db._validate_edit(bad, rows)
@@ -168,3 +173,19 @@ def test_sign_out_payload_never_includes_ground_truth(tmp_path):
     store.decide("case_a", "sign_out", {}, wall=WALL, sim=2)
     text = json.dumps(store.routed("oncologist"))
     assert "eval_only" not in text and "true_label" not in text
+
+
+def test_allowed_actions_surgical_with_drafted_recut():
+    drafted = _row(lane="surgical", agent_status="drafted")
+    assert db.allowed_actions(drafted) == ["margin_call", "approve_orders", "edit_orders", "closer_look", "dismiss_flag"]
+    called = _row(lane="surgical", agent_status="drafted", margin_call_json="{}")
+    assert db.allowed_actions(called) == ["approve_orders", "edit_orders", "closer_look", "dismiss_flag"]
+    assert "sign_out" not in db.allowed_actions(_row(lane="surgical", agent_status="approved"))
+
+
+def test_surgical_stain_orders_are_rejected_at_load(tmp_path):
+    case = fixture_case("demo_0002")
+    case["agent"] = {"status": "drafted", "orders": [{"type": "stain", "items": ["ER"], "rule_id": "breast_invasive",
+                                                       "rationale": "x"}]}
+    loaded = db.load_case_dir(write_cases(tmp_path / "c", [case]))
+    assert loaded.cases == [] and "never allowed in the surgical lane" in loaded.skipped[0]["error"]

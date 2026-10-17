@@ -85,3 +85,23 @@ app/data/legacy_mock.json   the original colon/multi-organ mock (data/cases.json
 
 Wording on every screen: "suggested", "associated with", "simulated", "Research prototype — not for clinical use".
 Ground truth is never fetched or rendered.
+
+## Presenter runbook (plan §14, ~3 minutes)
+
+Before: `make demo` (real artifacts) or `make demo ART=artifacts/dev` (synthetic); open http://127.0.0.1:8000 in a
+1280-px-wide window; click **Reset**. Every step below is covered by `make e2e`.
+
+1. **Start**. Biopsies stream in (the clock speeds up so the last one lands within `sim.max_replay_wall_s`, 90 s).
+   Toggle **Arrival order** → the last arrival is at the bottom; **AI priority** → it sits in *Tier 2 · Likely
+   invasive* with "Invasive in the confidence set".
+2. Open it. **Where**: heatmap. **Why**: click *Tumor infiltrating stroma* → its regions are outlined. **How sure**:
+   the 90% conformal set shows {InSitu, Invasive}. **Drafted follow-up orders**: p63 + calponin and ER/PR/HER2/Ki-67
+   (illustrative rules). Click **Order tests**, then **Sign out** → **Oncologist inbox** shows it.
+3. Back to the worklist, **+ Frozen**: a simulated frozen section jumps to the top with a running timer (amber at
+   15 min, red at 20). Open it: the superior margin strip is highlighted → **Tumor at margin…** (superior is
+   pre-checked) → **Send** → **Surgeon / OR board** shows the call; the timer has stopped.
+4. **+ Degraded**: reliability flag raised, suggestion "defer" → **Defer to permanent**.
+5. **Metrics**: queue simulation, calibration, concept checks, reliability vs artifacts; close on **Limitations**.
+
+If the backend dies mid-demo the page says so and keeps the last data; restart `make demo` (state resets), or open
+`?mock=1` for the fixture-only walkthrough.
