@@ -357,6 +357,27 @@ RELIABILITY = Table(
     ),
 )
 
+CONTRIBUTIONS = Table(
+    "contributions.csv", "Task 10 · 05_risk_model (Agent 3)",
+    "Task 11 · 08 (contract concepts[].contribution, cells.features[].contribution; Agent 4)",
+    key=("case_id", "feature"),
+    columns=(
+        _c("case_id", "str", "case ID; degraded / composite variants use their variant IDs"),
+        _SPLIT,
+        _c("model", "str", "concept-bottleneck model the contributions come from (cb_text | cb_text_cells | cb_cells)"),
+        _c("feature", "str", "model feature column, e.g. invasion__top3, invasion__frac, nuc_area_cv, nuc_area_cv__missing"),
+        _c("concept", "str", "concept id (settings concepts.ids) or cell feature id the feature belongs to"),
+        _c("source", "str", "text | cav | cell (contract concepts[].source)", choices=("text", "cav", "cell")),
+        _c("value", "float", "raw feature value (z units for concepts, physical units for cell features)"),
+        _c("value_std", "float", "standardized value (train mean / std)"),
+        _c("contribution", "float", "(W_aggressive - mean_k W_k) * value_std: signed push toward (+) / away from (-) "
+                                    "the aggressive class"),
+    ),
+    notes="Rows for calibration and test cases (and their variants) of the concept-bottleneck model that drives or "
+          "explains predictions (eval/model_choice.json). The contract contribution of a concept is the sum over its "
+          "features; 08 reads this file and never refits a model.",
+)
+
 CELL_TILES = Table(
     "cell_tiles.csv", "Task 8 · 04a_select_tiles (inside cells.sbatch)", "Task 8 · 04b/04c; Task 11",
     key=("case_id", "tile_idx"),
@@ -400,7 +421,7 @@ CELL_FEATURES_TILE = Table(
 
 TABLES = (
     CASES, TILES, EMBED_MANIFEST, EMB_INDEX, COMPOSITES, WSI_WINDOWS, CASE_FEATURES, TILE_RISK, TILE_RISK_OOF,
-    PREDICTIONS, RELIABILITY, CELL_TILES, CELL_FEATURES, CELL_FEATURES_TILE,
+    PREDICTIONS, RELIABILITY, CONTRIBUTIONS, CELL_TILES, CELL_FEATURES, CELL_FEATURES_TILE,
 )
 
 # ---- JSON files -----------------------------------------------------------------------------------------------------
@@ -449,7 +470,18 @@ STEP_META = JsonSpec(
                    "versions", "platform", "synthetic"),
     doc="One per pipeline step run; args include --limit.",
 )
-JSON_SPECS = (INVENTORY, EMB_META, RETRIEVAL, MARGINS_JSON, CELL_JSON, STEP_META)
+SPOTCHECK_ITEMS = JsonSpec(
+    "spotcheck/items.json", "Task 11 · 08 (Agent 4)", "Task 6 · backend /api/spotcheck (Agent 5)",
+    required_keys=("created_utc", "synthetic", "items"),
+    doc="ARTIFACTS-root file. items: [{item_id, kind: concept | cells, target: concept id or 'overlay', label: display "
+        "name, case_id, tile_idx, image: artifacts-relative ref ('spotcheck/<file>.png' crop or "
+        "'cells/<case_id>_<idx>_overlay.png'), score: float or null}], 20 per concept (plan §5.4) and 20 overlays "
+        "(5 per class, CELLS_SPEC §8.1). Class labels are used only to pick items and are never written here. Reviews "
+        "go to eval/spotcheck.json: {created_utc, synthetic, reviewer_kind: human | ai, reviews: [{item_id, reviewer, "
+        "verdict: acceptable | not_acceptable | unsure, note, at}], summary: {concept: {<id>: {n, acceptable}}, "
+        "cells: {n, acceptable}}}.",
+)
+JSON_SPECS = (INVENTORY, EMB_META, RETRIEVAL, MARGINS_JSON, CELL_JSON, STEP_META, SPOTCHECK_ITEMS)
 
 # ---- arrays ---------------------------------------------------------------------------------------------------------
 EMB_NPY = ArraySpec(
@@ -720,6 +752,10 @@ def margins_json(root: str | Path) -> Path:
     return Path(root) / "margins.json"
 
 
+def contributions_csv(root: str | Path) -> Path:
+    return Path(root) / "contributions.csv"
+
+
 def cell_tiles_csv(root: str | Path) -> Path:
     return Path(root) / "cell_tiles.csv"
 
@@ -766,6 +802,11 @@ def eval_asset(artifacts_root: str | Path, filename: str) -> Path:
     if not isinstance(filename, str) or not _FILE_RE.fullmatch(filename) or ".." in filename:
         raise ValueError(f"invalid eval asset name {filename!r}")
     return Path(artifacts_root) / "eval" / filename
+
+
+def spotcheck_items_json(artifacts_root: str | Path) -> Path:
+    """Spot-check review items (SPOTCHECK_ITEMS); crops live beside it under <artifacts_root>/spotcheck/."""
+    return Path(artifacts_root) / "spotcheck" / "items.json"
 
 
 def reference_index_json(artifacts_root: str | Path) -> Path:
