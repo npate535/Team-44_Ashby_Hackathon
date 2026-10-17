@@ -251,6 +251,8 @@ sim:                                # backend arrival replay (plan §10)
     process: poisson
     mean_interarrival_s: 120
     seed: 44
+  hold_surgical_for_injection: true   # surgical cases arrive only via POST /api/sim/inject_surgical (plan §14 steps 3-4)
+  or_rooms: 4                       # simulated operating rooms shown on the OR board (OR-1..OR-n, from case_id)
 
 queue_sim:                          # FIFO vs tiers vs tiers+aging (plan §12; Task 11)
   reps: 1000
@@ -278,6 +280,16 @@ summary:
   max_sentences: 4
   min_valid_sentences: 2            # fewer validated sentences => deterministic template (plan §8.2)
   template_generator: template      # value of summary.generator for template output
+  prompt_version: 1                 # bump to invalidate cached LLM summaries after a prompt change
+  allowed_codes: [Ki-67, CK5/6, p63, HER2, ER, PR, SMMHC, H&E]   # letter-digit tokens that are names, not numbers
+  banned_patterns:                  # case-insensitive regexes; a sentence matching any is dropped (no diagnosis as fact)
+    - "\\bdiagnos"
+    - "\\bconfirm"
+    - "\\bdefinitive"
+    - "\\bcertain(ly)?\\b"
+    - "\\bcaus(e|es|ed|ing)\\b"
+    - "\\bprove[sn]?\\b"
+    - "\\bguarantee"
 
 llm:
   provider: lumen
@@ -292,6 +304,10 @@ llm:
   retries: 3
   cache_dir: llm_cache              # under the data root; keyed by (model, prompt hash)
   live_demo_calls: false            # the live demo makes zero LLM calls (plan §2)
+  max_output_tokens: 1500           # per call, incl. hidden reasoning tokens (ornith used ~155 on a trivial reply)
+  json_mode: true                   # send response_format json_object (agent.lumen check verifies; false => plain JSON prompt)
+  tool_calling: true                # agent tries tool calling first (agent.lumen check verifies; false => JSON prompt)
+  agent_max_turns: 3                # tool-calling turns per case before the JSON-prompt fallback
 
 agent:
   stain_rules: config/stain_rules.yaml
