@@ -178,9 +178,9 @@ def load_case_dir(cases_dir: str | Path) -> LoadResult:
             skipped.append({"file": path.name, "error": reason})
             continue
         case_id = public["case_id"]
-        rule_ids = [o["rule_id"] for o in public["agent"]["orders"]]
-        if len(set(rule_ids)) != len(rule_ids):
-            reason = f"agent.orders repeat a rule_id ({rule_ids}); edits address orders by rule_id"
+        stains = [o["rule_id"] for o in public["agent"]["orders"] if o["type"] == "stain"]
+        if public["lane"] == "surgical" and stains:
+            reason = f"stain orders {stains} drafted for a simulated frozen section (never allowed in the surgical lane)"
             log.warning("skipping %s: %s", path.name, reason)
             skipped.append({"file": path.name, "error": reason})
             continue
@@ -405,7 +405,7 @@ class Store:
             if action not in allowed:
                 raise TransitionError(_refusal(row, action))
             status = row["agent_status"]
-            if row["lane"] == "surgical":
+            if action == "margin_call":
                 result = self._margin_call(cur, row, payload, wall=wall, sim=sim)
             elif action == "sign_out":
                 result = self._sign_out(cur, row, payload, wall=wall, sim=sim)
@@ -426,10 +426,11 @@ class Store:
         if action == "edit_orders":
             kept = _validate_edit(payload, orders)
             for order in orders:
-                items = kept.get(order["rule_id"], [])
+                items = kept.get(order["seq"], [])
                 cur.execute("UPDATE orders SET items = ?, status = ? WHERE case_id = ? AND seq = ?",
                             (_dumps(items), "edited" if items else "removed", case_id, order["seq"]))
-            payload = {"orders": [{"rule_id": r, "items": i} for r, i in kept.items()]}
+            by_seq = {o["seq"]: o["rule_id"] for o in orders}
+            payload = {"orders": [{"seq": s, "rule_id": by_seq[s], "items": i} for s, i in kept.items()]}
         else:
             if payload:
                 raise PayloadError(f"{action} takes no payload")
@@ -512,21 +513,29 @@ def is_done(row: Mapping[str, Any]) -> bool:
 
 
 def allowed_actions(row: Mapping[str, Any]) -> list[str]:
-    """The single source of truth for what a pathologist may do next (the API sends it as runtime.allowed_actions)."""
-    if not row["arrived"] or is_done(row):
+    """The single source of truth for what a pathologist may do next (the API sends it as runtime.allowed_actions).
+
+    Surgical lane: the margin call until it is sent, plus decisions on drafted non-stain orders (e.g. a recut for a
+    reliability-flagged read); stains never reach this lane (load_case_dir rejects them) and there is no sign-out.
+    """
+    if not row["arrived"]:
         return []
     if row["lane"] == "surgical":
-        return ["margin_call"]
+        agent = [a for a in _BIOPSY_ALLOWED[row["agent_status"]] if a in AGENT_ACTIONS]
+        return ([] if row["margin_call_json"] is not None else ["margin_call"]) + agent
+    if is_done(row):
+        return []
     return list(_BIOPSY_ALLOWED[row["agent_status"]])
 
 
 def _refusal(row: Mapping[str, Any], action: str) -> str:
     status = row["agent_status"]
     if row["lane"] == "surgical":
-        if row["margin_call_json"] is not None:
+        if action == "margin_call":
             return "the margin call for this simulated frozen section was already sent"
         if action in AGENT_ACTIONS:
-            return "stains and other orders are never placed in the simulated frozen-section lane; make a margin call"
+            return (f"{action} is not allowed in agent status {status}; stains are never placed in the simulated "
+                    "frozen-section lane")
         return f"{action} does not apply to the surgical lane; make a margin call"
     if row["signed_out_wall"] is not None:
         return "case already signed out"
@@ -537,27 +546,34 @@ def _refusal(row: Mapping[str, Any], action: str) -> str:
     return f"{action} is not allowed in agent status {status}"
 
 
-def _validate_edit(payload: Mapping[str, Any], orders: Sequence[sqlite3.Row]) -> dict[str, list[str]]:
-    """edit_orders payload {orders: [{rule_id, items}]} -> {rule_id: kept items}. Items must be drafted ones."""
+def _validate_edit(payload: Mapping[str, Any], orders: Sequence[sqlite3.Row]) -> dict[int, list[str]]:
+    """edit_orders payload {orders: [{seq, rule_id?, items}]} -> {seq: kept items}. Items must be drafted ones.
+
+    Orders are addressed by `seq` (their position in the drafted list: one rule may draft several orders); an optional
+    rule_id must match that order's rule. Orders left out are removed.
+    """
     if set(payload) != {"orders"} or not isinstance(payload["orders"], list):
-        raise PayloadError("edit_orders needs payload {orders: [{rule_id, items: [...]}]}")
-    drafted = {o["rule_id"]: json.loads(o["drafted_items"]) for o in orders}
-    kept: dict[str, list[str]] = {}
+        raise PayloadError("edit_orders needs payload {orders: [{seq, items: [...]}]}")
+    drafted = {o["seq"]: (o["rule_id"], json.loads(o["drafted_items"])) for o in orders}
+    kept: dict[int, list[str]] = {}
     for entry in payload["orders"]:
-        if not isinstance(entry, Mapping) or set(entry) != {"rule_id", "items"}:
-            raise PayloadError("each edited order is {rule_id, items}")
-        rule_id, items = entry["rule_id"], entry["items"]
-        if not isinstance(rule_id, str) or rule_id not in drafted:
-            raise PayloadError(f"rule {rule_id!r} did not draft any order for this case")
-        if rule_id in kept:
-            raise PayloadError(f"rule {rule_id!r} is listed twice")
+        if not isinstance(entry, Mapping) or not {"seq", "items"} <= set(entry) <= {"seq", "rule_id", "items"}:
+            raise PayloadError("each edited order is {seq, items} (rule_id optional)")
+        seq, items = entry["seq"], entry["items"]
+        if isinstance(seq, bool) or not isinstance(seq, int) or seq not in drafted:
+            raise PayloadError(f"order {seq!r} was not drafted for this case")
+        rule_id, drafted_items = drafted[seq]
+        if "rule_id" in entry and entry["rule_id"] != rule_id:
+            raise PayloadError(f"order {seq} was drafted by rule {rule_id!r}, not {entry['rule_id']!r}")
+        if seq in kept:
+            raise PayloadError(f"order {seq} is listed twice")
         if not isinstance(items, list) or not all(isinstance(i, str) for i in items) or len(set(items)) != len(items):
-            raise PayloadError(f"items for {rule_id!r} must be a list of unique strings")
-        invented = [i for i in items if i not in drafted[rule_id]]
+            raise PayloadError(f"items for order {seq} must be a list of unique strings")
+        invented = [i for i in items if i not in drafted_items]
         if invented:
             raise PayloadError(f"items {invented} were not drafted by rule {rule_id!r}; edits may only remove items")
         if items:
-            kept[rule_id] = [i for i in drafted[rule_id] if i in items]   # keep the drafted order
+            kept[seq] = [i for i in drafted_items if i in items]   # keep the drafted order
     if not kept:
         raise PayloadError("an edit must keep at least one drafted item; use dismiss_flag to drop all orders")
     return kept

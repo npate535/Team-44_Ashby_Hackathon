@@ -101,7 +101,7 @@ export async function createMockApi() {
             decision: {signed_out_at: x.signedOut ? x.signedOut.at : null,
                        margin_call: x.call ? {call: x.call.call, margins: x.call.margins, at: x.call.at} : null},
             or_room: x.c.lane === 'surgical' ? room(x.c.case_id) : null,
-            orders: x.orders.map((o, i) => ({rule_id: o.rule_id, type: o.type, status: x.orderStatus[i],
+            orders: x.orders.map((o, i) => ({seq: i, rule_id: o.rule_id, type: o.type, status: x.orderStatus[i],
                                              drafted_items: x.drafted[i], items: o.items}))};
   }
   function full(x) {
@@ -169,13 +169,13 @@ export async function createMockApi() {
       if (action === 'edit_orders') {
         const kept = {};
         for (const e of payload.orders || []) {
-          const o = x.orders.find(y => y.rule_id === e.rule_id);
-          if (!o || e.items.some(i => !o.items.includes(i))) throw new ApiError(422, 'edits may only remove drafted items');
-          if (e.items.length) kept[e.rule_id] = o.items.filter(i => e.items.includes(i));
+          const drafted = x.drafted[e.seq];
+          if (!drafted || e.items.some(i => !drafted.includes(i))) throw new ApiError(422, 'edits may only remove drafted items');
+          if (e.items.length) kept[e.seq] = drafted.filter(i => e.items.includes(i));
         }
         if (!Object.keys(kept).length) throw new ApiError(422, 'keep at least one item, or dismiss the flag');
         x.orders.forEach((o, i) => {
-          if (kept[o.rule_id]) { o.items = kept[o.rule_id]; x.orderStatus[i] = 'edited'; } else x.orderStatus[i] = 'removed';
+          if (kept[i]) { o.items = kept[i]; x.orderStatus[i] = 'edited'; } else x.orderStatus[i] = 'removed';
         });
       } else if (action === 'approve_orders') x.orderStatus = x.orderStatus.map(() => 'approved');
       else if (action === 'dismiss_flag') x.orderStatus = x.orderStatus.map(() => 'dismissed');

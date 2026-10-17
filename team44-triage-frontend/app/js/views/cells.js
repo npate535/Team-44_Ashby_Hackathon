@@ -23,17 +23,18 @@ export function cellsTab(v, ST, assetUrl) {
   }
   const types = cfg.cells.types;
   const colors = cfg.cells.overlay_colors;
-  const legend = `<div class="legend" data-testid="cells-legend" style="flex-wrap:wrap">${types.map(t => `<span data-testid="cells-legend-item"><i class="sw" style="background:${cssColor(colors[t])}"></i>${esc(humanize(t))}</span>`).join('')}</div>`;
+  const typeName = t => (cfg.labels.cell_types && cfg.labels.cell_types[t]) || humanize(t);
+  const legend = `<div class="legend" data-testid="cells-legend" style="flex-wrap:wrap">${types.map(t => `<span data-testid="cells-legend-item"><i class="sw" style="background:${cssColor(colors[t])}"></i>${esc(typeName(t))}</span>`).join('')}</div>`;
   const tileById = new Map(v.tiles.map(t => [t.idx, t]));
   const figs = cells.tiles.map(ct => {
     const t = tileById.get(ct.idx);
     const img = ST.cellsOverlay ? `<img src="${esc(assetUrl(ct.overlay))}" alt="Cell overlay, region ${num(ct.idx)}" data-testid="cells-overlay-img">`
       : (t ? crop(v, t, assetUrl) : '<div class="note">Region not in the display grid.</div>');
-    const counts = types.map(type => `<div class="kv"><span><i class="sw" style="background:${cssColor(colors[type])};display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px"></i>${esc(humanize(type))}</span><b>${num(ct.counts[type])}</b></div>`).join('');
+    const counts = types.map(type => `<div class="kv"><span><i class="sw" style="background:${cssColor(colors[type])};display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px"></i>${esc(typeName(type))}</span><b>${num(ct.counts[type])}</b></div>`).join('');
     return `<figure data-testid="cells-tile" data-tile="${num(ct.idx)}"${ST.cellsTile === ct.idx ? ' class="flash"' : ''}>${img}<figcaption class="sub">Region ${num(ct.idx)}</figcaption>${counts}</figure>`;
   }).join('');
-  const label = id => (v.concepts.find(c => c.id === id) || {}).label
-    || (cfg.labels && cfg.labels.cell_features && cfg.labels.cell_features[id]) || humanize(id);
+  const label = id => (cfg.labels.cell_features && cfg.labels.cell_features[id])
+    || (v.concepts.find(c => c.id === id) || {}).label || humanize(id);
   const feats = Object.entries(cells.features || {}).map(([id, f]) => {
     const p = f.ref_percentile;
     const bar = p === null || p === undefined ? '<div class="sub">no reference percentile</div>'

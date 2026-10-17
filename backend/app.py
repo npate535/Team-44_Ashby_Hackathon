@@ -31,6 +31,7 @@ from fastapi import Body, FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend import db
@@ -48,6 +49,15 @@ FIGURE_SUFFIXES = (".png", ".svg", ".jpg", ".jpeg")
 # Static routes serve media only: case JSONs and eval JSONs go through the API (which strips ground truth).
 MEDIA_SUFFIXES = {"images": (".jpg", ".jpeg", ".png"), "cells": (".png", ".jpg", ".jpeg"), "eval": FIGURE_SUFFIXES,
                   "spotcheck": (".png", ".jpg", ".jpeg"), "fixtures": (".jpg", ".jpeg", ".png", ".json")}
+
+
+def cell_feature_labels(cfg: Mapping[str, Any]) -> dict[str, Any]:
+    """Display names / units / directions of measured cell features and cell types (settings cells.features_file)."""
+    data = yaml.safe_load(config.resolve_repo_path(cfg["cells"]["features_file"]).read_text(encoding="utf-8"))
+    features = {f["id"]: {"label": f["display_name"], "unit": f["unit"], "direction": f["direction"]}
+                for f in data["features"]}
+    types = {t["key"]: t["display_name"] for t in data["types"].values()}
+    return {"features": features, "types": types}
 
 
 def iso(ts: float | None) -> str | None:
@@ -118,6 +128,7 @@ class Backend:
         self.red_s = float(timer["red_min"]) * 60.0
         self.or_rooms = int(cfg["sim"]["or_rooms"])
         self.targets = cfg["aging"]["turnaround_target_min"]
+        self.cell_labels = cell_feature_labels(cfg)         # read once; a bad file fails at startup
 
     # ---- paths ----------------------------------------------------------------------------------------------------
     def media_path(self, kind: str, name: str) -> Path:
@@ -243,7 +254,7 @@ class Backend:
             }
             public = contract.CasePublic.model_validate(case).model_dump(mode="json")
             runtime = self.runtime(row, case, wall, sim)
-            runtime["orders"] = [{"rule_id": o["rule_id"], "type": o["type"], "status": o["status"],
+            runtime["orders"] = [{"seq": o["seq"], "rule_id": o["rule_id"], "type": o["type"], "status": o["status"],
                                   "drafted_items": o["drafted_items"], "items": o["items"]} for o in order_rows]
             return {**public, "runtime": runtime, "server_time": wall, "server_time_iso": iso(wall)}
 
@@ -288,7 +299,10 @@ class Backend:
                 "classes": dict(ui["class_labels"]),
                 "concept_groups": {k: {"label": g["label"], "ids": list(g["ids"])}
                                    for k, g in cfg["concepts"]["groups"].items()},
+                "cell_features": {k: v["label"] for k, v in self.cell_labels["features"].items()},
+                "cell_types": dict(self.cell_labels["types"]),
             },
+            "cell_features": self.cell_labels["features"],
             "margin": {"names": dict(cfg["margin"]["names"]), "note": cfg["margin"]["note"],
                        "timer": dict(cfg["margin"]["timer"]), "order": list(contract.MARGIN_NAMES)},
             "timer": dict(cfg["margin"]["timer"]),
