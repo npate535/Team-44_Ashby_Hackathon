@@ -7,7 +7,7 @@
 #   make synthetic                  data_synthetic/ (schema-exact fake pipeline inputs, synthetic: true)
 #   make analyze DATA=data_synthetic   laptop steps 04-08 + eval on a data root (skips steps not built yet)
 #   make demo                       backend + teammate frontend on artifacts/ (CASES=fixtures for the fixture demo)
-#   make e2e                        Playwright end-to-end demo script (tests/e2e)
+#   make e2e                        Playwright end-to-end demo script (tests/e2e; skipped by `make test` unless PQ_E2E=1)
 
 PY        ?= uv run python
 DATA      ?= data
@@ -79,7 +79,7 @@ demo:
 	else echo "-- backend/app.py not built yet"; fi
 
 e2e:
-	@if [ -d tests/e2e ]; then uv run pytest -q tests/e2e; else echo "-- tests/e2e not built yet"; fi
+	@if [ -d tests/e2e ]; then PQ_E2E=1 uv run pytest -q tests/e2e; else echo "-- tests/e2e not built yet"; fi
 
 clean-synthetic:
 	rm -rf data_synthetic
