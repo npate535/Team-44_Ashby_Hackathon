@@ -214,14 +214,14 @@ def test_edit_orders_only_removes_drafted_items(dev):
     client, clock, roles, _ = dev
     arrive_all_biopsies(client, clock)
     hero = roles["hero_biopsy"]
-    invented = {"orders": [{"rule_id": "breast_invasive", "items": ["ER", "PD-L1"]}]}
+    invented = {"orders": [{"seq": 1, "items": ["ER", "PD-L1"]}]}
     assert decide(client, hero, "edit_orders", invented).status_code == 422
-    unknown_rule = {"orders": [{"rule_id": "made_up", "items": ["ER"]}]}
+    unknown_rule = {"orders": [{"seq": 1, "rule_id": "made_up", "items": ["ER"]}]}
     assert decide(client, hero, "edit_orders", unknown_rule).status_code == 422
-    nothing = {"orders": [{"rule_id": "breast_invasive", "items": []}]}
+    nothing = {"orders": [{"seq": 1, "items": []}]}
     assert decide(client, hero, "edit_orders", nothing).status_code == 422
     assert decide(client, hero, "edit_orders", {"orders": "ER"}).status_code == 422
-    ok = {"orders": [{"rule_id": "breast_invasive", "items": ["Ki-67", "ER"]}]}
+    ok = {"orders": [{"seq": 1, "items": ["Ki-67", "ER"]}]}
     res = decide(client, hero, "edit_orders", ok)
     assert res.status_code == 200 and res.json()["result"]["to"] == "edited_and_approved"
     case = res.json()["case"]
@@ -435,8 +435,8 @@ def test_non_string_payload_values_are_422(dev):
     client, clock, roles, _ = dev
     arrive_all_biopsies(client, clock)
     hero = roles["hero_biopsy"]
-    assert decide(client, hero, "edit_orders", {"orders": [{"rule_id": ["x"], "items": ["ER"]}]}).status_code == 422
-    assert decide(client, hero, "edit_orders", {"orders": [{"rule_id": "breast_invasive",
+    assert decide(client, hero, "edit_orders", {"orders": [{"seq": ["x"], "items": ["ER"]}]}).status_code == 422
+    assert decide(client, hero, "edit_orders", {"orders": [{"seq": 1,
                                                             "items": [{"a": 1}]}]}).status_code == 422
     surgical = client.post("/api/sim/inject_surgical", json={"variant": "normal"}).json()["injected"]
     assert decide(client, surgical, "margin_call", {"call": "tumor_at_margin",
@@ -598,3 +598,21 @@ def test_lazy_app_reports_startup_failure_to_uvicorn(monkeypatch, tmp_path):
     assert sent == [{"type": "lifespan.startup.failed", "message": "FileNotFoundError: cases folder missing"}]
     with pytest.raises(FileNotFoundError):
         asyncio.run(lazy({"type": "http"}, receive, send))
+
+
+def test_surgical_recut_drafts_can_be_approved_alongside_the_margin_call(tmp_path):
+    recut = {"status": "drafted", "orders": [{"type": "recut", "items": ["recut H&E section"], "rule_id": "low_quality",
+                                              "rationale": "Reliability flag."}],
+             "blocked": [{"action": "draft_stains", "reason": "Stains are not drafted for simulated frozen sections."}]}
+    case = variant(fixture_case("demo_0002"), "surg_recut", agent=recut, reliability_flag=True,
+                   margin={**fixture_case("demo_0002")["margin"], "suggested_call": "defer", "involved": [],
+                           "involved_length_um": None})
+    client, _ = make_client(tmp_path, cases_dir=write_cases(tmp_path / "c", [case]))
+    client.post("/api/sim/inject_surgical")
+    detail = client.get("/api/cases/surg_recut").json()
+    assert detail["runtime"]["allowed_actions"][0] == "margin_call" and "approve_orders" in detail["runtime"]["allowed_actions"]
+    assert decide(client, "surg_recut", "margin_call", {"call": "defer"}).status_code == 200
+    assert decide(client, "surg_recut", "approve_orders").json()["result"]["to"] == "approved"
+    assert decide(client, "surg_recut", "sign_out").status_code == 409
+    wl = client.get("/api/worklist").json()
+    assert row_for(wl, "surg_recut")["runtime"]["done"] is True

@@ -299,12 +299,12 @@ document.addEventListener('click', async e => {
   if (d.act) {
     if (d.act === 'edit_orders') {
       const c = ST.cases[ST.caseId];
-      ST.editDraft = Object.fromEntries(((c.runtime && c.runtime.orders) || []).map(o => [o.rule_id, [...o.items]]));
+      ST.editDraft = Object.fromEntries(((c.runtime && c.runtime.orders) || []).map(o => [o.seq, [...o.items]]));
       ST.editing = 'orders'; draw(true); return;
     }
     if (d.act === 'edit_cancel') { ST.editing = null; draw(true); return; }
     if (d.act === 'edit_save') {
-      const orders = Object.entries(ST.editDraft).map(([rule_id, items]) => ({rule_id, items}));
+      const orders = Object.entries(ST.editDraft).map(([seq, items]) => ({seq: Number(seq), items}));
       await decide('edit_orders', {orders}); return;
     }
     await decide(d.act, {}); return;
@@ -335,10 +335,10 @@ document.addEventListener('change', e => {
   const t = e.target;
   const d = t.dataset;
   if (d.hm === 'sel') { ST.hm.sel = t.value; ST.hm.why = null; ST.hm.hl = []; draw(true); }
-  else if (d.editRule) {
-    const list = ST.editDraft[d.editRule] || (ST.editDraft[d.editRule] = []);
+  else if (d.editSeq !== undefined) {
+    const list = ST.editDraft[d.editSeq] || (ST.editDraft[d.editSeq] = []);
     if (t.checked && !list.includes(d.editItem)) list.push(d.editItem);
-    if (!t.checked) ST.editDraft[d.editRule] = list.filter(i => i !== d.editItem);
+    if (!t.checked) ST.editDraft[d.editSeq] = list.filter(i => i !== d.editItem);
   } else if (d.pick) {
     ST.marginPick = t.checked ? [...new Set([...ST.marginPick, d.pick])] : ST.marginPick.filter(m => m !== d.pick);
   } else if (d.cells === 'overlay') { ST.cellsOverlay = t.checked; draw(true); }

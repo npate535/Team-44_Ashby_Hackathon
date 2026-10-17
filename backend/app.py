@@ -243,7 +243,7 @@ class Backend:
             }
             public = contract.CasePublic.model_validate(case).model_dump(mode="json")
             runtime = self.runtime(row, case, wall, sim)
-            runtime["orders"] = [{"rule_id": o["rule_id"], "type": o["type"], "status": o["status"],
+            runtime["orders"] = [{"seq": o["seq"], "rule_id": o["rule_id"], "type": o["type"], "status": o["status"],
                                   "drafted_items": o["drafted_items"], "items": o["items"]} for o in order_rows]
             return {**public, "runtime": runtime, "server_time": wall, "server_time_iso": iso(wall)}
 
