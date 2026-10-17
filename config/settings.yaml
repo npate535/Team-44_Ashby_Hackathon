@@ -190,6 +190,32 @@ tile_probe:                         # pipeline.tile_probe.oof_tile_risk (CELLS_S
   class_weight: balanced            # balanced | null (case labels propagated to tiles; cases differ in QC tile counts)
   seed: 44                          # grouped, class-stratified fold assignment over train cases
 
+risk_model:                         # pipeline/05_risk_model.py + pipeline/riskmodels.py (Agent 3; §A3, §A8)
+  C_grid: [0.001, 0.01, 0.1, 1.0]   # L2 strengths tried per LR candidate inside patient-grouped CV (standardized features)
+  max_iter: 5000
+  class_weight: null                # BACH train classes are near-balanced
+  use_views: true                   # train augmentation from bach*_views files (training folds only; §A7)
+  complexity: [cb_text, cb_cells, cb_text_cells, conch_probe_lr, musk_lr, uni2h_lr, hoptimus0_lr, fusion_top3, abmil]   # one-SE "simplest" order (then smaller C)
+  embedding_candidates:             # pre-registered mean-pooled L2-LR candidates (model_choice.candidates)
+    conch_probe_lr: {encoder: conch, set: bach512, head: probe}
+    musk_lr: {encoder: musk, set: bach512, head: probe}
+    uni2h_lr: {encoder: uni2h, set: bach256, head: probe}
+    hoptimus0_lr: {encoder: hoptimus0, set: bach256, head: probe}
+  fusion_k: 3                       # fusion_top3: top-k single-encoder LR candidates by CV log-loss (calibrated probs averaged)
+  variant_fallback: [cb_text, conch_probe_lr]   # model for a variant read when the production model has no features for it
+  models_dir: models                # exported npz weights under the data root (never pickled sklearn objects, §A22)
+  heatmap_probe: {encoder: conch, set: bach512, head: probe, name: conch_probe_oof}   # microscopy-only tile probe (tile_risk.csv)
+  wsi_probe_set: wsi512             # WSI-enhanced tile-probe ablation adds these labeled tiles (§A9)
+
+abmil:                              # pipeline/05b_abmil.py (gated-attention MIL, Ilse et al. 2018); cut order §I item 4
+  hidden: 128
+  attn_dim: 64
+  dropout: 0.25
+  epochs: 40
+  lr: 0.0005
+  weight_decay: 0.0001
+  seed: 44
+
 degrade:                            # simulated frozen-section artifacts (plan §6.7); list index i = severity i+1
   types: [blur, jpeg, stain, resample]
   severities: [1, 2, 3]
@@ -221,6 +247,9 @@ margin:                             # simulated surgical margin read (plan §6.9
   segment_px: 256                   # 8 segments per long edge, 6 per short edge, corners shared
   max_fpr: 0.05                     # threshold = (1 - max_fpr) quantile of benign calibration per-margin maxima
   threshold_quantile_method: higher
+  probe_C: 0.1                      # fine-scale binary carcinoma probe (L2-LR on 224-native g256 probe embeddings)
+  probe_max_iter: 3000
+  probe_fallback: {encoder: conch, set: bach512, head: probe}   # coarser 512-px fallback when no 224-native encoder exists
   timer: {amber_min: 15, red_min: 20}   # CAP Q-Probes: 90% of frozen sections within 20 min
   note: "Anterior and posterior margins cannot be represented in a 2D field."
 
