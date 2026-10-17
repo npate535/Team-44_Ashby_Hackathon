@@ -3,20 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Team 44 Triage Worklist</title>
+<title>PathQueue · Team 44 Triage Worklist</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="wrap">
-<div class="mock"><b>Mock data.</b> Cases, scores and timers on this page are simulated placeholders from the plan’s frozen JSON contract. Swap in cached model outputs before any screenshot.</div>
+<div class="banner" data-testid="banner-research" role="note">Research prototype — not for clinical use</div>
+<div class="mock" data-testid="banner-mock" hidden><b>Synthetic data.</b> Cases, scores and images on this page are generated placeholders, not BACH tissue. Use live pipeline artifacts for any screenshot.</div>
 <header>
-<div><h1>Pathology worklist</h1><div class="clock">Team 44 · Ashby Prize Hackathon 2026 · simulated clock <span id="sim"></span></div></div>
-<div class="seg" role="group" aria-label="Simulated clock"><button id="pp" aria-pressed="false">Pause clock</button></div>
-</header>
-<nav role="tablist"><button role="tab" id="tw" aria-selected="true">Worklist</button><button role="tab" id="to" aria-selected="false">OR board</button></nav>
-<main id="app"></main>
-<p class="quiet">Research prototype on public, de-identified data. Not clinically validated. The AI never makes a diagnosis. Every case ends with pathologist approval.</p>
+<div><h1>Pathology worklist</h1><div class="clock">PathQueue · breast (BACH) · Team 44 · Ashby Prize Hackathon 2026 · <span id="sim" data-testid="sim-clock">simulator stopped</span></div></div>
+<div class="simctl">
+<div class="seg" role="group" aria-label="Simulator"><button data-sim="start" data-testid="sim-start">Start</button><button id="pp" data-sim="pause" data-testid="sim-pause" aria-pressed="false">Pause clock</button><button data-sim="reset" data-testid="sim-reset">Reset</button></div>
+<div class="seg" role="group" aria-label="Inject a simulated frozen section"><button data-sim="inject_surgical" data-variant="normal" data-testid="sim-inject-surgical">+ Frozen</button><button data-sim="inject_surgical" data-variant="degraded" data-testid="sim-inject-degraded">+ Degraded</button><button data-sim="inject_surgical" data-variant="composite" data-testid="sim-inject-composite">+ Composite</button></div>
 </div>
-<script src="app.js"></script>
+</header>
+<nav role="tablist"><button role="tab" data-nav="worklist" data-testid="nav-worklist" aria-selected="true">Worklist</button><button role="tab" data-nav="surgeon" data-testid="nav-surgeon" aria-selected="false">Surgeon / OR board</button><button role="tab" data-nav="oncologist" data-testid="nav-oncologist" aria-selected="false">Oncologist inbox</button><button role="tab" data-nav="metrics" data-testid="nav-metrics" aria-selected="false">Metrics</button><button role="tab" data-nav="spotcheck" data-testid="nav-spotcheck" aria-selected="false">Spot-check</button></nav>
+<div id="offline" class="offline" data-testid="state-offline" role="status" hidden></div>
+<main id="app"><div class="card" data-testid="state-loading"><h2>Loading…</h2><p>If this stays, serve the app over HTTP: run <code>make demo</code> and open http://127.0.0.1:8000, or serve the repo root with <code>python3 -m http.server</code> and open <code>/team44-triage-frontend/app/?mock=1</code>. Opening index.html directly blocks module scripts and fetch.</p></div></main>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<p class="quiet">Research prototype on public, de-identified data (BACH, CC BY-NC-ND 4.0). Not clinically validated. The model never makes a diagnosis: it suggests, and every case ends with pathologist approval. Frozen sections are simulated.</p>
+</div>
+<script type="module" src="app.js"></script>
 </body>
 </html>
