@@ -256,16 +256,26 @@ def locate_quilt(root: Path, image_path: str, rules: Rules) -> Path | None:
 def scan_pathgen(root: Path, rules: Rules, stats: dict[str, int]) -> tuple[ImageVotes, dict[str, Path]]:
     """Captions of entries whose README-named patch exists anywhere under root."""
     patches = {p.stem: p for p in root.rglob("*") if p.suffix.lower() in common.IMAGE_EXTS and p.is_file()}
-    with open(root / rules.data["pathgen"]["json_name"], encoding="utf-8") as handle:
+    jsons = list(root.rglob("*.json"))
+    by_name = {p.name: p for p in jsons}
+    json_path = next((by_name[n] for n in rules.data["pathgen"]["json_names"] if n in by_name), None)
+    if json_path is None:
+        if not jsons:
+            raise FileNotFoundError(f"no PathGen *.json under {root}")
+        json_path = max(jsons, key=lambda p: p.stat().st_size)
+    stats["pathgen_json"] = str(json_path)
+    with open(json_path, encoding="utf-8") as handle:
         entries = json.load(handle)
     votes = ImageVotes()
     for e in entries:
         wsi_id = e.get("wsi_id") or e.get("WSI_id") or ""
         pos = e.get("position") or ["", ""]
-        stem = rules.data["pathgen"]["patch_name"].format(wsi_id=wsi_id, x=pos[0], y=pos[1])
         stats["pathgen_entries"] += 1
-        if stem not in patches:
+        stem = next((s for s in (t.format(wsi_id=wsi_id, file_id=e.get("file_id", ""), x=pos[0], y=pos[1])
+                                 for t in rules.data["pathgen"]["patch_names"]) if s in patches), None)
+        if stem is None:
             continue
+        stats["pathgen_matched_patches"] = stats.get("pathgen_matched_patches", 0) + 1
         caption = e.get("caption") or ""
         breast = rules.is_breast("", caption)
         stats["pathgen_breast_with_patch"] += int(breast)

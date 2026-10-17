@@ -22,9 +22,9 @@ quilt:
   image_dirs: ["images_part_{part}/quilt_1m"]   # relative to the Quilt root
   parts: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-pathgen:
-  json_name: PathGen-1.6M.json      # used only when inventory.json says pathgen.has_patch_images
-  patch_name: "{wsi_id}_{x}_{y}"    # README crop naming; extension any of the image extensions
+pathgen:                            # used only when inventory.json says pathgen.has_patch_images
+  json_names: [PathGen-2k_samples.json, PathGen-1.6M.json]   # first one found under the root (recursive); else the largest *.json
+  patch_names: ["{wsi_id}_{x}_{y}", "{file_id}_{x}_{y}", "{wsi_id}-{x}-{y}"]   # tried in order; any image extension
 
 organ_filter:                       # image-level: an image is breast when ANY of its captions passes
   pathology_prefixes: [breast]      # Quilt `pathology` values starting with these (older CSVs say "Breast pathology")
