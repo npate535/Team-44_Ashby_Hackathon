@@ -1,0 +1,113 @@
+# ILLUSTRATIVE; REQUIRES CLINICAL REVIEW.
+# Follow-up order rules for the PathQueue agent (plan §9, BUILD_PLAN §A14). Research prototype on public,
+# de-identified data (BACH); not for clinical use. Nothing here is ordered without a pathologist's approval:
+# the agent only DRAFTS these orders, and the pathologist orders, edits, defers or dismisses them.
+#
+# Owned by Agent 4. Read by agent/rules.py (deterministic engine; schema in its module docstring) and agent/agent.py
+# (an optional LLM may only choose among these outputs and reword the rationale; it can never add an item).
+#
+# Rule conditions (all keys of `when` must hold; omitted keys are not checked):
+#   top_class: <class>            argmax of the calibrated probabilities equals the class
+#   in_set_all: [<class>, ...]    every listed class is in the conformal prediction set
+#   reliability_flag: true|false  quality.reliability_flag
+#   insufficient_tissue: true     quality.qc_tiles_kept < settings qc.min_tiles_kept
+#   lanes: [biopsy, surgical]     restrict to lanes (default: both)
+# Lane guard: order types in `lane_guard.blocked_types` are never drafted for lanes in settings agent.blocked_lanes;
+# the agent shows one visible `blocked` action instead (stains are never drafted for simulated frozen sections).
+#
+# Guideline sources (wording checked in BUILD_PLAN §F; verify before any clinical use):
+#   [CAP-IHC]   CAP breast immunohistochemistry practice as summarized in BUILD_PLAN §F (verify the exact source before
+#               clinical use): myoepithelial panel of >= 2 markers including a nuclear one (p63) plus a cytoplasmic
+#               one (SMMHC preferred; calponin also stains myofibroblasts and vessels). Pitfalls: patchy/attenuated p63
+#               around DCIS, vessels, myofibroblasts, sclerosing lesions. Adjacent normal ducts are the internal control.
+#   [ASCO-ER]   Allison KH et al. Estrogen and Progesterone Receptor Testing in Breast Cancer: ASCO/CAP Guideline
+#               Update. J Clin Oncol 2020;38:1346-66 (ER/PR on invasive carcinoma; ER testing recommended for newly
+#               diagnosed DCIS; "ER Low Positive" 1-10%).
+#   [ASCO-HER2] Wolff AC et al. HER2 Testing in Breast Cancer: ASCO/CAP Guideline Update. J Clin Oncol 2018;36:2105-22
+#               and 2023 focused update (IHC 0/1+/2+/3+; reflex ISH at IHC 2+ "equivocal"; "HER2-low" is not an
+#               ASCO/CAP reporting category).
+#   [IKWG]      Nielsen TO et al. Assessment of Ki67 in Breast Cancer: Updated Recommendations From the International
+#               Ki67 in Breast Cancer Working Group. J Natl Cancer Inst 2021;113:808-19 (prognostic use mainly in
+#               ER+/HER2- T1-2 N0-1 disease, <= 5% or >= 30%).
+#   [CAP-PROT]  CAP Protocol for the Examination of Resection Specimens From Patients With Invasive Carcinoma of the
+#               Breast, v4.11 (positive margin = ink on invasive carcinoma or DCIS).
+
+version: 1
+status: "Illustrative; requires clinical review"
+
+lane_guard:
+  blocked_types: [stain]
+  action: draft_stains
+  reason: "Stains are not drafted for simulated frozen sections."
+
+rules:
+  # [CAP-IHC] In situ vs invasive: both carcinoma classes are plausible at the configured confidence level.
+  - id: breast_insitu_vs_invasive
+    label: In situ vs invasive (myoepithelial markers)
+    when: {in_set_all: [InSitu, Invasive]}
+    orders:
+      - type: stain
+        items: [p63, calponin]
+    rationale: "Myoepithelial markers help distinguish in situ from invasive disease."
+    note: >-
+      Panel of >= 2 markers including a nuclear one; SMMHC is the CAP-preferred alternative to calponin; use normal
+      ducts as the internal control; beware patchy p63 around DCIS and staining of vessels or myofibroblasts.
+    citations: [CAP-IHC]
+
+  # [ASCO-ER] [ASCO-HER2] [IKWG] Standard biomarker panel when invasive carcinoma is the suggested category.
+  - id: breast_invasive
+    label: Invasive carcinoma biomarker panel
+    when: {top_class: Invasive}
+    orders:
+      - type: stain
+        items: [ER, PR, HER2, Ki-67]
+    rationale: "Standard biomarker panel if invasion is confirmed."
+    note: >-
+      HER2 by IHC (0/1+/2+/3+) with reflex ISH at 2+; Ki-67 is prognostic mainly in ER+/HER2- early disease (IKWG).
+    citations: [ASCO-ER, ASCO-HER2, IKWG]
+
+  # [ASCO-ER] ER testing is recommended for newly diagnosed DCIS.
+  - id: breast_insitu
+    label: DCIS hormone receptor
+    when: {top_class: InSitu}
+    orders:
+      - type: stain
+        items: [ER]
+    rationale: "ER status is recommended for ductal carcinoma in situ (ASCO/CAP 2020)."
+    note: "ASCO/CAP 2020 recommends ER testing for newly diagnosed DCIS; PR is optional."
+    citations: [ASCO-ER]
+
+  # [CAP-IHC] Benign vs atypical / in situ: look deeper first, then a basal-cytokeratin and ER pair.
+  - id: uncertain_benign_atypia
+    label: Benign vs atypia / in situ
+    when: {in_set_all: [Benign, InSitu]}
+    orders:
+      - type: deeper_levels
+        items: [deeper levels]
+      - type: stain
+        items: [CK5/6, ER]
+    rationale: "Deeper levels and CK5/6 with ER help separate usual hyperplasia from atypical or in situ lesions."
+    note: "Usual ductal hyperplasia is typically CK5/6 mosaic and ER heterogeneous; atypia/low-grade DCIS is CK5/6 negative and ER diffusely positive."
+    citations: [CAP-IHC]
+
+  # Reliability flag: the read may be unreliable (artifact, unusual image); improve the section before relying on it.
+  - id: low_quality
+    label: Low reliability
+    when: {reliability_flag: true}
+    orders:
+      - type: recut
+        items: [recut H&E section]
+      - type: deeper_levels
+        items: [deeper levels]
+    rationale: "The reliability check flagged this read; a recut or deeper levels may give a more reliable section."
+    citations: []
+
+  # Too little tissue passed quality control (settings qc.min_tiles_kept) to support a read.
+  - id: insufficient
+    label: Insufficient tissue
+    when: {insufficient_tissue: true}
+    orders:
+      - type: new_sample
+        items: [new sample]
+    rationale: "Only {qc_tiles_kept} tissue regions passed quality control (fewer than {min_tiles_kept}); a new sample may be needed."
+    citations: []

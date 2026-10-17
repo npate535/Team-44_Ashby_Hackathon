@@ -227,7 +227,8 @@ EMBED_MANIFEST = Table(
         _c("group", "str", "leakage group for held-out splits: WSI patient, Quilt video, PathGen slide; empty for BACH"),
     ),
     notes="Views: train items get settings encoders.views[grid] rows (views 0..n-1); calibration/test items get the "
-          "same views and are reduced to their TTA mean on the node; whole-image sets use view 0 only.",
+          "same views and are reduced to their TTA mean on the node; whole-image sets use view 0 only; degraded sets "
+          "(deg512, deg256) use view 0 only (ruling M9).",
 )
 
 EMB_INDEX = Table(
@@ -250,7 +251,9 @@ EMB_INDEX = Table(
     ),
     notes="Two files per (encoder, set, head): <set>_<head>.npy + _index.csv with one row per item_id (TTA mean; "
           "the only file most consumers read), and <set>_<head>_views.npy + _views_index.csv with one row per "
-          "(item, view) for train augmentation (train split only).",
+          "(item, view) for every split of the clean multi-view sets (bach512, bach256): train rows feed augmentation, "
+          "calibration/test view-0 rows are the like-for-like clean baseline for degraded reads (ruling M9: deg512 / "
+          "deg256 are embedded at view 0 only).",
 )
 
 COMPOSITES = Table(
@@ -502,7 +505,8 @@ EMB_NPY = ArraySpec(
     "emb/<encoder>/<set>_<head>.npy", "Task 3 · 02_embed / export", "Tasks 8, 9, 10, 11",
     arrays=(("(array)", "float16 [N, D]; row i = emb_row i of <set>_<head>_index.csv"),),
     doc="One row per item_id (mean over n_views TTA views). Align-head rows are re-normalized to unit L2 norm after "
-        "averaging (cosine = dot); probe rows are raw means. '_views' variant: one row per (item, view), train only. "
+        "averaging (cosine = dot); probe rows are raw means. '_views' variant: one row per (item, view) for every "
+        "split of bach512/bach256 (ruling M9). "
         "Never mix encoders in one index.",
 )
 TEXT_NPZ = ArraySpec(
