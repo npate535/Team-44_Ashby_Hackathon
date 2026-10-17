@@ -313,6 +313,12 @@ agent:
   stain_rules: config/stain_rules.yaml
   blocked_lanes: [surgical]         # stains are never drafted in the frozen lane (§A21)
 
+spotcheck:                          # step 08 review items (plan §5.4, CELLS_SPEC §8.1); reviews are AI or human, labeled
+  per_concept: 20                   # top-scoring test tiles per concept
+  overlays_per_class: 5             # cell overlays per class (labels pick items; never written to items.json)
+  crop_px: 256                      # crop edge in the review image (cut from the display JPEG, rescaled)
+  seed: 44
+
 hosted:                             # organizer servers, callable only inside Delta: 5-tile equivalence check (§A6)
   env_file: ~/.config/ashby-2026/model-servers.env
   conch: {url_env: CONCH_URL, key_env: CONCH_API_KEY}
