@@ -165,6 +165,16 @@ def pick_models(df: pd.DataFrame, cfg: Mapping[str, Any], art: Path) -> dict[str
     return out
 
 
+def roc_points(y_bin: np.ndarray, scores: np.ndarray) -> dict[str, list[float]]:
+    """ROC curve points (fpr, tpr) for figures; empty when only one class is present."""
+    from sklearn.metrics import roc_curve
+
+    if len(set(y_bin.tolist())) < 2:
+        return {"fpr": [], "tpr": []}
+    fpr, tpr, _ = roc_curve(y_bin, scores)
+    return {"fpr": [round(float(v), 4) for v in fpr], "tpr": [round(float(v), 4) for v in tpr]}
+
+
 # ---- metric functions ----------------------------------------------------------------------------------------------
 def _invasive_auroc(k: int) -> Callable[[np.ndarray, np.ndarray], float]:
     return lambda y, p: stats.auroc((y == k).astype(int), p[:, k] if p.ndim == 2 else p)
@@ -231,6 +241,7 @@ def metrics_payload(df: pd.DataFrame, variants: int, cfg: Mapping[str, Any], art
         diff = stats.paired_difference_ci(lambda yy, s: stats.auroc((yy == k).astype(int), s), y, pa, pb,
                                           groups if bs["cluster"] else None, None, bs["n_boot"], bs["ci"], bs["seed"] + 999)
         out["a_vs_b"] = {"a": a, "b": b, "metric": "Invasive-vs-rest AUROC (uncalibrated scores)",
+                         "roc": {"a": roc_points((y == k).astype(int), pa), "b": roc_points((y == k).astype(int), pb)},
                          "auroc_a": out["per_model"][a]["invasive_vs_rest_auroc"],
                          "auroc_b": out["per_model"][b]["invasive_vs_rest_auroc"],
                          "difference_a_minus_b": {**diff, "n": int(len(df)), "n_groups": int(len(set(groups)))}}
