@@ -72,13 +72,15 @@ def test_end_to_end_tta_means_views_and_alignment(tmp_path, fake_degrade, cfg):
     assert set(idx.loc[idx["split"] != "train", "n_views"]) == {2}
 
 
-def test_views_file_is_train_only_and_matches_the_per_item_means(tmp_path, fake_degrade):
+def test_views_file_covers_every_split_and_matches_the_per_item_means(tmp_path, fake_degrade):
     manifest = build_tree(tmp_path)
     assert run_embed(tmp_path, make_encoders_yaml(tmp_path))[0] == 0
     varr, vidx = _load(tmp_path, "bach512", "probe", views=True)
-    train = manifest[(manifest["set"] == "bach512") & (manifest["split"] == "train")]
-    assert len(vidx) == len(train) == varr.shape[0]
-    assert set(vidx["split"]) == {"train"} and set(vidx["view"]) == {0, 1, 2} and (vidx["n_views"] == 1).all()
+    bach = manifest[manifest["set"] == "bach512"]
+    assert len(vidx) == len(bach) == varr.shape[0]  # ruling M9: every split, one row per (item, view)
+    assert set(vidx["split"]) == {"train", "calibration", "test"} and (vidx["n_views"] == 1).all()
+    assert set(vidx.loc[vidx["split"] == "train", "view"]) == {0, 1, 2}
+    assert set(vidx.loc[vidx["split"] == "test", "view"]) == {0, 1}
     arr, idx = _load(tmp_path, "bach512", "probe")
     for item, group in vidx.groupby("item_id"):
         row = idx.index[idx["item_id"] == item][0]
@@ -328,3 +330,67 @@ def test_env_file_parsing_and_missing_endpoints(tmp_path, cfg):
         H.endpoint(cfg, "musk", env)
     assert "abc" not in str(err.value)
     assert H.read_env_file(tmp_path / "absent.env") == {}
+
+
+def test_max_views_keeps_view_zero_only(tmp_path, fake_degrade):
+    build_tree(tmp_path)
+    assert run_embed(tmp_path, make_encoders_yaml(tmp_path), "--sets", "bach512", "--max-views", "bach512=1")[0] == 0
+    _, idx = _load(tmp_path, "bach512", "probe")
+    assert len(idx) == 16 and set(idx["n_views"]) == {1}
+    assert not schemas.emb_npy(tmp_path, "test", "bach512", "probe", views=True).exists()
+    with pytest.raises(ValueError, match="max-views"):
+        embed.parse_max_views("bach512=0")
+
+
+def test_a_failed_zero_shot_set_is_never_treated_as_done(tmp_path, fake_degrade):
+    build_tree(tmp_path)
+    ecfg = make_encoders_yaml(tmp_path, nct_min_items=1, nct_floor=1.01)
+    assert run_embed(tmp_path, ecfg, "--sets", "nct")[0] == 2
+    code, log = run_embed(tmp_path, ecfg, "--sets", "nct")  # no --force: must re-run the check, not skip
+    assert code == 2 and not any("already embedded" in line for line in log)
+
+
+def test_changed_manifest_geometry_recomputes_the_set(tmp_path, fake_degrade):
+    df = build_tree(tmp_path)
+    ecfg = make_encoders_yaml(tmp_path)
+    assert run_embed(tmp_path, ecfg, "--sets", "bach512")[0] == 0
+    before = _load(tmp_path, "bach512", "probe")[0].copy()
+    df.loc[df["set"] == "bach512", "x"] = 0  # every tile now crops the left column
+    df.to_csv(schemas.embed_manifest_csv(tmp_path), index=False)
+    code, log = run_embed(tmp_path, ecfg, "--sets", "bach512")
+    assert code == 0 and not any("already embedded" in line for line in log)
+    assert not np.array_equal(before, _load(tmp_path, "bach512", "probe")[0])
+
+
+def test_gpu_allocation_without_cuda_aborts_instead_of_running_on_cpu(tmp_path, monkeypatch):
+    build_tree(tmp_path)
+    monkeypatch.setenv("SLURM_JOB_GPUS", "0")
+    lines = []
+    code = embed.main(["--data-root", str(tmp_path), "--encoders", "test", "--encoders-config",
+                       str(make_encoders_yaml(tmp_path))], log=lines.append)
+    assert code == 2 and "no CUDA device" in lines[-1]
+    with pytest.raises(embed.CheckFailed):
+        embed.resolve_device("cuda:0")
+
+
+def test_import_errors_are_failures_not_unavailable(tmp_path, fake_degrade, monkeypatch):
+    build_tree(tmp_path)
+
+    def broken(*a, **k):
+        raise ImportError("No module named 'fairscale'")
+
+    monkeypatch.setattr(E.official_models(), "resolve_adapter", broken)
+    code, log = run_embed(tmp_path, make_encoders_yaml(tmp_path), "--sets", "nct", "--skip-unavailable",
+                          "--keep-going")
+    assert code == 2 and any("ERROR test" in line and "fairscale" in line for line in log)
+
+
+def test_all_encoders_unavailable_exits_non_zero(tmp_path, fake_degrade, monkeypatch):
+    build_tree(tmp_path)
+
+    def unavailable(name, ecfg, device="cuda"):
+        raise E.EncoderUnavailable(f"{name}: not in the HF cache")
+
+    monkeypatch.setattr(E, "load_encoder", unavailable)
+    code, log = run_embed(tmp_path, make_encoders_yaml(tmp_path), "--sets", "nct", "--skip-unavailable")
+    assert code == 2 and any("no encoder was available" in line for line in log)
