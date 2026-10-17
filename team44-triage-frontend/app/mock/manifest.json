@@ -1,0 +1,118 @@
+{
+  "_note": "?mock=1 fixtures (synthetic placeholders). Paths are document-relative; patches are deep-merged.",
+  "asset_base": "../../fixtures/",
+  "cases": [
+    {
+      "src": "../../fixtures/demo_0001.json",
+      "id": "MOCK_B01",
+      "patch": {
+        "arrived_offset_s": 30,
+        "flag": {
+          "flagged": false,
+          "tier": 4,
+          "reasons": []
+        },
+        "prediction": {
+          "probs": [
+            0.12,
+            0.84,
+            0.03,
+            0.01
+          ],
+          "risk_score": 0.01,
+          "conformal_set": [
+            "Benign"
+          ]
+        },
+        "agent": {
+          "status": "none",
+          "orders": []
+        }
+      }
+    },
+    {
+      "src": "../../fixtures/demo_0001.json",
+      "id": "MOCK_B02",
+      "patch": {
+        "arrived_offset_s": 120,
+        "flag": {
+          "flagged": true,
+          "tier": 3,
+          "reasons": [
+            "set_size_gt_1"
+          ]
+        },
+        "prediction": {
+          "probs": [
+            0.05,
+            0.52,
+            0.38,
+            0.05
+          ],
+          "risk_score": 0.05,
+          "conformal_set": [
+            "Benign",
+            "InSitu"
+          ]
+        },
+        "agent": {
+          "status": "drafted",
+          "orders": [
+            {
+              "type": "deeper_levels",
+              "items": [
+                "Deeper levels",
+                "CK5/6",
+                "ER"
+              ],
+              "rule_id": "uncertain_benign_atypia",
+              "rationale": "Benign and in situ are both possible; deeper levels and CK5/6 + ER help."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "src": "../../fixtures/demo_0001.json"
+    },
+    {
+      "src": "../../fixtures/demo_0002.json"
+    },
+    {
+      "src": "../../fixtures/demo_0002.json",
+      "id": "MOCK_S02_DEG",
+      "inject": "degraded",
+      "patch": {
+        "simulated_variant": "degraded",
+        "degradation": {
+          "type": "blur",
+          "severity": 3
+        },
+        "source_case_ids": [
+          "demo_0002"
+        ],
+        "quality": {
+          "reliability_flag": true,
+          "reliability": 0.31,
+          "ood_percentile": 0.97
+        },
+        "flag": {
+          "flagged": false,
+          "tier": 1,
+          "reasons": [
+            "aggressive_top",
+            "aggressive_in_conformal_set",
+            "set_size_gt_1",
+            "low_reliability",
+            "surgical_frozen_section"
+          ]
+        },
+        "margin": {
+          "suggested_call": "defer",
+          "involved": [],
+          "involved_length_um": null
+        }
+      }
+    }
+  ]
+}
