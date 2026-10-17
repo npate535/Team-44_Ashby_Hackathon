@@ -7,8 +7,10 @@ Laptop step. It NEVER refits a model: every number comes from the producers' fil
     predictions.csv, tile_risk.csv, contributions.csv,      cell_features.csv, cell_features_tile.csv,
     tile_attention.csv (optional), reliability.csv,         cells/<case>/<idx>_overlay.png (Agent 1, optional)
     retrieval.json, margins.json (Agent 3)                  config/concepts.yaml, config/cell_features.yaml
-A missing required input (or a clean test case missing from one) is an error; a simulated variant missing from an
-input is skipped and listed in meta/08_build_case_json.json ("skipped").
+A missing required input, a clean test case missing from one, or a blank/NaN value in a required field (flags,
+probabilities, contributions, tile scores) is an error — blanks never become False/0. A simulated variant that fails
+any of these is skipped and listed in meta/08_build_case_json.json ("skipped"). Every case is validated against the
+contract before any LLM call or write. Retrieval references must be train-split cases.
 
 Cases written (artifacts root):
   * every TEST case (lane from cases.csv: biopsy or surgical);
@@ -84,14 +86,36 @@ def is_missing(x: Any) -> bool:
     return x is None or (isinstance(x, float) and math.isnan(x)) or (isinstance(x, str) and x == "")
 
 
-def as_bool(x: Any) -> bool:
-    if isinstance(x, str):
-        return x.strip().lower() in ("1", "true", "1.0")
-    return bool(x) and not (isinstance(x, float) and math.isnan(x))
-
-
 class InputError(ValueError):
     """Invalid or missing input for step 08."""
+
+
+def as_bool(x: Any, what: str = "flag") -> bool:
+    """0/1/true/false -> bool; a missing value raises (a blank flag must never read as False)."""
+    if is_missing(x):
+        raise InputError(f"{what} is missing")
+    if isinstance(x, str):
+        text = x.strip().lower()
+        if text not in ("0", "1", "true", "false", "0.0", "1.0"):
+            raise InputError(f"{what} must be 0/1, got {x!r}")
+        return text in ("1", "true", "1.0")
+    return bool(x)
+
+
+def req_float(x: Any, what: str) -> float:
+    if is_missing(x):
+        raise InputError(f"{what} is missing")
+    value = float(x)
+    if not math.isfinite(value):
+        raise InputError(f"{what} is not finite ({value})")
+    return value
+
+
+def sum_contrib(rows: pd.DataFrame, what: str) -> float:
+    values = pd.to_numeric(rows["contribution"], errors="coerce")
+    if values.isna().any():
+        raise InputError(f"{what}: missing contribution values")
+    return float(values.sum())
 
 
 def _need(path: Path, what: str) -> Path:
@@ -194,7 +218,10 @@ def load_inputs(cfg: Mapping[str, Any], root: Path, artifacts: Path, *, concept_
         raise InputError(f"concepts_tile.npz concept_ids {concept_ids} differ from settings concepts.ids")
     concepts_tile: dict[str, dict[int, dict[str, np.ndarray]]] = {}
     for i, (cid, tidx) in enumerate(zip(npz["case_id"], npz["tile_idx"])):
-        concepts_tile.setdefault(str(cid), {})[int(tidx)] = {k: npz[k][i] for k in ("z", "z_text", "z_cav", "spread")}
+        per_case = concepts_tile.setdefault(str(cid), {})
+        if int(tidx) in per_case:
+            raise InputError(f"concepts_tile.npz has a duplicate row for ({cid}, {int(tidx)})")
+        per_case[int(tidx)] = {k: npz[k][i] for k in ("z", "z_text", "z_cav", "spread")}
 
     retrieval = io.read_json(_need(track(schemas.retrieval_json(root)), "retrieval.json"))
     problems = schemas.RETRIEVAL.problems(retrieval)
@@ -202,6 +229,9 @@ def load_inputs(cfg: Mapping[str, Any], root: Path, artifacts: Path, *, concept_
     if schemas.margins_json(root).is_file():
         margins = io.read_json(track(schemas.margins_json(root)))
         problems += schemas.MARGINS_JSON.problems(margins)
+        for key in ("strip_px", "segment_px"):
+            if key in margins and int(margins[key]) != int(cfg["margin"][key]):
+                problems.append(f"margins.json {key}={margins[key]} differs from settings margin.{key}={cfg['margin'][key]}")
     if problems:
         raise InputError("; ".join(problems))
     composites = None
@@ -266,16 +296,26 @@ def case_plan(inputs: Inputs, cfg: Mapping[str, Any], root: Path, limit: int | N
                                   schemas.display_jpg(root, vid), int(row["width"]), int(row["height"]),
                                   str(row["label"]), "test", str(row["group"])))
     if inputs.composites is not None:
+        test_all = set(test["case_id"])
         for _, comp in inputs.composites.sort_values("case_id").iterrows():
             carc, benign = str(comp["carcinoma_case_id"]), str(comp["benign_case_id"])
             if carc not in ids:
-                continue
-            truth = tuple((f"margin_truth_{m}", str(comp[f"truth_{m}"])) for m in schemas.MARGINS)
-            groups = sorted({str(cases.loc[c, "group"]) for c in (carc, benign) if c in cases.index})
-            specs.append(CaseSpec(str(comp["case_id"]), "surgical", "composite", None, (carc, benign), None,
+                if carc not in test_all:
+                    raise InputError(f"composite {comp['case_id']}: carcinoma case {carc} is not a test case")
+                continue                                   # left out by --limit
+            if benign not in test_all:
+                raise InputError(f"composite {comp['case_id']}: benign case {benign} is not a test case")
+            truth_values = {m: comp[f"truth_{m}"] for m in schemas.MARGINS}
+            if any(is_missing(v) for v in truth_values.values()):
+                raise InputError(f"composite {comp['case_id']}: missing margin truth")
+            truth = tuple((f"margin_truth_{m}", str(v)) for m, v in truth_values.items())
+            groups = sorted({str(cases.loc[c, "group"]) for c in (carc, benign)})
+            # Top-level source ids are sorted so their order never tells which half is carcinoma (eval_only does).
+            specs.append(CaseSpec(str(comp["case_id"]), "surgical", "composite", None, tuple(sorted((carc, benign))), None,
                                   schemas.resolve(root, comp["display_path"]), int(comp["width"]), int(comp["height"]),
                                   str(cases.loc[carc, "label"]), "test", "+".join(groups),
-                                  (("carcinoma_side", str(comp["carcinoma_side"])), *truth)))
+                                  (("carcinoma_case_id", carc), ("benign_case_id", benign),
+                                   ("carcinoma_side", str(comp["carcinoma_side"])), *truth)))
     return specs
 
 
@@ -285,8 +325,11 @@ def qc_tiles(spec: CaseSpec, inputs: Inputs) -> list[int]:
         rows = inputs.tiles[(inputs.tiles["case_id"] == spec.qc_source)]
         if rows.empty:
             raise InputError(f"{spec.case_id}: no g512 tiles for {spec.qc_source} in tiles.csv")
-        return sorted(int(t) for t in rows.loc[rows["qc_pass"].map(as_bool), "tile_idx"])
+        keep = [as_bool(v, f"{spec.qc_source} tiles.csv qc_pass") for v in rows["qc_pass"]]
+        return sorted(int(t) for t, k in zip(rows["tile_idx"], keep) if k)
     rows = inputs.tile_risk[inputs.tile_risk["case_id"] == spec.case_id]
+    if rows.empty:
+        raise InputError(f"{spec.case_id}: no g512 rows in tile_risk.csv")
     return sorted(int(t) for t in rows["tile_idx"])
 
 
@@ -295,22 +338,30 @@ def prediction_block(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any]) -> 
         raise InputError(f"{spec.case_id}: missing from predictions.csv")
     row = inputs.predictions.loc[spec.case_id]
     classes = list(cfg["classes"])
-    probs = [float(row[schemas.cal_prob_col(c)]) for c in classes]
+    probs = [req_float(row[schemas.cal_prob_col(c)], f"{spec.case_id} {schemas.cal_prob_col(c)}") for c in classes]
     total = sum(probs)
     if not math.isclose(total, 1.0, abs_tol=1e-3):
         raise InputError(f"{spec.case_id}: calibrated probabilities sum to {total}")
     probs = [round(p / total, 4) for p in probs]
+    risk = req_float(row["risk"], f"{spec.case_id} predictions.csv risk")
+    aggressive = req_float(row[schemas.cal_prob_col(cfg["aggressive_class"])], f"{spec.case_id} pcal aggressive")
+    if abs(risk - aggressive) > 1e-3:
+        raise InputError(f"{spec.case_id}: risk {risk} differs from {schemas.cal_prob_col(cfg['aggressive_class'])} {aggressive}")
+    members = schemas.parse_set(row["set_lac"])
+    if len(members) != int(req_float(row["set_size"], f"{spec.case_id} set_size")):
+        raise InputError(f"{spec.case_id}: set_lac {members} does not match set_size {row['set_size']}")
     return {"model": str(row["model"]), "classes": classes, "probs": probs,
-            "risk_score": round(float(row["risk"]), 4), "conformal_alpha": float(cfg["alpha"]),
-            "conformal_set": schemas.parse_set(row["set_lac"])}
+            "risk_score": round(risk, 4), "conformal_alpha": float(cfg["alpha"]), "conformal_set": members}
 
 
 def quality_block(spec: CaseSpec, inputs: Inputs, n_tiles: int) -> dict[str, Any]:
     if spec.case_id not in inputs.reliability.index:
         raise InputError(f"{spec.case_id}: missing from reliability.csv")
     row = inputs.reliability.loc[spec.case_id]
-    return {"qc_tiles_kept": n_tiles, "ood_percentile": rnd(row["ood_percentile"], 3),
-            "reliability": rnd(row["reliability"], 3), "reliability_flag": as_bool(row["reliability_flag"])}
+    return {"qc_tiles_kept": n_tiles,
+            "ood_percentile": round(req_float(row["ood_percentile"], f"{spec.case_id} ood_percentile"), 3),
+            "reliability": round(req_float(row["reliability"], f"{spec.case_id} reliability"), 3),
+            "reliability_flag": as_bool(row["reliability_flag"], f"{spec.case_id} reliability_flag")}
 
 
 def tiles_block(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], qc: Sequence[int]) -> list[dict[str, Any]]:
@@ -328,11 +379,12 @@ def tiles_block(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], qc: Sequ
             raise InputError(f"{spec.case_id}: tile {idx} missing from tile_risk.csv")
         if idx not in ctile:
             raise InputError(f"{spec.case_id}: tile {idx} missing from concepts_tile.npz")
+        z = [req_float(v, f"{spec.case_id} tile {idx} concept z") for v in ctile[idx]["z"]]
         tile = {"idx": idx, "row": idx // cols, "col": idx % cols, "x": (idx % cols) * size, "y": (idx // cols) * size,
-                "risk": rnd(risk[idx], 3),
-                "concepts": {c: rnd(z, 2) for c, z in zip(inputs.concept_ids, ctile[idx]["z"])}}
+                "risk": round(req_float(risk[idx], f"{spec.case_id} tile {idx} risk"), 3),
+                "concepts": {c: round(v, 2) for c, v in zip(inputs.concept_ids, z)}}
         if attention is not None and idx in attention.index:
-            tile["attention"] = rnd(attention[idx], 4)
+            tile["attention"] = round(req_float(attention[idx], f"{spec.case_id} tile {idx} attention"), 4)
         out.append(tile)
     return out
 
@@ -351,8 +403,11 @@ def concept_blocks(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], qc: S
     if contrib.empty:
         raise InputError(f"{spec.case_id}: missing from contributions.csv")
     k = int(cfg["concepts"]["top_k"])
-    feats = inputs.case_features.loc[spec.case_id] if (
-        inputs.case_features is not None and spec.case_id in inputs.case_features.index) else None
+    feats = None
+    if inputs.case_features is not None:
+        if spec.case_id not in inputs.case_features.index:
+            raise InputError(f"{spec.case_id}: missing from case_features.csv")
+        feats = inputs.case_features.loc[spec.case_id]
     ctile = inputs.concepts_tile.get(spec.case_id, {})
     by_id = inputs.bank.by_id()
     per_concept_eval = (inputs.concepts_eval.get("concepts") or {}) if isinstance(inputs.concepts_eval, Mapping) else {}
@@ -371,15 +426,15 @@ def concept_blocks(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], qc: S
             value = match["value"].iloc[0]
         source = "cav" if (rows["source"] == "cav").any() else "text"
         entry: dict[str, Any] = {
-            "id": cid, "label": by_id[cid].label, "value": rnd(value, 3),
-            "contribution": rnd(rows["contribution"].astype(float).sum(), 3), "direction": by_id[cid].direction,
+            "id": cid, "label": by_id[cid].label, "value": round(req_float(value, f"{spec.case_id} {top_col}"), 3),
+            "contribution": round(sum_contrib(rows, f"{spec.case_id} {cid}"), 3), "direction": by_id[cid].direction,
             "top_tiles": _top_tiles(ctile, qc, ci, cfg) if qc else [], "source": source,
         }
         spread = feats.get(f"{cid}__spread") if feats is not None else None
         if is_missing(spread) and qc:
             spread = float(np.mean([float(ctile[t]["spread"][ci]) for t in qc]))
-        if not is_missing(spread):
-            entry["spread"] = max(0.0, rnd(spread, 3))
+        if not is_missing(spread) and math.isfinite(float(spread)):
+            entry["spread"] = max(0.0, round(float(spread), 3))
         if feats is not None and (f"{cid}__text_top{k}" in feats.index or f"{cid}__cav_top{k}" in feats.index):
             entry["components"] = {"text_z": rnd(feats.get(f"{cid}__text_top{k}"), 3),
                                    "cav_z": rnd(feats.get(f"{cid}__cav_top{k}"), 3)}
@@ -394,10 +449,15 @@ def concept_blocks(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], qc: S
         cell_row = inputs.cells.features.loc[spec.case_id] if spec.case_id in inputs.cells.features.index else None
         for fid, rows in cell_rows.groupby("concept", sort=False):
             meta = inputs.cells.meta.get(str(fid))
-            if meta is None or cell_row is None or is_missing(cell_row.get(fid)):
+            if meta is None:
+                if not str(fid).endswith("__missing"):
+                    raise InputError(f"contributions.csv cell feature {fid!r} is not in cell_features.yaml")
                 continue
-            out.append({"id": str(fid), "label": meta["label"], "value": rnd(cell_row[fid], 3),
-                        "contribution": rnd(rows["contribution"].astype(float).sum(), 3),
+            if cell_row is None or is_missing(cell_row.get(fid)):
+                continue
+            fid_rows = cell_rows[cell_rows["concept"].isin([fid, f"{fid}__missing"])]
+            out.append({"id": str(fid), "label": meta["label"], "value": round(float(cell_row[fid]), 3),
+                        "contribution": round(sum_contrib(fid_rows, f"{spec.case_id} {fid}"), 3),
                         "direction": meta["direction"], "top_tiles": list(cell_tiles), "source": "cell"})
     out.sort(key=lambda c: (-abs(c["contribution"]), c["id"]))
     return out
@@ -406,7 +466,13 @@ def concept_blocks(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], qc: S
 def retrieval_blocks(spec: CaseSpec, inputs: Inputs) -> tuple[list, dict | None, float | None, dict | None]:
     entry = (inputs.retrieval.get("cases") or {}).get(spec.case_id)
     if entry is None:
+        if spec.variant is None:
+            raise InputError(f"{spec.case_id}: missing from retrieval.json")
         return [], None, None, None
+    refs = [n["case_id"] for n in entry["neighbors"]] + ([entry["contrast"]["case_id"]] if entry.get("contrast") else [])
+    for ref in refs:
+        if ref not in inputs.cases.index or inputs.cases.loc[ref, "split"] != "train":
+            raise InputError(f"{spec.case_id}: retrieval reference {ref} is not a train-split case")
     similar = [{"case_id": n["case_id"], "label": n["label"], "similarity": rnd(n["similarity"], 3),
                 "image": schemas.display_ref(n["case_id"])} for n in entry["neighbors"]]
     contrast = None
@@ -424,17 +490,18 @@ def margin_block(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], reliabi
     entry = (inputs.margins.get("cases") or {}).get(spec.case_id)
     if entry is None:
         raise InputError(f"{spec.case_id}: missing from margins.json")
-    threshold = float(inputs.margins["threshold"])
+    threshold = req_float(inputs.margins["threshold"], "margins.json threshold")
+    # p and the threshold stay unrounded so the JSON call always agrees with margin eval on the raw scores.
     segments = [{"margin": s["margin"], "x": int(s["x"]), "y": int(s["y"]), "size": int(s["size"]),
-                 "p": rnd(s["p"], 4)} for s in entry["segments"]]
+                 "p": req_float(s["p"], f"{spec.case_id} segment p")} for s in entry["segments"]]
     probs = [s["p"] for s in segments]
     geometry = [{k: s[k] for k in ("margin", "x", "y", "size")} for s in segments]
     per_margin = margin.per_margin_scores(geometry, probs)
     call, involved = margin.suggest_call(per_margin, threshold, reliability_flag)
     block: dict[str, Any] = {"suggested_call": call, "involved": involved,
-                             "per_margin": {m: round(per_margin[m], 4) for m in schemas.MARGINS},
+                             "per_margin": {m: float(per_margin[m]) for m in schemas.MARGINS},
                              "strip_um": round(float(cfg["margin"]["strip_px"]) * mpp, 2),
-                             "threshold": round(threshold, 4), "segments": segments}
+                             "threshold": threshold, "segments": segments}
     if call == "tumor_at_margin":
         lengths = margin.involved_length_um(geometry, probs, threshold, mpp)
         block["involved_length_um"] = {m: round(v, 1) for m, v in lengths.items()}
@@ -463,13 +530,14 @@ def cells_block(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], qc: Sequ
                       "counts": {ct: int(t[f"n_{ct}"]) for ct in schemas.CELL_TYPES}})
     features = {}
     for fid, meta in inputs.cells.meta.items():
-        rows = contrib[contrib["concept"] == fid]
+        rows = contrib[contrib["concept"].isin([fid, f"{fid}__missing"])]
         features[fid] = {"value": rnd(row.get(fid), 4), "unit": meta["unit"],
                          "ref_percentile": rnd(row.get(f"{fid}__ref_pct"), 3),
-                         "contribution": rnd(rows["contribution"].astype(float).sum(), 3) if not rows.empty else None}
+                         "contribution": round(sum_contrib(rows, f"{spec.case_id} {fid}"), 3) if not rows.empty else None}
     block = {"status": "ok", "model": str(cfg["cells"]["model"]), "mpp_model": float(cfg["cells"]["model_mpp"]),
              "tiles": tiles, "features": features,
-             "flags": {"insufficient_tumor_nuclei": as_bool(row["insufficient_tumor_nuclei"])}}
+             "flags": {"insufficient_tumor_nuclei": as_bool(row["insufficient_tumor_nuclei"],
+                                                            f"{spec.case_id} insufficient_tumor_nuclei")}}
     return block, [t["idx"] for t in tiles], None
 
 
@@ -540,9 +608,9 @@ def assemble(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], rules: rule
     agree_top = inputs.predictions.loc[spec.case_id].get("agree_top")
     if is_missing(agree_top):
         disagree = inputs.reliability.loc[spec.case_id].get("conch_musk_disagree")
-        agree_top = None if is_missing(disagree) else not as_bool(disagree)
+        agree_top = None if is_missing(disagree) else not as_bool(disagree, "conch_musk_disagree")
     else:
-        agree_top = as_bool(agree_top)
+        agree_top = as_bool(agree_top, "agree_top")
     gspec = cfg["tiles"]["grids"][cfg["tiles"]["contract_grid"]]
     case: dict[str, Any] = {
         "schema_version": contract.SCHEMA_VERSION,
@@ -574,6 +642,10 @@ def assemble(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], rules: rule
                  "source_case_ids": list(spec.source_ids) or [spec.case_id]}
     eval_only.update(dict(spec.extra_eval))
     case["eval_only"] = eval_only
+    try:
+        contract.Case.model_validate(case)        # fail before any LLM call or write
+    except ValueError as exc:
+        raise InputError(f"{spec.case_id}: assembled case violates the contract: {exc}") from None
     return case, retrieval_entry or {}, warnings
 
 
@@ -686,9 +758,10 @@ def llm_order(cases: Sequence[Mapping[str, Any]], heroes: Mapping[str, Mapping[s
 def copy_file(src: Path, dst: Path, force: bool) -> bool:
     if not src.is_file():
         raise InputError(f"missing media file {src}")
-    if dst.is_file() and not force and dst.stat().st_size == src.stat().st_size:
+    data = src.read_bytes()
+    if dst.is_file() and not force and dst.stat().st_size == len(data) and dst.read_bytes() == data:
         return False
-    io.atomic_write_bytes(dst, src.read_bytes())
+    io.atomic_write_bytes(dst, data)
     return True
 
 
@@ -736,6 +809,7 @@ def spotcheck_items(cases_df: pd.DataFrame, inputs: Inputs, cfg: Mapping[str, An
             items.append({"item_id": f"concept:{cid}:{case_id}:{tidx}", "kind": "concept", "target": cid,
                           "label": labels[cid].label, "case_id": case_id, "tile_idx": int(tidx),
                           "image": f"spotcheck/{name}", "score": rnd(z[ci], 3)})
+    overlay_items: list[dict[str, Any]] = []
     if inputs.cells is not None:
         rng = random.Random(int(sc["seed"]))
         tiles = inputs.cells.tiles[inputs.cells.tiles["case_id"].isin(test_ids)]
@@ -746,9 +820,11 @@ def spotcheck_items(cases_df: pd.DataFrame, inputs: Inputs, cfg: Mapping[str, An
                 t = tiles[tiles["case_id"] == case_id].sort_values("tile_idx").iloc[0]
                 idx = int(t["tile_idx"])
                 copy_file(schemas.resolve(root, t["overlay"]), schemas.case_cell_overlay(art, case_id, idx), force)
-                items.append({"item_id": f"cells:overlay:{case_id}:{idx}", "kind": "cells", "target": "overlay",
-                              "label": "Cell segmentation overlay", "case_id": case_id, "tile_idx": idx,
-                              "image": schemas.cell_overlay_ref(case_id, idx), "score": None})
+                overlay_items.append({"item_id": f"cells:overlay:{case_id}:{idx}", "kind": "cells", "target": "overlay",
+                                      "label": "Cell segmentation overlay", "case_id": case_id, "tile_idx": idx,
+                                      "image": schemas.cell_overlay_ref(case_id, idx), "score": None})
+        rng.shuffle(overlay_items)            # picked per class; the order must not reveal the class
+    items.extend(overlay_items)
     return {"created_utc": io.utc_now(), "synthetic": bool(synthetic), "items": items}
 
 
@@ -768,7 +844,7 @@ def build(ctx: cli.StepContext, *, max_llm_calls: int = 0, llm_agent: bool = Fal
     for spec in specs:
         try:
             case, _, warn = assemble(spec, inputs, cfg, rules, mpp, ctx.synthetic)
-        except InputError as exc:
+        except (InputError, ValueError) as exc:
             if spec.variant is None:
                 raise
             skipped.append({"case_id": spec.case_id, "reason": str(exc)})

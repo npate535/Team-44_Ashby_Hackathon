@@ -80,8 +80,9 @@ def test_variants_carry_source_ids_and_degradation(env):
         assert all(o["type"] != "stain" for o in case["agent"]["orders"])
         assert bool(case["agent"]["blocked"]) == source.startswith("BACH_0107")   # only carcinoma reads fire stains
     comp = cases[env["info"]["composites"][0]]
-    assert comp["simulated_variant"] == "composite" and comp["source_case_ids"] == ["BACH_0107", "BACH_0101"]
+    assert comp["simulated_variant"] == "composite" and comp["source_case_ids"] == ["BACH_0101", "BACH_0107"]  # sorted
     assert comp["eval_only"]["margin_truth_superior"] == "tumor_side"
+    assert comp["eval_only"]["carcinoma_case_id"] == "BACH_0107"
     for cid in env["info"]["test"]:
         assert cases[cid]["simulated_variant"] is None and cases[cid]["source_case_ids"] == []
 
@@ -277,3 +278,74 @@ def test_cli_main_runs_on_a_config_copy(env, tmp_path, capsys):
     schemas.retrieval_json(env["root"]).unlink()
     assert STEP.main(["--config", str(cfg_path), "--data-root", str(env["root"]), "--artifacts-root",
                       str(env["art"])]) == 1
+
+
+def _edit_csv(path, fn):
+    df = pd.read_csv(path)
+    io.write_csv(path, fn(df))
+
+
+@pytest.mark.parametrize("path_fn,column,case_id,match", [
+    (schemas.reliability_csv, "reliability_flag", "BACH_0102", "reliability_flag is missing"),
+    (schemas.reliability_csv, "reliability", "BACH_0102", "reliability is missing"),
+    (schemas.contributions_csv, "contribution", "BACH_0102", "missing contribution"),
+    (schemas.tile_risk_csv, "risk", "BACH_0102", "risk is missing"),
+    (schemas.predictions_csv, "risk", "BACH_0102", "risk is missing"),
+])
+def test_blank_required_values_are_errors_never_false_or_zero(env, path_fn, column, case_id, match):
+    def blank(df):
+        df[column] = df[column].astype(object)
+        df.loc[df["case_id"] == case_id, column] = ""
+        return df
+
+    _edit_csv(path_fn(env["root"]), blank)
+    with pytest.raises(STEP.InputError, match=match):
+        run(env)
+
+
+def test_blank_values_in_a_variant_skip_it(env):
+    def blank(df):
+        df["reliability_flag"] = df["reliability_flag"].astype(object)
+        df.loc[df["case_id"] == "BACH_0107_FSIM_jpeg3", "reliability_flag"] = ""
+        return df
+
+    _edit_csv(schemas.reliability_csv(env["root"]), blank)
+    extra = run(env)
+    assert [s["case_id"] for s in extra["skipped"]] == ["BACH_0107_FSIM_jpeg3"]
+
+
+def test_retrieval_references_must_be_train_cases(env):
+    path = schemas.retrieval_json(env["root"])
+    data = io.read_json(path)
+    data["cases"]["BACH_0102"]["neighbors"][0]["case_id"] = "BACH_0105"        # a test case
+    io.write_json(path, data)
+    with pytest.raises(STEP.InputError, match="not a train-split case"):
+        run(env)
+
+
+def test_clean_case_missing_from_retrieval_is_an_error(env):
+    path = schemas.retrieval_json(env["root"])
+    data = io.read_json(path)
+    del data["cases"]["BACH_0102"]
+    io.write_json(path, data)
+    with pytest.raises(STEP.InputError, match="retrieval.json"):
+        run(env)
+
+
+def test_inconsistent_prediction_rows_are_errors(env):
+    def bad_size(df):
+        df.loc[df["case_id"] == "BACH_0102", "set_size"] = 3
+        return df
+
+    _edit_csv(schemas.predictions_csv(env["root"]), bad_size)
+    with pytest.raises(STEP.InputError, match="set_size"):
+        run(env)
+
+
+def test_margin_geometry_must_match_settings(env):
+    path = schemas.margins_json(env["root"])
+    data = io.read_json(path)
+    data["strip_px"] = 128
+    io.write_json(path, data)
+    with pytest.raises(STEP.InputError, match="strip_px"):
+        run(env)
