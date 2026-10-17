@@ -72,8 +72,9 @@ def test_failing_chunk_is_isolated(tree):
     fake_cells.FakeBackend.fail_on = sel["case_id"].iloc[0]
     assert cells.main(_argv(cfg_path, data, tmp)) == 1
     meta = json.loads(schemas.step_meta_json(data, "04b_cells_shard0").read_text())
-    assert len(meta["summary"]["failed_chunks"]) == 1
-    assert meta["summary"]["tiles_done"] == len(sel) - 4  # only the first chunk of 4 lost
+    n_bad = int((sel["case_id"] == sel["case_id"].iloc[0]).sum())
+    assert len(meta["summary"]["failed_tiles"]) == n_bad  # per-tile retry: only the bad case's tiles are lost
+    assert meta["summary"]["tiles_done"] == len(sel) - n_bad
     fake_cells.FakeBackend.fail_on = None
     assert cells.main(_argv(cfg_path, data, tmp)) == 0  # resume finishes the lost chunk
     assert cells.main(_argv(cfg_path, data, tmp, "--verify")) == 0
@@ -115,3 +116,25 @@ def test_cells_run_module_is_portable():
     assert st.delta_import_problems("pipeline/04b_cells.py", st.DELTA_ALLOWED - {"sklearn", "scipy"} | {"tiatoolbox", "zarr"}) == []
     src = (st.REPO / "pipeline" / "04b_cells.py").read_text()
     assert "\nimport tiatoolbox" not in src and "\nimport zarr" not in src
+
+
+def test_spike_rerun_remeasures_and_backend_switch_redoes_tiles(tree):
+    cfg_path, cfg, data, tmp = tree
+    assert cells.main(_argv(cfg_path, data, tmp, "--spike")) == 0
+    fake_cells.FakeBackend.calls = []
+    assert cells.main(_argv(cfg_path, data, tmp, "--spike")) == 0  # rerun: measured again, never "OK from nothing"
+    assert sum(fake_cells.FakeBackend.calls) == cfg["cells"]["spike_tiles"]
+    assert "NOT MEASURED" not in (tmp / "art" / "eval" / "cells_spike.md").read_text()
+    assert cells.main(_argv(cfg_path, data, tmp)) == 0
+    assert cells.main(_argv(cfg_path, data, tmp, "--verify")) == 0
+    # outputs from another backend do not count as done
+    sel = pd.read_csv(schemas.cell_tiles_csv(data), dtype={"case_id": str})
+    p = schemas.cell_json(data, sel["case_id"].iloc[0], int(sel["tile_idx"].iloc[0]))
+    doc = json.loads(p.read_text())
+    doc["backend_name"] = "hovernet"
+    p.write_text(json.dumps(doc))
+    assert cells.main(_argv(cfg_path, data, tmp, "--verify")) == 1
+    fake_cells.FakeBackend.calls = []
+    assert cells.main(_argv(cfg_path, data, tmp)) == 0
+    assert sum(fake_cells.FakeBackend.calls) == 1
+    assert json.loads(p.read_text())["backend_name"] == "tiatoolbox"
