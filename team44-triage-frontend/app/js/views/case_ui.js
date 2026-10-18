@@ -29,6 +29,85 @@ function rerender(focusSel) {
   }
 }
 
+// ---- state that must survive app.js's poll re-render (#app.innerHTML is replaced every time the data changes) ----------
+// An element is re-found in the new DOM by its identifying data attributes (+ position among equal matches).
+const KEY_ATTRS = ['data-testid', 'data-rg', 'data-rg-scope', 'data-why', 'data-f', 'data-tab', 'data-act', 'data-cv-confirm', 'data-call', 'data-pick', 'data-edit-seq', 'data-edit-item', 'data-cv-compare', 'data-cv-open', 'data-hm', 'data-cells', 'data-keep'];
+function keyOf(el) {
+  const app = $('#app');
+  if (!el || !el.closest || !app || el === app || !app.contains(el)) return null;
+  const sel = (node) => {
+    const parts = KEY_ATTRS.filter((a) => node.hasAttribute(a)).map((a) => `[${a}="${CSS.escape(node.getAttribute(a))}"]`);
+    return parts.length ? node.tagName.toLowerCase() + parts.join('') : null;
+  };
+  let s = sel(el);
+  if (!s && el.tagName === 'SUMMARY' && el.parentElement) s = sel(el.parentElement) && `${sel(el.parentElement)} > summary`;
+  if (!s) return null;
+  return { sel: s, idx: Math.max(0, $$(s, app).indexOf(el)), el };
+}
+function resolveKey(k) {
+  if (!k) return null;
+  if (k.el && k.el.isConnected) return k.el;
+  const all = $$(k.sel, $('#app') || document);
+  return all[k.idx] || all[0] || null;
+}
+let lastFocus = null;
+document.addEventListener('focusin', (e) => {
+  const app = $('#app');
+  if (app && app.contains(e.target)) lastFocus = keyOf(e.target);
+  else if (!(e.target.closest && e.target.closest('dialog'))) lastFocus = null;
+});
+document.addEventListener('focusout', (e) => {
+  const t = e.target;
+  if (e.relatedTarget) return;
+  // a real blur (click on the background) leaves the element in place; a re-render removes it
+  setTimeout(() => {
+    if (lastFocus && lastFocus.el === t && t.isConnected && document.activeElement === document.body) lastFocus = null;
+  });
+});
+// <details> the reader opened stay open (per case) across re-renders
+const keptOpen = new Set();
+export function keepOpen(key) {
+  const s = ST();
+  return s && keptOpen.has(`${s.caseId}|${key}`) ? ' open' : '';
+}
+document.addEventListener(
+  'toggle',
+  (e) => {
+    const d = e.target;
+    const s = ST();
+    if (!(d instanceof HTMLDetailsElement) || !d.dataset.keep || !d.isConnected || !s || !s.caseId) return;
+    const k = `${s.caseId}|${d.dataset.keep}`;
+    if (d.open) keptOpen.add(k);
+    else keptOpen.delete(k);
+  },
+  true
+);
+function afterRender() {
+  // keyboard focus: put it back on the same control when the re-render destroyed it (focus fell to <body>)
+  if (lastFocus && lastFocus.el && !lastFocus.el.isConnected) {
+    const ae = document.activeElement;
+    if (!ae || ae === document.body) {
+      const el = resolveKey(lastFocus);
+      if (el && !el.disabled) el.focus({ preventScroll: true });
+      else lastFocus = null;
+    }
+  }
+  // region tooltip: follow the replacement region if it is still hovered or focused, else hide it
+  if (tipFor && !tipFor.isConnected) {
+    const host = $('#app');
+    const next = host && $(`[data-rg="${CSS.escape(tipFor.dataset.rg || '')}"][data-rg-scope="case"]`, host);
+    if (next && (next.matches(':hover') || document.activeElement === next)) showTip(next);
+    else hideTip();
+  }
+}
+function watchApp() {
+  const app = $('#app');
+  if (!app) return false;
+  new MutationObserver(afterRender).observe(app, { childList: true });
+  return true;
+}
+if (!watchApp()) document.addEventListener('DOMContentLoaded', watchApp, { once: true });
+
 // ---- confirmations --------------------------------------------------------------------------------------------------------
 let confirmState = null; // {caseId, action}
 export function pending(caseId) {
@@ -47,7 +126,15 @@ function clearPending(focusSel) {
 }
 window.addEventListener('hashchange', () => {
   confirmState = null;
+  lastFocus = null;
   hideTip();
+  // a modal left open would keep showing the previous case over the new one
+  for (const m of [viewer, cmp]) {
+    if (m && m.d.open) {
+      m.returnFocus = null;
+      m.d.close();
+    }
+  }
 });
 
 // ---- tooltip ----------------------------------------------------------------------------------------------------------------
@@ -134,6 +221,10 @@ class PanZoom {
     Object.assign(this, { stage, canvas, aspect, onChange, s: 1, tx: 0, ty: 0, fw: 0, fh: 0, max: 8 });
     this.pointers = new Map();
     this.moved = 0;
+    const up = (e) => {
+      this.pointers.delete(e.pointerId);
+      if (!this.pointers.size) stage.classList.remove('grabbing');
+    };
     stage.addEventListener('wheel', (e) => {
       e.preventDefault();
       const r = stage.getBoundingClientRect();
@@ -143,12 +234,24 @@ class PanZoom {
       if (e.button !== 0) return;
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       this.moved = 0;
-      stage.setPointerCapture(e.pointerId);
       stage.classList.add('grabbing');
     });
     stage.addEventListener('pointermove', (e) => {
       const prev = this.pointers.get(e.pointerId);
       if (!prev) return;
+      if (e.pointerType === 'mouse' && e.buttons === 0) {
+        up(e); // released outside the stage before a drag started
+        return;
+      }
+      // capture only once this is a drag: capturing on pointerdown retargets the click to the stage, so a plain
+      // click on a region (zoom to it) never reached the region
+      if (this.moved > 4 && !stage.hasPointerCapture(e.pointerId)) {
+        try {
+          stage.setPointerCapture(e.pointerId);
+        } catch {
+          /* pointer already gone */
+        }
+      }
       const pts = [...this.pointers.values()];
       if (this.pointers.size === 2) {
         const other = pts.find((p) => p !== prev);
@@ -164,10 +267,6 @@ class PanZoom {
       this.moved += Math.abs(e.clientX - prev.x) + Math.abs(e.clientY - prev.y);
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     });
-    const up = (e) => {
-      this.pointers.delete(e.pointerId);
-      if (!this.pointers.size) stage.classList.remove('grabbing');
-    };
     stage.addEventListener('pointerup', up);
     stage.addEventListener('pointercancel', up);
     // a drag must not count as a click on a region underneath
@@ -179,7 +278,7 @@ class PanZoom {
     }, true);
     stage.addEventListener('keydown', (e) => {
       const r = stage.getBoundingClientRect();
-      const k = e.key;
+      const k = e.key || '';
       if (k.startsWith('Arrow') && e.target.closest('[data-rg]')) return; // arrow keys move between regions there
       if (k === '+' || k === '=') this.zoomAt(r.width / 2, r.height / 2, 1.4);
       else if (k === '-' || k === '_') this.zoomAt(r.width / 2, r.height / 2, 1 / 1.4);
@@ -247,6 +346,20 @@ class PanZoom {
 
 // ---- full-screen viewer -----------------------------------------------------------------------------------------------------
 let viewer = null;
+/** The trigger may have been replaced by a poll re-render while the modal was open: focus its replacement. */
+function returnFocusTo(k) {
+  const el = resolveKey(k);
+  if (el && !el.disabled) el.focus({ preventScroll: true });
+}
+/** Keys inside a modal belong to it: app.js's page shortcuts (N = next case, Escape collapsing every <details>)
+ *  must not act on the page behind. Region arrow keys are handled here because document never sees them. */
+function isolateKeys(d) {
+  d.addEventListener('keydown', (e) => {
+    regionArrow(e);
+    if (e.key === 'Escape') hideTip();
+    e.stopPropagation();
+  });
+}
 function cleanClone(html) {
   return html
     .replace(/\sdata-testid="[^"]*"/g, '')
@@ -303,8 +416,9 @@ function ensureViewer() {
   d.addEventListener('close', () => {
     canvas.innerHTML = '';
     hideTip();
-    if (viewer.returnFocus) viewer.returnFocus.focus({ preventScroll: true });
+    returnFocusTo(viewer.returnFocus);
   });
+  isolateKeys(d);
   window.addEventListener('resize', () => d.open && pz.layout());
   viewer = { d, pz, stage, canvas, returnFocus: null };
   return viewer;
@@ -343,7 +457,7 @@ function openViewer(trigger, regionIdx = null) {
   const w = v && v.image ? num(v.image.w) : img.naturalWidth || 4;
   const h = v && v.image ? num(v.image.h) : img.naturalHeight || 3;
   vw.pz.aspect = w / h;
-  vw.returnFocus = trigger || null;
+  vw.returnFocus = keyOf(trigger);
   vw.d.showModal();
   vw.pz.layout();
   vw.pz.fit();
@@ -405,8 +519,9 @@ function ensureCompare() {
   });
   d.addEventListener('close', () => {
     panes.forEach((p) => (p.canvas.innerHTML = ''));
-    if (cmp.returnFocus) cmp.returnFocus.focus({ preventScroll: true });
+    returnFocusTo(cmp.returnFocus);
   });
+  isolateKeys(d);
   window.addEventListener('resize', () => d.open && pzs.forEach((p) => p.layout()));
   cmp = { d, panes, pzs, i: 0, list: [], v: null, returnFocus: null };
   return cmp;
@@ -449,7 +564,7 @@ function openCompare(trigger, which) {
   const c = ensureCompare();
   c.v = v;
   c.list = [...v.similar.map((x) => ({ ...x, kind: 'similar' })), ...(v.contrast ? [{ ...v.contrast, kind: 'contrast' }] : [])];
-  c.returnFocus = trigger;
+  c.returnFocus = keyOf(trigger);
   c.d.showModal();
   showRef(which === 'contrast' ? c.list.length - 1 : Number(which) || 0);
   c.panes[1].stage.focus({ preventScroll: true });
@@ -485,22 +600,32 @@ document.addEventListener('click', (e) => {
   }
 });
 
-document.addEventListener('keydown', (e) => {
+/** Arrow keys move between image regions (roving tabindex). True when the key was a region arrow key. */
+function regionArrow(e) {
   const rg = e.target.closest && e.target.closest('[data-rg]');
-  if (rg && e.key.startsWith('Arrow')) {
-    const grid = rg.closest('.rg-grid');
-    const cols = Number(grid && grid.dataset.cols) || 1;
-    const all = $$('[data-rg]', grid);
-    const i = Number(rg.dataset.rg);
-    const j = i + ({ ArrowLeft: -1, ArrowRight: 1, ArrowUp: -cols, ArrowDown: cols }[e.key] || 0);
-    const next = all.find((b) => Number(b.dataset.rg) === j);
-    if (next) {
-      e.preventDefault();
-      all.forEach((b) => b.setAttribute('tabindex', b === next ? '0' : '-1'));
-      next.focus();
-    }
-    return;
+  if (!rg || typeof e.key !== 'string' || !e.key.startsWith('Arrow')) return false;
+  const grid = rg.closest('.rg-grid');
+  const cols = Number(grid && grid.dataset.cols) || 1;
+  const all = $$('[data-rg]', grid);
+  const i = Number(rg.dataset.rg);
+  const col = i % cols;
+  // left/right stop at the row's edge instead of wrapping onto the neighbouring row
+  if ((e.key === 'ArrowLeft' && col === 0) || (e.key === 'ArrowRight' && col === cols - 1)) {
+    e.preventDefault();
+    return true;
   }
+  const j = i + ({ ArrowLeft: -1, ArrowRight: 1, ArrowUp: -cols, ArrowDown: cols }[e.key] || 0);
+  const next = all.find((b) => Number(b.dataset.rg) === j);
+  e.preventDefault();
+  if (next) {
+    all.forEach((b) => b.setAttribute('tabindex', b === next ? '0' : '-1'));
+    next.focus();
+  }
+  return true;
+}
+
+document.addEventListener('keydown', (e) => {
+  if (regionArrow(e)) return;
   if (e.key === 'Escape') {
     hideTip();
     if (confirmState && e.target.closest && e.target.closest('.cv-confirm')) {
@@ -576,6 +701,11 @@ document.addEventListener('change', (e) => {
       b.textContent = n ? `Order ${n} selected` : 'Select at least one item';
       b.disabled = !n; // the backend rejects an empty edit; dismiss the flag to drop every order
     }
+  }
+  if (e.target.dataset && e.target.dataset.pick !== undefined) {
+    const n = $$('#app [data-pick]').filter((x) => x.checked).length;
+    const b = $('#app [data-testid=call-confirm]');
+    if (b) b.disabled = !n; // a tumor-at-margin call needs at least one margin
   }
 });
 
