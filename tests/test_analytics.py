@@ -178,3 +178,15 @@ def test_tier_set_drives_conformal_block_and_post_hoc_flag(tmp_path):
     assert {"lac_marginal", "aps", "mondrian", "aps_marginal_nonempty"} == set(conf["methods"])
     assert conf["methods"]["aps_marginal_nonempty"]["empty_sets"] == 0
 
+
+
+def test_pr_points_walk_in_decreasing_threshold_order():
+    y = np.array([1, 0, 1, 0, 0, 1])
+    s = np.array([0.9, 0.8, 0.7, 0.6, 0.5, 0.4])
+    pr = A.pr_curve(y, s)
+    assert pr["recall"] == sorted(pr["recall"])
+    thr = [t for t in pr["threshold"] if t is not None]
+    assert thr == sorted(thr, reverse=True)                      # one walk from strict to lenient, ties included
+    # at recall 1/3: precision 1.0 (threshold 0.9) comes before 0.5 (threshold 0.8)
+    third = [(p, t) for r, p, t in zip(pr["recall"], pr["precision"], pr["threshold"]) if r == round(1 / 3, 4)]
+    assert third == [(1.0, 0.9), (0.5, 0.8)]
