@@ -22,6 +22,7 @@ use", and a SYNTHETIC DATA banner when the eval file is synthetic.
 from __future__ import annotations
 
 import sys
+import textwrap
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -59,14 +60,15 @@ def _figure(n: int = 1, width: float = 6.4, height: float = 4.2):
     return fig, list(axes[0])
 
 
-def _finish(fig, title: str, synthetic: bool, path: Path, dpi: int) -> Path:
+def _finish(fig, title: str, synthetic: bool, path: Path, dpi: int, bottom: float = 0.04) -> Path:
+    """bottom: figure fraction kept free under the axes (raise it when a figure adds its own footnote)."""
     fig.suptitle(title, color=INK, fontsize=12, x=0.01, ha="left", y=0.99)
     footer = "Research prototype — not for clinical use"
     fig.text(0.01, 0.01, footer, color=INK2, fontsize=8, ha="left", va="bottom")
     if synthetic:
         fig.text(0.99, 0.01, "SYNTHETIC DATA — not a result", color=INK, fontsize=9, ha="right", va="bottom",
                  fontweight="bold")
-    fig.tight_layout(rect=(0, 0.04, 1, 0.94))
+    fig.tight_layout(rect=(0, bottom, 1, 0.94))
     path.parent.mkdir(parents=True, exist_ok=True)
     with io.atomic_path(path) as tmp:
         fig.savefig(tmp, format="png", dpi=dpi, facecolor=SURFACE)
@@ -129,23 +131,25 @@ def fig_calibration(data: Mapping[str, Any], path: Path, dpi: int) -> Path:
 
 def fig_conformal(data: Mapping[str, Any], path: Path, dpi: int) -> Path:
     methods = list(data.get("methods") or {})
-    names = {"lac_marginal": "LAC, marginal (drives tiers)", "aps": "APS", "mondrian": "Mondrian (per class)"}
+    tier = data.get("drives_tiers", "lac_marginal")
+    names = {"lac_marginal": "LAC, marginal", "aps": "APS", "mondrian": "Mondrian (per class)",
+             "aps_marginal_nonempty": "APS, never empty", "lac_marginal_nonempty": "LAC, never empty"}
+    if tier != "lac_marginal" and "lac_marginal" in methods:
+        names["lac_marginal"] = "LAC, marginal (pre-registered)"
     fig, (ax1, ax2) = _figure(2)
-    labels = [names.get(m, m) for m in methods]
+    labels = [names.get(m, m) + (" (drives tiers)" if m == tier else "") for m in methods]
     _dots(ax1, labels, [data["methods"][m]["coverage"] for m in methods], SERIES[0], pct=True)
     ax1.axvline(data["target_coverage"], color=MUTED, linestyle="--", linewidth=1)
-    ax1.text(data["target_coverage"], 1.01, f"target {100 * data['target_coverage']:.0f}%", color=INK2, fontsize=8,
-             ha="right", transform=ax1.get_xaxis_transform())
     ax1.set_xlim(0, 1.05)
-    ax1.set_xlabel("Empirical coverage on test", color=INK2)
+    ax1.set_xlabel(f"Empirical coverage on test (dashed line: {100 * data['target_coverage']:.0f}% target)", color=INK2)
     _dots(ax2, labels, [data["methods"][m]["mean_set_size"] for m in methods], SERIES[1], "s")
     ax2.set_xlabel("Mean prediction-set size (classes)", color=INK2)
     fs = data.get("finite_sample") or {}
     if fs.get("sd") is not None:
-        fig.text(0.5, 0.06, f"Under exchangeability: random calibration-set coverage ~ Beta({fs['beta'][0]}, "
-                 f"{fs['beta'][1]}), SD {fs['sd']:.3f}", ha="center", fontsize=8, color=INK2)
+        fig.text(0.5, 0.045, f"Under exchangeability: random calibration-set coverage ~ Beta({fs['beta'][0]}, "
+                 f"{fs['beta'][1]}), SD {fs['sd']:.3f}", ha="center", va="bottom", fontsize=8, color=INK2)
     return _finish(fig, f"Conformal prediction sets at alpha = {data['alpha']} (test n = {data['n']})",
-                   bool(data.get("synthetic")), path, dpi)
+                   bool(data.get("synthetic")), path, dpi, bottom=0.1)
 
 
 def fig_ab_roc(data: Mapping[str, Any], path: Path, dpi: int) -> Path | None:
@@ -199,18 +203,18 @@ def fig_queue(data: Mapping[str, Any], path: Path, dpi: int) -> Path:
     names = [data["policies"].get(p, p) for p in policies]
     fig, (ax1, ax2) = _figure(2)
     for ax, key, color, marker, title in (
-            (ax1, "aggressive_mean", SERIES[0], "o", "Truly invasive cases: mean time to first look (min)"),
-            (ax2, "non_flagged_mean", SERIES[1], "s", "Unflagged (tier 4) cases: mean wait (min)")):
+            (ax1, "aggressive_mean", SERIES[0], "o", "Truly invasive cases:\nmean time to first look (min)"),
+            (ax2, "non_flagged_mean", SERIES[1], "s", "Unflagged (tier 4) cases:\nmean wait (min)")):
         blocks = [{"estimate": data["results"][p][key]["mean"], "lo": data["results"][p][key]["lo"],
                    "hi": data["results"][p][key]["hi"]} for p in policies]
         _dots(ax, names, blocks, color, marker, decimals=1)
         ax.set_xlabel(title, color=INK2, fontsize=9)
         ax.set_xlim(left=0)
     a = data["assumptions"]
-    fig.text(0.5, 0.06, f"{a['arrivals']}; {a['reader']}; utilization {a['utilization']}; {data['reps']} simulated days",
-             ha="center", fontsize=7, color=INK2, wrap=True)
+    note = f"{a['arrivals']}; {a['reader']}; utilization {a['utilization']}; {data['reps']} simulated days"
+    fig.text(0.5, 0.045, "\n".join(textwrap.wrap(note, 150)), ha="center", va="bottom", fontsize=7, color=INK2)
     return _finish(fig, "Queue simulation: benefit to invasive cases and cost to unflagged cases",
-                   bool(data.get("synthetic")), path, dpi)
+                   bool(data.get("synthetic")), path, dpi, bottom=0.11)
 
 
 def fig_margin(data: Mapping[str, Any], path: Path, dpi: int) -> Path:
