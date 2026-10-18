@@ -22,3 +22,6 @@ Backup paths: if BACH_0167 has not arrived yet, use any tier-2 case with drafted
 simulated frozen-section button sends a new case, so a second run just picks the next one. **Reset** clears the
 replay and its decisions (it asks first). Once every biopsy has arrived the replay clock runs at wall time, so the
 queue stays stable while you talk.
+
+Backup recording of this flow on the real artifacts (3 min, local only because it shows BACH imagery):
+`outputs/demo-video/pathqueue_demo.webm`. Re-record with `scripts/record_demo.py` against a throwaway server.
