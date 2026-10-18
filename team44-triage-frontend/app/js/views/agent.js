@@ -158,7 +158,7 @@ export function agentPanel(v, ST) {
   // the same label/state case_ui.js sets live on each tick; a poll re-render must not re-enable an empty edit
   const nSel = Object.values(ST.editDraft || {}).reduce((a, xs) => a + (Array.isArray(xs) ? xs.length : 0), 0);
   const actions = editing
-    ? `<div class="btns"><button class="btn p" data-act="edit_save" data-testid="action-edit-save"${nSel && !ST.busy ? '' : ' disabled'}>${nSel ? `Order ${nSel} selected` : 'Select at least one item'}</button><button class="btn" data-act="edit_cancel" data-testid="action-edit-cancel">Cancel</button><span class="sub">Untick items to drop them; edits can only remove drafted items, and the selected ones are ordered at once.</span></div>`
+    ? `<div class="btns"><button class="btn p" data-act="edit_save" data-testid="action-edit-save"${nSel && can('edit_orders') ? '' : ' disabled'}>${nSel ? `Order ${nSel} selected` : 'Select at least one item'}</button><button class="btn" data-act="edit_cancel" data-testid="action-edit-cancel">Cancel</button><span class="sub">Untick items to drop them; edits can only remove drafted items, and the selected ones are ordered at once.</span></div>`
     : open
       ? `<div class="btns cv-actions">${btn('approve_orders', `${orderVerb}${nItems ? ` (${nItems})` : ''}`, ' p', true)}${btn('edit_orders', 'Edit')}${btn('closer_look', 'Take a closer look first')}${btn('dismiss_flag', 'Dismiss flag', ' d', true)}</div>` +
         (ST.busy ? '<p class="sub" role="status">Saving your decision…</p>' : '')

@@ -70,8 +70,8 @@ export function render(ST, ctx) {
   let h =
     `<section class="cv cv-biopsy" data-testid="case-view" data-lane="biopsy" data-case-id="${esc(v.id)}">` +
     header(v, ST.cfg) +
-    `<div class="tabs" role="tablist" aria-label="Case sections"><button role="tab" data-tab="evidence" data-testid="tab-evidence" aria-selected="${ST.tab === 'evidence'}">Evidence</button>` +
-    `<button role="tab" data-tab="cells" data-testid="tab-cells" aria-selected="${ST.tab === 'cells'}">Cells${v.cells.status === 'ok' ? ` <span class="tab-n">${(v.cells.tiles || []).length}</span>` : ''}</button></div></div>`;
+    `<div class="tabs" role="tablist" aria-label="Case sections"><button role="tab" data-tab="evidence" data-testid="tab-evidence" aria-selected="${ST.tab !== 'cells'}"${ST.tab === 'cells' ? ' tabindex="-1"' : ''}>Evidence</button>` +
+    `<button role="tab" data-tab="cells" data-testid="tab-cells" aria-selected="${ST.tab === 'cells'}"${ST.tab === 'cells' ? '' : ' tabindex="-1"'}>Cells${v.cells.status === 'ok' ? ` <span class="tab-n">${(v.cells.tiles || []).length}</span>` : ''}</button></div></div>`;
   if (ST.tab === 'cells') {
     return h + `<div class="cv-tabpanel" role="tabpanel">${cellsTab(v, ST, ctx.assetUrl)}</div></section>`;
   }

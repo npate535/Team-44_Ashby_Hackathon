@@ -34,7 +34,8 @@ function rerender(focusSel) {
 const KEY_ATTRS = ['data-testid', 'data-rg', 'data-rg-scope', 'data-why', 'data-f', 'data-tab', 'data-act', 'data-cv-confirm', 'data-call', 'data-pick', 'data-edit-seq', 'data-edit-item', 'data-cv-compare', 'data-cv-open', 'data-hm', 'data-cells', 'data-keep'];
 function keyOf(el) {
   const app = $('#app');
-  if (!el || !el.closest || !app || el === app || !app.contains(el)) return null;
+  // case views only: the worklist and the other screens restore their own focus (app.js / their owners)
+  if (!el || !el.closest || !app || el === app || !app.contains(el) || !el.closest('[data-testid=case-view]')) return null;
   const sel = (node) => {
     const parts = KEY_ATTRS.filter((a) => node.hasAttribute(a)).map((a) => `[${a}="${CSS.escape(node.getAttribute(a))}"]`);
     return parts.length ? node.tagName.toLowerCase() + parts.join('') : null;
@@ -639,6 +640,19 @@ function regionArrow(e) {
 
 document.addEventListener('keydown', (e) => {
   if (regionArrow(e)) return;
+  // Evidence / Cells tabs: left/right (and Home/End) switch tabs, as the ARIA tabs pattern expects
+  const tab = e.target.closest && e.target.closest('.cv [role=tab]');
+  if (tab && ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+    const tabs = $$('[role=tab]', tab.closest('[role=tablist]') || tab.parentElement);
+    const i = tabs.indexOf(tab);
+    const j = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    e.preventDefault();
+    if (tabs[j] && tabs[j] !== tab) {
+      tabs[j].focus();
+      tabs[j].click(); // app.js switches ST.tab; the re-render keeps focus on the new tab
+    }
+    return;
+  }
   if (e.key === 'Escape') {
     hideTip();
     if (confirmState && e.target.closest && e.target.closest('.cv-confirm')) {
