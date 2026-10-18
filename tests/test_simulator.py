@@ -52,8 +52,11 @@ def test_tick_marks_arrivals_in_offset_order(tmp_path):
     assert sim.status()["arrived"] == 3
 
 
+NO_SETTLE = {**CFG, "sim": {**CFG["sim"], "after_arrivals_speed": None}}   # keep the replay speed after arrivals
+
+
 def test_surgical_cases_are_held_for_injection(tmp_path):
-    sim, fake, store = _sim(tmp_path, [variant(fixture_case("demo_0002"), "s1", offset=1)])
+    sim, fake, store = _sim(tmp_path, [variant(fixture_case("demo_0002"), "s1", offset=1)], cfg=NO_SETTLE)
     sim.start()
     fake.advance(100)
     assert sim.tick() == [] and sim.status()["pending"]["surgical"]["normal"] == 1
@@ -130,3 +133,22 @@ def test_replay_speed_never_slows_below_sim_speed(tmp_path):
     cfg = {**CFG, "sim": {**CFG["sim"], "max_replay_wall_s": None}}
     sim2, _, _ = _sim(tmp_path / "x", [variant(fixture_case("demo_0001"), "b", offset=1e9)], cfg=cfg)
     assert sim2.clock_sim.speed == CFG["sim"]["speed"]
+
+
+def test_clock_drops_to_after_arrivals_speed_once_every_biopsy_is_in(tmp_path):
+    base = fixture_case("demo_0001")
+    cases = [variant(base, "b1", offset=30), variant(base, "b2", offset=60),
+             variant(fixture_case("demo_0002"), "held", offset=90)]          # held surgical never blocks the settle
+    sim, fake, _ = _sim(tmp_path, cases)
+    replay = sim.clock_sim.speed
+    sim.start()
+    fake.advance(1.5)
+    assert sim.tick() == ["b1"] and sim.clock_sim.speed == replay
+    fake.advance(1.0)
+    assert sim.tick() == ["b2"]
+    assert sim.clock_sim.speed == CFG["sim"]["after_arrivals_speed"]
+    t = sim.sim_now()
+    fake.advance(10)
+    assert sim.sim_now() == pytest.approx(t + 10 * CFG["sim"]["after_arrivals_speed"])   # continuous, no jump
+    sim.reset()
+    assert sim.clock_sim.speed == replay

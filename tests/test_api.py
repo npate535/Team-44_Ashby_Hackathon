@@ -138,7 +138,8 @@ def test_aging_guard_promotes_one_tier_on_the_sim_clock(tmp_path):
     routine = variant(base, "routine", probs=[0.10, 0.85, 0.04, 0.01], conformal_set=["Benign"], offset=0,
                       agent={"status": "none", "orders": []})
     unsure = variant(base, "unsure", probs=[0.10, 0.50, 0.39, 0.01], conformal_set=["Benign", "InSitu"], offset=0)
-    client, clock = make_client(tmp_path, cases_dir=write_cases(tmp_path / "c", [routine, unsure]))
+    no_settle = {**CFG, "sim": {**CFG["sim"], "after_arrivals_speed": None}}   # aging runs on the replay clock
+    client, clock = make_client(tmp_path, cases_dir=write_cases(tmp_path / "c", [routine, unsure]), cfg=no_settle)
     client.post("/api/sim/start")
     clock.advance(1)
     wl = client.get("/api/worklist").json()

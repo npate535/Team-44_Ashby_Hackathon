@@ -101,6 +101,8 @@ class Simulator:
         sim_cfg = cfg["sim"]
         self.base_speed = float(sim_cfg["speed"])
         self.max_replay_wall_s = sim_cfg["max_replay_wall_s"]
+        after = sim_cfg.get("after_arrivals_speed")
+        self.after_arrivals_speed = None if after is None else float(after)
         self.hold_surgical = bool(sim_cfg["hold_surgical_for_injection"])
         self.clock_sim = SimClock(speed=self.base_speed)
         self.heroes: Mapping[str, Any] = cfg["demo"]["heroes"]
@@ -179,7 +181,23 @@ class Simulator:
                                         arrived_wall=wall - lag, injected=False, wall=wall, sim=sim)
                 arrived.append(row["case_id"])
             self.store.checkpoint_clock(sim)
+            self._settle_after_arrivals()
             return arrived
+
+    def _settle_after_arrivals(self) -> None:
+        """Once every self-arriving case is in, run the clock at sim.after_arrivals_speed (1 = wall time) so biopsy waits
+        keep their meaning: at the boosted replay speed every case would pass its target within minutes and the aging
+        guard would promote the whole queue. Reset restores the replay speed."""
+        target = self.after_arrivals_speed
+        if target is None or not self.clock_sim.running or self.clock_sim.speed <= target:
+            return
+        if any(not (self.hold_surgical and r["lane"] == "surgical") for r in self.store.pending_rows()):
+            return
+        mono = self.clock.mono()
+        self.clock_sim.pause(mono)                      # continuous: the simulator time does not jump
+        self.clock_sim.speed = target
+        self.clock_sim.start(mono)
+        log.info("every scheduled arrival is in: simulator speed now %gx", target)
 
     def inject_surgical(self, variant: str) -> str:
         """Make the next matching pending surgical case arrive now. Raises TransitionError if none is left."""
