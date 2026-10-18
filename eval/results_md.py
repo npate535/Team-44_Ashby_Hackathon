@@ -200,7 +200,22 @@ def review_lines(art: Path) -> list[str]:
         who = "AI-reviewed (Claude), not a pathologist" if kind == "ai" else (
             "human-reviewed" if kind == "human" else f"reviewer kind {kind!r}")
         summary = sc.get("summary") or {}
-        lines.append(f"- Concept top-tile and cell-overlay spot check: **{who}** · `eval/spotcheck.json` · summary {summary}.")
+        lines.append(f"- Concept top-tile and cell-overlay spot check: **{who}** · `eval/spotcheck.json`. Plausibility "
+                     "of the top-scoring tiles per concept (acceptable / reviewed; the rest unsure or not acceptable):")
+        lines += ["", "| Feature | Acceptable |", "|---|---|"]
+        for cid, b in sorted((summary.get("concept") or {}).items(), key=lambda kv: -kv[1].get("acceptable", 0)):
+            lines.append(f"| {cid} | {b.get('acceptable', 0)} / {b.get('n', 0)} |")
+        cells = summary.get("cells") or {}
+        if cells.get("n"):
+            lines.append(f"| cell segmentation overlays | {cells.get('acceptable', 0)} / {cells['n']} |")
+        notes = {}
+        for r in sc.get("reviews", []):
+            cid = r.get("item_id", "").split(":")[1] if r.get("item_id", "").count(":") >= 2 else ""
+            if r.get("verdict") != "acceptable" and r.get("note") and cid not in notes:
+                notes[cid] = r["note"]
+        if notes:
+            lines += [""] + [f"- {cid}: e.g. \"{note}\"" for cid, note in sorted(notes.items())]
+        lines.append("")
     else:
         lines.append("- Concept top-tile / cell-overlay spot check: not recorded yet (`eval/spotcheck.json` missing).")
     spike = schemas.eval_asset(art, "cells_spike.md")

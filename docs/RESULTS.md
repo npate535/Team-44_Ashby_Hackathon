@@ -2,7 +2,7 @@
 
 > Research prototype — not for clinical use. Every number below is quoted from the eval file named beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.
 
-Generated 2026-10-18T04:57:35Z from 16 eval files (git 1ca8e3d81eb084cf330b290ab7b73b0db97790b9, 700a3b61b0f999a12e7a1a7b54058d6495b93689, None).
+Generated 2026-10-18T08:04:47Z from 16 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 700a3b61b0f999a12e7a1a7b54058d6495b93689, None).
 
 ## Tissue quality control (fixed in this run)
 
@@ -329,7 +329,31 @@ Source: `eval/margin.json` · threshold 1.000 (CI {'lo': 0.847377, 'hi': 0.99989
 
 ## Reviewed checks
 
-- Concept top-tile and cell-overlay spot check: **AI-reviewed (Claude), not a pathologist** · `eval/spotcheck.json` · summary {'concept': {}, 'cells': {'n': 1, 'acceptable': 0}, 'orphaned': 0}.
+- Concept top-tile and cell-overlay spot check: **AI-reviewed (Claude), not a pathologist** · `eval/spotcheck.json`. Plausibility of the top-scoring tiles per concept (acceptable / reviewed; the rest unsure or not acceptable):
+
+| Feature | Acceptable |
+|---|---|
+| benign_stroma_fat | 20 / 20 |
+| invasion | 19 / 20 |
+| tubules | 18 / 20 |
+| pleomorphism | 18 / 20 |
+| duct_confined | 12 / 20 |
+| lymphocytes | 8 / 20 |
+| necrosis | 3 / 20 |
+| mitoses | 0 / 20 |
+| normal_lobules | 0 / 20 |
+| cell segmentation overlays | 15 / 21 |
+
+- duct_confined: e.g. "detached epithelial fragments with an ink/dust artifact"
+- invasion: e.g. "solid nest of clear cells; infiltrative pattern not evident in this tile"
+- lymphocytes: e.g. "grey background with granular debris; no lymphocytes"
+- mitoses: e.g. "high-grade solid tumor where mitoses are expected; individual mitotic figures not resolvable at review resolution (256-384 px tiles)"
+- necrosis: e.g. "cracked eosinophilic material: necrosis vs fibrin/blood clot not distinguishable"
+- normal_lobules: e.g. "fat and fibrous stroma only; no terminal duct-lobular unit or two-layered epithelium in view"
+- overlay: e.g. "dense dark nuclei; contours hard to see"
+- pleomorphism: e.g. "mostly stroma; too few tumor nuclei to judge pleomorphism"
+- tubules: e.g. "stroma and vessels; no tubule in view"
+
 - Cell segmentation spike overlays: no record.
 - No result here is clinically validated; every review above is labelled by who did it.
 
