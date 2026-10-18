@@ -239,7 +239,7 @@ export function marginStatus(m, name) {
   return 'clear';
 }
 export const STATUS_TEXT = { involved: 'above threshold', near: 'just below threshold', clear: 'below threshold', unknown: 'not scored' };
-const SHORT_STATUS = { involved: 'above', near: 'near, below', clear: 'below', unknown: 'not scored' };
+const SHORT_STATUS = { involved: 'above', near: 'just below', clear: 'below', unknown: 'not scored' };
 
 function segClass(m, s) {
   const thr = m.threshold;
