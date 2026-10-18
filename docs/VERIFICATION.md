@@ -5,9 +5,10 @@ system. Overnight changes and their measured effect: [OVERNIGHT.md](OVERNIGHT.md
 
 ## Code and workflows
 
-- Full Python unit/integration suite on merged `main`: **2,533 passed**, 1 skipped (the opt-in browser suite), ~2 min.
+- Full Python unit/integration suite on merged `main`: **2,533 passed**, 1 skipped (the opt-in browser suite), ~2 min
+  (final run 04:18 CDT).
 - Browser suite (`PQ_E2E=1`, Playwright, desktop/light and phone/dark, labelled synthetic temporary workspaces):
-  **23 passed** (re-run after the last backend change). It covers the replay, tier ordering, drafted-order approval with inline confirmation, sign-out to the
+  **23 passed** (final run 04:20 CDT, after the last change). It covers the replay, tier ordering, drafted-order approval with inline confirmation, sign-out to the
   oncology inbox, frozen-section injection, named-margin and defer calls, the OR board timer stop, keyboard
   next-case navigation, reload persistence, the evaluation and evidence-review pages.
 - Contract → TypeScript consistency (`make types-check`) passes after the `value_std` and generator changes.
@@ -18,6 +19,9 @@ system. Overnight changes and their measured effect: [OVERNIGHT.md](OVERNIGHT.md
   plain-language defer reason → Defer to permanent → routed. After the full replay the planned hero BACH_0167 sits in
   tier 2 with the set {InSitu, Invasive} and drafted p63/calponin + ER/PR/HER2/Ki-67. All decisions were made by the
   operator for testing, not clinical assessments; the workspace was then archived and reset for the morning.
+  A second hand pass (04:13–04:17, throwaway workspace) covered the Cells tab, Edit orders (Ki-67 removed → order
+  "edited", drafted items kept), Take a closer look first → Dismiss flag (with confirmation) → sign-out unlocked, the
+  live OR timer, and keyboard navigation (J/K, /, N opens the next case in priority order).
 - Accessibility: axe-core 4.10 on the worklist, a biopsy case, a surgical case, the OR board, the oncology inbox, the
   evaluation and evidence-review pages, at 1440×900 and 390×844, light and dark: **0 serious or critical violations**
   (after fixing a chart role, four sub-4.5:1 text colours, the dark tier-1 badge and phone table focus); 0 moderate
