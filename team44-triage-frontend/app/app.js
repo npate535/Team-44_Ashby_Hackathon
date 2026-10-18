@@ -16,6 +16,10 @@ import * as spotcheck from './js/views/spotcheck.js';
 import { animateScene, syncGlass } from './js/glass.js';
 
 const params = new URLSearchParams(location.search);
+const localService = ['localhost', '127.0.0.1', '[::1]', ''].includes(new URL(params.get('api') || location.href, location.href).hostname);
+const connectionHelp = localService
+  ? 'Start it with <code>make demo</code>, or open <code>?mock=1</code> for the built-in fixtures.'
+  : 'The service may be waking up. This page will reconnect automatically; you can also try again shortly.';
 const ST = {
   route: 'worklist',
   caseId: null,
@@ -250,7 +254,7 @@ async function poll(force = false) {
   try {
     await refresh(force, seq);
     if (seq !== pollSeq) return;
-    if (ST.fail >= 2) toast('Connection to the local service restored', { tone: 'ok' });
+    if (ST.fail >= 2) toast('Connection to Sepia restored', { tone: 'ok' });
     ST.fail = 0;
     ST.staleSince = null;
     ST.lastOk = new Date();
@@ -272,7 +276,7 @@ function showOffline() {
   const el = $('#offline');
   if (ST.fail >= 2) {
     el.hidden = false;
-    el.innerHTML = `<b>The local service is not answering</b> at ${esc(api.base || location.origin)}. Retrying every few seconds; what you see is from ${esc(ST.staleSince.toLocaleTimeString())}. Start it with <code>make demo</code>, or open <code>?mock=1</code> for the built-in fixtures.`;
+    el.innerHTML = `<b>Reconnecting to Sepia</b>. Retrying every few seconds; what you see is from ${esc(ST.staleSince.toLocaleTimeString())}. ${connectionHelp}`;
   } else el.hidden = true;
 }
 
@@ -530,14 +534,14 @@ function updateShell() {
             : 'Pipeline artifacts loaded';
   $('#data-title').textContent = label;
   $('#data-detail').textContent = !h
-    ? 'Checking local service…'
-    : `${h.loaded} cases${h.assets?.missing.length ? ` · ${h.assets.missing.length} missing images` : ''}${h.skipped.length ? ` · ${h.skipped.length} rejected` : ''} · ${ST.mock ? 'in-memory demo' : 'local workspace'}`;
+    ? 'Connecting to Sepia…'
+    : `${h.loaded} cases${h.assets?.missing.length ? ` · ${h.assets.missing.length} missing images` : ''}${h.skipped.length ? ` · ${h.skipped.length} rejected` : ''} · ${ST.mock ? 'in-memory demo' : localService ? 'local workspace' : 'shared research workspace'}`;
   $('.data-status').dataset.state =
     offline || !h || !h.loaded || h.synthetic || h.skipped.length || h.assets?.missing.length
       ? 'pending'
       : 'ready';
   $('#connection').textContent = offline ? 'Reconnecting' : h ? 'Connected' : 'Connecting…';
-  $('#connection').title = offline ? 'The local service is not answering' : 'Local Sepia service';
+  $('#connection').title = offline ? 'Reconnecting to Sepia' : 'Sepia service';
   $('#connection').dataset.state = offline ? 'offline' : h ? 'online' : 'pending';
   updateReplay();
   syncGlass();
@@ -1223,7 +1227,7 @@ async function boot() {
     $('[data-testid=banner-research]').textContent = ST.cfg.banner;
   } catch (err) {
     $('#app').innerHTML =
-      `<div class="card" data-testid="state-offline-boot"><h2>Cases did not load</h2><p>The local service did not answer (${esc(err.message || err)}). Start it with <code>make demo</code>, or open this page with <code>?mock=1</code> to use the committed synthetic fixtures. Opening index.html directly blocks the requests; serve it over HTTP (see README).</p></div>`;
+      `<div class="card" data-testid="state-offline-boot"><h2>Connecting to Sepia</h2><p>Cases have not loaded yet. ${connectionHelp}</p></div>`;
     setTimeout(boot, 3000);
     return;
   }
