@@ -5,9 +5,9 @@ system. Overnight changes and their measured effect: [OVERNIGHT.md](OVERNIGHT.md
 
 ## Code and workflows
 
-- Full Python unit/integration suite on merged `main`: **2,532 passed**, 1 skipped (the opt-in browser suite), ~2 min.
+- Full Python unit/integration suite on merged `main`: **2,533 passed**, 1 skipped (the opt-in browser suite), ~2 min.
 - Browser suite (`PQ_E2E=1`, Playwright, desktop/light and phone/dark, labelled synthetic temporary workspaces):
-  **23 passed**. It covers the replay, tier ordering, drafted-order approval with inline confirmation, sign-out to the
+  **23 passed** (re-run after the last backend change). It covers the replay, tier ordering, drafted-order approval with inline confirmation, sign-out to the
   oncology inbox, frozen-section injection, named-margin and defer calls, the OR board timer stop, keyboard
   next-case navigation, reload persistence, the evaluation and evidence-review pages.
 - Contract → TypeScript consistency (`make types-check`) passes after the `value_std` and generator changes.

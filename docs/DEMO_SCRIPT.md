@@ -20,4 +20,5 @@ margins, arrivals and operating rooms are simulated, and the app says so on ever
 
 Backup paths: if BACH_0167 has not arrived yet, use any tier-2 case with drafted orders (e.g. BACH_0364). Each
 simulated frozen-section button sends a new case, so a second run just picks the next one. **Reset** clears the
-replay and its decisions (it asks first).
+replay and its decisions (it asks first). Once every biopsy has arrived the replay clock runs at wall time, so the
+queue stays stable while you talk.

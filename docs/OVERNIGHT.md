@@ -103,6 +103,14 @@ reader to discount the weak ones.
   distributions, cell measurements, data quality, spot check), each with a computed "What this shows" sentence and
   the source numbers. `eval/analytics.py` produces the chart data.
 
+### 7. Demo robustness
+- After the last scheduled biopsy arrives, the simulator clock drops from the boosted replay speed (×161) to wall time
+  (`sim.after_arrivals_speed: 1`), so a demo left running no longer pushes every case past its target and lets the
+  aging guard reshuffle the queue. Reset restores the replay speed.
+- Each concept row now explains its whole push: the case JSON carries both standardized inputs (`value_std` for the
+  3-strongest-region mean, `frac_std` for the share of regions above threshold).
+- `outputs/restart_main_app.sh` restarts the app on a fresh workspace and archives the previous database.
+
 ## Limits that still hold
 Small public dataset (BACH, 132 test images); simulated frozen sections, margins, arrivals and OR rooms; stain rules
 are illustrative and need clinical review; concept explanations are associations (deletion test shows weak
