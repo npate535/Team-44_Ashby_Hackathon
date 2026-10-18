@@ -98,7 +98,8 @@ def section_conformal(c: Mapping[str, Any]) -> list[str]:
     for name, b in c["methods"].items():
         out.append(f"| {name} | {fmt(b['coverage'], pct=True)} | {fmt(b['mean_set_size'])} | "
                    f"{100 * b['empty_set_rate']:.1f}% |")
-    tier = c["methods"].get(c["drives_tiers"])
+    # conformal.json keys plain marginal APS as "aps" (set_tier is only added when it is a distinct set)
+    tier = c["methods"].get(c["drives_tiers"]) or (c["methods"].get("aps") if c["drives_tiers"] == "aps_marginal" else None)
     if tier and c["drives_tiers"] != "lac_marginal":
         out += ["", f"Per-class coverage of the tier set ({c['drives_tiers']}): "
                 + "; ".join(f"{k} {fmt(v, pct=True)}" for k, v in tier["per_class"].items()) + "."]

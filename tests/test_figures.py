@@ -137,3 +137,15 @@ def test_results_md_reviewers_and_git_sha_come_from_the_files(tmp_path):
     assert "reviews by Claude Opus 5.5 (AI) × 2; Codex UI check (AI) × 1" in text and "(Claude)," not in text
     generated = next(line for line in text.split("\n") if line.startswith("Generated"))
     assert generated.endswith("(git abc123).")
+
+
+def test_results_md_finds_plain_marginal_aps_as_the_tier_set():
+    from eval import results_md as R
+
+    blk = {"estimate": 0.9, "lo": 0.8, "hi": 0.95, "n": 10}
+    aps = {"coverage": blk, "mean_set_size": blk, "empty_set_rate": 0.0, "set_size_histogram": {"1": 10},
+           "per_class": {"Invasive": {"estimate": 0.97, "lo": 0.9, "hi": 1.0, "n": 3}}}
+    lac = {**aps, "per_class": {}}
+    c = {"alpha": 0.1, "target_coverage": 0.9, "drives_tiers": "aps_marginal", "finite_sample": {},
+         "methods": {"lac_marginal": lac, "aps": aps}}
+    assert "Per-class coverage of the tier set (aps_marginal): Invasive 97.0%" in "\n".join(R.section_conformal(c))
