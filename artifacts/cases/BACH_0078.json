@@ -21,7 +21,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.64,
-    "reliability": 0.981,
+    "reliability": 0.996,
     "reliability_flag": false
   },
   "prediction": {
@@ -708,7 +708,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 0.64,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -780,30 +780,32 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested.",
+        "text": "Suggested category: invasive carcinoma (calibrated probability 1.00); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent tumor infiltrating stroma pushes the read toward invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: prominent tumor infiltrating stroma (regions 3 and 8), then normal lobules with two-layered epithelium (typical level) and scarce lymphocytic infiltrate (TILs).",
         "findings": [
-          "F2"
+          "F2",
+          "F3",
+          "F4"
         ]
       },
       {
-        "text": "5 of 5 most similar reference cases share the suggested category.",
-        "findings": [
-          "F5"
-        ]
-      },
-      {
-        "text": "No benign reference case has a lower nuclear size.",
+        "text": "No benign reference case has a lower nuclear size (regions 0, 4 and 11).",
         "findings": [
           "F7"
+        ]
+      },
+      {
+        "text": "5 of 5 most similar reference cases share the suggested category (invasive carcinoma).",
+        "findings": [
+          "F5"
         ]
       }
     ]

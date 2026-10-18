@@ -21,8 +21,8 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.62,
-    "reliability": 0.505,
-    "reliability_flag": true
+    "reliability": 0.966,
+    "reliability_flag": false
   },
   "prediction": {
     "model": "uni2h512_lr",
@@ -526,8 +526,11 @@
     "neighbor_agreement": 0.8
   },
   "margin": {
-    "suggested_call": "defer",
-    "involved": [],
+    "suggested_call": "tumor_at_margin",
+    "involved": [
+      "superior",
+      "lateral"
+    ],
     "per_margin": {
       "superior": 0.99997,
       "inferior": 0.988559,
@@ -734,7 +737,10 @@
         "p": 0.761399
       }
     ],
-    "involved_length_um": null
+    "involved_length_um": {
+      "superior": 107.5,
+      "lateral": 107.5
+    }
   },
   "cells": {
     "status": "ok",
@@ -839,7 +845,6 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
-      "low_reliability",
       "surgical_frozen_section"
     ]
   },
@@ -916,8 +921,8 @@
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": true,
-        "reliability": 0.51,
+        "reliability_flag": false,
+        "reliability": 0.97,
         "ood_percentile": 0.62,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -975,67 +980,56 @@
       "id": "F10",
       "kind": "margin",
       "data": {
-        "suggested_call": "defer",
-        "involved": [],
+        "suggested_call": "tumor_at_margin",
+        "involved": [
+          "superior",
+          "lateral"
+        ],
         "per_margin": {
           "superior": 1.0,
           "inferior": 0.99,
           "medial": 1.0,
           "lateral": 1.0
+        },
+        "involved_length_um": {
+          "superior": 108,
+          "lateral": 108
         }
       }
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested.",
+        "text": "Suggested category: in situ carcinoma (calibrated probability 0.98); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent normal lobules with two-layered epithelium push the read away from invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: lymphocytic infiltrate (TILs) (typical level; region 6).",
         "findings": [
-          "F2"
+          "F3"
         ]
       },
       {
-        "text": "4 of 5 most similar reference cases share the suggested category.",
+        "text": "Tumor cell fraction is higher than in 100% of benign reference cases (regions 2, 5 and 9).",
         "findings": [
-          "F5"
+          "F7"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced; suggested margin call (simulated frozen section): defer to permanent sections.",
+        "text": "Suggested margin call (simulated frozen section): tumor at the superior and lateral margins.",
         "findings": [
-          "F6",
           "F10"
         ]
       }
     ]
   },
   "agent": {
-    "status": "drafted",
-    "orders": [
-      {
-        "type": "recut",
-        "items": [
-          "recut H&E section"
-        ],
-        "rule_id": "low_quality",
-        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
-      },
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "low_quality_levels",
-        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
-      }
-    ],
+    "status": "none",
+    "orders": [],
     "blocked": [
       {
         "action": "draft_stains",

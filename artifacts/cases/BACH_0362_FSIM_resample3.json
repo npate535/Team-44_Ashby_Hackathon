@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.918,
+    "reliability": 0.999,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,22 +38,20 @@
       "Invasive"
     ],
     "probs": [
-      0.487,
-      0.0921,
-      0.3271,
-      0.0938
+      0.9575,
+      0.0394,
+      0.0026,
+      0.0005
     ],
-    "risk_score": 0.0938,
+    "risk_score": 0.0005,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "Normal",
-      "InSitu",
-      "Invasive"
+      "Normal"
     ],
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -252,7 +250,7 @@
         "necrosis": -0.74
       },
       "attention": null,
-      "contribution": -0.0968
+      "contribution": -0.3389
     },
     {
       "idx": 1,
@@ -273,7 +271,7 @@
         "necrosis": -0.78
       },
       "attention": null,
-      "contribution": -0.0718
+      "contribution": -0.3436
     },
     {
       "idx": 2,
@@ -294,7 +292,7 @@
         "necrosis": -0.84
       },
       "attention": null,
-      "contribution": -0.0308
+      "contribution": -0.3112
     },
     {
       "idx": 3,
@@ -315,7 +313,7 @@
         "necrosis": -0.06
       },
       "attention": null,
-      "contribution": -0.1153
+      "contribution": -0.3183
     },
     {
       "idx": 4,
@@ -336,7 +334,7 @@
         "necrosis": -0.59
       },
       "attention": null,
-      "contribution": -0.0306
+      "contribution": -0.1621
     },
     {
       "idx": 5,
@@ -357,7 +355,7 @@
         "necrosis": -0.8
       },
       "attention": null,
-      "contribution": -0.0091
+      "contribution": -0.2466
     },
     {
       "idx": 6,
@@ -378,7 +376,7 @@
         "necrosis": -0.42
       },
       "attention": null,
-      "contribution": 0.021
+      "contribution": -0.0116
     },
     {
       "idx": 7,
@@ -399,7 +397,7 @@
         "necrosis": -0.11
       },
       "attention": null,
-      "contribution": -0.068
+      "contribution": -0.3661
     },
     {
       "idx": 8,
@@ -420,7 +418,7 @@
         "necrosis": -0.73
       },
       "attention": null,
-      "contribution": -0.099
+      "contribution": -0.1762
     },
     {
       "idx": 9,
@@ -441,7 +439,7 @@
         "necrosis": -0.68
       },
       "attention": null,
-      "contribution": -0.0251
+      "contribution": -0.3623
     },
     {
       "idx": 10,
@@ -462,7 +460,7 @@
         "necrosis": -0.35
       },
       "attention": null,
-      "contribution": -0.0496
+      "contribution": -0.3085
     },
     {
       "idx": 11,
@@ -483,7 +481,7 @@
         "necrosis": -0.65
       },
       "attention": null,
-      "contribution": -0.0772
+      "contribution": -0.372
     }
   ],
   "similar_cases": [
@@ -755,8 +753,6 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
-      "aggressive_in_conformal_set",
-      "set_size_gt_1",
       "surgical_frozen_section"
     ]
   },
@@ -766,14 +762,12 @@
       "kind": "prediction",
       "data": {
         "top": "Normal",
-        "p": 0.487,
+        "p": 0.958,
         "set": [
-          "Normal",
-          "InSitu",
-          "Invasive"
+          "Normal"
         ],
         "confidence": 0.9,
-        "risk": 0.094
+        "risk": 0.001
       }
     },
     {
@@ -837,7 +831,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.92,
+        "reliability": 1.0,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -859,24 +853,24 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Normal breast tissue is suggested; in situ carcinoma and invasive carcinoma cannot be excluded.",
+        "text": "Suggested category: normal breast tissue (calibrated probability 0.96); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce normal lobules push the read toward invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce normal lobules with two-layered epithelium (region 8).",
         "findings": [
           "F3"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma is associated with a lower likelihood of invasive carcinoma.",
+        "text": "5 of 5 most similar reference cases share the suggested category (normal breast tissue).",
         "findings": [
-          "F4"
+          "F5"
         ]
       },
       {
@@ -888,24 +882,9 @@
     ]
   },
   "agent": {
-    "status": "drafted",
-    "orders": [
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "uncertain_benign_atypia",
-        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
-      }
-    ],
-    "blocked": [
-      {
-        "action": "draft_stains",
-        "reason": "Stains are not drafted for simulated frozen sections.",
-        "rule_id": null
-      }
-    ]
+    "status": "none",
+    "orders": [],
+    "blocked": []
   },
   "eval_only": {
     "true_label": "Benign",

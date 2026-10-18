@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.96,
-    "reliability": 0.978,
+    "reliability": 0.998,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,12 +38,12 @@
       "Invasive"
     ],
     "probs": [
+      0.0,
       0.0001,
-      0.0012,
-      0.978,
-      0.0208
+      0.9886,
+      0.0112
     ],
-    "risk_score": 0.0208,
+    "risk_score": 0.0112,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "InSitu"
@@ -51,7 +51,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -251,7 +251,7 @@
         "necrosis": -0.14
       },
       "attention": null,
-      "contribution": -0.0182
+      "contribution": 0.0341
     },
     {
       "idx": 1,
@@ -272,7 +272,7 @@
         "necrosis": 0.66
       },
       "attention": null,
-      "contribution": 0.1997
+      "contribution": 0.2512
     },
     {
       "idx": 2,
@@ -293,7 +293,7 @@
         "necrosis": 0.5
       },
       "attention": null,
-      "contribution": 0.2338
+      "contribution": 0.3213
     },
     {
       "idx": 3,
@@ -314,7 +314,7 @@
         "necrosis": 0.34
       },
       "attention": null,
-      "contribution": -0.0274
+      "contribution": 0.1442
     },
     {
       "idx": 4,
@@ -335,7 +335,7 @@
         "necrosis": 0.55
       },
       "attention": null,
-      "contribution": 0.0326
+      "contribution": 0.0685
     },
     {
       "idx": 5,
@@ -356,7 +356,7 @@
         "necrosis": 0.76
       },
       "attention": null,
-      "contribution": 0.24
+      "contribution": 0.2996
     },
     {
       "idx": 6,
@@ -377,7 +377,7 @@
         "necrosis": 0.86
       },
       "attention": null,
-      "contribution": 0.1132
+      "contribution": 0.1995
     },
     {
       "idx": 7,
@@ -398,7 +398,7 @@
         "necrosis": 0.15
       },
       "attention": null,
-      "contribution": 0.0795
+      "contribution": 0.0645
     },
     {
       "idx": 8,
@@ -419,7 +419,7 @@
         "necrosis": 0.3
       },
       "attention": null,
-      "contribution": 0.0144
+      "contribution": 0.0245
     },
     {
       "idx": 9,
@@ -440,7 +440,7 @@
         "necrosis": 0.23
       },
       "attention": null,
-      "contribution": 0.3139
+      "contribution": 0.3031
     },
     {
       "idx": 10,
@@ -461,7 +461,7 @@
         "necrosis": 0.99
       },
       "attention": null,
-      "contribution": 0.1241
+      "contribution": 0.1159
     },
     {
       "idx": 11,
@@ -482,7 +482,7 @@
         "necrosis": -0.51
       },
       "attention": null,
-      "contribution": -0.1032
+      "contribution": -0.1232
     }
   ],
   "similar_cases": [
@@ -773,12 +773,12 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.978,
+        "p": 0.989,
         "set": [
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.021
+        "risk": 0.011
       }
     },
     {
@@ -842,7 +842,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 0.96,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -875,10 +875,10 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested.",
+        "text": "Suggested category: in situ carcinoma (calibrated probability 0.99); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
@@ -891,13 +891,13 @@
         ]
       },
       {
-        "text": "Prominent gland / tubule formation is associated with a lower likelihood of invasive carcinoma.",
+        "text": "2 of 5 most similar reference cases share the suggested category (in situ carcinoma).",
         "findings": [
-          "F4"
+          "F5"
         ]
       },
       {
-        "text": "Suggested margin call (simulated frozen section): tumor at the superior, inferior, medial, and lateral margins.",
+        "text": "Suggested margin call (simulated frozen section): tumor at the superior, inferior, medial and lateral margins.",
         "findings": [
           "F7"
         ]

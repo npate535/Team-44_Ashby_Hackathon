@@ -21,8 +21,8 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.64,
-    "reliability": 0.503,
-    "reliability_flag": true
+    "reliability": 0.968,
+    "reliability_flag": false
   },
   "prediction": {
     "model": "uni2h512_lr",
@@ -628,11 +628,9 @@
     }
   },
   "flag": {
-    "flagged": true,
-    "tier": 3,
-    "reasons": [
-      "low_reliability"
-    ]
+    "flagged": false,
+    "tier": 4,
+    "reasons": []
   },
   "findings": [
     {
@@ -710,8 +708,8 @@
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": true,
-        "reliability": 0.5,
+        "reliability_flag": false,
+        "reliability": 0.97,
         "ood_percentile": 0.64,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -751,56 +749,39 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.75); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent normal lobules with two-layered epithelium and prominent gland / tubule formation are associated with a lower likelihood of invasive carcinoma.",
+        "text": "Features lowering the likelihood of invasive carcinoma in this read: prominent normal lobules with two-layered epithelium, scarce tumor infiltrating stroma and prominent gland / tubule formation.",
         "findings": [
           "F2",
+          "F3",
           "F4"
         ]
       },
       {
-        "text": "No benign reference case has a lower nuclear size, while immune cell fraction is higher than in 91% of benign reference cases.",
+        "text": "No benign reference case has a lower nuclear size (regions 6, 9 and 10).",
         "findings": [
-          "F7",
-          "F8"
+          "F7"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced.",
+        "text": "1 of 5 most similar reference cases shares the suggested category (benign lesion).",
         "findings": [
-          "F6"
+          "F5"
         ]
       }
     ]
   },
   "agent": {
-    "status": "drafted",
-    "orders": [
-      {
-        "type": "recut",
-        "items": [
-          "recut H&E section"
-        ],
-        "rule_id": "low_quality",
-        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
-      },
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "low_quality_levels",
-        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
-      }
-    ],
+    "status": "none",
+    "orders": [],
     "blocked": []
   },
   "eval_only": {

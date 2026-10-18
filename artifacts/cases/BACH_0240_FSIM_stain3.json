@@ -12,7 +12,7 @@
   "source_case_ids": [
     "BACH_0240"
   ],
-  "arrived_offset_s": 23124.4,
+  "arrived_offset_s": 22966.4,
   "image": {
     "display": "images/BACH_0240_FSIM_stain3.jpg",
     "width": 2048,
@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.92,
-    "reliability": 0.978,
+    "reliability": 0.998,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,12 +38,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0,
-      0.001,
-      0.0057,
-      0.9933
+      0.0001,
+      0.0002,
+      0.0087,
+      0.991
     ],
-    "risk_score": 0.9933,
+    "risk_score": 0.991,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Invasive"
@@ -51,7 +51,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -254,7 +254,7 @@
         "necrosis": 0.83
       },
       "attention": null,
-      "contribution": 0.4001
+      "contribution": 0.3501
     },
     {
       "idx": 1,
@@ -275,7 +275,7 @@
         "necrosis": 0.71
       },
       "attention": null,
-      "contribution": 0.537
+      "contribution": 0.4838
     },
     {
       "idx": 2,
@@ -296,7 +296,7 @@
         "necrosis": 0.64
       },
       "attention": null,
-      "contribution": 0.487
+      "contribution": 0.4829
     },
     {
       "idx": 3,
@@ -317,7 +317,7 @@
         "necrosis": 0.94
       },
       "attention": null,
-      "contribution": 0.512
+      "contribution": 0.4316
     },
     {
       "idx": 4,
@@ -338,7 +338,7 @@
         "necrosis": 0.68
       },
       "attention": null,
-      "contribution": 0.4292
+      "contribution": 0.4746
     },
     {
       "idx": 5,
@@ -359,7 +359,7 @@
         "necrosis": 0.59
       },
       "attention": null,
-      "contribution": 0.3888
+      "contribution": 0.4774
     },
     {
       "idx": 6,
@@ -380,7 +380,7 @@
         "necrosis": 0.67
       },
       "attention": null,
-      "contribution": 0.465
+      "contribution": 0.5365
     },
     {
       "idx": 7,
@@ -401,7 +401,7 @@
         "necrosis": 0.68
       },
       "attention": null,
-      "contribution": 0.5737
+      "contribution": 0.5155
     },
     {
       "idx": 8,
@@ -422,7 +422,7 @@
         "necrosis": 0.59
       },
       "attention": null,
-      "contribution": 0.5624
+      "contribution": 0.4801
     },
     {
       "idx": 9,
@@ -443,7 +443,7 @@
         "necrosis": 0.7
       },
       "attention": null,
-      "contribution": 0.4922
+      "contribution": 0.4702
     },
     {
       "idx": 10,
@@ -464,7 +464,7 @@
         "necrosis": 1.23
       },
       "attention": null,
-      "contribution": 0.5379
+      "contribution": 0.5405
     },
     {
       "idx": 11,
@@ -485,7 +485,7 @@
         "necrosis": 0.89
       },
       "attention": null,
-      "contribution": 0.3839
+      "contribution": 0.5191
     }
   ],
   "similar_cases": [
@@ -774,12 +774,12 @@
       "kind": "prediction",
       "data": {
         "top": "Invasive",
-        "p": 0.993,
+        "p": 0.991,
         "set": [
           "Invasive"
         ],
         "confidence": 0.9,
-        "risk": 0.993
+        "risk": 0.991
       }
     },
     {
@@ -843,7 +843,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 0.92,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -872,24 +872,31 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested.",
+        "text": "Suggested category: invasive carcinoma (calibrated probability 0.99); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent tumor infiltrating stroma pushes the read toward invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: prominent tumor infiltrating stroma (regions 1, 10 and 11), then scarce gland / tubule formation and scarce atypical cells confined within ducts.",
         "findings": [
-          "F2"
+          "F2",
+          "F3",
+          "F4"
         ]
       },
       {
-        "text": "5 of 5 most similar reference cases share the suggested category. Suggested margin call (simulated frozen section): tumor at the superior and inferior margins.",
+        "text": "5 of 5 most similar reference cases share the suggested category (invasive carcinoma).",
         "findings": [
-          "F5",
+          "F5"
+        ]
+      },
+      {
+        "text": "Suggested margin call (simulated frozen section): tumor at the superior and inferior margins.",
+        "findings": [
           "F7"
         ]
       }

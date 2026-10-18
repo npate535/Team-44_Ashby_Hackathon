@@ -21,7 +21,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.68,
-    "reliability": 0.981,
+    "reliability": 0.996,
     "reliability_flag": false
   },
   "prediction": {
@@ -712,7 +712,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 0.68,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -784,32 +784,32 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Normal breast tissue is suggested.",
+        "text": "Suggested category: normal breast tissue (calibrated probability 0.97); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent benign fibrous stroma or fat and prominent normal lobules with two-layered epithelium push the read away from invasive carcinoma.",
+        "text": "Features lowering the likelihood of invasive carcinoma in this read: prominent benign fibrous stroma or fat, prominent normal lobules with two-layered epithelium and dense lymphocytic infiltrate (TILs).",
         "findings": [
           "F2",
-          "F3"
+          "F3",
+          "F4"
         ]
       },
       {
-        "text": "5 of 5 most similar reference cases share the suggested category.",
+        "text": "Only 10% of benign reference cases have a lower nuclear size (regions 0, 3 and 11).",
+        "findings": [
+          "F7"
+        ]
+      },
+      {
+        "text": "5 of 5 most similar reference cases share the suggested category (normal breast tissue).",
         "findings": [
           "F5"
-        ]
-      },
-      {
-        "text": "Only 10% of benign reference cases have a lower nuclear size, while variation in nuclear size is higher than in 90% of benign reference cases.",
-        "findings": [
-          "F7",
-          "F8"
         ]
       }
     ]

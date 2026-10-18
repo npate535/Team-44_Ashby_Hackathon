@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.96,
-    "reliability": 0.978,
+    "reliability": 0.998,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,12 +38,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0001,
-      0.0128,
-      0.9672,
-      0.0199
+      0.0,
+      0.0008,
+      0.9934,
+      0.0058
     ],
-    "risk_score": 0.0199,
+    "risk_score": 0.0058,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "InSitu"
@@ -51,7 +51,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -250,7 +250,7 @@
         "necrosis": 0.49
       },
       "attention": null,
-      "contribution": 0.0547
+      "contribution": 0.1162
     },
     {
       "idx": 1,
@@ -271,7 +271,7 @@
         "necrosis": 0.37
       },
       "attention": null,
-      "contribution": 0.0357
+      "contribution": 0.0437
     },
     {
       "idx": 2,
@@ -292,7 +292,7 @@
         "necrosis": 0.64
       },
       "attention": null,
-      "contribution": 0.0692
+      "contribution": 0.1209
     },
     {
       "idx": 3,
@@ -313,7 +313,7 @@
         "necrosis": 0.98
       },
       "attention": null,
-      "contribution": 0.1257
+      "contribution": 0.1518
     },
     {
       "idx": 4,
@@ -334,7 +334,7 @@
         "necrosis": 0.69
       },
       "attention": null,
-      "contribution": -0.001
+      "contribution": -0.0297
     },
     {
       "idx": 5,
@@ -355,7 +355,7 @@
         "necrosis": 0.75
       },
       "attention": null,
-      "contribution": 0.2258
+      "contribution": 0.2287
     },
     {
       "idx": 6,
@@ -376,7 +376,7 @@
         "necrosis": 0.83
       },
       "attention": null,
-      "contribution": -0.0587
+      "contribution": -0.012
     },
     {
       "idx": 7,
@@ -397,7 +397,7 @@
         "necrosis": 0.43
       },
       "attention": null,
-      "contribution": 0.0163
+      "contribution": 0.0483
     },
     {
       "idx": 8,
@@ -418,7 +418,7 @@
         "necrosis": -0.2
       },
       "attention": null,
-      "contribution": -0.0753
+      "contribution": 0.0303
     },
     {
       "idx": 9,
@@ -439,7 +439,7 @@
         "necrosis": 0.03
       },
       "attention": null,
-      "contribution": 0.0173
+      "contribution": 0.1141
     },
     {
       "idx": 10,
@@ -460,7 +460,7 @@
         "necrosis": 1.02
       },
       "attention": null,
-      "contribution": 0.0788
+      "contribution": 0.1359
     },
     {
       "idx": 11,
@@ -481,7 +481,7 @@
         "necrosis": 0.08
       },
       "attention": null,
-      "contribution": 0.0171
+      "contribution": 0.0606
     }
   ],
   "similar_cases": [
@@ -770,12 +770,12 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.967,
+        "p": 0.993,
         "set": [
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.02
+        "risk": 0.006
       }
     },
     {
@@ -839,7 +839,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 0.96,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -870,23 +870,22 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested.",
+        "text": "Suggested category: in situ carcinoma (calibrated probability 0.99); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent atypical cells confined within ducts and scarce tumor infiltrating stroma push the read away from invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: benign fibrous stroma or fat (typical level; region 7).",
         "findings": [
-          "F2",
-          "F3"
+          "F4"
         ]
       },
       {
-        "text": "4 of 5 most similar reference cases share the suggested category.",
+        "text": "4 of 5 most similar reference cases share the suggested category (in situ carcinoma).",
         "findings": [
           "F5"
         ]

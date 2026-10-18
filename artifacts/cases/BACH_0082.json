@@ -21,7 +21,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.94,
-    "reliability": 0.978,
+    "reliability": 0.998,
     "reliability_flag": false
   },
   "prediction": {
@@ -709,7 +709,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 0.94,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -749,32 +749,30 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Normal breast tissue is suggested.",
+        "text": "Suggested category: normal breast tissue (calibrated probability 0.99); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent normal lobules with two-layered epithelium and prominent benign fibrous stroma or fat push the read away from invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce atypical cells confined within ducts (region 9).",
         "findings": [
-          "F2",
-          "F4"
+          "F3"
         ]
       },
       {
-        "text": "5 of 5 most similar reference cases share the suggested category.",
+        "text": "Immune cell fraction is higher than in 91% of benign reference cases (regions 2, 7 and 11).",
+        "findings": [
+          "F7"
+        ]
+      },
+      {
+        "text": "5 of 5 most similar reference cases share the suggested category (normal breast tissue).",
         "findings": [
           "F5"
-        ]
-      },
-      {
-        "text": "Immune cell fraction is higher than in 91% of benign reference cases, and dead cell fraction is higher than in 97% of benign reference cases.",
-        "findings": [
-          "F7",
-          "F8"
         ]
       }
     ]

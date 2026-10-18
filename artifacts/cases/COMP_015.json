@@ -24,11 +24,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.44,
-    "reliability": 0.983,
+    "reliability": 0.992,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -36,9 +36,9 @@
       "Invasive"
     ],
     "probs": [
-      0.9808,
-      0.0129,
-      0.0059,
+      0.9854,
+      0.0112,
+      0.0031,
       0.0003
     ],
     "risk_score": 0.0003,
@@ -49,7 +49,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -252,7 +252,7 @@
         "necrosis": -1.07
       },
       "attention": null,
-      "contribution": -0.488
+      "contribution": -0.4653
     },
     {
       "idx": 1,
@@ -273,7 +273,7 @@
         "necrosis": -0.95
       },
       "attention": null,
-      "contribution": -0.5171
+      "contribution": -0.5344
     },
     {
       "idx": 2,
@@ -294,7 +294,7 @@
         "necrosis": -0.89
       },
       "attention": null,
-      "contribution": -0.4473
+      "contribution": -0.4043
     },
     {
       "idx": 3,
@@ -315,7 +315,7 @@
         "necrosis": -0.63
       },
       "attention": null,
-      "contribution": -0.2163
+      "contribution": -0.1591
     },
     {
       "idx": 4,
@@ -336,7 +336,7 @@
         "necrosis": -0.8
       },
       "attention": null,
-      "contribution": -0.3251
+      "contribution": -0.3005
     },
     {
       "idx": 5,
@@ -357,7 +357,7 @@
         "necrosis": -0.8
       },
       "attention": null,
-      "contribution": -0.3582
+      "contribution": -0.4711
     },
     {
       "idx": 6,
@@ -378,7 +378,7 @@
         "necrosis": -0.64
       },
       "attention": null,
-      "contribution": -0.4398
+      "contribution": -0.5634
     },
     {
       "idx": 7,
@@ -399,7 +399,7 @@
         "necrosis": -0.94
       },
       "attention": null,
-      "contribution": -0.2256
+      "contribution": -0.2691
     },
     {
       "idx": 8,
@@ -420,7 +420,7 @@
         "necrosis": -0.92
       },
       "attention": null,
-      "contribution": -0.1125
+      "contribution": -0.0827
     },
     {
       "idx": 9,
@@ -441,7 +441,7 @@
         "necrosis": 0.15
       },
       "attention": null,
-      "contribution": -0.1236
+      "contribution": -0.0056
     },
     {
       "idx": 10,
@@ -462,7 +462,7 @@
         "necrosis": -0.42
       },
       "attention": null,
-      "contribution": -0.1971
+      "contribution": -0.1471
     },
     {
       "idx": 11,
@@ -483,7 +483,7 @@
         "necrosis": -0.67
       },
       "attention": null,
-      "contribution": -0.1235
+      "contribution": -0.0692
     }
   ],
   "similar_cases": [
@@ -764,7 +764,7 @@
       "kind": "prediction",
       "data": {
         "top": "Normal",
-        "p": 0.981,
+        "p": 0.985,
         "set": [
           "Normal"
         ],
@@ -837,7 +837,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 0.99,
         "ood_percentile": 0.44,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -859,16 +859,16 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Normal breast tissue is suggested.",
+        "text": "Suggested category: normal breast tissue (calibrated probability 0.98); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent normal lobules with two-layered epithelium, gland / tubule formation, and benign fibrous stroma or fat push the read away from invasive carcinoma.",
+        "text": "Features lowering the likelihood of invasive carcinoma in this read: prominent normal lobules with two-layered epithelium, prominent gland / tubule formation and prominent benign fibrous stroma or fat.",
         "findings": [
           "F2",
           "F3",
@@ -876,7 +876,7 @@
         ]
       },
       {
-        "text": "5 of 5 most similar reference cases share the suggested category.",
+        "text": "5 of 5 most similar reference cases share the suggested category (normal breast tissue).",
         "findings": [
           "F5"
         ]

@@ -24,11 +24,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.84,
-    "reliability": 0.318,
+    "reliability": 0.669,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -36,21 +36,21 @@
       "Invasive"
     ],
     "probs": [
-      0.0026,
-      0.1788,
-      0.1445,
-      0.6742
+      0.0034,
+      0.0536,
+      0.1045,
+      0.8385
     ],
-    "risk_score": 0.6742,
+    "risk_score": 0.8385,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "Benign",
+      "InSitu",
       "Invasive"
     ],
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -249,7 +249,7 @@
         "necrosis": -0.57
       },
       "attention": null,
-      "contribution": -0.3145
+      "contribution": -0.3934
     },
     {
       "idx": 1,
@@ -270,7 +270,7 @@
         "necrosis": -0.57
       },
       "attention": null,
-      "contribution": -0.2166
+      "contribution": -0.2303
     },
     {
       "idx": 2,
@@ -291,7 +291,7 @@
         "necrosis": -0.23
       },
       "attention": null,
-      "contribution": -0.304
+      "contribution": -0.392
     },
     {
       "idx": 3,
@@ -312,7 +312,7 @@
         "necrosis": -0.6
       },
       "attention": null,
-      "contribution": -0.2978
+      "contribution": -0.3526
     },
     {
       "idx": 4,
@@ -333,7 +333,7 @@
         "necrosis": 0.58
       },
       "attention": null,
-      "contribution": 0.2715
+      "contribution": 0.2497
     },
     {
       "idx": 5,
@@ -354,7 +354,7 @@
         "necrosis": 0.65
       },
       "attention": null,
-      "contribution": 0.2455
+      "contribution": 0.3377
     },
     {
       "idx": 6,
@@ -375,7 +375,7 @@
         "necrosis": 0.54
       },
       "attention": null,
-      "contribution": 0.1744
+      "contribution": 0.2679
     },
     {
       "idx": 7,
@@ -396,7 +396,7 @@
         "necrosis": 0.34
       },
       "attention": null,
-      "contribution": 0.2107
+      "contribution": 0.3807
     },
     {
       "idx": 8,
@@ -417,7 +417,7 @@
         "necrosis": 0.96
       },
       "attention": null,
-      "contribution": 0.7178
+      "contribution": 0.7512
     },
     {
       "idx": 9,
@@ -438,7 +438,7 @@
         "necrosis": 0.79
       },
       "attention": null,
-      "contribution": 0.7253
+      "contribution": 0.7713
     },
     {
       "idx": 10,
@@ -459,7 +459,7 @@
         "necrosis": 0.42
       },
       "attention": null,
-      "contribution": 0.4293
+      "contribution": 0.5315
     },
     {
       "idx": 11,
@@ -480,7 +480,7 @@
         "necrosis": 0.63
       },
       "attention": null,
-      "contribution": 0.5349
+      "contribution": 0.7169
     }
   ],
   "similar_cases": [
@@ -765,13 +765,13 @@
       "kind": "prediction",
       "data": {
         "top": "Invasive",
-        "p": 0.674,
+        "p": 0.839,
         "set": [
-          "Benign",
+          "InSitu",
           "Invasive"
         ],
         "confidence": 0.9,
-        "risk": 0.674
+        "risk": 0.839
       }
     },
     {
@@ -835,7 +835,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.32,
+        "reliability": 0.67,
         "ood_percentile": 0.84,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -857,29 +857,28 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested, and a benign lesion cannot be excluded.",
+        "text": "Suggested category: invasive carcinoma (calibrated probability 0.84), and in situ carcinoma is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent gland / tubule formation and prominent normal lobules with two-layered epithelium are associated with a lower likelihood of invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce lymphocytic infiltrate (TILs; region 4).",
         "findings": [
-          "F3",
-          "F4"
+          "F2"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced.",
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
         "findings": [
           "F6"
         ]
       },
       {
-        "text": "Suggested margin call (simulated frozen section): defer to permanent sections.",
+        "text": "Suggested margin call (simulated frozen section): defer to permanent sections, because the reliability check flagged this read.",
         "findings": [
           "F7"
         ]

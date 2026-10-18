@@ -21,8 +21,8 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.92,
-    "reliability": 0.468,
-    "reliability_flag": true
+    "reliability": 0.986,
+    "reliability_flag": false
   },
   "prediction": {
     "model": "uni2h512_lr",
@@ -628,11 +628,9 @@
     }
   },
   "flag": {
-    "flagged": true,
-    "tier": 3,
-    "reasons": [
-      "low_reliability"
-    ]
+    "flagged": false,
+    "tier": 4,
+    "reasons": []
   },
   "findings": [
     {
@@ -710,8 +708,8 @@
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": true,
-        "reliability": 0.47,
+        "reliability_flag": false,
+        "reliability": 0.99,
         "ood_percentile": 0.92,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -735,16 +733,16 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.99); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma, prominent benign fibrous stroma or fat, and prominent gland / tubule formation push the read away from invasive carcinoma.",
+        "text": "Features lowering the likelihood of invasive carcinoma in this read: scarce tumor infiltrating stroma, prominent benign fibrous stroma or fat and prominent gland / tubule formation.",
         "findings": [
           "F2",
           "F3",
@@ -752,40 +750,22 @@
         ]
       },
       {
-        "text": "5 of 5 most similar reference cases share the suggested category.",
+        "text": "Only 9% of benign reference cases have a lower immune cell fraction (regions 2, 7 and 8).",
         "findings": [
-          "F5"
+          "F7"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced; only 9% of benign reference cases have a lower immune cell fraction.",
+        "text": "5 of 5 most similar reference cases share the suggested category (benign lesion).",
         "findings": [
-          "F6",
-          "F7"
+          "F5"
         ]
       }
     ]
   },
   "agent": {
-    "status": "drafted",
-    "orders": [
-      {
-        "type": "recut",
-        "items": [
-          "recut H&E section"
-        ],
-        "rule_id": "low_quality",
-        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
-      },
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "low_quality_levels",
-        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
-      }
-    ],
+    "status": "none",
+    "orders": [],
     "blocked": []
   },
   "eval_only": {

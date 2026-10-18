@@ -12,7 +12,7 @@
   "source_case_ids": [
     "BACH_0247"
   ],
-  "arrived_offset_s": 23559.6,
+  "arrived_offset_s": 23274.9,
   "image": {
     "display": "images/BACH_0247_FSIM_resample3.jpg",
     "width": 2048,
@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.956,
+    "reliability": 0.999,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,21 +38,20 @@
       "Invasive"
     ],
     "probs": [
-      0.7394,
-      0.0992,
-      0.1564,
-      0.005
+      0.9524,
+      0.0444,
+      0.003,
+      0.0001
     ],
-    "risk_score": 0.005,
+    "risk_score": 0.0001,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "Normal",
-      "InSitu"
+      "Normal"
     ],
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -249,7 +248,7 @@
         "necrosis": -0.24
       },
       "attention": null,
-      "contribution": -0.2145
+      "contribution": -0.3665
     },
     {
       "idx": 1,
@@ -270,7 +269,7 @@
         "necrosis": -0.22
       },
       "attention": null,
-      "contribution": -0.282
+      "contribution": -0.3919
     },
     {
       "idx": 2,
@@ -291,7 +290,7 @@
         "necrosis": -0.38
       },
       "attention": null,
-      "contribution": -0.3298
+      "contribution": -0.3839
     },
     {
       "idx": 3,
@@ -312,7 +311,7 @@
         "necrosis": 0.53
       },
       "attention": null,
-      "contribution": -0.274
+      "contribution": -0.397
     },
     {
       "idx": 4,
@@ -333,7 +332,7 @@
         "necrosis": -0.66
       },
       "attention": null,
-      "contribution": -0.2778
+      "contribution": -0.4484
     },
     {
       "idx": 5,
@@ -354,7 +353,7 @@
         "necrosis": 0.3
       },
       "attention": null,
-      "contribution": -0.2891
+      "contribution": -0.3851
     },
     {
       "idx": 6,
@@ -375,7 +374,7 @@
         "necrosis": 0.45
       },
       "attention": null,
-      "contribution": -0.3008
+      "contribution": -0.412
     },
     {
       "idx": 7,
@@ -396,7 +395,7 @@
         "necrosis": 0.14
       },
       "attention": null,
-      "contribution": -0.2092
+      "contribution": -0.3738
     },
     {
       "idx": 8,
@@ -417,7 +416,7 @@
         "necrosis": 0.09
       },
       "attention": null,
-      "contribution": -0.0997
+      "contribution": -0.1283
     },
     {
       "idx": 9,
@@ -438,7 +437,7 @@
         "necrosis": -0.13
       },
       "attention": null,
-      "contribution": -0.1208
+      "contribution": -0.4822
     },
     {
       "idx": 10,
@@ -459,7 +458,7 @@
         "necrosis": 0.88
       },
       "attention": null,
-      "contribution": -0.2306
+      "contribution": -0.3457
     },
     {
       "idx": 11,
@@ -480,7 +479,7 @@
         "necrosis": 0.12
       },
       "attention": null,
-      "contribution": -0.1573
+      "contribution": -0.2097
     }
   ],
   "similar_cases": [
@@ -752,7 +751,6 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
-      "set_size_gt_1",
       "surgical_frozen_section"
     ]
   },
@@ -762,13 +760,12 @@
       "kind": "prediction",
       "data": {
         "top": "Normal",
-        "p": 0.739,
+        "p": 0.952,
         "set": [
-          "Normal",
-          "InSitu"
+          "Normal"
         ],
         "confidence": 0.9,
-        "risk": 0.005
+        "risk": 0.0
       }
     },
     {
@@ -830,7 +827,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.96,
+        "reliability": 1.0,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -852,25 +849,24 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Normal breast tissue is suggested, and in situ carcinoma cannot be excluded.",
+        "text": "Suggested category: normal breast tissue (calibrated probability 0.95); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma and scarce mitotic figures push the read away from invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce atypical cells confined within ducts (region 5).",
         "findings": [
-          "F2",
-          "F3"
+          "F4"
         ]
       },
       {
-        "text": "Scarce atypical cells confined within ducts push the read toward invasive carcinoma.",
+        "text": "4 of 5 most similar reference cases share the suggested category (normal breast tissue).",
         "findings": [
-          "F4"
+          "F5"
         ]
       },
       {
@@ -882,24 +878,9 @@
     ]
   },
   "agent": {
-    "status": "drafted",
-    "orders": [
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "uncertain_benign_atypia",
-        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
-      }
-    ],
-    "blocked": [
-      {
-        "action": "draft_stains",
-        "reason": "Stains are not drafted for simulated frozen sections.",
-        "rule_id": null
-      }
-    ]
+    "status": "none",
+    "orders": [],
+    "blocked": []
   },
   "eval_only": {
     "true_label": "Normal",

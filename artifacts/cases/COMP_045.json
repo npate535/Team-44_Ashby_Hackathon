@@ -24,11 +24,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.918,
+    "reliability": 0.962,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -36,22 +36,21 @@
       "Invasive"
     ],
     "probs": [
-      0.0645,
-      0.0662,
-      0.8325,
-      0.0369
+      0.1246,
+      0.0449,
+      0.7937,
+      0.0368
     ],
-    "risk_score": 0.0369,
+    "risk_score": 0.0368,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Normal",
-      "Benign",
       "InSitu"
     ],
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -257,7 +256,7 @@
         "necrosis": -0.38
       },
       "attention": null,
-      "contribution": -0.2239
+      "contribution": -0.3365
     },
     {
       "idx": 1,
@@ -278,7 +277,7 @@
         "necrosis": -0.75
       },
       "attention": null,
-      "contribution": -0.4371
+      "contribution": -0.4684
     },
     {
       "idx": 2,
@@ -299,7 +298,7 @@
         "necrosis": 1.21
       },
       "attention": null,
-      "contribution": 0.1099
+      "contribution": 0.0832
     },
     {
       "idx": 3,
@@ -320,7 +319,7 @@
         "necrosis": 1.57
       },
       "attention": null,
-      "contribution": 0.1867
+      "contribution": 0.2619
     },
     {
       "idx": 4,
@@ -341,7 +340,7 @@
         "necrosis": -0.43
       },
       "attention": null,
-      "contribution": -0.2926
+      "contribution": -0.2547
     },
     {
       "idx": 5,
@@ -362,7 +361,7 @@
         "necrosis": -0.79
       },
       "attention": null,
-      "contribution": -0.4323
+      "contribution": -0.4799
     },
     {
       "idx": 6,
@@ -383,7 +382,7 @@
         "necrosis": 1.94
       },
       "attention": null,
-      "contribution": 0.2215
+      "contribution": 0.2508
     },
     {
       "idx": 7,
@@ -404,7 +403,7 @@
         "necrosis": 2.36
       },
       "attention": null,
-      "contribution": 0.195
+      "contribution": 0.2676
     },
     {
       "idx": 8,
@@ -425,7 +424,7 @@
         "necrosis": -0.11
       },
       "attention": null,
-      "contribution": -0.1936
+      "contribution": -0.1727
     },
     {
       "idx": 9,
@@ -446,7 +445,7 @@
         "necrosis": -0.42
       },
       "attention": null,
-      "contribution": -0.346
+      "contribution": -0.4978
     },
     {
       "idx": 10,
@@ -467,7 +466,7 @@
         "necrosis": 2.57
       },
       "attention": null,
-      "contribution": 0.1092
+      "contribution": 0.098
     },
     {
       "idx": 11,
@@ -488,7 +487,7 @@
         "necrosis": 2.35
       },
       "attention": null,
-      "contribution": 0.105
+      "contribution": 0.1803
     }
   ],
   "similar_cases": [
@@ -778,10 +777,9 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.833,
+        "p": 0.794,
         "set": [
           "Normal",
-          "Benign",
           "InSitu"
         ],
         "confidence": 0.9,
@@ -852,7 +850,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.92,
+        "reliability": 0.96,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -883,25 +881,26 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested; normal breast tissue and a benign lesion cannot be excluded.",
+        "text": "Suggested category: in situ carcinoma (calibrated probability 0.79), and normal breast tissue is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Feature lowering the likelihood of invasive carcinoma in this read: dense lymphocytic infiltrate (TILs; regions 2, 3 and 7).",
+        "text": "Features lowering the likelihood of invasive carcinoma in this read: dense lymphocytic infiltrate (TILs), prominent normal lobules with two-layered epithelium and prominent gland / tubule formation.",
         "findings": [
-          "F2"
+          "F2",
+          "F3",
+          "F4"
         ]
       },
       {
-        "text": "Prominent normal lobules and gland / tubule formation are associated with a lower likelihood of invasive carcinoma.",
+        "text": "5 of 5 most similar reference cases share the suggested category (in situ carcinoma).",
         "findings": [
-          "F3",
-          "F4"
+          "F5"
         ]
       },
       {

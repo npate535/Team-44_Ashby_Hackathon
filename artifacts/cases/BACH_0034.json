@@ -21,7 +21,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.88,
-    "reliability": 0.314,
+    "reliability": 0.696,
     "reliability_flag": true
   },
   "prediction": {
@@ -712,7 +712,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.31,
+        "reliability": 0.7,
         "ood_percentile": 0.88,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -768,33 +768,30 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested; in situ carcinoma cannot be excluded.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.54), and in situ carcinoma is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma, prominent normal lobules with two-layered epithelium, and prominent atypical cells confined within ducts push the read away from invasive carcinoma.",
+        "text": "Tumor cell fraction is higher than in 97% of benign reference cases (regions 0, 6 and 9).",
         "findings": [
-          "F2",
-          "F3",
-          "F4"
+          "F7"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced.",
+        "text": "1 of 5 most similar reference cases shares the suggested category (benign lesion).",
+        "findings": [
+          "F5"
+        ]
+      },
+      {
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
         "findings": [
           "F6"
-        ]
-      },
-      {
-        "text": "Tumor cell fraction is higher than in 97% of benign reference cases, and variation in nuclear shape is higher than in 90% of benign reference cases.",
-        "findings": [
-          "F7",
-          "F8"
         ]
       }
     ]

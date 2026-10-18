@@ -12,7 +12,7 @@
   "source_case_ids": [
     "BACH_0247"
   ],
-  "arrived_offset_s": 23165.2,
+  "arrived_offset_s": 23124.4,
   "image": {
     "display": "images/BACH_0247_FSIM_blur3.jpg",
     "width": 2048,
@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.956,
+    "reliability": 0.999,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,21 +38,20 @@
       "Invasive"
     ],
     "probs": [
-      0.9078,
-      0.0768,
-      0.0141,
-      0.0013
+      0.9885,
+      0.0113,
+      0.0001,
+      0.0
     ],
-    "risk_score": 0.0013,
+    "risk_score": 0.0,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "Normal",
-      "Benign"
+      "Normal"
     ],
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -251,7 +250,7 @@
         "necrosis": -0.49
       },
       "attention": null,
-      "contribution": -0.2019
+      "contribution": -0.4586
     },
     {
       "idx": 1,
@@ -272,7 +271,7 @@
         "necrosis": -0.54
       },
       "attention": null,
-      "contribution": -0.3157
+      "contribution": -0.507
     },
     {
       "idx": 2,
@@ -293,7 +292,7 @@
         "necrosis": -0.62
       },
       "attention": null,
-      "contribution": -0.4536
+      "contribution": -0.4218
     },
     {
       "idx": 3,
@@ -314,7 +313,7 @@
         "necrosis": -0.27
       },
       "attention": null,
-      "contribution": -0.2589
+      "contribution": -0.4993
     },
     {
       "idx": 4,
@@ -335,7 +334,7 @@
         "necrosis": -0.92
       },
       "attention": null,
-      "contribution": -0.285
+      "contribution": -0.5635
     },
     {
       "idx": 5,
@@ -356,7 +355,7 @@
         "necrosis": -0.25
       },
       "attention": null,
-      "contribution": -0.3901
+      "contribution": -0.4652
     },
     {
       "idx": 6,
@@ -377,7 +376,7 @@
         "necrosis": 0.22
       },
       "attention": null,
-      "contribution": -0.4038
+      "contribution": -0.4967
     },
     {
       "idx": 7,
@@ -398,7 +397,7 @@
         "necrosis": -0.23
       },
       "attention": null,
-      "contribution": -0.1414
+      "contribution": -0.4616
     },
     {
       "idx": 8,
@@ -419,7 +418,7 @@
         "necrosis": -0.17
       },
       "attention": null,
-      "contribution": -0.1586
+      "contribution": -0.2804
     },
     {
       "idx": 9,
@@ -440,7 +439,7 @@
         "necrosis": -0.55
       },
       "attention": null,
-      "contribution": -0.2819
+      "contribution": -0.6334
     },
     {
       "idx": 10,
@@ -461,7 +460,7 @@
         "necrosis": 0.53
       },
       "attention": null,
-      "contribution": -0.2223
+      "contribution": -0.4165
     },
     {
       "idx": 11,
@@ -482,7 +481,7 @@
         "necrosis": -0.55
       },
       "attention": null,
-      "contribution": -0.1004
+      "contribution": -0.3787
     }
   ],
   "similar_cases": [
@@ -754,7 +753,6 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
-      "set_size_gt_1",
       "surgical_frozen_section"
     ]
   },
@@ -764,13 +762,12 @@
       "kind": "prediction",
       "data": {
         "top": "Normal",
-        "p": 0.908,
+        "p": 0.989,
         "set": [
-          "Normal",
-          "Benign"
+          "Normal"
         ],
         "confidence": 0.9,
-        "risk": 0.001
+        "risk": 0.0
       }
     },
     {
@@ -834,7 +831,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.96,
+        "reliability": 1.0,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -856,16 +853,16 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Normal breast tissue is suggested; a benign lesion cannot be excluded.",
+        "text": "Suggested category: normal breast tissue (calibrated probability 0.99); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma, prominent benign fibrous stroma or fat, and scarce mitotic figures push the read away from invasive carcinoma.",
+        "text": "Features lowering the likelihood of invasive carcinoma in this read: scarce tumor infiltrating stroma, prominent benign fibrous stroma or fat and scarce mitotic figures.",
         "findings": [
           "F2",
           "F3",
@@ -873,7 +870,7 @@
         ]
       },
       {
-        "text": "5 of 5 most similar reference cases share the suggested category.",
+        "text": "5 of 5 most similar reference cases share the suggested category (normal breast tissue).",
         "findings": [
           "F5"
         ]

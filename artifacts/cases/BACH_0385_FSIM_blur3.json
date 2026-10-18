@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.977,
+    "reliability": 0.999,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,12 +38,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0002,
-      0.001,
-      0.0862,
-      0.9125
+      0.0003,
+      0.0003,
+      0.0095,
+      0.9899
     ],
-    "risk_score": 0.9125,
+    "risk_score": 0.9899,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Invasive"
@@ -51,7 +51,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -254,7 +254,7 @@
         "necrosis": 1.65
       },
       "attention": null,
-      "contribution": 0.4356
+      "contribution": 0.5974
     },
     {
       "idx": 1,
@@ -275,7 +275,7 @@
         "necrosis": 0.95
       },
       "attention": null,
-      "contribution": 0.3563
+      "contribution": 0.4485
     },
     {
       "idx": 2,
@@ -296,7 +296,7 @@
         "necrosis": 0.85
       },
       "attention": null,
-      "contribution": 0.3981
+      "contribution": 0.4113
     },
     {
       "idx": 3,
@@ -317,7 +317,7 @@
         "necrosis": 1.09
       },
       "attention": null,
-      "contribution": 0.4138
+      "contribution": 0.5093
     },
     {
       "idx": 4,
@@ -338,7 +338,7 @@
         "necrosis": 1.59
       },
       "attention": null,
-      "contribution": 0.451
+      "contribution": 0.4949
     },
     {
       "idx": 5,
@@ -359,7 +359,7 @@
         "necrosis": 0.07
       },
       "attention": null,
-      "contribution": 0.228
+      "contribution": 0.4278
     },
     {
       "idx": 6,
@@ -380,7 +380,7 @@
         "necrosis": 0.54
       },
       "attention": null,
-      "contribution": 0.2283
+      "contribution": 0.1914
     },
     {
       "idx": 7,
@@ -401,7 +401,7 @@
         "necrosis": 0.62
       },
       "attention": null,
-      "contribution": 0.4775
+      "contribution": 0.4726
     },
     {
       "idx": 8,
@@ -422,7 +422,7 @@
         "necrosis": 0.71
       },
       "attention": null,
-      "contribution": 0.3877
+      "contribution": 0.4781
     },
     {
       "idx": 9,
@@ -443,7 +443,7 @@
         "necrosis": 1.3
       },
       "attention": null,
-      "contribution": 0.3971
+      "contribution": 0.4274
     },
     {
       "idx": 10,
@@ -464,7 +464,7 @@
         "necrosis": 0.92
       },
       "attention": null,
-      "contribution": 0.2893
+      "contribution": 0.3479
     },
     {
       "idx": 11,
@@ -485,7 +485,7 @@
         "necrosis": 1.29
       },
       "attention": null,
-      "contribution": 0.3587
+      "contribution": 0.492
     }
   ],
   "similar_cases": [
@@ -778,12 +778,12 @@
       "kind": "prediction",
       "data": {
         "top": "Invasive",
-        "p": 0.912,
+        "p": 0.99,
         "set": [
           "Invasive"
         ],
         "confidence": 0.9,
-        "risk": 0.912
+        "risk": 0.99
       }
     },
     {
@@ -847,7 +847,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -880,30 +880,29 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested.",
+        "text": "Suggested category: invasive carcinoma (calibrated probability 0.99); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce normal lobules and scarce benign fibrous stroma or fat push the read toward invasive carcinoma, while prominent lymphocytic infiltrate pushes the read away from invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce normal lobules with two-layered epithelium (region 5), then scarce benign fibrous stroma or fat.",
         "findings": [
-          "F2",
           "F3",
           "F4"
         ]
       },
       {
-        "text": "5 of 5 most similar reference cases share the suggested category.",
+        "text": "5 of 5 most similar reference cases share the suggested category (invasive carcinoma).",
         "findings": [
           "F5"
         ]
       },
       {
-        "text": "Suggested margin call (simulated frozen section): tumor at the superior, inferior, medial, and lateral margins.",
+        "text": "Suggested margin call (simulated frozen section): tumor at the superior, inferior, medial and lateral margins.",
         "findings": [
           "F7"
         ]

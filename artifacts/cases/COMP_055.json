@@ -24,11 +24,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.76,
-    "reliability": 0.961,
-    "reliability_flag": false
+    "reliability": 0.299,
+    "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -36,21 +36,22 @@
       "Invasive"
     ],
     "probs": [
-      0.0314,
-      0.6393,
-      0.0787,
-      0.2507
+      0.1575,
+      0.6473,
+      0.0791,
+      0.1161
     ],
-    "risk_score": 0.2507,
+    "risk_score": 0.1161,
     "conformal_alpha": 0.1,
     "conformal_set": [
+      "Normal",
       "Benign",
       "Invasive"
     ],
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -257,7 +258,7 @@
         "necrosis": -0.46
       },
       "attention": null,
-      "contribution": -0.3534
+      "contribution": -0.2926
     },
     {
       "idx": 1,
@@ -278,7 +279,7 @@
         "necrosis": -0.85
       },
       "attention": null,
-      "contribution": -0.5016
+      "contribution": -0.5911
     },
     {
       "idx": 2,
@@ -299,7 +300,7 @@
         "necrosis": -0.73
       },
       "attention": null,
-      "contribution": -0.3833
+      "contribution": -0.5146
     },
     {
       "idx": 3,
@@ -320,7 +321,7 @@
         "necrosis": -0.65
       },
       "attention": null,
-      "contribution": -0.3252
+      "contribution": -0.2847
     },
     {
       "idx": 4,
@@ -341,7 +342,7 @@
         "necrosis": 0.61
       },
       "attention": null,
-      "contribution": 0.0459
+      "contribution": -0.0593
     },
     {
       "idx": 5,
@@ -362,7 +363,7 @@
         "necrosis": -0.09
       },
       "attention": null,
-      "contribution": -0.0037
+      "contribution": -0.1869
     },
     {
       "idx": 6,
@@ -383,7 +384,7 @@
         "necrosis": -0.48
       },
       "attention": null,
-      "contribution": 0.0151
+      "contribution": -0.1582
     },
     {
       "idx": 7,
@@ -404,7 +405,7 @@
         "necrosis": 0.5
       },
       "attention": null,
-      "contribution": 0.0774
+      "contribution": -0.0441
     },
     {
       "idx": 8,
@@ -425,7 +426,7 @@
         "necrosis": 1.05
       },
       "attention": null,
-      "contribution": 0.422
+      "contribution": 0.3611
     },
     {
       "idx": 9,
@@ -446,7 +447,7 @@
         "necrosis": 1.12
       },
       "attention": null,
-      "contribution": 0.4547
+      "contribution": 0.397
     },
     {
       "idx": 10,
@@ -467,7 +468,7 @@
         "necrosis": 0.81
       },
       "attention": null,
-      "contribution": 0.5608
+      "contribution": 0.4699
     },
     {
       "idx": 11,
@@ -488,7 +489,7 @@
         "necrosis": 0.94
       },
       "attention": null,
-      "contribution": 0.6339
+      "contribution": 0.5482
     }
   ],
   "similar_cases": [
@@ -538,12 +539,8 @@
     "neighbor_agreement": 0.4
   },
   "margin": {
-    "suggested_call": "tumor_at_margin",
-    "involved": [
-      "inferior",
-      "medial",
-      "lateral"
-    ],
+    "suggested_call": "defer",
+    "involved": [],
     "per_margin": {
       "superior": 0.999063,
       "inferior": 0.999995,
@@ -750,11 +747,7 @@
         "p": 0.99998
       }
     ],
-    "involved_length_um": {
-      "inferior": 537.6,
-      "medial": 215.0,
-      "lateral": 322.6
-    }
+    "involved_length_um": null
   },
   "cells": {
     "status": "disabled",
@@ -770,6 +763,7 @@
     "reasons": [
       "aggressive_in_conformal_set",
       "set_size_gt_1",
+      "low_reliability",
       "surgical_frozen_section"
     ]
   },
@@ -779,13 +773,14 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.639,
+        "p": 0.647,
         "set": [
+          "Normal",
           "Benign",
           "Invasive"
         ],
         "confidence": 0.9,
-        "risk": 0.251
+        "risk": 0.116
       }
     },
     {
@@ -851,8 +846,8 @@
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": false,
-        "reliability": 0.96,
+        "reliability_flag": true,
+        "reliability": 0.3,
         "ood_percentile": 0.76,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -862,51 +857,41 @@
       "id": "F7",
       "kind": "margin",
       "data": {
-        "suggested_call": "tumor_at_margin",
-        "involved": [
-          "inferior",
-          "medial",
-          "lateral"
-        ],
+        "suggested_call": "defer",
+        "involved": [],
         "per_margin": {
           "superior": 1.0,
           "inferior": 1.0,
           "medial": 1.0,
           "lateral": 1.0
-        },
-        "involved_length_um": {
-          "inferior": 538,
-          "medial": 215,
-          "lateral": 323
         }
       }
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested, though invasive carcinoma cannot be excluded.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.65), and normal breast tissue and invasive carcinoma are also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent normal lobules with two-layered epithelium push the read away from invasive carcinoma, while prominent mitotic figures and prominent tumor infiltrating stroma push the read toward invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: frequent mitotic figures (regions 8, 9 and 10), then prominent tumor infiltrating stroma.",
         "findings": [
-          "F2",
           "F3",
           "F4"
         ]
       },
       {
-        "text": "2 of 5 most similar reference cases share the suggested category.",
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
         "findings": [
-          "F5"
+          "F6"
         ]
       },
       {
-        "text": "Suggested margin call (simulated frozen section): tumor at the inferior, medial, and lateral margins.",
+        "text": "Suggested margin call (simulated frozen section): defer to permanent sections, because the reliability check flagged this read.",
         "findings": [
           "F7"
         ]
@@ -914,8 +899,25 @@
     ]
   },
   "agent": {
-    "status": "none",
-    "orders": [],
+    "status": "drafted",
+    "orders": [
+      {
+        "type": "recut",
+        "items": [
+          "recut H&E section"
+        ],
+        "rule_id": "low_quality",
+        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
+      },
+      {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "low_quality_levels",
+        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
+      }
+    ],
     "blocked": []
   },
   "eval_only": {

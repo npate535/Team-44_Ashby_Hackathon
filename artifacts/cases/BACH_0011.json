@@ -21,7 +21,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.98,
-    "reliability": 0.978,
+    "reliability": 0.999,
     "reliability_flag": false
   },
   "prediction": {
@@ -707,7 +707,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 0.98,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -763,31 +763,32 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.99); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma and scarce mitotic figures push the read away from invasive carcinoma.",
+        "text": "Features lowering the likelihood of invasive carcinoma in this read: scarce tumor infiltrating stroma, scarce mitotic figures and prominent atypical cells confined within ducts.",
         "findings": [
           "F2",
-          "F3"
+          "F3",
+          "F4"
         ]
       },
       {
-        "text": "5 of 5 most similar reference cases share the suggested category.",
-        "findings": [
-          "F5"
-        ]
-      },
-      {
-        "text": "No benign reference case has a lower nuclear size.",
+        "text": "No benign reference case has a lower nuclear size (regions 0, 3 and 4).",
         "findings": [
           "F7"
+        ]
+      },
+      {
+        "text": "5 of 5 most similar reference cases share the suggested category (benign lesion).",
+        "findings": [
+          "F5"
         ]
       }
     ]

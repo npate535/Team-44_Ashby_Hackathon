@@ -12,7 +12,7 @@
   "source_case_ids": [
     "BACH_0237"
   ],
-  "arrived_offset_s": 22077.2,
+  "arrived_offset_s": 22072.0,
   "image": {
     "display": "images/BACH_0237_FSIM_jpeg3.jpg",
     "width": 2048,
@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.956,
-    "reliability_flag": false
+    "reliability": 0.77,
+    "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,12 +38,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0584,
-      0.4113,
-      0.5143,
-      0.016
+      0.0619,
+      0.8308,
+      0.1025,
+      0.0048
     ],
-    "risk_score": 0.016,
+    "risk_score": 0.0048,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Benign",
@@ -52,7 +52,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -252,7 +252,7 @@
         "necrosis": -0.28
       },
       "attention": null,
-      "contribution": -0.1693
+      "contribution": -0.245
     },
     {
       "idx": 1,
@@ -273,7 +273,7 @@
         "necrosis": -0.25
       },
       "attention": null,
-      "contribution": -0.4468
+      "contribution": -0.4866
     },
     {
       "idx": 2,
@@ -294,7 +294,7 @@
         "necrosis": -0.65
       },
       "attention": null,
-      "contribution": -0.0843
+      "contribution": -0.3215
     },
     {
       "idx": 3,
@@ -315,7 +315,7 @@
         "necrosis": -0.61
       },
       "attention": null,
-      "contribution": -0.1247
+      "contribution": -0.109
     },
     {
       "idx": 4,
@@ -336,7 +336,7 @@
         "necrosis": -0.14
       },
       "attention": null,
-      "contribution": -0.0249
+      "contribution": 0.0036
     },
     {
       "idx": 5,
@@ -357,7 +357,7 @@
         "necrosis": 0.09
       },
       "attention": null,
-      "contribution": -0.148
+      "contribution": -0.2331
     },
     {
       "idx": 6,
@@ -378,7 +378,7 @@
         "necrosis": 0.3
       },
       "attention": null,
-      "contribution": -0.167
+      "contribution": -0.2975
     },
     {
       "idx": 7,
@@ -399,7 +399,7 @@
         "necrosis": 0.14
       },
       "attention": null,
-      "contribution": -0.0932
+      "contribution": 0.0847
     },
     {
       "idx": 8,
@@ -420,7 +420,7 @@
         "necrosis": 0.7
       },
       "attention": null,
-      "contribution": -0.1691
+      "contribution": -0.2677
     },
     {
       "idx": 9,
@@ -441,7 +441,7 @@
         "necrosis": 0.43
       },
       "attention": null,
-      "contribution": -0.1624
+      "contribution": -0.2674
     },
     {
       "idx": 10,
@@ -462,7 +462,7 @@
         "necrosis": 0.35
       },
       "attention": null,
-      "contribution": -0.2529
+      "contribution": -0.4376
     },
     {
       "idx": 11,
@@ -483,7 +483,7 @@
         "necrosis": -0.44
       },
       "attention": null,
-      "contribution": -0.0916
+      "contribution": -0.0635
     }
   ],
   "similar_cases": [
@@ -529,11 +529,11 @@
     "image": "images/BACH_0207.jpg"
   },
   "agreement": {
-    "conch_musk_same_top": true,
-    "neighbor_agreement": 0.0
+    "conch_musk_same_top": false,
+    "neighbor_agreement": 0.2
   },
   "margin": {
-    "suggested_call": "clear",
+    "suggested_call": "defer",
     "involved": [],
     "per_margin": {
       "superior": 0.247042,
@@ -756,6 +756,7 @@
     "tier": 1,
     "reasons": [
       "set_size_gt_1",
+      "low_reliability",
       "surgical_frozen_section"
     ]
   },
@@ -764,14 +765,14 @@
       "id": "F1",
       "kind": "prediction",
       "data": {
-        "top": "InSitu",
-        "p": 0.514,
+        "top": "Benign",
+        "p": 0.831,
         "set": [
           "Benign",
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.016
+        "risk": 0.005
       }
     },
     {
@@ -825,17 +826,17 @@
       "id": "F5",
       "kind": "retrieval",
       "data": {
-        "agree": 0,
+        "agree": 1,
         "of": 5,
-        "label": "InSitu"
+        "label": "Benign"
       }
     },
     {
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": false,
-        "reliability": 0.96,
+        "reliability_flag": true,
+        "reliability": 0.77,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -845,7 +846,7 @@
       "id": "F7",
       "kind": "margin",
       "data": {
-        "suggested_call": "clear",
+        "suggested_call": "defer",
         "involved": [],
         "per_margin": {
           "superior": 0.25,
@@ -857,28 +858,28 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested; a benign lesion cannot be excluded.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.83), and in situ carcinoma is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma pushes the read away from invasive carcinoma.",
+        "text": "1 of 5 most similar reference cases shares the suggested category (benign lesion).",
         "findings": [
-          "F2"
+          "F5"
         ]
       },
       {
-        "text": "Scarce mitotic figures push the read away from invasive carcinoma.",
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
         "findings": [
-          "F4"
+          "F6"
         ]
       },
       {
-        "text": "Suggested margin call (simulated frozen section): margins clear.",
+        "text": "Suggested margin call (simulated frozen section): defer to permanent sections, because the reliability check flagged this read.",
         "findings": [
           "F7"
         ]
@@ -895,6 +896,14 @@
         ],
         "rule_id": "uncertain_benign_atypia",
         "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
+      },
+      {
+        "type": "recut",
+        "items": [
+          "recut H&E section"
+        ],
+        "rule_id": "low_quality",
+        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
       }
     ],
     "blocked": [

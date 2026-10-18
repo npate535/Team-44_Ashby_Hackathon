@@ -230,7 +230,7 @@ risk_model:                         # pipeline/05_risk_model.py + pipeline/riskm
     uni2h512_lr: {encoder: uni2h, set: bach512, head: probe}             # round 2: 512-px context scale
     hoptimus0_512_lr: {encoder: hoptimus0, set: bach512, head: probe}
   fusion_k: 3                       # fusion_top3: top-k single-encoder LR candidates by CV log-loss (calibrated probs averaged)
-  variant_fallback: [uni2h_lr, cb_text, conch_probe_lr]   # model for a variant read when the production model has no features for it (round 2: uni2h at 256 px first, while uni2h has no deg512/comp512)
+  variant_fallback: [uni2h_lr, cb_text, conch_probe_lr]   # model for a variant read when the production model has no features for it (uni2h deg512/comp512 embedded 2026-10-18, job embed_ctx, so uni2h512_lr reads every variant)
   models_dir: models                # exported npz weights under the data root (never pickled sklearn objects, §A22)
   heatmap_probe: {encoder: conch, set: bach512, head: probe, name: conch_probe_oof}   # microscopy-only tile probe (tile_risk.csv)
   wsi_probe_set: wsi512             # WSI-enhanced tile-probe ablation adds these labeled tiles (§A9)

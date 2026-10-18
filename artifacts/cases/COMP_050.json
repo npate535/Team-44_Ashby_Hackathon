@@ -24,11 +24,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.82,
-    "reliability": 0.96,
+    "reliability": 0.935,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -36,12 +36,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0826,
-      0.857,
-      0.052,
-      0.0084
+      0.2248,
+      0.7454,
+      0.0278,
+      0.0021
     ],
-    "risk_score": 0.0084,
+    "risk_score": 0.0021,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Normal",
@@ -50,7 +50,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -253,7 +253,7 @@
         "necrosis": 1.48
       },
       "attention": null,
-      "contribution": -0.0668
+      "contribution": -0.0779
     },
     {
       "idx": 1,
@@ -274,7 +274,7 @@
         "necrosis": 1.04
       },
       "attention": null,
-      "contribution": 0.0047
+      "contribution": 0.0833
     },
     {
       "idx": 2,
@@ -295,7 +295,7 @@
         "necrosis": 0.64
       },
       "attention": null,
-      "contribution": -0.0271
+      "contribution": -0.1405
     },
     {
       "idx": 3,
@@ -316,7 +316,7 @@
         "necrosis": 0.93
       },
       "attention": null,
-      "contribution": 0.1286
+      "contribution": 0.0515
     },
     {
       "idx": 4,
@@ -337,7 +337,7 @@
         "necrosis": -0.02
       },
       "attention": null,
-      "contribution": -0.2644
+      "contribution": -0.4921
     },
     {
       "idx": 5,
@@ -358,7 +358,7 @@
         "necrosis": -0.24
       },
       "attention": null,
-      "contribution": -0.1975
+      "contribution": -0.4182
     },
     {
       "idx": 6,
@@ -379,7 +379,7 @@
         "necrosis": 0.56
       },
       "attention": null,
-      "contribution": -0.0797
+      "contribution": -0.3031
     },
     {
       "idx": 7,
@@ -400,7 +400,7 @@
         "necrosis": 0.81
       },
       "attention": null,
-      "contribution": -0.1687
+      "contribution": -0.0301
     },
     {
       "idx": 8,
@@ -421,7 +421,7 @@
         "necrosis": -1.04
       },
       "attention": null,
-      "contribution": -0.2785
+      "contribution": -0.5369
     },
     {
       "idx": 9,
@@ -442,7 +442,7 @@
         "necrosis": -0.75
       },
       "attention": null,
-      "contribution": -0.4448
+      "contribution": -0.543
     },
     {
       "idx": 10,
@@ -463,7 +463,7 @@
         "necrosis": -0.9
       },
       "attention": null,
-      "contribution": -0.3872
+      "contribution": -0.4624
     },
     {
       "idx": 11,
@@ -484,7 +484,7 @@
         "necrosis": -0.29
       },
       "attention": null,
-      "contribution": -0.3348
+      "contribution": -0.3601
     }
   ],
   "similar_cases": [
@@ -772,13 +772,13 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.857,
+        "p": 0.745,
         "set": [
           "Normal",
           "Benign"
         ],
         "confidence": 0.9,
-        "risk": 0.008
+        "risk": 0.002
       }
     },
     {
@@ -843,7 +843,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.96,
+        "reliability": 0.94,
         "ood_percentile": 0.82,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -872,19 +872,26 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested; normal breast tissue cannot be excluded.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.74), and normal breast tissue is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent normal lobules with two-layered epithelium and prominent benign fibrous stroma or fat push the read away from invasive carcinoma.",
+        "text": "Features lowering the likelihood of invasive carcinoma in this read: prominent normal lobules with two-layered epithelium, scarce tumor infiltrating stroma and prominent benign fibrous stroma or fat.",
         "findings": [
           "F2",
+          "F3",
           "F4"
+        ]
+      },
+      {
+        "text": "1 of 5 most similar reference cases shares the suggested category (benign lesion).",
+        "findings": [
+          "F5"
         ]
       },
       {

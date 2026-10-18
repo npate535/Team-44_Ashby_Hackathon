@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.94,
-    "reliability": 0.978,
+    "reliability": 0.998,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -39,11 +39,11 @@
     ],
     "probs": [
       0.0,
-      0.9988,
-      0.0011,
-      0.0
+      0.9985,
+      0.0014,
+      0.0001
     ],
-    "risk_score": 0.0,
+    "risk_score": 0.0001,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Benign"
@@ -51,7 +51,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -253,7 +253,7 @@
         "necrosis": 0.09
       },
       "attention": null,
-      "contribution": -0.2318
+      "contribution": -0.2915
     },
     {
       "idx": 1,
@@ -274,7 +274,7 @@
         "necrosis": 0.13
       },
       "attention": null,
-      "contribution": -0.2688
+      "contribution": -0.3177
     },
     {
       "idx": 2,
@@ -295,7 +295,7 @@
         "necrosis": 0.79
       },
       "attention": null,
-      "contribution": -0.216
+      "contribution": -0.1742
     },
     {
       "idx": 3,
@@ -316,7 +316,7 @@
         "necrosis": -0.54
       },
       "attention": null,
-      "contribution": -0.3688
+      "contribution": -0.3227
     },
     {
       "idx": 4,
@@ -337,7 +337,7 @@
         "necrosis": 0.67
       },
       "attention": null,
-      "contribution": -0.3267
+      "contribution": -0.4097
     },
     {
       "idx": 5,
@@ -358,7 +358,7 @@
         "necrosis": 0.41
       },
       "attention": null,
-      "contribution": -0.3662
+      "contribution": -0.3535
     },
     {
       "idx": 6,
@@ -379,7 +379,7 @@
         "necrosis": 0.25
       },
       "attention": null,
-      "contribution": -0.1292
+      "contribution": -0.0891
     },
     {
       "idx": 7,
@@ -400,7 +400,7 @@
         "necrosis": 1.17
       },
       "attention": null,
-      "contribution": -0.1033
+      "contribution": -0.0024
     },
     {
       "idx": 8,
@@ -421,7 +421,7 @@
         "necrosis": 0.08
       },
       "attention": null,
-      "contribution": -0.2692
+      "contribution": -0.301
     },
     {
       "idx": 9,
@@ -442,7 +442,7 @@
         "necrosis": 1.37
       },
       "attention": null,
-      "contribution": -0.1604
+      "contribution": -0.1047
     },
     {
       "idx": 10,
@@ -463,7 +463,7 @@
         "necrosis": 0.77
       },
       "attention": null,
-      "contribution": -0.2614
+      "contribution": -0.1958
     },
     {
       "idx": 11,
@@ -484,7 +484,7 @@
         "necrosis": -0.29
       },
       "attention": null,
-      "contribution": -0.4846
+      "contribution": -0.5251
     }
   ],
   "similar_cases": [
@@ -836,7 +836,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 0.94,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -858,25 +858,26 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested.",
+        "text": "Suggested category: benign lesion (calibrated probability 1.00); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma pushes the read away from invasive carcinoma.",
+        "text": "Features lowering the likelihood of invasive carcinoma in this read: scarce tumor infiltrating stroma, prominent atypical cells confined within ducts and prominent gland / tubule formation.",
         "findings": [
-          "F2"
+          "F2",
+          "F3",
+          "F4"
         ]
       },
       {
-        "text": "Prominent atypical cells confined within ducts and prominent gland / tubule formation are associated with a lower likelihood of invasive carcinoma.",
+        "text": "5 of 5 most similar reference cases share the suggested category (benign lesion).",
         "findings": [
-          "F3",
-          "F4"
+          "F5"
         ]
       },
       {

@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.458,
-    "reliability_flag": true
+    "reliability": 0.989,
+    "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,12 +38,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0005,
-      0.0246,
-      0.9081,
-      0.0669
+      0.0001,
+      0.0014,
+      0.9816,
+      0.0169
     ],
-    "risk_score": 0.0669,
+    "risk_score": 0.0169,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "InSitu"
@@ -51,7 +51,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -249,7 +249,7 @@
         "necrosis": 0.37
       },
       "attention": null,
-      "contribution": 0.0157
+      "contribution": 0.0368
     },
     {
       "idx": 1,
@@ -270,7 +270,7 @@
         "necrosis": 0.31
       },
       "attention": null,
-      "contribution": 0.0638
+      "contribution": 0.0757
     },
     {
       "idx": 2,
@@ -291,7 +291,7 @@
         "necrosis": 0.37
       },
       "attention": null,
-      "contribution": 0.1666
+      "contribution": 0.1572
     },
     {
       "idx": 3,
@@ -312,7 +312,7 @@
         "necrosis": 0.82
       },
       "attention": null,
-      "contribution": 0.1223
+      "contribution": 0.0293
     },
     {
       "idx": 4,
@@ -333,7 +333,7 @@
         "necrosis": 0.52
       },
       "attention": null,
-      "contribution": -0.0189
+      "contribution": 0.0515
     },
     {
       "idx": 5,
@@ -354,7 +354,7 @@
         "necrosis": 0.66
       },
       "attention": null,
-      "contribution": 0.1304
+      "contribution": 0.1922
     },
     {
       "idx": 6,
@@ -375,7 +375,7 @@
         "necrosis": 0.58
       },
       "attention": null,
-      "contribution": 0.1293
+      "contribution": -0.0122
     },
     {
       "idx": 7,
@@ -396,7 +396,7 @@
         "necrosis": -0.09
       },
       "attention": null,
-      "contribution": 0.0637
+      "contribution": 0.1717
     },
     {
       "idx": 8,
@@ -417,7 +417,7 @@
         "necrosis": 0.43
       },
       "attention": null,
-      "contribution": -0.0302
+      "contribution": -0.0006
     },
     {
       "idx": 9,
@@ -438,7 +438,7 @@
         "necrosis": 0.52
       },
       "attention": null,
-      "contribution": 0.0667
+      "contribution": 0.1686
     },
     {
       "idx": 10,
@@ -459,7 +459,7 @@
         "necrosis": 0.42
       },
       "attention": null,
-      "contribution": 0.107
+      "contribution": 0.0333
     },
     {
       "idx": 11,
@@ -480,7 +480,7 @@
         "necrosis": -0.68
       },
       "attention": null,
-      "contribution": 0.0869
+      "contribution": 0.2084
     }
   ],
   "similar_cases": [
@@ -530,7 +530,7 @@
     "neighbor_agreement": 0.6
   },
   "margin": {
-    "suggested_call": "defer",
+    "suggested_call": "clear",
     "involved": [],
     "per_margin": {
       "superior": 0.999218,
@@ -752,7 +752,6 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
-      "low_reliability",
       "surgical_frozen_section"
     ]
   },
@@ -762,12 +761,12 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.908,
+        "p": 0.982,
         "set": [
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.067
+        "risk": 0.017
       }
     },
     {
@@ -828,8 +827,8 @@
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": true,
-        "reliability": 0.46,
+        "reliability_flag": false,
+        "reliability": 0.99,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -839,7 +838,7 @@
       "id": "F7",
       "kind": "margin",
       "data": {
-        "suggested_call": "defer",
+        "suggested_call": "clear",
         "involved": [],
         "per_margin": {
           "superior": 1.0,
@@ -851,56 +850,38 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested.",
+        "text": "Suggested category: in situ carcinoma (calibrated probability 0.98); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Strongest push toward invasive carcinoma in this read: scarce lymphocytic infiltrate (TILs; region 6).",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce lymphocytic infiltrate (TILs; region 6), then normal lobules with two-layered epithelium (typical level).",
         "findings": [
-          "F2"
-        ]
-      },
-      {
-        "text": "Typical tumor infiltrating stroma pushes the read away from invasive carcinoma, while typical normal lobules with two-layered epithelium push the read toward invasive carcinoma.",
-        "findings": [
-          "F3",
+          "F2",
           "F4"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced; suggested margin call (simulated frozen section): defer to permanent sections.",
+        "text": "3 of 5 most similar reference cases share the suggested category (in situ carcinoma).",
         "findings": [
-          "F6",
+          "F5"
+        ]
+      },
+      {
+        "text": "Suggested margin call (simulated frozen section): margins clear.",
+        "findings": [
           "F7"
         ]
       }
     ]
   },
   "agent": {
-    "status": "drafted",
-    "orders": [
-      {
-        "type": "recut",
-        "items": [
-          "recut H&E section"
-        ],
-        "rule_id": "low_quality",
-        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
-      },
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "low_quality_levels",
-        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
-      }
-    ],
+    "status": "none",
+    "orders": [],
     "blocked": [
       {
         "action": "draft_stains",

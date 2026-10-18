@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.08,
-    "reliability": 0.985,
+    "reliability": 0.975,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,8 +38,8 @@
       "Invasive"
     ],
     "probs": [
-      0.0417,
-      0.9583,
+      0.3522,
+      0.6478,
       0.0,
       0.0
     ],
@@ -51,7 +51,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -252,7 +252,7 @@
         "necrosis": -0.8
       },
       "attention": null,
-      "contribution": -0.4598
+      "contribution": -0.3524
     },
     {
       "idx": 1,
@@ -273,7 +273,7 @@
         "necrosis": -1.03
       },
       "attention": null,
-      "contribution": -0.5414
+      "contribution": -0.6293
     },
     {
       "idx": 2,
@@ -294,7 +294,7 @@
         "necrosis": -1.23
       },
       "attention": null,
-      "contribution": -0.5732
+      "contribution": -0.6441
     },
     {
       "idx": 3,
@@ -315,7 +315,7 @@
         "necrosis": -0.75
       },
       "attention": null,
-      "contribution": -0.571
+      "contribution": -0.6823
     },
     {
       "idx": 4,
@@ -336,7 +336,7 @@
         "necrosis": -0.95
       },
       "attention": null,
-      "contribution": -0.5945
+      "contribution": -0.6816
     },
     {
       "idx": 5,
@@ -357,7 +357,7 @@
         "necrosis": -1.17
       },
       "attention": null,
-      "contribution": -0.5735
+      "contribution": -0.6249
     },
     {
       "idx": 6,
@@ -378,7 +378,7 @@
         "necrosis": -0.96
       },
       "attention": null,
-      "contribution": -0.5685
+      "contribution": -0.6361
     },
     {
       "idx": 7,
@@ -399,7 +399,7 @@
         "necrosis": -0.89
       },
       "attention": null,
-      "contribution": -0.5077
+      "contribution": -0.709
     },
     {
       "idx": 8,
@@ -420,7 +420,7 @@
         "necrosis": -0.98
       },
       "attention": null,
-      "contribution": -0.6081
+      "contribution": -0.654
     },
     {
       "idx": 9,
@@ -441,7 +441,7 @@
         "necrosis": -1.24
       },
       "attention": null,
-      "contribution": -0.6122
+      "contribution": -0.6598
     },
     {
       "idx": 10,
@@ -462,7 +462,7 @@
         "necrosis": -0.5
       },
       "attention": null,
-      "contribution": -0.398
+      "contribution": -0.3457
     },
     {
       "idx": 11,
@@ -483,7 +483,7 @@
         "necrosis": -1.1
       },
       "attention": null,
-      "contribution": -0.5021
+      "contribution": -0.6305
     }
   ],
   "similar_cases": [
@@ -764,7 +764,7 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.958,
+        "p": 0.648,
         "set": [
           "Benign"
         ],
@@ -835,7 +835,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 0.97,
         "ood_percentile": 0.08,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -857,25 +857,24 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.65); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent normal lobules with two-layered epithelium and prominent gland / tubule formation are associated with a lower likelihood of invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce atypical cells confined within ducts (region 8).",
         "findings": [
-          "F2",
-          "F3"
+          "F4"
         ]
       },
       {
-        "text": "Scarce atypical cells confined within ducts push the read toward invasive carcinoma.",
+        "text": "0 of 5 most similar reference cases share the suggested category (benign lesion).",
         "findings": [
-          "F4"
+          "F5"
         ]
       },
       {

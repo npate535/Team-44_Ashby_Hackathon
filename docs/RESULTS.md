@@ -2,7 +2,7 @@
 
 > Research prototype — not for clinical use. Every number below is quoted from the eval file named beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.
 
-Generated 2026-10-18T20:06:04Z from 20 eval files (git 00b68d1c612cfad9facda44f4d4fb3d614524736, 19b15557e966c050e4a0cc0df67c0546d00464a6, 4d8e886cc9bb14ce47c967e9cd7fff187aef6e90, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 7045b84ab1fb8b386c44e0e9a60a98e9f974c330, 825532a57ec4ed0637472c7e0625ab707982b912, 9210da8abbe0983186fffe6e6f88e41520020cc7).
+Generated 2026-10-18T21:03:20Z from 20 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 7045b84ab1fb8b386c44e0e9a60a98e9f974c330, bc76a1db582cac260a8734e7437050686420d0c2).
 
 ## Tissue quality control (fixed in this run)
 
@@ -115,32 +115,32 @@ Source: `eval/queue_sim.json` · 1000 simulated days · minutes, mean [2.5–97.
 
 | Policy | Invasive: mean first look | Invasive: P90 | Unflagged: mean wait | Overtime |
 |---|---|---|---|---|
-| FIFO (arrival order) | 20.2 [3.5, 60.1] | 37.7 [8.1, 100.8] | 20.0 [4.0, 59.5] | 29.3 [0.0, 104.3] |
-| Sepia tiers | 6.0 [1.9, 12.9] | 12.9 [4.8, 31.5] | 45.2 [5.5, 157.0] | 29.3 [0.0, 104.3] |
-| Sepia tiers + aging guard (configured targets) | 6.0 [1.9, 12.9] | 12.9 [4.8, 31.5] | 45.2 [5.5, 157.0] | 29.3 [0.0, 104.3] |
-| Sensitivity: tiers + aging, day-scale targets | 6.0 [1.9, 12.9] | 12.9 [4.8, 31.5] | 44.9 [5.5, 152.8] | 29.3 [0.0, 104.3] |
+| FIFO (arrival order) | 20.2 [3.5, 60.1] | 37.7 [8.1, 100.8] | 20.0 [4.2, 59.0] | 29.3 [0.0, 104.3] |
+| Sepia tiers | 6.0 [1.9, 12.9] | 12.9 [4.8, 31.5] | 41.4 [5.5, 143.0] | 29.3 [0.0, 104.3] |
+| Sepia tiers + aging guard (configured targets) | 6.0 [1.9, 12.9] | 12.9 [4.8, 31.5] | 41.4 [5.5, 143.0] | 29.3 [0.0, 104.3] |
+| Sensitivity: tiers + aging, day-scale targets | 6.0 [1.9, 12.9] | 12.9 [4.8, 31.5] | 41.3 [5.5, 141.1] | 29.3 [0.0, 104.3] |
 
-Sepia tiers vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 25.2 [0.7, 99.0] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
+Sepia tiers vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 21.4 [0.7, 86.5] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
 
-Sepia tiers + aging guard (configured targets) vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 25.2 [0.7, 99.0] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
+Sepia tiers + aging guard (configured targets) vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 21.4 [0.7, 86.5] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
 
-Sensitivity: tiers + aging, day-scale targets vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 24.9 [0.7, 96.0] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
+Sensitivity: tiers + aging, day-scale targets vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 21.3 [0.7, 84.2] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
 
-Aging guard: share of reads promoted per day — Sepia tiers + aging guard (configured targets) 0.0%; Sensitivity: tiers + aging, day-scale targets 2.8%.
+Aging guard: share of reads promoted per day — Sepia tiers + aging guard (configured targets) 0.0%; Sensitivity: tiers + aging, day-scale targets 2.6%.
 
 Assumptions: arrivals: Poisson, 6 per hour for 8 h; cases drawn uniformly with replacement from the clean test split; reader: one reader, fixed 9 min per case, non-preemptive, works overtime until empty; utilization: 0.9; tiers: core.tiers (surgical 1; Invasive top or in the aps_marginal_nonempty conformal set 2; set size != 1, reliability flag or insufficient tissue 3; else 4); common_random_numbers: True; seed: 44; interval: 2.5-97.5 percentiles over simulated days (simulation uncertainty only); truth_use: true labels only score the waits; they never drive the queue.
 
 - Prioritizing flagged cases delays non-flagged ones: the vs_fifo rows report that cost (and the delay of false negatives) next to the benefit (cf. Annarumma 2019).
 - A simulation with stated assumptions, not a measured workflow outcome.
 - At the configured aging targets (tier 1: 20 min, tier 2: 1440 min, tier 3: 1440 min, tier 4: 2880 min) no case waits long enough to be promoted within a 8 h day, so tiers and tiers_aging coincide: the aging guard has NO measured effect here and must not be claimed to protect unflagged cases.
-- tiers_aging_day_scale is a sensitivity run with illustrative day-scale aging targets (settings queue_sim.aging_scenarios), not the configured system: 2.8% of reads promoted; unflagged mean wait 45.2 -> 44.9 min vs plain tiers.
+- tiers_aging_day_scale is a sensitivity run with illustrative day-scale aging targets (settings queue_sim.aging_scenarios), not the configured system: 2.6% of reads promoted; unflagged mean wait 41.4 -> 41.3 min vs plain tiers.
 
 ## Deferral (risk–coverage) curve
 
 Source: `eval/deferral.json` · pre-registered in docs/VALIDATION_ROUND3.md section 2 · production model `uni2h512_lr`. Each read is scored by the model that produced it in predictions.csv (counts per population below). Reads are deferred to closer review in ranking order; accuracy is four-class accuracy on the kept reads.
 
-- **Headline.** All test reads (clean + simulated degraded), 20% deferred by reliability score (343 of 1716 reads): accuracy on kept reads 74.6% [62.7%, 89.9%] (n 1716, 24 groups), against 71.6% [58.2%, 85.1%] (n 1716, 24 groups) with no deferral and 71.5% for random deferral of 20%.
-- Paired change, kept minus all (in addition to the pre-registered headline): 3.0 points [0.4, 9.2].
+- **Headline.** All test reads (clean + simulated degraded), 20% deferred by reliability score (343 of 1716 reads): accuracy on kept reads 89.8% [78.4%, 98.1%] (n 1716, 24 groups), against 85.8% [75.1%, 93.7%] (n 1716, 24 groups) with no deferral and 85.8% for random deferral of 20%.
+- Paired change, kept minus all (in addition to the pre-registered headline): 4.0 points [2.0, 7.0].
 
 Each cell: accuracy on kept reads · share of all errors deferred · invasive reads called non-invasive among kept reads · in situ reads called invasive among kept reads (random: means over orders).
 
@@ -152,33 +152,33 @@ Scoring models: Clean reads: 132 by uni2h512_lr.
 |---|---|---|---|---|---|
 | 0% | 132 | 86.4% · 0.0% · 0 · 3 | 86.4% · 0.0% · 0 · 3 | 86.4% · 0.0% · 0 · 3 | 86.4% · 0.0% · 0.0 · 3.0 |
 | 5% | 126 | 86.5% · 5.6% · 0 · 3 | 88.1% · 16.7% · 0 · 3 | 88.1% · 16.7% · 0 · 3 | 86.4% · 4.6% · 0.0 · 2.9 |
-| 10% | 119 | 86.6% · 11.1% · 0 · 3 | 88.2% · 22.2% · 0 · 3 | 89.1% · 27.8% · 0 · 3 | 86.3% · 9.8% · 0.0 · 2.7 |
-| 15% | 113 | 86.7% · 16.7% · 0 · 3 | 89.4% · 33.3% · 0 · 3 | 89.4% · 33.3% · 0 · 3 | 86.3% · 14.2% · 0.0 · 2.6 |
-| 20% | 106 | 85.8% · 16.7% · 0 · 3 | 91.5% · 50.0% · 0 · 1 | 90.6% · 44.4% · 0 · 2 | 86.3% · 19.3% · 0.0 · 2.5 |
-| 25% | 99 | 87.9% · 33.3% · 0 · 2 | 90.9% · 50.0% · 0 · 1 | 89.9% · 44.4% · 0 · 2 | 86.3% · 24.7% · 0.0 · 2.3 |
-| 30% | 93 | 88.2% · 38.9% · 0 · 1 | 92.5% · 61.1% · 0 · 0 | 90.3% · 50.0% · 0 · 1 | 86.4% · 29.5% · 0.0 · 2.1 |
-| 35% | 86 | 88.4% · 44.4% · 0 · 1 | 94.2% · 72.2% · 0 · 0 | 93.0% · 66.7% · 0 · 0 | 86.3% · 34.6% · 0.0 · 2.0 |
-| 40% | 80 | 88.8% · 50.0% · 0 · 1 | 93.8% · 72.2% · 0 · 0 | 93.8% · 72.2% · 0 · 0 | 86.3% · 39.1% · 0.0 · 1.9 |
-| 45% | 73 | 87.7% · 50.0% · 0 · 1 | 93.2% · 72.2% · 0 · 0 | 93.2% · 72.2% · 0 · 0 | 86.3% · 44.5% · 0.0 · 1.7 |
-| 50% | 66 | 87.9% · 55.6% · 0 · 0 | 92.4% · 72.2% · 0 · 0 | 92.4% · 72.2% · 0 · 0 | 86.4% · 50.1% · 0.0 · 1.5 |
+| 10% | 119 | 89.1% · 27.8% · 0 · 3 | 88.2% · 22.2% · 0 · 3 | 89.1% · 27.8% · 0 · 3 | 86.3% · 9.8% · 0.0 · 2.7 |
+| 15% | 113 | 89.4% · 33.3% · 0 · 3 | 89.4% · 33.3% · 0 · 3 | 89.4% · 33.3% · 0 · 3 | 86.3% · 14.2% · 0.0 · 2.6 |
+| 20% | 106 | 90.6% · 44.4% · 0 · 2 | 91.5% · 50.0% · 0 · 1 | 90.6% · 44.4% · 0 · 2 | 86.3% · 19.3% · 0.0 · 2.5 |
+| 25% | 99 | 90.9% · 50.0% · 0 · 1 | 90.9% · 50.0% · 0 · 1 | 89.9% · 44.4% · 0 · 2 | 86.3% · 24.7% · 0.0 · 2.3 |
+| 30% | 93 | 91.4% · 55.6% · 0 · 1 | 92.5% · 61.1% · 0 · 0 | 90.3% · 50.0% · 0 · 1 | 86.4% · 29.5% · 0.0 · 2.1 |
+| 35% | 86 | 91.9% · 61.1% · 0 · 1 | 94.2% · 72.2% · 0 · 0 | 93.0% · 66.7% · 0 · 0 | 86.3% · 34.6% · 0.0 · 2.0 |
+| 40% | 80 | 91.2% · 61.1% · 0 · 1 | 93.8% · 72.2% · 0 · 0 | 93.8% · 72.2% · 0 · 0 | 86.3% · 39.1% · 0.0 · 1.9 |
+| 45% | 73 | 90.4% · 61.1% · 0 · 1 | 93.2% · 72.2% · 0 · 0 | 93.2% · 72.2% · 0 · 0 | 86.3% · 44.5% · 0.0 · 1.7 |
+| 50% | 66 | 89.4% · 61.1% · 0 · 1 | 92.4% · 72.2% · 0 · 0 | 92.4% · 72.2% · 0 · 0 | 86.4% · 50.1% · 0.0 · 1.5 |
 
 ### All test reads (clean + simulated degraded) (1716 reads, 24 groups)
 
-Scoring models: Clean reads: 132 by uni2h512_lr. Simulated degraded reads: 1,452 by cb_text (concept-bottleneck model), 132 by uni2h_lr.
+Scoring models: Clean reads: 132 by uni2h512_lr. Simulated degraded reads: 1,584 by uni2h512_lr.
 
 | Deferred | Kept | Reliability score | Top-class probability | Conformal set size | Random (mean of orders) |
 |---|---|---|---|---|---|
-| 0% | 1716 | 71.6% · 0.0% · 10 · 15 | 71.6% · 0.0% · 10 · 15 | 71.6% · 0.0% · 10 · 15 | 71.6% · 0.0% · 10.0 · 15.0 |
-| 5% | 1631 | 72.7% · 8.6% · 9 · 15 | 73.1% · 10.2% · 9 · 14 | 73.5% · 11.3% · 9 · 14 | 71.6% · 4.9% · 9.5 · 14.3 |
-| 10% | 1545 | 74.0% · 17.8% · 9 · 12 | 74.8% · 20.1% · 9 · 14 | 74.8% · 20.1% · 9 · 13 | 71.6% · 9.9% · 9.0 · 13.6 |
-| 15% | 1459 | 73.6% · 21.1% · 9 · 8 | 76.1% · 28.7% · 5 · 12 | 76.1% · 28.5% · 9 · 13 | 71.5% · 14.9% · 8.5 · 12.9 |
-| 20% | 1373 | 74.6% · 28.5% · 8 · 8 | 77.7% · 37.3% · 4 · 11 | 77.9% · 37.9% · 7 · 13 | 71.5% · 19.9% · 8.0 · 12.1 |
-| 25% | 1287 | 76.7% · 38.5% · 8 · 8 | 79.3% · 45.5% · 4 · 11 | 79.5% · 45.9% · 4 · 11 | 71.5% · 24.9% · 7.5 · 11.4 |
-| 30% | 1202 | 77.5% · 44.5% · 8 · 7 | 80.8% · 52.7% · 2 · 9 | 80.8% · 52.7% · 3 · 9 | 71.5% · 29.9% · 7.0 · 10.6 |
-| 35% | 1116 | 80.4% · 55.1% · 8 · 6 | 83.1% · 61.3% · 2 · 7 | 82.7% · 60.5% · 3 · 8 | 71.5% · 34.9% · 6.5 · 9.8 |
-| 40% | 1030 | 82.4% · 62.9% · 8 · 5 | 85.2% · 68.9% · 2 · 5 | 83.7% · 65.6% · 3 · 5 | 71.5% · 39.9% · 6.0 · 9.1 |
-| 45% | 944 | 84.5% · 70.1% · 5 · 5 | 86.1% · 73.2% · 2 · 4 | 85.0% · 70.9% · 1 · 4 | 71.5% · 44.9% · 5.5 · 8.3 |
-| 50% | 858 | 87.8% · 78.5% · 1 · 2 | 87.9% · 78.7% · 0 · 3 | 86.5% · 76.2% · 1 · 4 | 71.5% · 49.9% · 5.0 · 7.6 |
+| 0% | 1716 | 85.8% · 0.0% · 3 · 39 | 85.8% · 0.0% · 3 · 39 | 85.8% · 0.0% · 3 · 39 | 85.8% · 0.0% · 3.0 · 39.0 |
+| 5% | 1631 | 87.9% · 19.3% · 3 · 33 | 87.5% · 16.4% · 2 · 34 | 88.2% · 20.9% · 3 · 36 | 85.8% · 4.9% · 2.9 · 37.1 |
+| 10% | 1545 | 89.5% · 33.6% · 0 · 31 | 88.8% · 29.1% · 2 · 31 | 89.4% · 33.2% · 2 · 31 | 85.8% · 9.9% · 2.7 · 35.1 |
+| 15% | 1459 | 89.5% · 37.3% · 0 · 29 | 89.9% · 39.8% · 2 · 29 | 90.0% · 40.2% · 2 · 26 | 85.8% · 14.9% · 2.6 · 33.2 |
+| 20% | 1373 | 89.8% · 42.6% · 0 · 26 | 91.3% · 51.2% · 0 · 14 | 91.0% · 49.6% · 0 · 15 | 85.8% · 19.9% · 2.4 · 31.3 |
+| 25% | 1287 | 90.4% · 49.2% · 0 · 25 | 91.8% · 57.0% · 0 · 10 | 91.3% · 54.1% · 0 · 12 | 85.8% · 24.9% · 2.2 · 29.3 |
+| 30% | 1202 | 91.3% · 57.0% · 0 · 17 | 92.4% · 62.7% · 0 · 5 | 91.9% · 60.2% · 0 · 9 | 85.8% · 29.9% · 2.1 · 27.3 |
+| 35% | 1116 | 92.5% · 65.6% · 0 · 8 | 93.3% · 69.3% · 0 · 2 | 93.2% · 68.9% · 0 · 2 | 85.8% · 35.0% · 1.9 · 25.4 |
+| 40% | 1030 | 92.2% · 67.2% · 0 · 8 | 93.8% · 73.8% · 0 · 0 | 93.8% · 73.8% · 0 · 0 | 85.8% · 40.0% · 1.8 · 23.3 |
+| 45% | 944 | 91.7% · 68.0% · 0 · 6 | 94.1% · 77.0% · 0 · 0 | 94.1% · 77.0% · 0 · 0 | 85.8% · 45.0% · 1.7 · 21.4 |
+| 50% | 858 | 91.4% · 69.7% · 0 · 4 | 93.6% · 77.5% · 0 · 0 | 93.6% · 77.5% · 0 · 0 | 85.8% · 50.1% · 1.5 · 19.4 |
 
 - Degraded variants are simulated frozen-section artifacts applied to microscopy images; no real frozen sections were available.
 - Deferred reads are sent to closer review; this measures accuracy on the reads kept, not a clinical outcome.
@@ -358,26 +358,26 @@ Source: `eval/margin.json` · threshold P = 0.99982 [0.84738, 0.99989] (n 30, 6 
 ### `eval/reliability.json`
 
 - accuracy_vs_degradation · curve · blur · 0: 0.86 [0.75, 0.94] (n 132, 24 groups)
-- accuracy_vs_degradation · curve · blur · 1: 0.70 [0.55, 0.86] (n 132, 24 groups)
-- accuracy_vs_degradation · curve · blur · 2: 0.73 [0.56, 0.89] (n 132, 24 groups)
-- accuracy_vs_degradation · curve · blur · 3: 0.69 [0.57, 0.84] (n 132, 24 groups)
+- accuracy_vs_degradation · curve · blur · 1: 0.86 [0.75, 0.94] (n 132, 24 groups)
+- accuracy_vs_degradation · curve · blur · 2: 0.86 [0.75, 0.94] (n 132, 24 groups)
+- accuracy_vs_degradation · curve · blur · 3: 0.87 [0.78, 0.95] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · jpeg · 0: 0.86 [0.75, 0.94] (n 132, 24 groups)
-- accuracy_vs_degradation · curve · jpeg · 1: 0.70 [0.56, 0.90] (n 132, 24 groups)
-- accuracy_vs_degradation · curve · jpeg · 2: 0.70 [0.54, 0.90] (n 132, 24 groups)
-- accuracy_vs_degradation · curve · jpeg · 3: 0.67 [0.56, 0.80] (n 132, 24 groups)
+- accuracy_vs_degradation · curve · jpeg · 1: 0.86 [0.74, 0.94] (n 132, 24 groups)
+- accuracy_vs_degradation · curve · jpeg · 2: 0.86 [0.74, 0.95] (n 132, 24 groups)
+- accuracy_vs_degradation · curve · jpeg · 3: 0.841 [0.714, 0.953] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · stain · 0: 0.86 [0.75, 0.94] (n 132, 24 groups)
-- accuracy_vs_degradation · curve · stain · 1: 0.70 [0.54, 0.84] (n 132, 24 groups)
-- accuracy_vs_degradation · curve · stain · 2: 0.69 [0.54, 0.84] (n 132, 24 groups)
-- accuracy_vs_degradation · curve · stain · 3: 0.70 [0.57, 0.83] (n 132, 24 groups)
+- accuracy_vs_degradation · curve · stain · 1: 0.86 [0.75, 0.94] (n 132, 24 groups)
+- accuracy_vs_degradation · curve · stain · 2: 0.86 [0.75, 0.94] (n 132, 24 groups)
+- accuracy_vs_degradation · curve · stain · 3: 0.86 [0.75, 0.94] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · resample · 0: 0.86 [0.75, 0.94] (n 132, 24 groups)
-- accuracy_vs_degradation · curve · resample · 1: 0.69 [0.54, 0.84] (n 132, 24 groups)
-- accuracy_vs_degradation · curve · resample · 2: 0.74 [0.61, 0.88] (n 132, 24 groups)
-- accuracy_vs_degradation · curve · resample · 3: 0.73 [0.64, 0.85] (n 132, 24 groups)
-- error_auroc_test: 0.71 [0.59, 0.87] (n 1716, 24 groups)
-- feature_auroc_test · ood_percentile: 0.49 [0.41, 0.58] (n 1716, 24 groups)
-- feature_auroc_test · set_size: 0.70 [0.64, 0.79] (n 1716, 24 groups)
-- feature_auroc_test · conch_musk_disagree: 0.61 [0.51, 0.75] (n 1716, 24 groups)
-- error_recall_test: 0.47 [0.29, 0.61] (n 1716, 24 groups)
+- accuracy_vs_degradation · curve · resample · 1: 0.86 [0.75, 0.94] (n 132, 24 groups)
+- accuracy_vs_degradation · curve · resample · 2: 0.87 [0.78, 0.95] (n 132, 24 groups)
+- accuracy_vs_degradation · curve · resample · 3: 0.82 [0.73, 0.92] (n 132, 24 groups)
+- error_auroc_test: 0.69 [0.58, 0.87] (n 1716, 24 groups)
+- feature_auroc_test · ood_percentile: 0.46 [0.38, 0.59] (n 1716, 24 groups)
+- feature_auroc_test · set_size: 0.69 [0.60, 0.85] (n 1716, 24 groups)
+- feature_auroc_test · conch_musk_disagree: 0.49 [0.41, 0.68] (n 1716, 24 groups)
+- error_recall_test: 0.42 [0.28, 0.70] (n 1716, 24 groups)
 
 ### `eval/retrieval.json`
 
@@ -387,7 +387,7 @@ Source: `eval/margin.json` · threshold P = 0.99982 [0.84738, 0.99989] (n 30, 6 
 
 Source: `eval/deletion.json` · held-out test images · 20 random 3-region draws per image · drops are full read minus read with the regions removed and re-pooled; logit = centered calibrated logit (logit_target - mean over classes, divided by the temperature).
 
-Exact contributions (`eval/tile_contrib.json`): constant plus region contributions reproduce each read's centered logit with max error 5.1e-08 over 378 reads (tolerance 1e-06).
+Exact contributions (`eval/tile_contrib.json`): constant plus region contributions reproduce each read's centered logit with max error 5.1e-08 over 2430 reads (tolerance 1e-06).
 
 `uni2h512_lr` · predicted aggressive (n 34, 17 groups)
 

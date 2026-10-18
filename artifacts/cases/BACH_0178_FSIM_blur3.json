@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.977,
+    "reliability": 0.999,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,12 +38,12 @@
       "Invasive"
     ],
     "probs": [
-      0.9901,
-      0.0034,
-      0.0024,
-      0.004
+      0.9968,
+      0.003,
+      0.0001,
+      0.0001
     ],
-    "risk_score": 0.004,
+    "risk_score": 0.0001,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Normal"
@@ -51,7 +51,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -249,7 +249,7 @@
         "necrosis": -0.41
       },
       "attention": null,
-      "contribution": -0.0418
+      "contribution": -0.1489
     },
     {
       "idx": 1,
@@ -270,7 +270,7 @@
         "necrosis": -0.11
       },
       "attention": null,
-      "contribution": -0.2332
+      "contribution": -0.4201
     },
     {
       "idx": 2,
@@ -291,7 +291,7 @@
         "necrosis": 0.6
       },
       "attention": null,
-      "contribution": -0.0629
+      "contribution": -0.2382
     },
     {
       "idx": 3,
@@ -312,7 +312,7 @@
         "necrosis": -0.93
       },
       "attention": null,
-      "contribution": 0.0089
+      "contribution": -0.015
     },
     {
       "idx": 4,
@@ -333,7 +333,7 @@
         "necrosis": -0.16
       },
       "attention": null,
-      "contribution": -0.0413
+      "contribution": -0.3573
     },
     {
       "idx": 5,
@@ -354,7 +354,7 @@
         "necrosis": -0.64
       },
       "attention": null,
-      "contribution": -0.1127
+      "contribution": -0.3657
     },
     {
       "idx": 6,
@@ -375,7 +375,7 @@
         "necrosis": -0.9
       },
       "attention": null,
-      "contribution": -0.1872
+      "contribution": -0.3895
     },
     {
       "idx": 7,
@@ -396,7 +396,7 @@
         "necrosis": 0.13
       },
       "attention": null,
-      "contribution": -0.0881
+      "contribution": -0.3024
     },
     {
       "idx": 8,
@@ -417,7 +417,7 @@
         "necrosis": -1.21
       },
       "attention": null,
-      "contribution": 0.0134
+      "contribution": 0.0522
     },
     {
       "idx": 9,
@@ -438,7 +438,7 @@
         "necrosis": -0.74
       },
       "attention": null,
-      "contribution": 0.0423
+      "contribution": -0.0251
     },
     {
       "idx": 10,
@@ -459,7 +459,7 @@
         "necrosis": -0.07
       },
       "attention": null,
-      "contribution": -0.1795
+      "contribution": -0.4233
     },
     {
       "idx": 11,
@@ -480,7 +480,7 @@
         "necrosis": -0.86
       },
       "attention": null,
-      "contribution": -0.2596
+      "contribution": -0.3993
     }
   ],
   "similar_cases": [
@@ -761,12 +761,12 @@
       "kind": "prediction",
       "data": {
         "top": "Normal",
-        "p": 0.99,
+        "p": 0.997,
         "set": [
           "Normal"
         ],
         "confidence": 0.9,
-        "risk": 0.004
+        "risk": 0.0
       }
     },
     {
@@ -829,7 +829,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -851,10 +851,10 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Normal breast tissue is suggested.",
+        "text": "Suggested category: normal breast tissue (calibrated probability 1.00); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
@@ -866,9 +866,9 @@
         ]
       },
       {
-        "text": "Prominent benign fibrous stroma or fat pushes the read away from invasive carcinoma.",
+        "text": "5 of 5 most similar reference cases share the suggested category (normal breast tissue).",
         "findings": [
-          "F3"
+          "F5"
         ]
       },
       {

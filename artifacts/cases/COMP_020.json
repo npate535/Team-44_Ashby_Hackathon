@@ -24,11 +24,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.956,
+    "reliability": 0.962,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -36,12 +36,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0036,
-      0.409,
-      0.5725,
-      0.0149
+      0.0057,
+      0.3954,
+      0.5818,
+      0.0171
     ],
-    "risk_score": 0.0149,
+    "risk_score": 0.0171,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Benign",
@@ -50,7 +50,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -253,7 +253,7 @@
         "necrosis": 1.82
       },
       "attention": null,
-      "contribution": 0.1741
+      "contribution": 0.2292
     },
     {
       "idx": 1,
@@ -274,7 +274,7 @@
         "necrosis": 1.89
       },
       "attention": null,
-      "contribution": 0.0644
+      "contribution": 0.1033
     },
     {
       "idx": 2,
@@ -295,7 +295,7 @@
         "necrosis": -0.56
       },
       "attention": null,
-      "contribution": -0.3164
+      "contribution": -0.402
     },
     {
       "idx": 3,
@@ -316,7 +316,7 @@
         "necrosis": -0.73
       },
       "attention": null,
-      "contribution": -0.4155
+      "contribution": -0.3756
     },
     {
       "idx": 4,
@@ -337,7 +337,7 @@
         "necrosis": 0.9
       },
       "attention": null,
-      "contribution": 0.1796
+      "contribution": 0.2145
     },
     {
       "idx": 5,
@@ -358,7 +358,7 @@
         "necrosis": 1.21
       },
       "attention": null,
-      "contribution": 0.128
+      "contribution": 0.1357
     },
     {
       "idx": 6,
@@ -379,7 +379,7 @@
         "necrosis": -0.2
       },
       "attention": null,
-      "contribution": -0.3386
+      "contribution": -0.3159
     },
     {
       "idx": 7,
@@ -400,7 +400,7 @@
         "necrosis": 0.12
       },
       "attention": null,
-      "contribution": -0.3195
+      "contribution": -0.3302
     },
     {
       "idx": 8,
@@ -421,7 +421,7 @@
         "necrosis": 0.44
       },
       "attention": null,
-      "contribution": 0.0741
+      "contribution": -0.0543
     },
     {
       "idx": 9,
@@ -442,7 +442,7 @@
         "necrosis": 0.27
       },
       "attention": null,
-      "contribution": 0.0964
+      "contribution": 0.0684
     },
     {
       "idx": 10,
@@ -463,7 +463,7 @@
         "necrosis": -0.69
       },
       "attention": null,
-      "contribution": -0.4008
+      "contribution": -0.3553
     },
     {
       "idx": 11,
@@ -484,7 +484,7 @@
         "necrosis": -0.19
       },
       "attention": null,
-      "contribution": -0.246
+      "contribution": -0.2523
     }
   ],
   "similar_cases": [
@@ -772,13 +772,13 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.573,
+        "p": 0.582,
         "set": [
           "Benign",
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.015
+        "risk": 0.017
       }
     },
     {
@@ -873,25 +873,24 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested; a benign lesion cannot be excluded.",
+        "text": "Suggested category: in situ carcinoma (calibrated probability 0.58), and benign lesion is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent gland / tubule formation and prominent benign fibrous stroma or fat are associated with a lower likelihood of invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce normal lobules with two-layered epithelium (region 8).",
         "findings": [
-          "F2",
-          "F3"
+          "F4"
         ]
       },
       {
-        "text": "Scarce normal lobules with two-layered epithelium push the read toward invasive carcinoma.",
+        "text": "3 of 5 most similar reference cases share the suggested category (in situ carcinoma).",
         "findings": [
-          "F4"
+          "F5"
         ]
       },
       {

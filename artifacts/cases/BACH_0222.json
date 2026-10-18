@@ -21,7 +21,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.88,
-    "reliability": 0.979,
+    "reliability": 0.998,
     "reliability_flag": false
   },
   "prediction": {
@@ -706,7 +706,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 0.88,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -762,29 +762,30 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.98); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent gland / tubule formation is associated with a lower likelihood of invasive carcinoma.",
+        "text": "Features lowering the likelihood of invasive carcinoma in this read: prominent gland / tubule formation, scarce tumor infiltrating stroma and scarce mitotic figures.",
         "findings": [
-          "F2"
-        ]
-      },
-      {
-        "text": "Scarce tumor infiltrating stroma and scarce mitotic figures are associated with a lower likelihood of invasive carcinoma.",
-        "findings": [
+          "F2",
           "F3",
           "F4"
         ]
       },
       {
-        "text": "5 of 5 most similar reference cases share the suggested category.",
+        "text": "Only 5% of benign reference cases have a lower variation in nuclear size (regions 0, 10 and 11).",
+        "findings": [
+          "F7"
+        ]
+      },
+      {
+        "text": "5 of 5 most similar reference cases share the suggested category (benign lesion).",
         "findings": [
           "F5"
         ]

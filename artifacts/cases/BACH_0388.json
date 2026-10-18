@@ -21,7 +21,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.76,
-    "reliability": 0.98,
+    "reliability": 0.997,
     "reliability_flag": false
   },
   "prediction": {
@@ -711,7 +711,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 0.76,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -735,29 +735,30 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.97); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma pushes the read away from invasive carcinoma.",
+        "text": "Features lowering the likelihood of invasive carcinoma in this read: scarce tumor infiltrating stroma, prominent normal lobules with two-layered epithelium and prominent benign fibrous stroma or fat.",
         "findings": [
-          "F2"
-        ]
-      },
-      {
-        "text": "Prominent normal lobules with two-layered epithelium and prominent benign fibrous stroma or fat push the read away from invasive carcinoma.",
-        "findings": [
+          "F2",
           "F3",
           "F4"
         ]
       },
       {
-        "text": "4 of 5 most similar reference cases share the suggested category.",
+        "text": "Only 9% of benign reference cases have a lower immune cell fraction (regions 0, 3 and 11).",
+        "findings": [
+          "F7"
+        ]
+      },
+      {
+        "text": "4 of 5 most similar reference cases share the suggested category (benign lesion).",
         "findings": [
           "F5"
         ]

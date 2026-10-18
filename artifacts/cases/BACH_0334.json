@@ -21,8 +21,8 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.08,
-    "reliability": 0.972,
-    "reliability_flag": false
+    "reliability": 0.58,
+    "reliability_flag": true
   },
   "prediction": {
     "model": "uni2h512_lr",
@@ -529,7 +529,7 @@
     "neighbor_agreement": 0.0
   },
   "margin": {
-    "suggested_call": "clear",
+    "suggested_call": "defer",
     "involved": [],
     "per_margin": {
       "superior": 0.173689,
@@ -843,6 +843,7 @@
     "tier": 1,
     "reasons": [
       "set_size_gt_1",
+      "low_reliability",
       "surgical_frozen_section"
     ]
   },
@@ -923,8 +924,8 @@
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": false,
-        "reliability": 0.97,
+        "reliability_flag": true,
+        "reliability": 0.58,
         "ood_percentile": 0.08,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -950,7 +951,7 @@
       "id": "F8",
       "kind": "margin",
       "data": {
-        "suggested_call": "clear",
+        "suggested_call": "defer",
         "involved": [],
         "per_margin": {
           "superior": 0.17,
@@ -962,29 +963,28 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested, though normal breast tissue cannot be excluded.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.68), and normal breast tissue is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent normal lobules with two-layered epithelium and prominent gland / tubule formation are associated with a lower likelihood of invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce atypical cells confined within ducts (region 8).",
         "findings": [
-          "F2",
-          "F3"
+          "F4"
         ]
       },
       {
-        "text": "No benign reference case has a lower nuclear size.",
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
         "findings": [
-          "F7"
+          "F6"
         ]
       },
       {
-        "text": "Suggested margin call (simulated frozen section): margins clear.",
+        "text": "Suggested margin call (simulated frozen section): defer to permanent sections, because the reliability check flagged this read.",
         "findings": [
           "F8"
         ]
@@ -992,8 +992,25 @@
     ]
   },
   "agent": {
-    "status": "none",
-    "orders": [],
+    "status": "drafted",
+    "orders": [
+      {
+        "type": "recut",
+        "items": [
+          "recut H&E section"
+        ],
+        "rule_id": "low_quality",
+        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
+      },
+      {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "low_quality_levels",
+        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
+      }
+    ],
     "blocked": []
   },
   "eval_only": {

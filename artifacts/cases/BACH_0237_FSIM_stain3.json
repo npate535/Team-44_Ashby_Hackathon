@@ -12,7 +12,7 @@
   "source_case_ids": [
     "BACH_0237"
   ],
-  "arrived_offset_s": 22399.7,
+  "arrived_offset_s": 22249.7,
   "image": {
     "display": "images/BACH_0237_FSIM_stain3.jpg",
     "width": 2048,
@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.86,
-    "reliability": 0.979,
+    "reliability": 0.998,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,12 +38,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0084,
-      0.9615,
-      0.0299,
-      0.0002
+      0.0159,
+      0.9824,
+      0.0017,
+      0.0001
     ],
-    "risk_score": 0.0002,
+    "risk_score": 0.0001,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Benign"
@@ -51,7 +51,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -250,7 +250,7 @@
         "necrosis": -0.75
       },
       "attention": null,
-      "contribution": -0.3307
+      "contribution": -0.3058
     },
     {
       "idx": 1,
@@ -271,7 +271,7 @@
         "necrosis": -0.4
       },
       "attention": null,
-      "contribution": -0.4738
+      "contribution": -0.5353
     },
     {
       "idx": 2,
@@ -292,7 +292,7 @@
         "necrosis": -0.95
       },
       "attention": null,
-      "contribution": -0.3821
+      "contribution": -0.4147
     },
     {
       "idx": 3,
@@ -313,7 +313,7 @@
         "necrosis": -0.57
       },
       "attention": null,
-      "contribution": -0.3785
+      "contribution": -0.3587
     },
     {
       "idx": 4,
@@ -334,7 +334,7 @@
         "necrosis": -0.75
       },
       "attention": null,
-      "contribution": -0.2862
+      "contribution": -0.407
     },
     {
       "idx": 5,
@@ -355,7 +355,7 @@
         "necrosis": -0.59
       },
       "attention": null,
-      "contribution": -0.3342
+      "contribution": -0.4116
     },
     {
       "idx": 6,
@@ -376,7 +376,7 @@
         "necrosis": -0.44
       },
       "attention": null,
-      "contribution": -0.2873
+      "contribution": -0.4171
     },
     {
       "idx": 7,
@@ -397,7 +397,7 @@
         "necrosis": -0.17
       },
       "attention": null,
-      "contribution": -0.4002
+      "contribution": -0.1802
     },
     {
       "idx": 8,
@@ -418,7 +418,7 @@
         "necrosis": -0.87
       },
       "attention": null,
-      "contribution": -0.3802
+      "contribution": -0.3743
     },
     {
       "idx": 9,
@@ -439,7 +439,7 @@
         "necrosis": -0.79
       },
       "attention": null,
-      "contribution": -0.4963
+      "contribution": -0.5345
     },
     {
       "idx": 10,
@@ -460,7 +460,7 @@
         "necrosis": -0.93
       },
       "attention": null,
-      "contribution": -0.3716
+      "contribution": -0.5185
     },
     {
       "idx": 11,
@@ -481,7 +481,7 @@
         "necrosis": -1.02
       },
       "attention": null,
-      "contribution": -0.2266
+      "contribution": -0.1719
     }
   ],
   "similar_cases": [
@@ -762,7 +762,7 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.962,
+        "p": 0.982,
         "set": [
           "Benign"
         ],
@@ -831,7 +831,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 0.86,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -853,18 +853,24 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.98); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent normal lobules with two-layered epithelium push the read away from invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce lymphocytic infiltrate (TILs; region 8).",
         "findings": [
-          "F2"
+          "F3"
+        ]
+      },
+      {
+        "text": "2 of 5 most similar reference cases share the suggested category (benign lesion).",
+        "findings": [
+          "F5"
         ]
       },
       {

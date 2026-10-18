@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.956,
+    "reliability": 0.962,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,12 +38,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0057,
-      0.0136,
-      0.6241,
-      0.3566
+      0.0027,
+      0.0094,
+      0.7863,
+      0.2016
     ],
-    "risk_score": 0.3566,
+    "risk_score": 0.2016,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "InSitu",
@@ -52,7 +52,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -251,7 +251,7 @@
         "necrosis": 0.23
       },
       "attention": null,
-      "contribution": 0.0781
+      "contribution": 0.018
     },
     {
       "idx": 1,
@@ -272,7 +272,7 @@
         "necrosis": 0.47
       },
       "attention": null,
-      "contribution": 0.0647
+      "contribution": -0.024
     },
     {
       "idx": 2,
@@ -293,7 +293,7 @@
         "necrosis": 0.42
       },
       "attention": null,
-      "contribution": 0.1111
+      "contribution": 0.1175
     },
     {
       "idx": 3,
@@ -314,7 +314,7 @@
         "necrosis": 0.74
       },
       "attention": null,
-      "contribution": 0.0475
+      "contribution": 0.047
     },
     {
       "idx": 4,
@@ -335,7 +335,7 @@
         "necrosis": -0.39
       },
       "attention": null,
-      "contribution": 0.2379
+      "contribution": 0.2356
     },
     {
       "idx": 5,
@@ -356,7 +356,7 @@
         "necrosis": 0.94
       },
       "attention": null,
-      "contribution": 0.131
+      "contribution": 0.1287
     },
     {
       "idx": 6,
@@ -377,7 +377,7 @@
         "necrosis": 0.76
       },
       "attention": null,
-      "contribution": 0.123
+      "contribution": 0.1242
     },
     {
       "idx": 7,
@@ -398,7 +398,7 @@
         "necrosis": 1.39
       },
       "attention": null,
-      "contribution": 0.3005
+      "contribution": 0.4075
     },
     {
       "idx": 8,
@@ -419,7 +419,7 @@
         "necrosis": 1.28
       },
       "attention": null,
-      "contribution": 0.1816
+      "contribution": 0.1504
     },
     {
       "idx": 9,
@@ -440,7 +440,7 @@
         "necrosis": 0.49
       },
       "attention": null,
-      "contribution": 0.169
+      "contribution": 0.0721
     },
     {
       "idx": 10,
@@ -461,7 +461,7 @@
         "necrosis": 0.23
       },
       "attention": null,
-      "contribution": 0.141
+      "contribution": 0.069
     },
     {
       "idx": 11,
@@ -482,7 +482,7 @@
         "necrosis": 1.45
       },
       "attention": null,
-      "contribution": 0.191
+      "contribution": 0.2163
     }
   ],
   "similar_cases": [
@@ -771,13 +771,13 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.624,
+        "p": 0.786,
         "set": [
           "InSitu",
           "Invasive"
         ],
         "confidence": 0.9,
-        "risk": 0.357
+        "risk": 0.202
       }
     },
     {
@@ -868,10 +868,10 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested; invasive carcinoma cannot be excluded.",
+        "text": "Suggested category: in situ carcinoma (calibrated probability 0.79), and invasive carcinoma is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
@@ -884,9 +884,14 @@
         ]
       },
       {
-        "text": "1 of 5 most similar reference cases shares the suggested category; suggested margin call (simulated frozen section): tumor at the inferior and lateral margins.",
+        "text": "1 of 5 most similar reference cases shares the suggested category (in situ carcinoma).",
         "findings": [
-          "F5",
+          "F5"
+        ]
+      },
+      {
+        "text": "Suggested margin call (simulated frozen section): tumor at the inferior and lateral margins.",
+        "findings": [
           "F7"
         ]
       }

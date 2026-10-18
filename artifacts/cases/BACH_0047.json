@@ -21,8 +21,8 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.88,
-    "reliability": 0.473,
-    "reliability_flag": true
+    "reliability": 0.985,
+    "reliability_flag": false
   },
   "prediction": {
     "model": "uni2h512_lr",
@@ -526,7 +526,7 @@
     "neighbor_agreement": 0.6
   },
   "margin": {
-    "suggested_call": "defer",
+    "suggested_call": "clear",
     "involved": [],
     "per_margin": {
       "superior": 0.841103,
@@ -839,7 +839,6 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
-      "low_reliability",
       "surgical_frozen_section"
     ]
   },
@@ -917,8 +916,8 @@
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": true,
-        "reliability": 0.47,
+        "reliability_flag": false,
+        "reliability": 0.98,
         "ood_percentile": 0.88,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -992,7 +991,7 @@
       "id": "F11",
       "kind": "margin",
       "data": {
-        "suggested_call": "defer",
+        "suggested_call": "clear",
         "involved": [],
         "per_margin": {
           "superior": 0.84,
@@ -1004,29 +1003,28 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.96); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma and prominent gland / tubule formation push the read away from invasive carcinoma.",
+        "text": "Tumor cell fraction is higher than in 96% of benign reference cases (regions 0, 1 and 9).",
         "findings": [
-          "F2",
-          "F3"
+          "F7"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced.",
+        "text": "3 of 5 most similar reference cases share the suggested category (benign lesion).",
         "findings": [
-          "F6"
+          "F5"
         ]
       },
       {
-        "text": "Suggested margin call (simulated frozen section): defer to permanent sections, because the reliability check flagged this read.",
+        "text": "Suggested margin call (simulated frozen section): margins clear.",
         "findings": [
           "F11"
         ]
@@ -1034,25 +1032,8 @@
     ]
   },
   "agent": {
-    "status": "drafted",
-    "orders": [
-      {
-        "type": "recut",
-        "items": [
-          "recut H&E section"
-        ],
-        "rule_id": "low_quality",
-        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
-      },
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "low_quality_levels",
-        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
-      }
-    ],
+    "status": "none",
+    "orders": [],
     "blocked": []
   },
   "eval_only": {

@@ -21,7 +21,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.18,
+    "reliability": 0.107,
     "reliability_flag": true
   },
   "prediction": {
@@ -723,7 +723,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.18,
+        "reliability": 0.11,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -843,33 +843,30 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested; normal breast tissue and invasive carcinoma cannot be excluded.",
+        "text": "Suggested category: in situ carcinoma (calibrated probability 0.43), and normal breast tissue and invasive carcinoma are also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent mitotic figures push the read toward invasive carcinoma, while prominent normal lobules and benign fibrous stroma or fat push the read away from invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: frequent mitotic figures (regions 2, 5 and 6).",
         "findings": [
-          "F2",
-          "F3",
-          "F4"
+          "F2"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced.",
+        "text": "Tumor cell fraction is higher than in 100% of benign reference cases (regions 1, 2 and 5).",
+        "findings": [
+          "F7"
+        ]
+      },
+      {
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
         "findings": [
           "F6"
-        ]
-      },
-      {
-        "text": "Tumor cell fraction is higher than in 100% of benign reference cases, but no benign reference case has a lower nuclear size.",
-        "findings": [
-          "F7",
-          "F9"
         ]
       }
     ]

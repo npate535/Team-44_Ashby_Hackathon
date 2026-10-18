@@ -24,11 +24,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.76,
-    "reliability": 0.98,
+    "reliability": 0.922,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -36,20 +36,21 @@
       "Invasive"
     ],
     "probs": [
-      0.1626,
-      0.0027,
-      0.0202,
-      0.8145
+      0.2526,
+      0.0017,
+      0.0182,
+      0.7275
     ],
-    "risk_score": 0.8145,
+    "risk_score": 0.7275,
     "conformal_alpha": 0.1,
     "conformal_set": [
+      "Normal",
       "Invasive"
     ],
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -259,7 +260,7 @@
         "necrosis": 1.48
       },
       "attention": null,
-      "contribution": 0.7686
+      "contribution": 0.7982
     },
     {
       "idx": 1,
@@ -280,7 +281,7 @@
         "necrosis": 1.46
       },
       "attention": null,
-      "contribution": 0.6853
+      "contribution": 0.7533
     },
     {
       "idx": 2,
@@ -301,7 +302,7 @@
         "necrosis": -1.01
       },
       "attention": null,
-      "contribution": -0.3008
+      "contribution": -0.4379
     },
     {
       "idx": 3,
@@ -322,7 +323,7 @@
         "necrosis": -0.22
       },
       "attention": null,
-      "contribution": -0.1906
+      "contribution": -0.1446
     },
     {
       "idx": 4,
@@ -343,7 +344,7 @@
         "necrosis": 1.78
       },
       "attention": null,
-      "contribution": 0.7188
+      "contribution": 0.7168
     },
     {
       "idx": 5,
@@ -364,7 +365,7 @@
         "necrosis": 1.31
       },
       "attention": null,
-      "contribution": 0.7859
+      "contribution": 0.7724
     },
     {
       "idx": 6,
@@ -385,7 +386,7 @@
         "necrosis": -0.94
       },
       "attention": null,
-      "contribution": -0.5884
+      "contribution": -0.6155
     },
     {
       "idx": 7,
@@ -406,7 +407,7 @@
         "necrosis": -0.3
       },
       "attention": null,
-      "contribution": -0.1263
+      "contribution": -0.1269
     },
     {
       "idx": 8,
@@ -427,7 +428,7 @@
         "necrosis": 1.51
       },
       "attention": null,
-      "contribution": 0.787
+      "contribution": 0.7683
     },
     {
       "idx": 9,
@@ -448,7 +449,7 @@
         "necrosis": 1.22
       },
       "attention": null,
-      "contribution": 0.7804
+      "contribution": 0.8024
     },
     {
       "idx": 10,
@@ -469,7 +470,7 @@
         "necrosis": -0.82
       },
       "attention": null,
-      "contribution": -0.4067
+      "contribution": -0.4514
     },
     {
       "idx": 11,
@@ -490,7 +491,7 @@
         "necrosis": -0.66
       },
       "attention": null,
-      "contribution": -0.0898
+      "contribution": -0.0718
     }
   ],
   "similar_cases": [
@@ -772,6 +773,7 @@
     "reasons": [
       "aggressive_top",
       "aggressive_in_conformal_set",
+      "set_size_gt_1",
       "surgical_frozen_section"
     ]
   },
@@ -781,12 +783,13 @@
       "kind": "prediction",
       "data": {
         "top": "Invasive",
-        "p": 0.815,
+        "p": 0.728,
         "set": [
+          "Normal",
           "Invasive"
         ],
         "confidence": 0.9,
-        "risk": 0.815
+        "risk": 0.728
       }
     },
     {
@@ -854,7 +857,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 0.92,
         "ood_percentile": 0.76,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -885,30 +888,29 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested.",
+        "text": "Suggested category: invasive carcinoma (calibrated probability 0.73), and normal breast tissue is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent tumor infiltrating stroma and mitotic figures push the read toward invasive carcinoma, while prominent normal lobules with two-layered epithelium push the read away from invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: prominent tumor infiltrating stroma (regions 0, 1 and 4), then frequent mitotic figures.",
         "findings": [
           "F2",
-          "F3",
           "F4"
         ]
       },
       {
-        "text": "1 of 5 most similar reference cases shares the suggested category.",
+        "text": "1 of 5 most similar reference cases shares the suggested category (invasive carcinoma).",
         "findings": [
           "F5"
         ]
       },
       {
-        "text": "Suggested margin call (simulated frozen section): tumor at the superior, inferior, and medial margins.",
+        "text": "Suggested margin call (simulated frozen section): tumor at the superior, inferior and medial margins.",
         "findings": [
           "F7"
         ]

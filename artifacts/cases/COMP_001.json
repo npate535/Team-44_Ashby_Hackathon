@@ -24,11 +24,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.64,
-    "reliability": 0.34,
+    "reliability": 0.518,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -36,21 +36,21 @@
       "Invasive"
     ],
     "probs": [
-      0.1542,
-      0.5991,
-      0.2457,
-      0.0011
+      0.2566,
+      0.5766,
+      0.1663,
+      0.0005
     ],
-    "risk_score": 0.0011,
+    "risk_score": 0.0005,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "Benign",
-      "InSitu"
+      "Normal",
+      "Benign"
     ],
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -254,7 +254,7 @@
         "necrosis": -0.91
       },
       "attention": null,
-      "contribution": -0.3226
+      "contribution": -0.296
     },
     {
       "idx": 1,
@@ -275,7 +275,7 @@
         "necrosis": -0.45
       },
       "attention": null,
-      "contribution": -0.3686
+      "contribution": -0.4782
     },
     {
       "idx": 2,
@@ -296,7 +296,7 @@
         "necrosis": -0.02
       },
       "attention": null,
-      "contribution": -0.4354
+      "contribution": -0.5179
     },
     {
       "idx": 3,
@@ -317,7 +317,7 @@
         "necrosis": -0.16
       },
       "attention": null,
-      "contribution": -0.3987
+      "contribution": -0.3887
     },
     {
       "idx": 4,
@@ -338,7 +338,7 @@
         "necrosis": -0.16
       },
       "attention": null,
-      "contribution": -0.2756
+      "contribution": -0.3056
     },
     {
       "idx": 5,
@@ -359,7 +359,7 @@
         "necrosis": -0.43
       },
       "attention": null,
-      "contribution": -0.4117
+      "contribution": -0.4937
     },
     {
       "idx": 6,
@@ -380,7 +380,7 @@
         "necrosis": -0.21
       },
       "attention": null,
-      "contribution": -0.3954
+      "contribution": -0.4814
     },
     {
       "idx": 7,
@@ -401,7 +401,7 @@
         "necrosis": -0.74
       },
       "attention": null,
-      "contribution": -0.4551
+      "contribution": -0.4956
     },
     {
       "idx": 8,
@@ -422,7 +422,7 @@
         "necrosis": -0.29
       },
       "attention": null,
-      "contribution": -0.1927
+      "contribution": -0.2829
     },
     {
       "idx": 9,
@@ -443,7 +443,7 @@
         "necrosis": -0.77
       },
       "attention": null,
-      "contribution": -0.3631
+      "contribution": -0.4676
     },
     {
       "idx": 10,
@@ -464,7 +464,7 @@
         "necrosis": -1.16
       },
       "attention": null,
-      "contribution": -0.3841
+      "contribution": -0.4408
     },
     {
       "idx": 11,
@@ -485,7 +485,7 @@
         "necrosis": -1.6
       },
       "attention": null,
-      "contribution": -0.0969
+      "contribution": -0.0938
     }
   ],
   "similar_cases": [
@@ -768,10 +768,10 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.599,
+        "p": 0.577,
         "set": [
-          "Benign",
-          "InSitu"
+          "Normal",
+          "Benign"
         ],
         "confidence": 0.9,
         "risk": 0.001
@@ -839,7 +839,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.34,
+        "reliability": 0.52,
         "ood_percentile": 0.64,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -861,31 +861,29 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested, though in situ carcinoma cannot be excluded.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.58), and normal breast tissue is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent normal lobules with two-layered epithelium and prominent gland / tubule formation are associated with a lower likelihood of invasive carcinoma.",
-        "findings": [
-          "F2",
-          "F4"
-        ]
-      },
-      {
-        "text": "1 of 5 most similar reference cases shares the suggested category.",
+        "text": "1 of 5 most similar reference cases shares the suggested category (benign lesion).",
         "findings": [
           "F5"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced; suggested margin call (simulated frozen section): defer to permanent sections.",
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
         "findings": [
-          "F6",
+          "F6"
+        ]
+      },
+      {
+        "text": "Suggested margin call (simulated frozen section): defer to permanent sections, because the reliability check flagged this read.",
+        "findings": [
           "F7"
         ]
       }
@@ -895,29 +893,23 @@
     "status": "drafted",
     "orders": [
       {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "uncertain_benign_atypia",
-        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
-      },
-      {
         "type": "recut",
         "items": [
           "recut H&E section"
         ],
         "rule_id": "low_quality",
         "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
+      },
+      {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "low_quality_levels",
+        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
       }
     ],
-    "blocked": [
-      {
-        "action": "draft_stains",
-        "reason": "Stains are not drafted for simulated frozen sections.",
-        "rule_id": null
-      }
-    ]
+    "blocked": []
   },
   "eval_only": {
     "true_label": "InSitu",

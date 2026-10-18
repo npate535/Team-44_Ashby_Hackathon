@@ -10,7 +10,6 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
-import sqlite3
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -68,12 +67,10 @@ def main():
                 'env': {'PATHQUEUE_RELEASE_SHA': revision, 'PATHQUEUE_SITE': 'local'},
                 'headers': [{'source': '/(.*)', 'headers': [{'key': 'Cache-Control', 'value': 'no-store'}]}]}
     (out / 'vercel.json').write_text(json.dumps(settings, indent=2) + '\n')
-    # Preserve the laptop's current reviewed workspace as the initial seed if it matches
-    # the current case artifacts; create_app checks that before accepting it.
-    if (ROOT / 'artifacts/pathqueue.sqlite').exists():
-        with sqlite3.connect(ROOT / 'artifacts/pathqueue.sqlite') as source:
-            with sqlite3.connect(out / 'artifacts/pathqueue.sqlite') as dest:
-                source.backup(dest)
+    # Review state belongs to the shared Redis workspace. Never upload a running
+    # laptop demo database, which may describe an older set of case evidence.
+    for database in (out / 'artifacts').glob('*.sqlite*'):
+        database.unlink()
     print(f'Packaged private Vercel upload: {out}; {len(manifest)} verified CDN assets; source {revision}')
 
 

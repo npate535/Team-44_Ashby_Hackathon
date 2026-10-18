@@ -24,11 +24,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.88,
-    "reliability": 0.314,
+    "reliability": 0.696,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -36,12 +36,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0577,
-      0.0414,
-      0.8842,
-      0.0166
+      0.1402,
+      0.0512,
+      0.786,
+      0.0225
     ],
-    "risk_score": 0.0166,
+    "risk_score": 0.0225,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Normal",
@@ -50,7 +50,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -255,7 +255,7 @@
         "necrosis": 0.99
       },
       "attention": null,
-      "contribution": 0.0001
+      "contribution": -0.0287
     },
     {
       "idx": 1,
@@ -276,7 +276,7 @@
         "necrosis": 1.13
       },
       "attention": null,
-      "contribution": -0.0171
+      "contribution": -0.0946
     },
     {
       "idx": 2,
@@ -297,7 +297,7 @@
         "necrosis": -1.1
       },
       "attention": null,
-      "contribution": -0.2446
+      "contribution": -0.2434
     },
     {
       "idx": 3,
@@ -318,7 +318,7 @@
         "necrosis": -1.2
       },
       "attention": null,
-      "contribution": -0.2021
+      "contribution": -0.1697
     },
     {
       "idx": 4,
@@ -339,7 +339,7 @@
         "necrosis": 0.83
       },
       "attention": null,
-      "contribution": 0.0655
+      "contribution": 0.1502
     },
     {
       "idx": 5,
@@ -360,7 +360,7 @@
         "necrosis": 1.36
       },
       "attention": null,
-      "contribution": 0.0748
+      "contribution": 0.076
     },
     {
       "idx": 6,
@@ -381,7 +381,7 @@
         "necrosis": -0.76
       },
       "attention": null,
-      "contribution": -0.3259
+      "contribution": -0.3098
     },
     {
       "idx": 7,
@@ -402,7 +402,7 @@
         "necrosis": -1.36
       },
       "attention": null,
-      "contribution": -0.287
+      "contribution": -0.2496
     },
     {
       "idx": 8,
@@ -423,7 +423,7 @@
         "necrosis": 2.15
       },
       "attention": null,
-      "contribution": 0.0374
+      "contribution": 0.0671
     },
     {
       "idx": 9,
@@ -444,7 +444,7 @@
         "necrosis": 0.9
       },
       "attention": null,
-      "contribution": 0.021
+      "contribution": -0.0943
     },
     {
       "idx": 10,
@@ -465,7 +465,7 @@
         "necrosis": -1.19
       },
       "attention": null,
-      "contribution": -0.3009
+      "contribution": -0.2809
     },
     {
       "idx": 11,
@@ -486,7 +486,7 @@
         "necrosis": -1.06
       },
       "attention": null,
-      "contribution": -0.288
+      "contribution": -0.3191
     }
   ],
   "similar_cases": [
@@ -769,13 +769,13 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.884,
+        "p": 0.786,
         "set": [
           "Normal",
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.017
+        "risk": 0.022
       }
     },
     {
@@ -843,7 +843,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.31,
+        "reliability": 0.7,
         "ood_percentile": 0.88,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -865,30 +865,28 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested; normal breast tissue cannot be excluded.",
+        "text": "Suggested category: in situ carcinoma (calibrated probability 0.79), and normal breast tissue is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent normal lobules, benign fibrous stroma or fat, and atypical cells confined within ducts push the read away from invasive carcinoma.",
+        "text": "1 of 5 most similar reference cases shares the suggested category (in situ carcinoma).",
         "findings": [
-          "F2",
-          "F3",
-          "F4"
+          "F5"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced.",
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
         "findings": [
           "F6"
         ]
       },
       {
-        "text": "Suggested margin call (simulated frozen section): defer to permanent sections.",
+        "text": "Suggested margin call (simulated frozen section): defer to permanent sections, because the reliability check flagged this read.",
         "findings": [
           "F7"
         ]

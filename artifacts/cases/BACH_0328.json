@@ -21,8 +21,8 @@
   "quality": {
     "qc_tiles_kept": 10,
     "ood_percentile": 0.26,
-    "reliability": 0.969,
-    "reliability_flag": false
+    "reliability": 0.71,
+    "reliability_flag": true
   },
   "prediction": {
     "model": "uni2h512_lr",
@@ -590,7 +590,8 @@
     "flagged": true,
     "tier": 3,
     "reasons": [
-      "set_size_gt_1"
+      "set_size_gt_1",
+      "low_reliability"
     ]
   },
   "findings": [
@@ -670,8 +671,8 @@
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": false,
-        "reliability": 0.97,
+        "reliability_flag": true,
+        "reliability": 0.71,
         "ood_percentile": 0.26,
         "qc_tiles_kept": 10,
         "min_tiles_kept": 3
@@ -679,30 +680,30 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Normal breast tissue is suggested, and in situ carcinoma cannot be excluded.",
+        "text": "Suggested category: normal breast tissue (calibrated probability 0.67), and in situ carcinoma is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent normal lobules with two-layered epithelium push the read away from invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce lymphocytic infiltrate (TILs; region 4).",
         "findings": [
-          "F2"
+          "F4"
         ]
       },
       {
-        "text": "Prominent benign fibrous stroma or fat pushes the read away from invasive carcinoma.",
-        "findings": [
-          "F3"
-        ]
-      },
-      {
-        "text": "3 of 5 most similar reference cases share the suggested category.",
+        "text": "3 of 5 most similar reference cases share the suggested category (normal breast tissue).",
         "findings": [
           "F5"
+        ]
+      },
+      {
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
+        "findings": [
+          "F6"
         ]
       }
     ]
@@ -726,6 +727,14 @@
         ],
         "rule_id": "uncertain_benign_atypia_ihc",
         "rationale": "CK5/6 with ER helps separate usual hyperplasia from atypical or in situ lesions."
+      },
+      {
+        "type": "recut",
+        "items": [
+          "recut H&E section"
+        ],
+        "rule_id": "low_quality",
+        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
       }
     ],
     "blocked": []

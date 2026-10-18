@@ -21,7 +21,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.94,
-    "reliability": 0.958,
+    "reliability": 0.955,
     "reliability_flag": false
   },
   "prediction": {
@@ -711,7 +711,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.96,
+        "reliability": 0.95,
         "ood_percentile": 0.94,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -719,30 +719,32 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested, though normal breast tissue cannot be excluded.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.81), and normal breast tissue is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Feature lowering the likelihood of invasive carcinoma in this read: dense lymphocytic infiltrate (TILs; regions 1, 8 and 11).",
+        "text": "Features lowering the likelihood of invasive carcinoma in this read: dense lymphocytic infiltrate (TILs), scarce tumor infiltrating stroma and prominent normal lobules with two-layered epithelium.",
         "findings": [
-          "F2"
-        ]
-      },
-      {
-        "text": "Scarce tumor infiltrating stroma pushes the read away from invasive carcinoma.",
-        "findings": [
-          "F3"
-        ]
-      },
-      {
-        "text": "Prominent normal lobules with two-layered epithelium push the read away from invasive carcinoma.",
-        "findings": [
+          "F2",
+          "F3",
           "F4"
+        ]
+      },
+      {
+        "text": "1 of 5 most similar reference cases shares the suggested category (benign lesion).",
+        "findings": [
+          "F5"
+        ]
+      },
+      {
+        "text": "The reliability check raised no image-quality concern.",
+        "findings": [
+          "F6"
         ]
       }
     ]

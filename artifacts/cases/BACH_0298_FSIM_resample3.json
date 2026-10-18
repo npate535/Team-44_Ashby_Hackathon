@@ -12,7 +12,7 @@
   "source_case_ids": [
     "BACH_0298"
   ],
-  "arrived_offset_s": 25987.6,
+  "arrived_offset_s": 25767.1,
   "image": {
     "display": "images/BACH_0298_FSIM_resample3.jpg",
     "width": 2048,
@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.101,
+    "reliability": 0.004,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,12 +38,12 @@
       "Invasive"
     ],
     "probs": [
-      0.1332,
-      0.1073,
-      0.6586,
-      0.101
+      0.2459,
+      0.2245,
+      0.4281,
+      0.1016
     ],
-    "risk_score": 0.101,
+    "risk_score": 0.1016,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Normal",
@@ -54,7 +54,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -251,7 +251,7 @@
         "necrosis": 0.55
       },
       "attention": null,
-      "contribution": -0.0059
+      "contribution": 0.0972
     },
     {
       "idx": 1,
@@ -272,7 +272,7 @@
         "necrosis": -0.17
       },
       "attention": null,
-      "contribution": -0.0637
+      "contribution": -0.0214
     },
     {
       "idx": 2,
@@ -293,7 +293,7 @@
         "necrosis": 0.7
       },
       "attention": null,
-      "contribution": -0.0447
+      "contribution": 0.0259
     },
     {
       "idx": 3,
@@ -314,7 +314,7 @@
         "necrosis": -0.3
       },
       "attention": null,
-      "contribution": 0.0231
+      "contribution": -0.0978
     },
     {
       "idx": 4,
@@ -335,7 +335,7 @@
         "necrosis": -0.04
       },
       "attention": null,
-      "contribution": -0.0506
+      "contribution": -0.1222
     },
     {
       "idx": 5,
@@ -356,7 +356,7 @@
         "necrosis": 0.68
       },
       "attention": null,
-      "contribution": 0.0234
+      "contribution": 0.0641
     },
     {
       "idx": 6,
@@ -377,7 +377,7 @@
         "necrosis": 0.23
       },
       "attention": null,
-      "contribution": -0.0146
+      "contribution": -0.025
     },
     {
       "idx": 7,
@@ -398,7 +398,7 @@
         "necrosis": -0.08
       },
       "attention": null,
-      "contribution": -0.1819
+      "contribution": -0.4073
     },
     {
       "idx": 8,
@@ -419,7 +419,7 @@
         "necrosis": -0.42
       },
       "attention": null,
-      "contribution": -0.0386
+      "contribution": -0.0072
     },
     {
       "idx": 9,
@@ -440,7 +440,7 @@
         "necrosis": 0.42
       },
       "attention": null,
-      "contribution": -0.0557
+      "contribution": -0.1278
     },
     {
       "idx": 10,
@@ -461,7 +461,7 @@
         "necrosis": 0.22
       },
       "attention": null,
-      "contribution": -0.0261
+      "contribution": 0.0505
     },
     {
       "idx": 11,
@@ -482,7 +482,7 @@
         "necrosis": -0.29
       },
       "attention": null,
-      "contribution": -0.0506
+      "contribution": -0.153
     }
   ],
   "similar_cases": [
@@ -766,7 +766,7 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.659,
+        "p": 0.428,
         "set": [
           "Normal",
           "Benign",
@@ -774,7 +774,7 @@
           "Invasive"
         ],
         "confidence": 0.9,
-        "risk": 0.101
+        "risk": 0.102
       }
     },
     {
@@ -836,7 +836,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.1,
+        "reliability": 0.0,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -858,29 +858,28 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested; normal breast tissue, benign lesion, and invasive carcinoma cannot be excluded.",
+        "text": "Suggested category: in situ carcinoma (calibrated probability 0.43), and normal breast tissue, benign lesion and invasive carcinoma are also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma and scarce mitotic figures push the read away from invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: lymphocytic infiltrate (TILs) (typical level; region 0).",
         "findings": [
-          "F2",
-          "F3"
+          "F4"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced.",
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
         "findings": [
           "F6"
         ]
       },
       {
-        "text": "Suggested margin call (simulated frozen section): defer to permanent sections.",
+        "text": "Suggested margin call (simulated frozen section): defer to permanent sections, because the reliability check flagged this read.",
         "findings": [
           "F7"
         ]

@@ -1,31 +1,51 @@
-# Deck outline — DRAFT for team review (≤ 20 main slides; due Wed Oct 21)
+# Deck outline: Sepia (20 main slides + backup)
 
-Numbers are quoted from docs/RESULTS.md (held-out THUNDER test split, 132 images, 95% cluster-bootstrap CIs).
-Figures: `artifacts/eval/*.png` (git-ignored; regenerate with `make eval`) or screenshots of the app's Model evaluation
-page (`#/metrics`), which has the presentation-quality charts. Screens: the running app at `http://127.0.0.1:8000`.
-BACH imagery is CC BY-NC-ND 4.0: cite Aresta et al. 2019 on every slide that shows it.
+The deck is built, not typed. `outputs/deck/extract_data.py` reads every number from `artifacts/eval/*.json` (plus the
+BACH_0167 case file and the model column of `data/predictions.csv`) into `outputs/deck/data.json`; `outputs/deck/build.js`
+formats them into `outputs/deck/Sepia_Team44.pptx`. Rebuild whenever an eval file changes (commands at the end).
+Screenshots come from `outputs/deck/capture_screens.py` against a throwaway server on a copy of `artifacts/`.
 
-| # | Slide | Content | Visual |
-|---|---|---|---|
-| 1 | Sepia | One line: an explainable, confidence-aware breast pathology worklist. Team 44. "Research prototype, not for clinical use." | App worklist screenshot |
-| 2 | The problem | Cases are read in arrival order; AI flags rarely say why or how sure. Frozen sections need answers in ~20 min. | — |
-| 3 | What we built | Two lanes (biopsy, simulated frozen section), four tiers, safety rule, drafted orders, routing to surgeon and oncologist. | Architecture diagram (plan §3) |
-| 4 | Data and models | BACH 400 images, THUNDER patient-safe split (218 / 50 / 132); 7 encoders embedded on NCSA Delta; UNI2-h (production, 512-px regions after a pre-registered second round), CONCH, MUSK and H-optimus-0 probes (plus ABMIL and a top-3 fusion) compared by patient-grouped CV inside train only; PathGen-CLIP zero-shot comparison; Virchow2 and Phikon-v2 embedded but not among the pre-registered candidates. | Model-choice forest plot |
-| 5 | Triage accuracy | Invasive vs rest AUROC 0.999 [0.996, 1.000]; sensitivity 100%, specificity 97% [94, 100]; macro-F1 0.86 [0.68, 0.93] (round 1: 0.83) vs published UNI2-h probe 84.7 (same split, different protocol). | ROC + confusion matrix |
-| 6 | The clinically important error | 3 of 30 in situ images called invasive, 0 of 31 invasive called in situ; why the p63/calponin rule and the safety rule exist. | Probability histograms by class |
-| 7 | Honest confidence | ECE 0.18 → 0.055 after temperature scaling (Brier 0.28 → 0.23, NLL 0.571 → 0.575, so not a uniform gain). APS set covers 91.7% [80.8, 98.1] vs 90% target (**chosen after viewing test results**); pre-registered LAC 72.0% with 21% empty sets — say why we switched. | Reliability diagram + coverage-by-method chart |
-| 8 | Safety rule in action | All 31 invasive test images land in tiers 1–2; 13 in situ images carry Invasive in their set, so the safety rule sends them to tier 2 (tier 1 if they arrive in the simulated surgical lane). | Worklist tier placement heatmap |
-| 9 | Demo (live or video) | DEMO_SCRIPT.md: BACH_0167 jumps the queue, {InSitu, Invasive} → p63/calponin + ER/PR/HER2/Ki-67 → sign-out → oncology inbox. | Live app |
-| 10 | Why: named features | 9 breast criteria from text prompts + caption-derived concept vectors (8 of 9 blend both; tubules is text-only); levels in SD vs training cases; signed pushes; regions on the image. | Case "Why" panel screenshot |
-| 11 | Are the explanations real? | Concept × class heatmap (all 8 directional concepts move the expected way); NCT-CRC cross-organ check; caption consistency; AI spot check: invasion 19/20, pleomorphism 18/20, tubules 18/20 but normal lobules 0/20 and mitoses 0/20; deletion test shows weak faithfulness. | Spot-check chart + heatmap |
-| 12 | Grounded summaries | LLM (gemma-4-31b-it via Lumen) sees findings only; validator rejects un-cited numbers and contradictions (e.g. "margins clear" on a deferred read); required margin / quality sentences. | Summary panel with finding chips |
-| 13 | Frozen-section lane (simulated) | Image borders as inked margins; log-odds margin signal vs a threshold set on benign calibration images; composites keep 100% of tumor-free margins clear, tumor-side margin found 70%; WSI windows sensitivity 45%, specificity 98%. | Surgical case view |
-| 14 | When not to trust the read | Degradation curves (accuracy 84% → 67–73% at the worst severity); reliability score error AUROC 0.71; defer to permanent with a plain-language reason. | Degradation small multiples + defer panel |
-| 15 | Workflow benefit and cost | Queue simulation: invasive first look 20.2 → 6.0 min; unflagged cases wait 25 min longer; aging guard has no measured effect at configured targets. | Queue-simulation boxplots |
-| 16 | Data quality matters | A tissue-QC bug rejected pale tissue in 51 of 400 images (32 invasive); fixing it raised CV balanced accuracy 0.93 → 0.95 and test accuracy 83.3% → 84.1% (both within overlapping CIs). | QC before/after panel |
-| 17 | Extending beyond breast | Organ-specific: classes, criteria, rules, labels; everything else reused (plan §17). | Table |
-| 18 | Limitations | Small public dataset; simulated frozen lane, margins, arrivals; post-hoc conformal choice; illustrative stain rules; AI (not pathologist) spot check; no clinical validation. | — |
-| 19 | Credits | BACH (Aresta et al., Medical Image Analysis 2019), THUNDER, CONCH, MUSK, UNI2-h, H-optimus-0, Virchow2, Phikon-v2, PathGen-CLIP, NCT-CRC-HE-100K, Quilt-1M / PathGen captions, HoVer-Net / PanNuke + TIAToolbox, APS (Romano et al. 2020) and LAC (Sadinle et al. 2019) conformal sets, Lumen (gemma-4-31b-it), Claude (AI spot check, not a pathologist), NCSA Delta, `ncsa/ashby-hackathon-2026`. | — |
+Copy rules: plain, professional; assertion titles backed by a number; no slogans or question titles. Footer
+"Sepia · Research prototype, not for clinical use" plus the page number. BACH credit "Images: BACH (Aresta et al.,
+2019), CC BY-NC-ND 4.0" on every slide that shows BACH imagery. Frozen sections, margins, arrivals and operating rooms
+are called simulated. Speaker notes on every main slide are the 8-minute talk track.
 
-Before presenting: a team member should record a human spot check on the Evidence review page (`#/spotcheck`) so
-slide 11 can show human and AI reviews side by side.
+| # | Section | Title (numbers filled from data.json) | Content | Source |
+|---|---|---|---|---|
+| 1 | Aims | Sepia: confidence-aware triage for breast pathology | Team 44 · 2026 Ashby Prize in Computational Science Hackathon; research prototype, not for clinical use; worklist screenshot | screenshot |
+| 2 | Aims | Aim: read likely invasive carcinoma first, with its evidence and a calibrated confidence | Arrival-order queues; frozen sections need an answer in about {target} minutes; AI flags rarely explain. Three aims | queue_sim (frozen target) |
+| 3 | Aims | BACH_0167 arrived last of {n} biopsies and moved to tier {t} | Arrival → read and set {In situ, Invasive} → tier 2 → p63/calponin ordered; ER/PR/HER2/Ki-67 drafted for use if invasion is confirmed → sign-out waits for the stain result (not simulated). The summary cites mitoses and necrosis; the caption gives their AI spot checks so the pathologist discounts them. Reference label in situ | case file BACH_0167, spotcheck, metrics |
+| 4 | Methods | Foundation-model reads computed on NCSA Delta drive a four-tier worklist | Delta → laptop analytics → app; two lanes; four tiers; safety rule | design |
+| 5 | Methods | BACH: {400} microscopy images split by patient group into {218} / {50} / {132} | THUNDER split, test classes and patient groups, tissue QC | model_choice, conformal, metrics, analytics, qc |
+| 6 | Methods | The production read was chosen by grouped cross-validation inside the training split | CV log-loss forest with the one-SE limit; encoders on Delta; pre-registered 512-px round (round 1 → 2 macro-F1); LoRA fine-tuning of UNI2-h on Delta (3 recipes) beat identically processed frozen UNI2-h on CV but not on test (0.852 vs 0.858 macro-F1), so production is unchanged (`finetune`) | model_choice, metrics |
+| 7 | Methods | Temperature-scaled probabilities feed a conformal set; the set decides the tier | Logits → temperature → APS set → tier rule; BACH_0167 probabilities; safety rule; disclosed LAC→APS change | calibration, conformal, case file |
+| 8 | Results | All {31} invasive test images flagged; invasive-vs-rest AUROC {0.999} | AUROC, sensitivity, specificity (percent intervals), macro-F1 on the 0–100 scale of the published THUNDER UNI2-h probe; ROC; confusion matrix | metrics, analytics, thunder |
+| 9 | Results | {3} of {30} in situ images were read as invasive; {0} of {31} invasive as in situ | P(Invasive) histogram for in situ vs invasive; safety rule, p63/calponin | analytics, conformal |
+| 10 | Results | ECE {before} → {after} after temperature scaling; tier-set coverage {91.7%} | Reliability diagram; coverage of four methods (tier set chosen post hoc, disclosed); coverage across 1,000 re-splits | calibration, analytics, conformal, conformal_resplit (B) |
+| 11 | Results | All {31} invasive test images reached tiers 1–2 | Tier by true class table; all invasive images were read as invasive, so those routed to the simulated frozen lane would have reached tier 2 anyway (computed); in situ images lifted by the safety rule | analytics |
+| 12 | Results | Deferring the least reliable {20%} of mixed-model reads lifts kept accuracy from {a} to {b} | Deferral curve (y-axis from 0%); legible crop of the reliability flag; reliability error AUROC; degradation accuracy; **model mix stated next to every degraded-read number** (degraded reads are scored by fallback models, not the production model) | deferral (C), reliability, data/predictions.csv |
+| 13 | Results | Removing the {k} highest-contribution regions lowers P(Invasive) by {x}, vs {y} for random regions | Exact region contributions (method), contribution heatmap, deletion comparison of random / tile-probe / concept / contribution arms | deletion (A arm), screenshot |
+| 14 | Results | Spot check: invasion shown in {19/20} top regions, mitoses in {0/20} | Concept z-score by class; AI spot check (not a pathologist) with failures stated | concepts_bach, spotcheck |
+| 15 | Results | Simulated margins: clear margins kept clear in {100%} of composites; {45%} of involved WSI windows found | Margin read stats; OR board; defer path | margin, screenshots |
+| 16 | Results | In simulation, invasive cases are seen {14.2} min sooner and unflagged cases wait {25.2} min longer | Queue simulation with assumptions; aging guard had no measured effect | queue_sim, analytics |
+| 17 | Challenges | Six problems found during the build, and how each was handled | QC bug, LAC empty sets, PathMMU/BACH mismatch, one GPU per team, partial patient IDs, LLM summary validation | qc, conformal, case files |
+| 18 | Challenges | Next steps move from public images toward a silent prospective trial | External validation, pathologist review, whole slides, silent prospective trial | — |
+| 19 | Challenges | Limitations: a research prototype on public data, without clinical validation | Six limitations | metrics, conformal |
+| 20 | References | References: datasets, models, methods and compute | 22 citations in one style (first author + et al. for more than two authors), incl. concept bottleneck (Koh), Mondrian conformal (Vovk), Gemma; what still needs checking is in `outputs/deck/REFERENCES_TO_VERIFY.md` | README, metrics view, docs/research |
+| B1 | Backup | Backup: every evaluated model on the held-out test split | Test macro-F1 of every candidate; published THUNDER probes; zero-shot | thunder |
+| B2 | Backup | Backup: summaries are written only from structured findings and checked | Summary screenshot, validator steps, counts; states that the validator does not yet check whether a cited feature passed its spot check (this summary cites mitoses 0/20, necrosis 3/20) | case files, spotcheck |
+| B3 | Backup | Backup: accuracy under simulated artifacts, with the models that scored each read | Degradation curves, per-signal error AUROC, model mix per severity | reliability, data/predictions.csv |
+| B4 | Backup | Backup: deletion test as shown on the evaluation page | Evaluation-page screenshot | deletion |
+| B5 | Backup | Backup: oncology inbox after sign-out of a clearly invasive read (BACH_0084) | Inbox item; cited features with spot checks (19/20, 18/20) | case file BACH_0084, spotcheck |
+
+## Rebuild
+
+```sh
+python outputs/deck/extract_data.py            # final: fails if any required file or key is missing
+node   outputs/deck/build.js                   # refuses a data.json with pending inputs
+outputs/deck/render.sh                         # PDF + render_sepia/slide-NN.jpg
+# drafting only: add --allow-pending to both commands
+```
+
+Screenshots (after workstream A's contribution layer lands, re-capture so slide 13 shows it):
+see the docstring of `outputs/deck/capture_screens.py` (throwaway server on port 8011 over a copy of `artifacts/`).

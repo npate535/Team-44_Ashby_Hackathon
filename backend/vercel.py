@@ -27,7 +27,7 @@ from core import config
 
 ROOT = config.REPO_ROOT
 WORK = Path('/tmp/sepia-workspace')
-KEY = os.environ.get('SEPIA_WORKSPACE_KEY', 'sepia:workspace:v1')
+KEY = os.environ.get('SEPIA_WORKSPACE_KEY', 'sepia:workspace:v2')
 LEASE_MS = 480_000
 SAVE = """
 if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end

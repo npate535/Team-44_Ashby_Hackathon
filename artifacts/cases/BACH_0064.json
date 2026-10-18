@@ -21,7 +21,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.301,
+    "reliability": 0.77,
     "reliability_flag": true
   },
   "prediction": {
@@ -710,7 +710,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.3,
+        "reliability": 0.77,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -766,29 +766,28 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Normal breast tissue is suggested, and in situ carcinoma cannot be excluded.",
+        "text": "Suggested category: normal breast tissue (calibrated probability 0.56), and in situ carcinoma is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Features lowering the likelihood of invasive carcinoma in this read: dense lymphocytic infiltrate (TILs) and tumor infiltrating stroma (typical level).",
-        "findings": [
-          "F2",
-          "F4"
-        ]
-      },
-      {
-        "text": "Scarce atypical cells confined within ducts push the read toward invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce atypical cells confined within ducts (region 0).",
         "findings": [
           "F3"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced.",
+        "text": "Immune cell fraction is higher than in 100% of benign reference cases (regions 4, 8 and 9).",
+        "findings": [
+          "F7"
+        ]
+      },
+      {
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
         "findings": [
           "F6"
         ]

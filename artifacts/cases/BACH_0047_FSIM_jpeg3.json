@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.458,
+    "reliability": 0.77,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,20 +38,21 @@
       "Invasive"
     ],
     "probs": [
-      0.0314,
-      0.892,
-      0.0761,
-      0.0005
+      0.0315,
+      0.9102,
+      0.0581,
+      0.0003
     ],
-    "risk_score": 0.0005,
+    "risk_score": 0.0003,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "Benign"
+      "Benign",
+      "InSitu"
     ],
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -252,7 +253,7 @@
         "necrosis": 0.56
       },
       "attention": null,
-      "contribution": -0.2807
+      "contribution": -0.3535
     },
     {
       "idx": 1,
@@ -273,7 +274,7 @@
         "necrosis": -0.05
       },
       "attention": null,
-      "contribution": -0.2716
+      "contribution": -0.3878
     },
     {
       "idx": 2,
@@ -294,7 +295,7 @@
         "necrosis": -0.35
       },
       "attention": null,
-      "contribution": -0.421
+      "contribution": -0.449
     },
     {
       "idx": 3,
@@ -315,7 +316,7 @@
         "necrosis": -0.29
       },
       "attention": null,
-      "contribution": -0.3534
+      "contribution": -0.3984
     },
     {
       "idx": 4,
@@ -336,7 +337,7 @@
         "necrosis": 0.6
       },
       "attention": null,
-      "contribution": -0.3265
+      "contribution": -0.3208
     },
     {
       "idx": 5,
@@ -357,7 +358,7 @@
         "necrosis": -0.86
       },
       "attention": null,
-      "contribution": -0.3551
+      "contribution": -0.4025
     },
     {
       "idx": 6,
@@ -378,7 +379,7 @@
         "necrosis": -0.1
       },
       "attention": null,
-      "contribution": -0.4177
+      "contribution": -0.4506
     },
     {
       "idx": 7,
@@ -399,7 +400,7 @@
         "necrosis": -0.1
       },
       "attention": null,
-      "contribution": -0.3582
+      "contribution": -0.402
     },
     {
       "idx": 8,
@@ -420,7 +421,7 @@
         "necrosis": -0.69
       },
       "attention": null,
-      "contribution": -0.1376
+      "contribution": -0.1911
     },
     {
       "idx": 9,
@@ -441,7 +442,7 @@
         "necrosis": 0.01
       },
       "attention": null,
-      "contribution": -0.368
+      "contribution": -0.4796
     },
     {
       "idx": 10,
@@ -462,7 +463,7 @@
         "necrosis": -0.88
       },
       "attention": null,
-      "contribution": -0.4649
+      "contribution": -0.4519
     },
     {
       "idx": 11,
@@ -483,7 +484,7 @@
         "necrosis": -0.72
       },
       "attention": null,
-      "contribution": -0.2736
+      "contribution": -0.2466
     }
   ],
   "similar_cases": [
@@ -755,6 +756,7 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
+      "set_size_gt_1",
       "low_reliability",
       "surgical_frozen_section"
     ]
@@ -765,12 +767,13 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.892,
+        "p": 0.91,
         "set": [
-          "Benign"
+          "Benign",
+          "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.001
+        "risk": 0.0
       }
     },
     {
@@ -836,7 +839,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.46,
+        "reliability": 0.77,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -858,30 +861,29 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.91), and in situ carcinoma is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent gland / tubule formation is associated with a lower likelihood of invasive carcinoma.",
+        "text": "0 of 5 most similar reference cases share the suggested category (benign lesion).",
         "findings": [
-          "F4"
+          "F5"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma pushes the read away from invasive carcinoma.",
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
         "findings": [
-          "F3"
+          "F6"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced, and the suggested margin call (simulated frozen section) is to defer to permanent sections.",
+        "text": "Suggested margin call (simulated frozen section): defer to permanent sections, because the reliability check flagged this read.",
         "findings": [
-          "F6",
           "F7"
         ]
       }
@@ -891,23 +893,29 @@
     "status": "drafted",
     "orders": [
       {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "uncertain_benign_atypia",
+        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
+      },
+      {
         "type": "recut",
         "items": [
           "recut H&E section"
         ],
         "rule_id": "low_quality",
         "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
-      },
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "low_quality_levels",
-        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
       }
     ],
-    "blocked": []
+    "blocked": [
+      {
+        "action": "draft_stains",
+        "reason": "Stains are not drafted for simulated frozen sections.",
+        "rule_id": null
+      }
+    ]
   },
   "eval_only": {
     "true_label": "Benign",

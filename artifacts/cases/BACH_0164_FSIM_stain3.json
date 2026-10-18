@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.76,
-    "reliability": 0.98,
+    "reliability": 0.997,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -39,8 +39,8 @@
     ],
     "probs": [
       0.0,
-      0.9999,
-      0.0001,
+      0.9997,
+      0.0003,
       0.0
     ],
     "risk_score": 0.0,
@@ -51,7 +51,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -250,7 +250,7 @@
         "necrosis": -0.17
       },
       "attention": null,
-      "contribution": -0.3678
+      "contribution": -0.4161
     },
     {
       "idx": 1,
@@ -271,7 +271,7 @@
         "necrosis": 0.5
       },
       "attention": null,
-      "contribution": -0.4362
+      "contribution": -0.3787
     },
     {
       "idx": 2,
@@ -292,7 +292,7 @@
         "necrosis": -0.31
       },
       "attention": null,
-      "contribution": -0.4595
+      "contribution": -0.4523
     },
     {
       "idx": 3,
@@ -313,7 +313,7 @@
         "necrosis": -0.23
       },
       "attention": null,
-      "contribution": -0.4102
+      "contribution": -0.4448
     },
     {
       "idx": 4,
@@ -334,7 +334,7 @@
         "necrosis": 0.27
       },
       "attention": null,
-      "contribution": -0.4651
+      "contribution": -0.407
     },
     {
       "idx": 5,
@@ -355,7 +355,7 @@
         "necrosis": -0.19
       },
       "attention": null,
-      "contribution": -0.4836
+      "contribution": -0.4636
     },
     {
       "idx": 6,
@@ -376,7 +376,7 @@
         "necrosis": 0.88
       },
       "attention": null,
-      "contribution": -0.0804
+      "contribution": -0.125
     },
     {
       "idx": 7,
@@ -397,7 +397,7 @@
         "necrosis": -0.24
       },
       "attention": null,
-      "contribution": -0.3486
+      "contribution": -0.3458
     },
     {
       "idx": 8,
@@ -418,7 +418,7 @@
         "necrosis": -0.5
       },
       "attention": null,
-      "contribution": -0.448
+      "contribution": -0.4392
     },
     {
       "idx": 9,
@@ -439,7 +439,7 @@
         "necrosis": 0.21
       },
       "attention": null,
-      "contribution": -0.4165
+      "contribution": -0.3489
     },
     {
       "idx": 10,
@@ -460,7 +460,7 @@
         "necrosis": -0.06
       },
       "attention": null,
-      "contribution": -0.4079
+      "contribution": -0.4074
     },
     {
       "idx": 11,
@@ -481,7 +481,7 @@
         "necrosis": -0.12
       },
       "attention": null,
-      "contribution": -0.3415
+      "contribution": -0.431
     }
   ],
   "similar_cases": [
@@ -831,7 +831,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 0.76,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -853,25 +853,24 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested.",
+        "text": "Suggested category: benign lesion (calibrated probability 1.00); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma and prominent gland / tubule formation are associated with a lower likelihood of invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce benign fibrous stroma or fat (region 7).",
         "findings": [
-          "F2",
-          "F3"
+          "F4"
         ]
       },
       {
-        "text": "Scarce benign fibrous stroma or fat pushes the read toward invasive carcinoma.",
+        "text": "4 of 5 most similar reference cases share the suggested category (benign lesion).",
         "findings": [
-          "F4"
+          "F5"
         ]
       },
       {

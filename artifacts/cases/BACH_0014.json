@@ -21,7 +21,7 @@
   "quality": {
     "qc_tiles_kept": 10,
     "ood_percentile": 1.0,
-    "reliability": 0.301,
+    "reliability": 0.77,
     "reliability_flag": true
   },
   "prediction": {
@@ -671,7 +671,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.3,
+        "reliability": 0.77,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 10,
         "min_tiles_kept": 3
@@ -743,32 +743,30 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested, and in situ carcinoma cannot be excluded.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.83), and in situ carcinoma is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent gland / tubule formation and dense lymphocytic infiltrate push the read away from invasive carcinoma, while scarce benign fibrous stroma or fat pushes the read toward invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce benign fibrous stroma or fat (region 7).",
         "findings": [
-          "F2",
-          "F3",
-          "F4"
+          "F3"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced.",
-        "findings": [
-          "F6"
-        ]
-      },
-      {
-        "text": "Tumor cell fraction is higher than in 100% of benign reference cases.",
+        "text": "Tumor cell fraction is higher than in 100% of benign reference cases (regions 4, 5 and 6).",
         "findings": [
           "F7"
+        ]
+      },
+      {
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
+        "findings": [
+          "F6"
         ]
       }
     ]

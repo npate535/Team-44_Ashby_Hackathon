@@ -22,6 +22,11 @@ snapshot is about 48 KB. Changed case evidence requires an explicit workspace
 migration; it must not silently reset saved decisions. Do not delete Redis to
 deploy code.
 
+The October 18 variant update explicitly starts `sepia:workspace:v2` with
+the rebuilt UNI2-h 512-pixel case evidence. The previous `v1` workspace is
+retained for recovery; no recorded routed results existed at migration time.
+Deployment packages never copy the running laptop demo's SQLite database.
+
 Cursor's Linux CLI is compressed in the function bundle and extracted into
 `/tmp` when a new interpretation is requested. Cached interpretations need no
 model call. `CURSOR_API_KEY`, `CURSOR_API_KEY_BACKUP`, and

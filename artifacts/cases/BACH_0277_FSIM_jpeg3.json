@@ -12,7 +12,7 @@
   "source_case_ids": [
     "BACH_0277"
   ],
-  "arrived_offset_s": 24990.6,
+  "arrived_offset_s": 24979.7,
   "image": {
     "display": "images/BACH_0277_FSIM_jpeg3.jpg",
     "width": 2048,
@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.92,
-    "reliability": 0.958,
+    "reliability": 0.952,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,12 +38,12 @@
       "Invasive"
     ],
     "probs": [
-      0.159,
-      0.8194,
-      0.0214,
-      0.0003
+      0.4576,
+      0.5348,
+      0.0075,
+      0.0001
     ],
-    "risk_score": 0.0003,
+    "risk_score": 0.0001,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Normal",
@@ -52,7 +52,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -253,7 +253,7 @@
         "necrosis": 0.12
       },
       "attention": null,
-      "contribution": -0.3526
+      "contribution": -0.5251
     },
     {
       "idx": 1,
@@ -274,7 +274,7 @@
         "necrosis": 0.12
       },
       "attention": null,
-      "contribution": -0.4061
+      "contribution": -0.5201
     },
     {
       "idx": 2,
@@ -295,7 +295,7 @@
         "necrosis": 0.09
       },
       "attention": null,
-      "contribution": -0.4211
+      "contribution": -0.5147
     },
     {
       "idx": 3,
@@ -316,7 +316,7 @@
         "necrosis": -0.19
       },
       "attention": null,
-      "contribution": -0.5645
+      "contribution": -0.5305
     },
     {
       "idx": 4,
@@ -337,7 +337,7 @@
         "necrosis": -0.08
       },
       "attention": null,
-      "contribution": -0.5431
+      "contribution": -0.5704
     },
     {
       "idx": 5,
@@ -358,7 +358,7 @@
         "necrosis": -0.44
       },
       "attention": null,
-      "contribution": -0.4496
+      "contribution": -0.5818
     },
     {
       "idx": 6,
@@ -379,7 +379,7 @@
         "necrosis": -0.55
       },
       "attention": null,
-      "contribution": -0.4125
+      "contribution": -0.5309
     },
     {
       "idx": 7,
@@ -400,7 +400,7 @@
         "necrosis": 0.83
       },
       "attention": null,
-      "contribution": -0.3665
+      "contribution": -0.3655
     },
     {
       "idx": 8,
@@ -421,7 +421,7 @@
         "necrosis": -0.2
       },
       "attention": null,
-      "contribution": -0.2289
+      "contribution": -0.1962
     },
     {
       "idx": 9,
@@ -442,7 +442,7 @@
         "necrosis": -0.15
       },
       "attention": null,
-      "contribution": -0.2644
+      "contribution": -0.2727
     },
     {
       "idx": 10,
@@ -463,7 +463,7 @@
         "necrosis": -0.43
       },
       "attention": null,
-      "contribution": -0.2837
+      "contribution": -0.2393
     },
     {
       "idx": 11,
@@ -484,7 +484,7 @@
         "necrosis": 0.54
       },
       "attention": null,
-      "contribution": -0.2728
+      "contribution": -0.338
     }
   ],
   "similar_cases": [
@@ -766,7 +766,7 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.819,
+        "p": 0.535,
         "set": [
           "Normal",
           "Benign"
@@ -838,7 +838,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.96,
+        "reliability": 0.95,
         "ood_percentile": 0.92,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -860,25 +860,24 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested; normal breast tissue cannot be excluded.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.54), and normal breast tissue is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent normal lobules with two-layered epithelium and prominent gland / tubule formation are associated with a lower likelihood of invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: atypical cells confined within ducts (typical level; region 1).",
         "findings": [
-          "F2",
-          "F3"
+          "F4"
         ]
       },
       {
-        "text": "Typical atypical cells confined within ducts push the read toward invasive carcinoma.",
+        "text": "1 of 5 most similar reference cases shares the suggested category (benign lesion).",
         "findings": [
-          "F4"
+          "F5"
         ]
       },
       {

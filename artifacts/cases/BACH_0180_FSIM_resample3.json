@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.458,
-    "reliability_flag": true
+    "reliability": 0.989,
+    "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,12 +38,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0051,
-      0.0106,
-      0.0664,
-      0.9179
+      0.0048,
+      0.0033,
+      0.1323,
+      0.8596
     ],
-    "risk_score": 0.9179,
+    "risk_score": 0.8596,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Invasive"
@@ -51,7 +51,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -252,7 +252,7 @@
         "necrosis": 0.69
       },
       "attention": null,
-      "contribution": 0.293
+      "contribution": 0.3817
     },
     {
       "idx": 1,
@@ -273,7 +273,7 @@
         "necrosis": 0.74
       },
       "attention": null,
-      "contribution": 0.3139
+      "contribution": 0.2382
     },
     {
       "idx": 2,
@@ -294,7 +294,7 @@
         "necrosis": 0.88
       },
       "attention": null,
-      "contribution": 0.4164
+      "contribution": 0.4528
     },
     {
       "idx": 3,
@@ -315,7 +315,7 @@
         "necrosis": 1.0
       },
       "attention": null,
-      "contribution": 0.1732
+      "contribution": 0.1959
     },
     {
       "idx": 4,
@@ -336,7 +336,7 @@
         "necrosis": 0.71
       },
       "attention": null,
-      "contribution": 0.3991
+      "contribution": 0.4854
     },
     {
       "idx": 5,
@@ -357,7 +357,7 @@
         "necrosis": 0.56
       },
       "attention": null,
-      "contribution": 0.3675
+      "contribution": 0.4099
     },
     {
       "idx": 6,
@@ -378,7 +378,7 @@
         "necrosis": 0.49
       },
       "attention": null,
-      "contribution": 0.1982
+      "contribution": 0.2118
     },
     {
       "idx": 7,
@@ -399,7 +399,7 @@
         "necrosis": 0.24
       },
       "attention": null,
-      "contribution": 0.0213
+      "contribution": -0.1411
     },
     {
       "idx": 8,
@@ -420,7 +420,7 @@
         "necrosis": 0.78
       },
       "attention": null,
-      "contribution": 0.295
+      "contribution": 0.2507
     },
     {
       "idx": 9,
@@ -441,7 +441,7 @@
         "necrosis": 0.21
       },
       "attention": null,
-      "contribution": 0.1223
+      "contribution": 0.0927
     },
     {
       "idx": 10,
@@ -462,7 +462,7 @@
         "necrosis": 1.12
       },
       "attention": null,
-      "contribution": 0.1923
+      "contribution": 0.2338
     },
     {
       "idx": 11,
@@ -483,7 +483,7 @@
         "necrosis": 0.97
       },
       "attention": null,
-      "contribution": 0.345
+      "contribution": 0.3989
     }
   ],
   "similar_cases": [
@@ -533,7 +533,7 @@
     "neighbor_agreement": 0.4
   },
   "margin": {
-    "suggested_call": "defer",
+    "suggested_call": "clear",
     "involved": [],
     "per_margin": {
       "superior": 0.998481,
@@ -757,7 +757,6 @@
     "reasons": [
       "aggressive_top",
       "aggressive_in_conformal_set",
-      "low_reliability",
       "surgical_frozen_section"
     ]
   },
@@ -767,12 +766,12 @@
       "kind": "prediction",
       "data": {
         "top": "Invasive",
-        "p": 0.918,
+        "p": 0.86,
         "set": [
           "Invasive"
         ],
         "confidence": 0.9,
-        "risk": 0.918
+        "risk": 0.86
       }
     },
     {
@@ -835,8 +834,8 @@
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": true,
-        "reliability": 0.46,
+        "reliability_flag": false,
+        "reliability": 0.99,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -846,7 +845,7 @@
       "id": "F7",
       "kind": "margin",
       "data": {
-        "suggested_call": "defer",
+        "suggested_call": "clear",
         "involved": [],
         "per_margin": {
           "superior": 1.0,
@@ -858,55 +857,39 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested.",
+        "text": "Suggested category: invasive carcinoma (calibrated probability 0.86); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent nuclear pleomorphism pushes the read toward invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: marked nuclear pleomorphism (regions 4, 5 and 10), then scarce gland / tubule formation and normal lobules with two-layered epithelium (typical level).",
         "findings": [
-          "F2"
+          "F2",
+          "F3",
+          "F4"
         ]
       },
       {
-        "text": "Scarce gland / tubule formation pushes the read toward invasive carcinoma.",
+        "text": "2 of 5 most similar reference cases share the suggested category (invasive carcinoma).",
         "findings": [
-          "F3"
+          "F5"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced, and the suggested margin call (simulated frozen section) is to defer to permanent sections.",
+        "text": "Suggested margin call (simulated frozen section): margins clear.",
         "findings": [
-          "F6",
           "F7"
         ]
       }
     ]
   },
   "agent": {
-    "status": "drafted",
-    "orders": [
-      {
-        "type": "recut",
-        "items": [
-          "recut H&E section"
-        ],
-        "rule_id": "low_quality",
-        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
-      },
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "low_quality_levels",
-        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
-      }
-    ],
+    "status": "none",
+    "orders": [],
     "blocked": [
       {
         "action": "draft_stains",

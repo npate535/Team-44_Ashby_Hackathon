@@ -12,7 +12,7 @@
   "source_case_ids": [
     "BACH_0298"
   ],
-  "arrived_offset_s": 26134.6,
+  "arrived_offset_s": 25987.6,
   "image": {
     "display": "images/BACH_0298_FSIM_stain3.jpg",
     "width": 2048,
@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.94,
-    "reliability": 0.92,
+    "reliability": 0.955,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,22 +38,21 @@
       "Invasive"
     ],
     "probs": [
-      0.1108,
-      0.6451,
-      0.2418,
-      0.0023
+      0.1292,
+      0.7596,
+      0.1072,
+      0.004
     ],
-    "risk_score": 0.0023,
+    "risk_score": 0.004,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Normal",
-      "Benign",
-      "InSitu"
+      "Benign"
     ],
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -253,7 +252,7 @@
         "necrosis": 0.13
       },
       "attention": null,
-      "contribution": -0.1269
+      "contribution": -0.0227
     },
     {
       "idx": 1,
@@ -274,7 +273,7 @@
         "necrosis": -0.17
       },
       "attention": null,
-      "contribution": -0.2244
+      "contribution": -0.1794
     },
     {
       "idx": 2,
@@ -295,7 +294,7 @@
         "necrosis": 0.38
       },
       "attention": null,
-      "contribution": -0.3761
+      "contribution": -0.1907
     },
     {
       "idx": 3,
@@ -316,7 +315,7 @@
         "necrosis": -0.8
       },
       "attention": null,
-      "contribution": -0.3477
+      "contribution": -0.3131
     },
     {
       "idx": 4,
@@ -337,7 +336,7 @@
         "necrosis": -0.92
       },
       "attention": null,
-      "contribution": -0.2664
+      "contribution": -0.2558
     },
     {
       "idx": 5,
@@ -358,7 +357,7 @@
         "necrosis": 0.56
       },
       "attention": null,
-      "contribution": -0.3002
+      "contribution": -0.265
     },
     {
       "idx": 6,
@@ -379,7 +378,7 @@
         "necrosis": 0.44
       },
       "attention": null,
-      "contribution": -0.3244
+      "contribution": -0.3408
     },
     {
       "idx": 7,
@@ -400,7 +399,7 @@
         "necrosis": 0.04
       },
       "attention": null,
-      "contribution": -0.4
+      "contribution": -0.3968
     },
     {
       "idx": 8,
@@ -421,7 +420,7 @@
         "necrosis": -0.97
       },
       "attention": null,
-      "contribution": -0.1603
+      "contribution": -0.0886
     },
     {
       "idx": 9,
@@ -442,7 +441,7 @@
         "necrosis": 0.27
       },
       "attention": null,
-      "contribution": -0.2987
+      "contribution": -0.2517
     },
     {
       "idx": 10,
@@ -463,7 +462,7 @@
         "necrosis": -0.68
       },
       "attention": null,
-      "contribution": -0.4038
+      "contribution": -0.3735
     },
     {
       "idx": 11,
@@ -484,7 +483,7 @@
         "necrosis": -0.22
       },
       "attention": null,
-      "contribution": -0.2543
+      "contribution": -0.2764
     }
   ],
   "similar_cases": [
@@ -766,14 +765,13 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.645,
+        "p": 0.76,
         "set": [
           "Normal",
-          "Benign",
-          "InSitu"
+          "Benign"
         ],
         "confidence": 0.9,
-        "risk": 0.002
+        "risk": 0.004
       }
     },
     {
@@ -838,7 +836,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.92,
+        "reliability": 0.95,
         "ood_percentile": 0.94,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -860,23 +858,24 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested; normal breast tissue and in situ carcinoma cannot be excluded.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.76), and normal breast tissue is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent normal lobules with two-layered epithelium and prominent benign fibrous stroma or fat push the read away from invasive carcinoma.",
+        "text": "Features lowering the likelihood of invasive carcinoma in this read: prominent normal lobules with two-layered epithelium, prominent benign fibrous stroma or fat and scarce mitotic figures.",
         "findings": [
           "F2",
-          "F3"
+          "F3",
+          "F4"
         ]
       },
       {
-        "text": "0 of 5 most similar reference cases share the suggested category.",
+        "text": "0 of 5 most similar reference cases share the suggested category (benign lesion).",
         "findings": [
           "F5"
         ]
@@ -890,24 +889,9 @@
     ]
   },
   "agent": {
-    "status": "drafted",
-    "orders": [
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "uncertain_benign_atypia",
-        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
-      }
-    ],
-    "blocked": [
-      {
-        "action": "draft_stains",
-        "reason": "Stains are not drafted for simulated frozen sections.",
-        "rule_id": null
-      }
-    ]
+    "status": "none",
+    "orders": [],
+    "blocked": []
   },
   "eval_only": {
     "true_label": "Benign",

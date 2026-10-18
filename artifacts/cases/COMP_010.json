@@ -24,11 +24,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.956,
+    "reliability": 0.962,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -36,12 +36,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0071,
-      0.558,
-      0.3724,
-      0.0624
+      0.0026,
+      0.7752,
+      0.2014,
+      0.0208
     ],
-    "risk_score": 0.0624,
+    "risk_score": 0.0208,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Benign",
@@ -50,7 +50,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -252,7 +252,7 @@
         "necrosis": 0.99
       },
       "attention": null,
-      "contribution": -0.0237
+      "contribution": 0.065
     },
     {
       "idx": 1,
@@ -273,7 +273,7 @@
         "necrosis": 1.07
       },
       "attention": null,
-      "contribution": 0.2495
+      "contribution": 0.307
     },
     {
       "idx": 2,
@@ -294,7 +294,7 @@
         "necrosis": 1.65
       },
       "attention": null,
-      "contribution": 0.4273
+      "contribution": 0.5669
     },
     {
       "idx": 3,
@@ -315,7 +315,7 @@
         "necrosis": 1.64
       },
       "attention": null,
-      "contribution": 0.3454
+      "contribution": 0.5123
     },
     {
       "idx": 4,
@@ -336,7 +336,7 @@
         "necrosis": 1.38
       },
       "attention": null,
-      "contribution": -0.1468
+      "contribution": -0.339
     },
     {
       "idx": 5,
@@ -357,7 +357,7 @@
         "necrosis": 0.77
       },
       "attention": null,
-      "contribution": -0.1015
+      "contribution": -0.2858
     },
     {
       "idx": 6,
@@ -378,7 +378,7 @@
         "necrosis": 1.11
       },
       "attention": null,
-      "contribution": -0.0362
+      "contribution": -0.1074
     },
     {
       "idx": 7,
@@ -399,7 +399,7 @@
         "necrosis": 1.16
       },
       "attention": null,
-      "contribution": -0.0118
+      "contribution": -0.0791
     },
     {
       "idx": 8,
@@ -420,7 +420,7 @@
         "necrosis": 0.32
       },
       "attention": null,
-      "contribution": -0.3178
+      "contribution": -0.4345
     },
     {
       "idx": 9,
@@ -441,7 +441,7 @@
         "necrosis": -0.32
       },
       "attention": null,
-      "contribution": -0.3092
+      "contribution": -0.4037
     },
     {
       "idx": 10,
@@ -462,7 +462,7 @@
         "necrosis": -0.37
       },
       "attention": null,
-      "contribution": -0.2415
+      "contribution": -0.4308
     },
     {
       "idx": 11,
@@ -483,7 +483,7 @@
         "necrosis": -0.08
       },
       "attention": null,
-      "contribution": -0.2189
+      "contribution": -0.2646
     }
   ],
   "similar_cases": [
@@ -771,13 +771,13 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.558,
+        "p": 0.775,
         "set": [
           "Benign",
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.062
+        "risk": 0.021
       }
     },
     {
@@ -870,25 +870,25 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested; in situ carcinoma cannot be excluded.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.78), and in situ carcinoma is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent atypical cells confined within ducts are associated with a lower likelihood of invasive carcinoma.",
-        "findings": [
-          "F2"
-        ]
-      },
-      {
-        "text": "Scarce normal lobules and scarce benign fibrous stroma or fat push the read toward invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce normal lobules with two-layered epithelium (region 10), then scarce benign fibrous stroma or fat.",
         "findings": [
           "F3",
           "F4"
+        ]
+      },
+      {
+        "text": "2 of 5 most similar reference cases share the suggested category (benign lesion).",
+        "findings": [
+          "F5"
         ]
       },
       {

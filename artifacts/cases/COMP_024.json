@@ -24,11 +24,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.58,
-    "reliability": 0.964,
+    "reliability": 0.871,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -36,12 +36,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0046,
-      0.642,
-      0.3047,
-      0.0487
+      0.0064,
+      0.5318,
+      0.4228,
+      0.0391
     ],
-    "risk_score": 0.0487,
+    "risk_score": 0.0391,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Benign",
@@ -50,7 +50,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -252,7 +252,7 @@
         "necrosis": 1.09
       },
       "attention": null,
-      "contribution": 0.5844
+      "contribution": 0.5979
     },
     {
       "idx": 1,
@@ -273,7 +273,7 @@
         "necrosis": 0.92
       },
       "attention": null,
-      "contribution": 0.4113
+      "contribution": 0.4529
     },
     {
       "idx": 2,
@@ -294,7 +294,7 @@
         "necrosis": -0.41
       },
       "attention": null,
-      "contribution": -0.3148
+      "contribution": -0.438
     },
     {
       "idx": 3,
@@ -315,7 +315,7 @@
         "necrosis": -0.7
       },
       "attention": null,
-      "contribution": -0.5203
+      "contribution": -0.5509
     },
     {
       "idx": 4,
@@ -336,7 +336,7 @@
         "necrosis": 0.12
       },
       "attention": null,
-      "contribution": 0.1298
+      "contribution": 0.0316
     },
     {
       "idx": 5,
@@ -357,7 +357,7 @@
         "necrosis": 1.0
       },
       "attention": null,
-      "contribution": 0.3081
+      "contribution": 0.3146
     },
     {
       "idx": 6,
@@ -378,7 +378,7 @@
         "necrosis": 0.03
       },
       "attention": null,
-      "contribution": -0.4094
+      "contribution": -0.4779
     },
     {
       "idx": 7,
@@ -399,7 +399,7 @@
         "necrosis": 0.6
       },
       "attention": null,
-      "contribution": -0.2943
+      "contribution": -0.385
     },
     {
       "idx": 8,
@@ -420,7 +420,7 @@
         "necrosis": 0.8
       },
       "attention": null,
-      "contribution": 0.2511
+      "contribution": 0.4267
     },
     {
       "idx": 9,
@@ -441,7 +441,7 @@
         "necrosis": 1.25
       },
       "attention": null,
-      "contribution": 0.2268
+      "contribution": 0.1955
     },
     {
       "idx": 10,
@@ -462,7 +462,7 @@
         "necrosis": -0.37
       },
       "attention": null,
-      "contribution": -0.4183
+      "contribution": -0.4218
     },
     {
       "idx": 11,
@@ -483,7 +483,7 @@
         "necrosis": -0.63
       },
       "attention": null,
-      "contribution": -0.398
+      "contribution": -0.4852
     }
   ],
   "similar_cases": [
@@ -773,13 +773,13 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.642,
+        "p": 0.532,
         "set": [
           "Benign",
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.049
+        "risk": 0.039
       }
     },
     {
@@ -843,7 +843,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.96,
+        "reliability": 0.87,
         "ood_percentile": 0.58,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -874,16 +874,16 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested, and in situ carcinoma cannot be excluded.",
+        "text": "Suggested category: benign lesion (calibrated probability 0.53), and in situ carcinoma is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma, prominent normal lobules with two-layered epithelium, and prominent gland / tubule formation are associated with a lower likelihood of invasive carcinoma.",
+        "text": "Features lowering the likelihood of invasive carcinoma in this read: scarce tumor infiltrating stroma, prominent normal lobules with two-layered epithelium and prominent gland / tubule formation.",
         "findings": [
           "F2",
           "F3",
@@ -891,13 +891,13 @@
         ]
       },
       {
-        "text": "4 of 5 most similar reference cases share the suggested category.",
+        "text": "4 of 5 most similar reference cases share the suggested category (benign lesion).",
         "findings": [
           "F5"
         ]
       },
       {
-        "text": "Suggested margin call (simulated frozen section): tumor at the superior, inferior, and medial margins.",
+        "text": "Suggested margin call (simulated frozen section): tumor at the superior, inferior and medial margins.",
         "findings": [
           "F7"
         ]

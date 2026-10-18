@@ -12,7 +12,7 @@
   "source_case_ids": [
     "BACH_0258"
   ],
-  "arrived_offset_s": 24938.5,
+  "arrived_offset_s": 24891.2,
   "image": {
     "display": "images/BACH_0258_FSIM_resample3.jpg",
     "width": 2048,
@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.18,
+    "reliability": 0.77,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,22 +38,21 @@
       "Invasive"
     ],
     "probs": [
-      0.0227,
-      0.1495,
-      0.6942,
-      0.1336
+      0.0303,
+      0.2612,
+      0.684,
+      0.0245
     ],
-    "risk_score": 0.1336,
+    "risk_score": 0.0245,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Benign",
-      "InSitu",
-      "Invasive"
+      "InSitu"
     ],
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -252,7 +251,7 @@
         "necrosis": -0.64
       },
       "attention": null,
-      "contribution": 0.0256
+      "contribution": -0.1337
     },
     {
       "idx": 1,
@@ -273,7 +272,7 @@
         "necrosis": 1.14
       },
       "attention": null,
-      "contribution": 0.0695
+      "contribution": -0.0387
     },
     {
       "idx": 2,
@@ -294,7 +293,7 @@
         "necrosis": 1.01
       },
       "attention": null,
-      "contribution": 0.024
+      "contribution": -0.0347
     },
     {
       "idx": 3,
@@ -315,7 +314,7 @@
         "necrosis": 0.14
       },
       "attention": null,
-      "contribution": 0.1121
+      "contribution": -0.0984
     },
     {
       "idx": 4,
@@ -336,7 +335,7 @@
         "necrosis": 0.15
       },
       "attention": null,
-      "contribution": -0.0791
+      "contribution": -0.204
     },
     {
       "idx": 5,
@@ -357,7 +356,7 @@
         "necrosis": 0.95
       },
       "attention": null,
-      "contribution": 0.1814
+      "contribution": 0.0342
     },
     {
       "idx": 6,
@@ -378,7 +377,7 @@
         "necrosis": 0.98
       },
       "attention": null,
-      "contribution": 0.0778
+      "contribution": -0.0274
     },
     {
       "idx": 7,
@@ -399,7 +398,7 @@
         "necrosis": 0.78
       },
       "attention": null,
-      "contribution": 0.0085
+      "contribution": -0.0963
     },
     {
       "idx": 8,
@@ -420,7 +419,7 @@
         "necrosis": -0.27
       },
       "attention": null,
-      "contribution": -0.2077
+      "contribution": -0.2969
     },
     {
       "idx": 9,
@@ -441,7 +440,7 @@
         "necrosis": 0.19
       },
       "attention": null,
-      "contribution": -0.1566
+      "contribution": -0.247
     },
     {
       "idx": 10,
@@ -462,7 +461,7 @@
         "necrosis": -0.11
       },
       "attention": null,
-      "contribution": 0.0113
+      "contribution": -0.2666
     },
     {
       "idx": 11,
@@ -483,7 +482,7 @@
         "necrosis": -0.14
       },
       "attention": null,
-      "contribution": 0.004
+      "contribution": -0.0117
     }
   ],
   "similar_cases": [
@@ -755,7 +754,6 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
-      "aggressive_in_conformal_set",
       "set_size_gt_1",
       "low_reliability",
       "surgical_frozen_section"
@@ -767,14 +765,13 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.694,
+        "p": 0.684,
         "set": [
           "Benign",
-          "InSitu",
-          "Invasive"
+          "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.134
+        "risk": 0.025
       }
     },
     {
@@ -837,7 +834,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.18,
+        "reliability": 0.77,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -859,31 +856,29 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested; a benign lesion and invasive carcinoma cannot be excluded.",
+        "text": "Suggested category: in situ carcinoma (calibrated probability 0.68), and benign lesion is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma pushes the read away from invasive carcinoma.",
-        "findings": [
-          "F2"
-        ]
-      },
-      {
-        "text": "Scarce normal lobules with two-layered epithelium pushes the read toward invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce normal lobules with two-layered epithelium (region 0).",
         "findings": [
           "F3"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced; 3 of 5 most similar reference cases share the suggested category; suggested margin call (simulated frozen section): defer to permanent sections.",
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
         "findings": [
-          "F6",
-          "F5",
+          "F6"
+        ]
+      },
+      {
+        "text": "Suggested margin call (simulated frozen section): defer to permanent sections, because the reliability check flagged this read.",
+        "findings": [
           "F7"
         ]
       }

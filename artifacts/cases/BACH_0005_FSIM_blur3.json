@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.977,
+    "reliability": 0.999,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -40,10 +40,10 @@
     "probs": [
       0.0,
       0.0,
-      0.0002,
-      0.9998
+      0.0001,
+      0.9999
     ],
-    "risk_score": 0.9998,
+    "risk_score": 0.9999,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Invasive"
@@ -51,7 +51,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -251,7 +251,7 @@
         "necrosis": 0.78
       },
       "attention": null,
-      "contribution": 0.7814
+      "contribution": 0.7788
     },
     {
       "idx": 1,
@@ -272,7 +272,7 @@
         "necrosis": 0.36
       },
       "attention": null,
-      "contribution": 0.572
+      "contribution": 0.6814
     },
     {
       "idx": 2,
@@ -293,7 +293,7 @@
         "necrosis": 0.77
       },
       "attention": null,
-      "contribution": 0.6939
+      "contribution": 0.7546
     },
     {
       "idx": 3,
@@ -314,7 +314,7 @@
         "necrosis": 0.63
       },
       "attention": null,
-      "contribution": 0.5194
+      "contribution": 0.5907
     },
     {
       "idx": 4,
@@ -335,7 +335,7 @@
         "necrosis": 0.66
       },
       "attention": null,
-      "contribution": 0.6802
+      "contribution": 0.7777
     },
     {
       "idx": 5,
@@ -356,7 +356,7 @@
         "necrosis": 0.36
       },
       "attention": null,
-      "contribution": 0.5127
+      "contribution": 0.6456
     },
     {
       "idx": 6,
@@ -377,7 +377,7 @@
         "necrosis": 1.04
       },
       "attention": null,
-      "contribution": 0.7658
+      "contribution": 0.8014
     },
     {
       "idx": 7,
@@ -398,7 +398,7 @@
         "necrosis": 0.54
       },
       "attention": null,
-      "contribution": 0.591
+      "contribution": 0.6728
     },
     {
       "idx": 8,
@@ -419,7 +419,7 @@
         "necrosis": 0.21
       },
       "attention": null,
-      "contribution": 0.6543
+      "contribution": 0.7933
     },
     {
       "idx": 9,
@@ -440,7 +440,7 @@
         "necrosis": 0.81
       },
       "attention": null,
-      "contribution": 0.706
+      "contribution": 0.7172
     },
     {
       "idx": 10,
@@ -461,7 +461,7 @@
         "necrosis": 0.34
       },
       "attention": null,
-      "contribution": 0.6332
+      "contribution": 0.707
     },
     {
       "idx": 11,
@@ -482,7 +482,7 @@
         "necrosis": 0.64
       },
       "attention": null,
-      "contribution": 0.5368
+      "contribution": 0.6398
     }
   ],
   "similar_cases": [
@@ -838,7 +838,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -867,25 +867,26 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested.",
+        "text": "Suggested category: invasive carcinoma (calibrated probability 1.00); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Strongest push toward invasive carcinoma in this read: scarce lymphocytic infiltrate (TILs; region 0).",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce lymphocytic infiltrate (TILs; region 0), then scarce normal lobules with two-layered epithelium and scarce gland / tubule formation.",
         "findings": [
-          "F2"
+          "F2",
+          "F3",
+          "F4"
         ]
       },
       {
-        "text": "Scarce normal lobules and scarce gland / tubule formation push the read toward invasive carcinoma.",
+        "text": "5 of 5 most similar reference cases share the suggested category (invasive carcinoma).",
         "findings": [
-          "F3",
-          "F4"
+          "F5"
         ]
       },
       {

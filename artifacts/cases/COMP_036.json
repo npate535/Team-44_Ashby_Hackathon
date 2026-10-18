@@ -24,11 +24,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.301,
+    "reliability": 0.77,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -36,12 +36,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0329,
-      0.5888,
-      0.3654,
-      0.0129
+      0.0366,
+      0.4429,
+      0.5081,
+      0.0123
     ],
-    "risk_score": 0.0129,
+    "risk_score": 0.0123,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Benign",
@@ -50,7 +50,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -251,7 +251,7 @@
         "necrosis": 1.41
       },
       "attention": null,
-      "contribution": 0.0495
+      "contribution": 0.1053
     },
     {
       "idx": 1,
@@ -272,7 +272,7 @@
         "necrosis": 0.96
       },
       "attention": null,
-      "contribution": 0.2624
+      "contribution": 0.2362
     },
     {
       "idx": 2,
@@ -293,7 +293,7 @@
         "necrosis": -0.61
       },
       "attention": null,
-      "contribution": -0.4542
+      "contribution": -0.5246
     },
     {
       "idx": 3,
@@ -314,7 +314,7 @@
         "necrosis": -0.05
       },
       "attention": null,
-      "contribution": -0.3514
+      "contribution": -0.4691
     },
     {
       "idx": 4,
@@ -335,7 +335,7 @@
         "necrosis": 1.26
       },
       "attention": null,
-      "contribution": 0.0244
+      "contribution": 0.0749
     },
     {
       "idx": 5,
@@ -356,7 +356,7 @@
         "necrosis": 0.99
       },
       "attention": null,
-      "contribution": 0.2268
+      "contribution": 0.2243
     },
     {
       "idx": 6,
@@ -377,7 +377,7 @@
         "necrosis": -0.19
       },
       "attention": null,
-      "contribution": -0.4769
+      "contribution": -0.5605
     },
     {
       "idx": 7,
@@ -398,7 +398,7 @@
         "necrosis": 0.2
       },
       "attention": null,
-      "contribution": -0.5942
+      "contribution": -0.5654
     },
     {
       "idx": 8,
@@ -419,7 +419,7 @@
         "necrosis": 0.81
       },
       "attention": null,
-      "contribution": 0.0492
+      "contribution": 0.092
     },
     {
       "idx": 9,
@@ -440,7 +440,7 @@
         "necrosis": 1.09
       },
       "attention": null,
-      "contribution": 0.2428
+      "contribution": 0.3067
     },
     {
       "idx": 10,
@@ -461,7 +461,7 @@
         "necrosis": -0.12
       },
       "attention": null,
-      "contribution": -0.4684
+      "contribution": -0.4272
     },
     {
       "idx": 11,
@@ -482,7 +482,7 @@
         "necrosis": 0.2
       },
       "attention": null,
-      "contribution": -0.4691
+      "contribution": -0.5348
     }
   ],
   "similar_cases": [
@@ -518,18 +518,18 @@
     }
   ],
   "contrast_case": {
-    "case_id": "BACH_0138",
-    "label": "Invasive",
-    "similarity": 0.832,
+    "case_id": "BACH_0147",
+    "label": "Benign",
+    "similarity": 0.84,
     "differs_most_in": [
-      "invasion",
-      "lymphocytes"
+      "lymphocytes",
+      "mitoses"
     ],
-    "image": "images/BACH_0138.jpg"
+    "image": "images/BACH_0147.jpg"
   },
   "agreement": {
     "conch_musk_same_top": false,
-    "neighbor_agreement": 0.6
+    "neighbor_agreement": 0.2
   },
   "margin": {
     "suggested_call": "defer",
@@ -764,14 +764,14 @@
       "id": "F1",
       "kind": "prediction",
       "data": {
-        "top": "Benign",
-        "p": 0.589,
+        "top": "InSitu",
+        "p": 0.508,
         "set": [
           "Benign",
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.013
+        "risk": 0.012
       }
     },
     {
@@ -825,9 +825,9 @@
       "id": "F5",
       "kind": "retrieval",
       "data": {
-        "agree": 3,
+        "agree": 1,
         "of": 5,
-        "label": "Benign"
+        "label": "InSitu"
       }
     },
     {
@@ -835,7 +835,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.3,
+        "reliability": 0.77,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -857,25 +857,24 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested; in situ carcinoma cannot be excluded.",
+        "text": "Suggested category: in situ carcinoma (calibrated probability 0.51), and benign lesion is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma pushes the read away from invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce lymphocytic infiltrate (TILs; region 2).",
         "findings": [
-          "F2"
+          "F4"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced; 3 of 5 most similar reference cases share the suggested category.",
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
         "findings": [
-          "F6",
-          "F5"
+          "F6"
         ]
       },
       {

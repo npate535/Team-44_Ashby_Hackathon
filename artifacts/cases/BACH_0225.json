@@ -21,8 +21,8 @@
   "quality": {
     "qc_tiles_kept": 10,
     "ood_percentile": 1.0,
-    "reliability": 0.458,
-    "reliability_flag": true
+    "reliability": 0.989,
+    "reliability_flag": false
   },
   "prediction": {
     "model": "uni2h512_lr",
@@ -485,8 +485,12 @@
     "neighbor_agreement": 0.8
   },
   "margin": {
-    "suggested_call": "defer",
-    "involved": [],
+    "suggested_call": "tumor_at_margin",
+    "involved": [
+      "superior",
+      "inferior",
+      "lateral"
+    ],
     "per_margin": {
       "superior": 0.999978,
       "inferior": 0.99998,
@@ -693,7 +697,11 @@
         "p": 0.992576
       }
     ],
-    "involved_length_um": null
+    "involved_length_um": {
+      "superior": 215.0,
+      "inferior": 430.1,
+      "lateral": 215.0
+    }
   },
   "cells": {
     "status": "ok",
@@ -800,7 +808,6 @@
     "reasons": [
       "aggressive_top",
       "aggressive_in_conformal_set",
-      "low_reliability",
       "surgical_frozen_section"
     ]
   },
@@ -876,8 +883,8 @@
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": true,
-        "reliability": 0.46,
+        "reliability_flag": false,
+        "reliability": 0.99,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 10,
         "min_tiles_kept": 3
@@ -935,28 +942,37 @@
       "id": "F10",
       "kind": "margin",
       "data": {
-        "suggested_call": "defer",
-        "involved": [],
+        "suggested_call": "tumor_at_margin",
+        "involved": [
+          "superior",
+          "inferior",
+          "lateral"
+        ],
         "per_margin": {
           "superior": 1.0,
           "inferior": 1.0,
           "medial": 1.0,
           "lateral": 1.0
+        },
+        "involved_length_um": {
+          "superior": 215,
+          "inferior": 430,
+          "lateral": 215
         }
       }
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested.",
+        "text": "Suggested category: invasive carcinoma (calibrated probability 0.97); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce normal lobules, scarce gland / tubule formation, and scarce benign fibrous stroma or fat push the read toward invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce normal lobules with two-layered epithelium (region 7), then scarce gland / tubule formation and scarce benign fibrous stroma or fat.",
         "findings": [
           "F2",
           "F3",
@@ -964,43 +980,22 @@
         ]
       },
       {
-        "text": "4 of 5 most similar reference cases share the suggested category.",
+        "text": "No benign reference case has a lower nuclear size (regions 3, 5 and 8).",
         "findings": [
-          "F5"
+          "F7"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced; no benign reference case has a lower nuclear size, while variation in nuclear size and benign epithelial fraction are higher than in 95% and 92% of benign reference cases, respectively; suggested margin call (simulated frozen section): defer to permanent sections.",
+        "text": "Suggested margin call (simulated frozen section): tumor at the superior, inferior and lateral margins.",
         "findings": [
-          "F6",
-          "F7",
-          "F8",
-          "F9",
           "F10"
         ]
       }
     ]
   },
   "agent": {
-    "status": "drafted",
-    "orders": [
-      {
-        "type": "recut",
-        "items": [
-          "recut H&E section"
-        ],
-        "rule_id": "low_quality",
-        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
-      },
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "low_quality_levels",
-        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
-      }
-    ],
+    "status": "none",
+    "orders": [],
     "blocked": [
       {
         "action": "draft_stains",

@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.301,
+    "reliability": 0.77,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,12 +38,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0074,
-      0.0048,
-      0.3362,
-      0.6516
+      0.0024,
+      0.0018,
+      0.3849,
+      0.6109
     ],
-    "risk_score": 0.6516,
+    "risk_score": 0.6109,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "InSitu",
@@ -52,7 +52,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -253,7 +253,7 @@
         "necrosis": 0.15
       },
       "attention": null,
-      "contribution": 0.0437
+      "contribution": -0.0124
     },
     {
       "idx": 1,
@@ -274,7 +274,7 @@
         "necrosis": 0.99
       },
       "attention": null,
-      "contribution": 0.2129
+      "contribution": 0.1905
     },
     {
       "idx": 2,
@@ -295,7 +295,7 @@
         "necrosis": 1.81
       },
       "attention": null,
-      "contribution": 0.2827
+      "contribution": 0.2231
     },
     {
       "idx": 3,
@@ -316,7 +316,7 @@
         "necrosis": 1.35
       },
       "attention": null,
-      "contribution": 0.224
+      "contribution": 0.3952
     },
     {
       "idx": 4,
@@ -337,7 +337,7 @@
         "necrosis": 0.65
       },
       "attention": null,
-      "contribution": 0.2322
+      "contribution": 0.2555
     },
     {
       "idx": 5,
@@ -358,7 +358,7 @@
         "necrosis": 0.02
       },
       "attention": null,
-      "contribution": 0.1254
+      "contribution": 0.1711
     },
     {
       "idx": 6,
@@ -379,7 +379,7 @@
         "necrosis": 2.59
       },
       "attention": null,
-      "contribution": 0.2945
+      "contribution": 0.1994
     },
     {
       "idx": 7,
@@ -400,7 +400,7 @@
         "necrosis": 1.15
       },
       "attention": null,
-      "contribution": 0.228
+      "contribution": 0.3102
     },
     {
       "idx": 8,
@@ -421,7 +421,7 @@
         "necrosis": 1.08
       },
       "attention": null,
-      "contribution": 0.2034
+      "contribution": 0.2102
     },
     {
       "idx": 9,
@@ -442,7 +442,7 @@
         "necrosis": 1.7
       },
       "attention": null,
-      "contribution": 0.3206
+      "contribution": 0.4068
     },
     {
       "idx": 10,
@@ -463,7 +463,7 @@
         "necrosis": 0.73
       },
       "attention": null,
-      "contribution": 0.2802
+      "contribution": 0.3124
     },
     {
       "idx": 11,
@@ -484,7 +484,7 @@
         "necrosis": -0.09
       },
       "attention": null,
-      "contribution": 0.1308
+      "contribution": 0.3505
     }
   ],
   "similar_cases": [
@@ -769,13 +769,13 @@
       "kind": "prediction",
       "data": {
         "top": "Invasive",
-        "p": 0.652,
+        "p": 0.611,
         "set": [
           "InSitu",
           "Invasive"
         ],
         "confidence": 0.9,
-        "risk": 0.652
+        "risk": 0.611
       }
     },
     {
@@ -839,7 +839,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.3,
+        "reliability": 0.77,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -861,10 +861,10 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested, and in situ carcinoma cannot be excluded.",
+        "text": "Suggested category: invasive carcinoma (calibrated probability 0.61), and in situ carcinoma is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
@@ -878,15 +878,14 @@
         ]
       },
       {
-        "text": "4 of 5 most similar reference cases share the suggested category.",
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
         "findings": [
-          "F5"
+          "F6"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced; suggested margin call (simulated frozen section): defer to permanent sections.",
+        "text": "Suggested margin call (simulated frozen section): defer to permanent sections, because the reliability check flagged this read.",
         "findings": [
-          "F6",
           "F7"
         ]
       }

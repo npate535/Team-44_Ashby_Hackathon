@@ -12,7 +12,7 @@
   "source_case_ids": [
     "BACH_0277"
   ],
-  "arrived_offset_s": 24979.7,
+  "arrived_offset_s": 24977.0,
   "image": {
     "display": "images/BACH_0277_FSIM_blur3.jpg",
     "width": 2048,
@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.78,
-    "reliability": 0.325,
-    "reliability_flag": true
+    "reliability": 0.927,
+    "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,12 +38,12 @@
       "Invasive"
     ],
     "probs": [
-      0.2189,
-      0.7707,
-      0.0063,
-      0.0041
+      0.6888,
+      0.3105,
+      0.0006,
+      0.0001
     ],
-    "risk_score": 0.0041,
+    "risk_score": 0.0001,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Normal",
@@ -52,7 +52,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -249,7 +249,7 @@
         "necrosis": -0.16
       },
       "attention": null,
-      "contribution": -0.1879
+      "contribution": -0.4946
     },
     {
       "idx": 1,
@@ -270,7 +270,7 @@
         "necrosis": -0.42
       },
       "attention": null,
-      "contribution": -0.2919
+      "contribution": -0.5137
     },
     {
       "idx": 2,
@@ -291,7 +291,7 @@
         "necrosis": -0.44
       },
       "attention": null,
-      "contribution": -0.321
+      "contribution": -0.4716
     },
     {
       "idx": 3,
@@ -312,7 +312,7 @@
         "necrosis": -0.64
       },
       "attention": null,
-      "contribution": -0.4158
+      "contribution": -0.4747
     },
     {
       "idx": 4,
@@ -333,7 +333,7 @@
         "necrosis": -0.3
       },
       "attention": null,
-      "contribution": -0.3698
+      "contribution": -0.5233
     },
     {
       "idx": 5,
@@ -354,7 +354,7 @@
         "necrosis": -0.72
       },
       "attention": null,
-      "contribution": -0.2371
+      "contribution": -0.5604
     },
     {
       "idx": 6,
@@ -375,7 +375,7 @@
         "necrosis": -0.46
       },
       "attention": null,
-      "contribution": -0.2194
+      "contribution": -0.5268
     },
     {
       "idx": 7,
@@ -396,7 +396,7 @@
         "necrosis": -0.11
       },
       "attention": null,
-      "contribution": -0.0773
+      "contribution": -0.2931
     },
     {
       "idx": 8,
@@ -417,7 +417,7 @@
         "necrosis": -0.88
       },
       "attention": null,
-      "contribution": -0.0371
+      "contribution": -0.2937
     },
     {
       "idx": 9,
@@ -438,7 +438,7 @@
         "necrosis": -0.45
       },
       "attention": null,
-      "contribution": -0.052
+      "contribution": -0.2857
     },
     {
       "idx": 10,
@@ -459,7 +459,7 @@
         "necrosis": -0.72
       },
       "attention": null,
-      "contribution": -0.0596
+      "contribution": -0.1898
     },
     {
       "idx": 11,
@@ -480,7 +480,7 @@
         "necrosis": -0.46
       },
       "attention": null,
-      "contribution": -0.0681
+      "contribution": -0.2287
     }
   ],
   "similar_cases": [
@@ -516,21 +516,21 @@
     }
   ],
   "contrast_case": {
-    "case_id": "BACH_0129",
-    "label": "Normal",
-    "similarity": 0.88,
+    "case_id": "BACH_0361",
+    "label": "Benign",
+    "similarity": 0.886,
     "differs_most_in": [
-      "pleomorphism",
-      "benign_stroma_fat"
+      "necrosis",
+      "invasion"
     ],
-    "image": "images/BACH_0129.jpg"
+    "image": "images/BACH_0361.jpg"
   },
   "agreement": {
-    "conch_musk_same_top": false,
-    "neighbor_agreement": 0.2
+    "conch_musk_same_top": true,
+    "neighbor_agreement": 0.8
   },
   "margin": {
-    "suggested_call": "defer",
+    "suggested_call": "clear",
     "involved": [],
     "per_margin": {
       "superior": 0.188455,
@@ -753,7 +753,6 @@
     "tier": 1,
     "reasons": [
       "set_size_gt_1",
-      "low_reliability",
       "surgical_frozen_section"
     ]
   },
@@ -762,14 +761,14 @@
       "id": "F1",
       "kind": "prediction",
       "data": {
-        "top": "Benign",
-        "p": 0.771,
+        "top": "Normal",
+        "p": 0.689,
         "set": [
           "Normal",
           "Benign"
         ],
         "confidence": 0.9,
-        "risk": 0.004
+        "risk": 0.0
       }
     },
     {
@@ -821,17 +820,17 @@
       "id": "F5",
       "kind": "retrieval",
       "data": {
-        "agree": 1,
+        "agree": 4,
         "of": 5,
-        "label": "Benign"
+        "label": "Normal"
       }
     },
     {
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": true,
-        "reliability": 0.33,
+        "reliability_flag": false,
+        "reliability": 0.93,
         "ood_percentile": 0.78,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -841,7 +840,7 @@
       "id": "F7",
       "kind": "margin",
       "data": {
-        "suggested_call": "defer",
+        "suggested_call": "clear",
         "involved": [],
         "per_margin": {
           "superior": 0.19,
@@ -853,28 +852,29 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested; normal breast tissue cannot be excluded.",
+        "text": "Suggested category: normal breast tissue (calibrated probability 0.69), and benign lesion is also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma pushes the read away from invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce atypical cells confined within ducts (region 1), then lymphocytic infiltrate (TILs) (typical level).",
         "findings": [
-          "F2"
+          "F3",
+          "F4"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced.",
+        "text": "4 of 5 most similar reference cases share the suggested category (normal breast tissue).",
         "findings": [
-          "F6"
+          "F5"
         ]
       },
       {
-        "text": "Suggested margin call (simulated frozen section): defer to permanent sections.",
+        "text": "Suggested margin call (simulated frozen section): margins clear.",
         "findings": [
           "F7"
         ]
@@ -882,25 +882,8 @@
     ]
   },
   "agent": {
-    "status": "drafted",
-    "orders": [
-      {
-        "type": "recut",
-        "items": [
-          "recut H&E section"
-        ],
-        "rule_id": "low_quality",
-        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
-      },
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "low_quality_levels",
-        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
-      }
-    ],
+    "status": "none",
+    "orders": [],
     "blocked": []
   },
   "eval_only": {

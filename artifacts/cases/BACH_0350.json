@@ -21,8 +21,8 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.458,
-    "reliability_flag": true
+    "reliability": 0.989,
+    "reliability_flag": false
   },
   "prediction": {
     "model": "uni2h512_lr",
@@ -628,11 +628,9 @@
     }
   },
   "flag": {
-    "flagged": true,
-    "tier": 3,
-    "reasons": [
-      "low_reliability"
-    ]
+    "flagged": false,
+    "tier": 4,
+    "reasons": []
   },
   "findings": [
     {
@@ -708,8 +706,8 @@
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": true,
-        "reliability": 0.46,
+        "reliability_flag": false,
+        "reliability": 0.99,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -781,31 +779,30 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested.",
+        "text": "Suggested category: in situ carcinoma (calibrated probability 0.92); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Features lowering the likelihood of invasive carcinoma in this read: prominent atypical cells confined within ducts and scarce tumor infiltrating stroma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce lymphocytic infiltrate (TILs; region 8).",
         "findings": [
-          "F2",
-          "F4"
+          "F3"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced.",
-        "findings": [
-          "F6"
-        ]
-      },
-      {
-        "text": "Tumor cell fraction is higher than in 100% of benign reference cases.",
+        "text": "Tumor cell fraction is higher than in 100% of benign reference cases (regions 2, 6 and 8).",
         "findings": [
           "F7"
+        ]
+      },
+      {
+        "text": "2 of 5 most similar reference cases share the suggested category (in situ carcinoma).",
+        "findings": [
+          "F5"
         ]
       }
     ]
@@ -820,22 +817,6 @@
         ],
         "rule_id": "breast_insitu",
         "rationale": "ER status is recommended for ductal carcinoma in situ (ASCO/CAP 2020)."
-      },
-      {
-        "type": "recut",
-        "items": [
-          "recut H&E section"
-        ],
-        "rule_id": "low_quality",
-        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
-      },
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "low_quality_levels",
-        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
       }
     ],
     "blocked": []

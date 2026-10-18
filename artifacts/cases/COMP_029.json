@@ -24,11 +24,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.9,
-    "reliability": 0.312,
+    "reliability": 0.081,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -36,21 +36,22 @@
       "Invasive"
     ],
     "probs": [
-      0.1507,
-      0.3771,
-      0.466,
-      0.0062
+      0.2708,
+      0.1409,
+      0.5649,
+      0.0233
     ],
-    "risk_score": 0.0062,
+    "risk_score": 0.0233,
     "conformal_alpha": 0.1,
     "conformal_set": [
+      "Normal",
       "Benign",
       "InSitu"
     ],
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -252,7 +253,7 @@
         "necrosis": 0.09
       },
       "attention": null,
-      "contribution": -0.3048
+      "contribution": -0.3777
     },
     {
       "idx": 1,
@@ -273,7 +274,7 @@
         "necrosis": -0.24
       },
       "attention": null,
-      "contribution": -0.643
+      "contribution": -0.6081
     },
     {
       "idx": 2,
@@ -294,7 +295,7 @@
         "necrosis": 1.04
       },
       "attention": null,
-      "contribution": -0.0308
+      "contribution": 0.22
     },
     {
       "idx": 3,
@@ -315,7 +316,7 @@
         "necrosis": 0.75
       },
       "attention": null,
-      "contribution": -0.1071
+      "contribution": 0.0984
     },
     {
       "idx": 4,
@@ -336,7 +337,7 @@
         "necrosis": -0.04
       },
       "attention": null,
-      "contribution": -0.3416
+      "contribution": -0.3578
     },
     {
       "idx": 5,
@@ -357,7 +358,7 @@
         "necrosis": -0.58
       },
       "attention": null,
-      "contribution": -0.6222
+      "contribution": -0.6936
     },
     {
       "idx": 6,
@@ -378,7 +379,7 @@
         "necrosis": 1.07
       },
       "attention": null,
-      "contribution": -0.0689
+      "contribution": 0.1446
     },
     {
       "idx": 7,
@@ -399,7 +400,7 @@
         "necrosis": 1.0
       },
       "attention": null,
-      "contribution": 0.0688
+      "contribution": 0.1618
     },
     {
       "idx": 8,
@@ -420,7 +421,7 @@
         "necrosis": -0.15
       },
       "attention": null,
-      "contribution": -0.2705
+      "contribution": -0.2802
     },
     {
       "idx": 9,
@@ -441,7 +442,7 @@
         "necrosis": -0.16
       },
       "attention": null,
-      "contribution": -0.4042
+      "contribution": -0.4277
     },
     {
       "idx": 10,
@@ -462,7 +463,7 @@
         "necrosis": 1.41
       },
       "attention": null,
-      "contribution": -0.0488
+      "contribution": 0.1847
     },
     {
       "idx": 11,
@@ -483,7 +484,7 @@
         "necrosis": 1.32
       },
       "attention": null,
-      "contribution": -0.0643
+      "contribution": 0.1312
     }
   ],
   "similar_cases": [
@@ -766,13 +767,14 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.466,
+        "p": 0.565,
         "set": [
+          "Normal",
           "Benign",
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.006
+        "risk": 0.023
       }
     },
     {
@@ -836,7 +838,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.31,
+        "reliability": 0.08,
         "ood_percentile": 0.9,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -858,30 +860,29 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested, and a benign lesion cannot be excluded.",
+        "text": "Suggested category: in situ carcinoma (calibrated probability 0.56), and normal breast tissue and benign lesion are also in the 90% confidence set.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent atypical cells confined within ducts are associated with a lower likelihood of invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: lymphocytic infiltrate (TILs) (typical level; region 1).",
         "findings": [
-          "F2"
+          "F3"
         ]
       },
       {
-        "text": "Scarce mitotic figures are associated with a lower likelihood of invasive carcinoma.",
+        "text": "The reliability check flagged this read (image quality or an unusual appearance), so its confidence is reduced.",
         "findings": [
-          "F4"
+          "F6"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced, and the suggested margin call (simulated frozen section) is to defer to permanent sections.",
+        "text": "Suggested margin call (simulated frozen section): defer to permanent sections, because the reliability check flagged this read.",
         "findings": [
-          "F6",
           "F7"
         ]
       }

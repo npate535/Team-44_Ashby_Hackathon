@@ -26,11 +26,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.96,
-    "reliability": 0.978,
+    "reliability": 0.998,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -38,12 +38,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0004,
-      0.0033,
-      0.0209,
-      0.9754
+      0.0,
+      0.0,
+      0.0009,
+      0.999
     ],
-    "risk_score": 0.9754,
+    "risk_score": 0.999,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Invasive"
@@ -51,7 +51,7 @@
     "attribution": {
       "method": "exact_linear",
       "target": "Invasive",
-      "constant": -0.0671,
+      "constant": -0.0548,
       "unit": "centered calibrated logit"
     }
   },
@@ -248,7 +248,7 @@
         "necrosis": -0.21
       },
       "attention": null,
-      "contribution": 0.234
+      "contribution": 0.3545
     },
     {
       "idx": 1,
@@ -269,7 +269,7 @@
         "necrosis": 0.48
       },
       "attention": null,
-      "contribution": 0.4547
+      "contribution": 0.7069
     },
     {
       "idx": 2,
@@ -290,7 +290,7 @@
         "necrosis": -0.06
       },
       "attention": null,
-      "contribution": 0.2987
+      "contribution": 0.5661
     },
     {
       "idx": 3,
@@ -311,7 +311,7 @@
         "necrosis": -0.13
       },
       "attention": null,
-      "contribution": 0.0877
+      "contribution": 0.3294
     },
     {
       "idx": 4,
@@ -332,7 +332,7 @@
         "necrosis": 0.35
       },
       "attention": null,
-      "contribution": 0.6548
+      "contribution": 0.7818
     },
     {
       "idx": 5,
@@ -353,7 +353,7 @@
         "necrosis": 0.02
       },
       "attention": null,
-      "contribution": 0.5118
+      "contribution": 0.7176
     },
     {
       "idx": 6,
@@ -374,7 +374,7 @@
         "necrosis": -0.51
       },
       "attention": null,
-      "contribution": 0.4155
+      "contribution": 0.7092
     },
     {
       "idx": 7,
@@ -395,7 +395,7 @@
         "necrosis": 0.19
       },
       "attention": null,
-      "contribution": 0.197
+      "contribution": 0.4261
     },
     {
       "idx": 8,
@@ -416,7 +416,7 @@
         "necrosis": 0.49
       },
       "attention": null,
-      "contribution": 0.602
+      "contribution": 0.7249
     },
     {
       "idx": 9,
@@ -437,7 +437,7 @@
         "necrosis": 0.07
       },
       "attention": null,
-      "contribution": 0.3241
+      "contribution": 0.5237
     },
     {
       "idx": 10,
@@ -458,7 +458,7 @@
         "necrosis": -0.1
       },
       "attention": null,
-      "contribution": 0.3628
+      "contribution": 0.6576
     },
     {
       "idx": 11,
@@ -479,7 +479,7 @@
         "necrosis": -0.37
       },
       "attention": null,
-      "contribution": 0.2662
+      "contribution": 0.4704
     }
   ],
   "similar_cases": [
@@ -770,12 +770,12 @@
       "kind": "prediction",
       "data": {
         "top": "Invasive",
-        "p": 0.975,
+        "p": 0.999,
         "set": [
           "Invasive"
         ],
         "confidence": 0.9,
-        "risk": 0.975
+        "risk": 0.999
       }
     },
     {
@@ -837,7 +837,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 1.0,
         "ood_percentile": 0.96,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -868,28 +868,30 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "template",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested.",
+        "text": "Suggested category: invasive carcinoma (calibrated probability 1.00); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce atypical cells confined within ducts pushes the read toward invasive carcinoma.",
+        "text": "Strongest push toward invasive carcinoma in this read: scarce lymphocytic infiltrate (TILs; region 9), then scarce atypical cells confined within ducts and scarce gland / tubule formation.",
         "findings": [
-          "F3"
-        ]
-      },
-      {
-        "text": "Scarce gland / tubule formation pushes the read toward invasive carcinoma.",
-        "findings": [
+          "F2",
+          "F3",
           "F4"
         ]
       },
       {
-        "text": "Suggested margin call (simulated frozen section): tumor at the inferior, medial, and lateral margins.",
+        "text": "0 of 5 most similar reference cases share the suggested category (invasive carcinoma).",
+        "findings": [
+          "F5"
+        ]
+      },
+      {
+        "text": "Suggested margin call (simulated frozen section): tumor at the inferior, medial and lateral margins.",
         "findings": [
           "F7"
         ]
