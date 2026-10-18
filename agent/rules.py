@@ -8,7 +8,7 @@ never invents an item: every drafted item comes verbatim from a rule that fired.
     hits = fired_rules(case, cfg, rules)         # rules whose conditions hold, in file order
     agent = draft_orders(case, cfg, rules)       # contract `Agent` dict: {status, orders, blocked}
 
-Conditions (stain_rules.yaml header): top_class, in_set_all, reliability_flag, insufficient_tissue
+Conditions (stain_rules.yaml header): top_class, in_set_all, in_set_any, reliability_flag, insufficient_tissue
 (quality.qc_tiles_kept < settings qc.min_tiles_kept), lanes. The case is a Case-JSON-shaped mapping; only `lane`,
 `prediction.{classes, probs, conformal_set}` and `quality.{qc_tiles_kept, reliability_flag}` are read, so step 08 can
 call this before the rest of the case exists.
@@ -34,7 +34,7 @@ import yaml
 from core import config as core_config
 
 ORDER_TYPES = ("stain", "recut", "deeper_levels", "new_sample")
-CONDITION_KEYS = ("top_class", "in_set_all", "reliability_flag", "insufficient_tissue", "lanes")
+CONDITION_KEYS = ("top_class", "in_set_all", "in_set_any", "reliability_flag", "insufficient_tissue", "lanes")
 RULE_KEYS = ("id", "label", "when", "order", "rationale", "note", "citations")
 RULE_REQUIRED = ("id", "label", "when", "order", "rationale")
 RATIONALE_FIELDS = ("top_class", "set", "qc_tiles_kept", "min_tiles_kept")
@@ -150,9 +150,9 @@ def parse_rules(data: Any, cfg: Mapping[str, Any]) -> RuleSet:
                 problems.append(f"{where}: unknown condition {key!r}; allowed {list(CONDITION_KEYS)}")
             elif key == "top_class" and value not in classes:
                 problems.append(f"{where}: top_class {value!r} is not a class {classes}")
-            elif key == "in_set_all" and (not isinstance(value, list) or not value
-                                          or any(v not in classes for v in value)):
-                problems.append(f"{where}: in_set_all must be a non-empty list of classes {classes}")
+            elif key in ("in_set_all", "in_set_any") and (not isinstance(value, list) or not value
+                                                         or any(v not in classes for v in value)):
+                problems.append(f"{where}: {key} must be a non-empty list of classes {classes}")
             elif key in ("reliability_flag", "insufficient_tissue") and not isinstance(value, bool):
                 problems.append(f"{where}: {key} must be true or false")
             elif key == "lanes" and (not isinstance(value, list) or any(v not in LANES for v in value)):
@@ -230,6 +230,8 @@ def _holds(when: Mapping[str, Any], ctx: Mapping[str, Any]) -> bool:
         if key == "top_class" and ctx["top_class"] != value:
             return False
         if key == "in_set_all" and not all(c in ctx["conformal_set"] for c in value):
+            return False
+        if key == "in_set_any" and not any(c in ctx["conformal_set"] for c in value):
             return False
         if key == "reliability_flag" and ctx["reliability_flag"] != value:
             return False

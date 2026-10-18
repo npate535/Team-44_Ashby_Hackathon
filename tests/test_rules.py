@@ -38,7 +38,7 @@ def expected(top, conformal_set, reliability_flag, qc):
         out.append("breast_invasive")
     if top == "InSitu":
         out.append("breast_insitu")
-    if {"Benign", "InSitu"} <= set(conformal_set):
+    if "InSitu" in conformal_set and ({"Normal", "Benign"} & set(conformal_set)):
         out += ["uncertain_benign_atypia", "uncertain_benign_atypia_ihc"]
     if reliability_flag:
         out += ["low_quality", "low_quality_levels"]
