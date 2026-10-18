@@ -475,7 +475,7 @@ function figModels(ST, ev, L) {
   }).filter(Boolean);
   const w = L.two ? L.half : L.full;
   const f1Chart = C.forest({ width: w, rows: rowsFor('macro_f1'), x: { min: 0, max: 1, label: 'Macro-F1, four classes (higher is better)' }, aria: 'Macro-F1 by model with 95% confidence intervals' });
-  const aucChart = C.forest({ width: w, rows: rowsFor('invasive_vs_rest_auroc'), x: { min: 0.5, max: 1, label: 'AUROC, invasive vs rest' }, refs: [{ value: 0.5 }], aria: 'Invasive-vs-rest AUROC by model with 95% confidence intervals' });
+  const aucChart = C.forest({ width: w, rows: rowsFor('invasive_vs_rest_auroc'), x: { min: 0.5, max: 1, label: 'AUROC, invasive vs rest', valueFormat: fa }, refs: [{ value: 0.5 }], aria: 'Invasive-vs-rest AUROC by model with 95% confidence intervals' });
   const pf = ci(per[prod] && per[prod].macro_f1);
   const overlap = pf ? order.filter((m) => m !== prod && isNum(ci(per[m].macro_f1)?.hi) && ci(per[m].macro_f1).hi >= pf.lo).length : 0;
   const reason = get(ev, 'model_choice.production_reason');
@@ -1254,7 +1254,7 @@ function figQueue(ST, ev, L) {
       { title: '', body: box('aggressive_mean', 'Invasive cases: mean time to first look per day', 'Time to first look for invasive cases by policy') },
       { title: '', body: box('non_flagged_mean', 'Unflagged (tier 4) cases: mean wait per day', 'Wait for unflagged cases by policy') }
     ], { cols: L.two ? 2 : 1 })}</div>`,
-    notes: assumptions.map((s) => `Assumption: ${s}.`),
+    notes: assumptions.map((s) => `Assumption: ${String(s).replace(/\b(aps_marginal_nonempty|lac_marginal|aps_marginal)\b/g, (m) => methodName(m))}.`),
     population: `${Q.n_cases} clean test cases drawn with replacement; ${Q.reps} simulated days${AQ && get(AQ, 'consistency.matches_queue_sim') ? ' (distributions replayed and checked against queue_sim.json)' : ''}`,
     source: ['eval/queue_sim.json', AQ ? 'eval/analytics.json' : null],
     table: { head: ['Policy', 'Measure (minutes)', 'Mean', '95% of days'], rows, num: [2] }
@@ -1402,7 +1402,8 @@ function scope(ST, ev) {
   if (isNum(vx)) parts.push(`${vx} simulated degraded / composite variants kept out of headline numbers`);
   parts.push('intervals are 95% cluster-bootstrap CIs over those groups');
   if (prod) parts.push(`production read: ${esc(modelName(prod))}`);
-  return `<p class="mx-scope">${parts.join('; ')}.</p>`;
+  const text = parts.join('; ');
+  return `<p class="mx-scope">${text.charAt(0).toUpperCase() + text.slice(1)}.</p>`;
 }
 function nav() {
   return `<nav class="mx-nav" aria-label="Evaluation sections"><div class="mx-nav-inner">${SECTIONS.map(([id, label]) => `<button type="button" data-mx-jump="mx-${id}">${esc(label)}</button>`).join('')}</div></nav>`;
@@ -1473,8 +1474,14 @@ function install() {
       if (s && s.getBoundingClientRect().top - offset <= 0) current = `mx-${id}`;
     }
     navEl.querySelectorAll('[data-mx-jump]').forEach((btn) => {
-      if (btn.dataset.mxJump === current) btn.setAttribute('aria-current', 'true');
-      else btn.removeAttribute('aria-current');
+      if (btn.dataset.mxJump === current) {
+        if (btn.getAttribute('aria-current') !== 'true') {
+          btn.setAttribute('aria-current', 'true');
+          // keep the active section visible in the horizontally scrolling nav (phones) without moving the page
+          const left = btn.offsetLeft - navEl.clientWidth / 2 + btn.offsetWidth / 2;
+          navEl.scrollTo({ left: Math.max(0, left), behavior: 'auto' });
+        }
+      } else btn.removeAttribute('aria-current');
     });
   };
   window.addEventListener('scroll', () => {

@@ -29,6 +29,12 @@ export function fmtNum(v, digits = 2) {
   if (Math.abs(v) >= 1000) return Math.round(v).toLocaleString('en-US');
   return v.toFixed(digits);
 }
+/** Precision by magnitude: 1,235 / 54.7 / 0.17. */
+export function fmtSmart(v) {
+  if (!isNum(v)) return '—';
+  const a = Math.abs(v);
+  return fmtNum(v, a >= 100 ? 0 : a >= 10 ? 1 : 2);
+}
 export const fmtPct = (v, digits = 0) => (isNum(v) ? (v * 100).toFixed(digits) + '%' : '—');
 export function textWidth(s, size = FONT) {
   return String(s).length * size * CHAR;
@@ -80,7 +86,12 @@ function niceTicks(min, max, count) {
   for (let t = Math.ceil(min / step - 1e-9) * step; t <= max + step * 1e-6; t += step) out.push(+t.toFixed(10));
   return out;
 }
-const decimalsFor = (step) => (step >= 1 ? 0 : Math.min(3, Math.ceil(-Math.log10(step) - 1e-9)));
+/** Decimals that show a tick step exactly (0.25 -> 2, 0.2 -> 1, 5 -> 0). */
+function decimalsFor(step) {
+  if (!isNum(step) || step <= 0) return 2;
+  for (let d = 0; d <= 4; d++) if (Math.abs(Math.round(step * 10 ** d) - step * 10 ** d) < 1e-6) return d;
+  return 4;
+}
 
 function tipAttr(lines) {
   const text = (Array.isArray(lines) ? lines : [lines]).filter((l) => l !== null && l !== undefined && l !== '').join('\n');
@@ -226,7 +237,7 @@ export function forest({ width = 560, rows = [], x = {}, refs = [], aria = '', r
     xmax = x.max ?? Math.max(...vals);
   const xt = x.ticks || ticks(xmin, xmax, narrow ? 4 : 5);
   const xf = x.format || ((v) => fmtNum(v, decimalsFor((xt[1] ?? 1) - (xt[0] ?? 0))));
-  const vf = x.valueFormat || x.format || ((v) => fmtNum(v, 2));
+  const vf = x.valueFormat || x.format || fmtSmart;
   const vText = (r) => r.value ?? (isNum(r.lo) && isNum(r.hi) ? `${vf(r.est)} [${vf(r.lo)}–${vf(r.hi)}]` : vf(r.est));
   const VW = narrow ? 0 : (valueWidth ?? Math.min(150, Math.max(...rows.map((r) => (r.header ? 0 : textWidth(vText(r))))) + 14));
   const labelMax = Math.max(90, Math.min(width * (narrow ? 0.48 : 0.36), 260));
