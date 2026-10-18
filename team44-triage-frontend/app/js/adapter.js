@@ -76,6 +76,27 @@ export const humanize = (id) =>
   String(id)
     .replace(/_/g, ' ')
     .replace(/^./, (c) => c.toUpperCase());
+/** 1 -> "1st", 2 -> "2nd", 11 -> "11th", 22 -> "22nd". */
+export function ordinal(n) {
+  const k = Math.round(Number(n));
+  const t = k % 100;
+  return k + (t >= 11 && t <= 13 ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[k % 10] || 'th');
+}
+/** A 0–1 percentile as an ordinal that never reads "100th" / "0th". */
+export function ordinalPct(p) {
+  if (p === null || p === undefined || !Number.isFinite(Number(p))) return '—';
+  const x = Number(p);
+  return x >= 0.995 ? '>99th' : x < 0.005 ? '<1st' : ordinal(x * 100);
+}
+/** A probability with `digits` decimals for tooltips: never "1.000" / "0.000" (">0.999" / "<0.001" instead). */
+export function exactProb(p, digits = 3) {
+  if (p === null || p === undefined || !Number.isFinite(Number(p))) return '—';
+  const x = Number(p),
+    step = 10 ** -digits;
+  if (x >= 1 - step / 2) return '>' + (1 - step).toFixed(digits);
+  if (x < step / 2) return '<' + step.toFixed(digits);
+  return x.toFixed(digits);
+}
 export const isLLM = (generator) => typeof generator === 'string' && generator.startsWith('lumen:');
 export const FINDING_ID = /^F[1-9][0-9]*$/;
 

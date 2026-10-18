@@ -41,8 +41,8 @@ const clock = (iso) => (iso ? new Date(iso).toLocaleTimeString() : '');
 function orderList(v) {
   return v.agent.orderStatus || v.agent.orders.map((o, seq) => ({ ...o, seq, status: 'drafted', drafted_items: o.items }));
 }
-const liveItems = (detail) =>
-  detail.filter((o) => o.status !== 'removed' && o.status !== 'dismissed').flatMap((o) => (o.items && o.items.length ? o.items : o.drafted_items || []));
+const itemsOf = (o) => (o.items && o.items.length ? o.items : o.drafted_items || o.items || []);
+const liveItems = (detail) => detail.filter((o) => o.status !== 'removed' && o.status !== 'dismissed').flatMap(itemsOf);
 
 function stepper(v, signed) {
   const s = v.agent.status;
@@ -57,7 +57,7 @@ function stepper(v, signed) {
       ? 'order, edit, look closer or dismiss'
       : s === 'deferred_closer_look'
         ? 'closer look in progress'
-        : STATUS[s].toLowerCase();
+        : (STATUS[s] || s).toLowerCase();
   return (
     '<ol class="stepper" aria-label="Decision steps">' +
     step(hasOrders ? 'done' : 'st-skip', 1, 'Agent draft', hasOrders ? `${nOrders} order${nOrders === 1 ? '' : 's'} from rules` : 'no rule fired') +
@@ -107,11 +107,11 @@ function feedback(v, ST, signed) {
   if (signed) return '';
   if (s === 'approved' || s === 'edited_and_approved') {
     const items = liveItems(orderList(v));
-    return `<div class="cv-done" role="status" data-testid="decision-feedback"><span aria-hidden="true">✓</span><span><b>${items.length} item${items.length === 1 ? '' : 's'} ordered${when}:</b> ${items.map(esc).join(', ')}. Next: sign out to route the result.</span></div>`;
+    return `<div class="cv-done" role="status" data-testid="decision-feedback" tabindex="-1"><span aria-hidden="true">✓</span><span><b>${items.length} item${items.length === 1 ? '' : 's'} ordered${when}:</b> ${items.map(esc).join(', ')}. Next: sign out to route the result.</span></div>`;
   }
-  if (s === 'dismissed') return `<div class="cv-done" role="status" data-testid="decision-feedback"><span aria-hidden="true">✓</span><span><b>Flag dismissed${when}.</b> No tests ordered. Next: sign out.</span></div>`;
+  if (s === 'dismissed') return `<div class="cv-done" role="status" data-testid="decision-feedback" tabindex="-1"><span aria-hidden="true">✓</span><span><b>Flag dismissed${when}.</b> No tests ordered. Next: sign out.</span></div>`;
   if (s === 'deferred_closer_look')
-    return `<div class="cv-done info" role="status" data-testid="decision-feedback"><span aria-hidden="true">i</span><span><b>Closer look recorded${when}.</b> Orders are still drafted; order, edit or dismiss them when ready.</span></div>`;
+    return `<div class="cv-done info" role="status" data-testid="decision-feedback" tabindex="-1"><span aria-hidden="true">i</span><span><b>Closer look recorded${when}.</b> Orders are still drafted; order, edit or dismiss them when ready.</span></div>`;
   return '';
 }
 
@@ -130,9 +130,9 @@ export function agentPanel(v, ST) {
   let orders = '';
   for (const o of detail) {
     const off = o.status === 'removed' || o.status === 'dismissed';
-    const shown = o.items && o.items.length ? o.items : o.drafted_items;
+    const shown = itemsOf(o);
     const items = editing
-      ? `<div class="edit">${o.drafted_items
+      ? `<div class="edit">${(o.drafted_items || o.items || [])
           .map(
             (item) =>
               `<label><input type="checkbox" data-edit-seq="${esc(o.seq)}" data-edit-item="${esc(item)}"${(ST.editDraft[o.seq] || []).includes(item) ? ' checked' : ''} data-testid="edit-item">${esc(item)}</label>`
@@ -152,11 +152,15 @@ export function agentPanel(v, ST) {
   const btn = (act, label, cls = '', confirm = false) =>
     `<button class="btn${cls}" ${confirm ? 'data-cv-confirm' : 'data-act'}="${act}" data-testid="action-${TESTID[act]}"${can(act) ? '' : ' disabled'}${p && p.action === act ? ' aria-expanded="true"' : confirm ? ' aria-expanded="false"' : ''}>${label}</button>`;
   const nItems = liveItems(detail).length;
+  // recuts and deeper levels are not tests (the frozen-section lane never drafts stains)
+  const orderVerb = detail.some((o) => o.type === 'stain' && o.status !== 'removed' && o.status !== 'dismissed') ? 'Order tests' : 'Place orders';
   const open = ['approve_orders', 'edit_orders', 'closer_look', 'dismiss_flag'].some((a) => v.agent.allowed.includes(a));
+  // the same label/state case_ui.js sets live on each tick; a poll re-render must not re-enable an empty edit
+  const nSel = Object.values(ST.editDraft || {}).reduce((a, xs) => a + (Array.isArray(xs) ? xs.length : 0), 0);
   const actions = editing
-    ? '<div class="btns"><button class="btn p" data-act="edit_save" data-testid="action-edit-save">Order selected</button><button class="btn" data-act="edit_cancel" data-testid="action-edit-cancel">Cancel</button><span class="sub">Untick items to drop them; edits can only remove drafted items, and the selected ones are ordered at once.</span></div>'
+    ? `<div class="btns"><button class="btn p" data-act="edit_save" data-testid="action-edit-save"${nSel && can('edit_orders') ? '' : ' disabled'}>${nSel ? `Order ${nSel} selected` : 'Select at least one item'}</button><button class="btn" data-act="edit_cancel" data-testid="action-edit-cancel">Cancel</button><span class="sub">Untick items to drop them; edits can only remove drafted items, and the selected ones are ordered at once.</span></div>`
     : open
-      ? `<div class="btns cv-actions">${btn('approve_orders', nItems ? `Order tests (${nItems})` : 'Order tests', ' p', true)}${btn('edit_orders', 'Edit')}${btn('closer_look', 'Take a closer look first')}${btn('dismiss_flag', 'Dismiss flag', ' d', true)}</div>` +
+      ? `<div class="btns cv-actions">${btn('approve_orders', `${orderVerb}${nItems ? ` (${nItems})` : ''}`, ' p', true)}${btn('edit_orders', 'Edit')}${btn('closer_look', 'Take a closer look first')}${btn('dismiss_flag', 'Dismiss flag', ' d', true)}</div>` +
         (ST.busy ? '<p class="sub" role="status">Saving your decision…</p>' : '')
       : '';
   const box = p && p.action !== 'sign_out' ? confirmBox(v, ST, detail) : '';
@@ -173,7 +177,7 @@ export function agentPanel(v, ST) {
   const approval =
     `<div class="card cv-signout" data-testid="approval"><h2>Pathologist sign-out</h2><p class="note">The only place a diagnosis is made. The suggestion above is decision support.</p>` +
     (signed
-      ? `<div class="verdict" data-testid="verdict" role="status">Signed out, routed to the oncologist inbox at ${esc(new Date(signed).toLocaleTimeString())}</div>`
+      ? `<div class="verdict" data-testid="verdict" role="status" tabindex="-1">Signed out, routed to the oncologist inbox at ${esc(new Date(signed).toLocaleTimeString())}</div>`
       : `<div class="btns">${btn('sign_out', 'Sign out…', ' p', true)}${!can('sign_out') && signReason ? `<span class="sub" data-testid="signout-reason">${esc(signReason)}</span>` : ''}</div>` +
         (p && p.action === 'sign_out' ? confirmBox(v, ST, detail) : '')) +
     '</div>';

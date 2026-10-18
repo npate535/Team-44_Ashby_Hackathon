@@ -729,6 +729,7 @@
   flex-direction: column;
   align-items: flex-end;
   text-align: right;
+  margin-left: auto; /* stays right-aligned when it wraps under the big number */
 }
 .hs-sugg b {
   font-size: 15px;
@@ -1225,6 +1226,9 @@ dialog.cv-compare::backdrop {
   gap: 10px 16px;
   flex-wrap: wrap;
   font-size: 12px;
+}
+.vw-tools [hidden] {
+  display: none !important; /* .vw-tools label sets display, which beat the hidden attribute (opacity on margin strips) */
 }
 .vw-tools label {
   display: inline-flex;
@@ -1879,10 +1883,13 @@ dialog.cv-compare::backdrop {
   font-size: var(--cv-fs-s);
   color: var(--mut);
 }
-.cv-timer.red {
+/* app.js's 1 s tick updates the timer's own class, not the card's: follow the timer so the stripe is never stale */
+.cv-timer.red,
+.cv-timer:has(> .big.timer.red) {
   box-shadow: inset 4px 0 0 var(--eos), var(--shadow);
 }
-.cv-timer.amber {
+.cv-timer.amber:not(:has(> .big.timer.red)),
+.cv-timer:has(> .big.timer.amber) {
   box-shadow: inset 4px 0 0 var(--amb), var(--shadow);
 }
 .sugg-call {
@@ -2136,6 +2143,12 @@ dialog.cv-compare::backdrop {
 .cv-cell-fig {
   margin: 0;
   min-width: 0;
+}
+/* the region a finding pointed to: a steady marker (app.js flashes it once; a 'flash' class here replayed on every poll) */
+.cv-cell-fig.is-target {
+  outline: 2px solid var(--hema);
+  outline-offset: 4px;
+  border-radius: 6px;
 }
 .cv-cell-fig img,
 .cv-cell-fig .crop {

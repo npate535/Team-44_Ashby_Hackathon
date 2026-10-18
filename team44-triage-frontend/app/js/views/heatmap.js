@@ -3,7 +3,7 @@
 // Biopsy: per-tile heatmap (risk / a concept's tile z / ABMIL attention) with highlighted tiles.
 // Surgical: the four margins as per-segment strips (BUILD_PLAN §A12), a specimen diagram and per-margin score bars.
 // Every number shown comes from the case JSON; nothing here is a diagnosis.
-import { esc, MARGINS, num } from '../adapter.js';
+import { esc, exactProb, MARGINS, num } from '../adapter.js';
 
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 const Z_FULL = 3; // concept layers: z <= 0 is not shaded, z >= Z_FULL is fully shaded (display mapping only)
@@ -35,7 +35,8 @@ function tileValue(t, layer, maxAttention) {
 }
 
 function conceptLabel(v, id) {
-  return (v.concepts.find((c) => c.id === id) || {}).label || id;
+  // measured cell features are Why rows too (no concept entry): use their configured label, not the raw id
+  return (v.concepts.find((c) => c.id === id) || (v.why || []).find((r) => r.id === id) || {}).label || id;
 }
 
 /** Plain-text + HTML description of one region, used by the tooltip and the accessible name. */
@@ -67,14 +68,14 @@ export function regionInfo(v, hm, idx) {
         : null;
   const strongest = zs.map(([id, z]) => `${conceptLabel(v, id)} ${sz(z)}`);
   const text =
-    `Region ${idx} (${where}). Tile P(Invasive) ${fp2(t.risk)} (${Number(t.risk).toFixed(3)}). ` +
+    `Region ${idx} (${where}). Tile P(Invasive) ${fp2(t.risk)} (${exactProb(t.risk)}). ` +
     (cur ? `${cur.k} ${cur.v}. ` : '') +
     (strongest.length ? `Strongest concept scores: ${strongest.join('; ')}. ` : '') +
     'Passed tissue QC.' +
     (linked ? ` Linked to ${linked}.` : '');
   const html =
     `<b>Region ${idx}</b><span class="tip-sub">${esc(where)}</span>` +
-    `<span class="tip-row"><span>Tile P(Invasive)</span><b>${fp2(t.risk)} <span class="tip-sub">(${esc(Number(t.risk).toFixed(3))})</span></b></span>` +
+    `<span class="tip-row"><span>Tile P(Invasive)</span><b>${fp2(t.risk)} <span class="tip-sub">(${esc(exactProb(t.risk))})</span></b></span>` +
     (cur ? `<span class="tip-row"><span>${esc(cur.k)}</span><b>${esc(cur.v)}</b></span>` : '') +
     (strongest.length
       ? `<span class="tip-h">Strongest concept scores (z vs. reference regions)</span>${zs
@@ -190,8 +191,8 @@ export function heatmapLegend(v, hm) {
     `<div class="lg-scale"><span class="lg-title">${esc(scale.title)}</span><span class="lg-bar" aria-hidden="true"></span>` +
     `<span class="lg-ticks"><span>${esc(scale.lo)}</span><span>${esc(scale.mid)}</span><span>${esc(scale.hi)}</span></span></div>` +
     '<div class="lg-keys">' +
-    '<span class="lg-key"><i class="sw-hatch" aria-hidden="true"></i>Hatched: failed tissue QC, not read by the model</span>' +
-    `<span class="lg-key${linked ? '' : ' dim'}"><i class="sw-hl" aria-hidden="true"></i>${linked ? `Outlined: regions linked to <b>${esc(conceptLabel(v, hm.why) || 'the selection')}</b> (${hm.hl.map(esc).join(', ')})` : 'Outlined: regions linked to a selected feature'}</span>` +
+    '<span class="lg-key"><i class="sw-hatch" aria-hidden="true"></i><span>Hatched: failed tissue QC, not read by the model</span></span>' +
+    `<span class="lg-key${linked ? '' : ' dim'}"><i class="sw-hl" aria-hidden="true"></i><span>${linked ? `Outlined: regions linked to <b>${esc(conceptLabel(v, hm.why) || 'the selection')}</b> (${hm.hl.map(esc).join(', ')})` : 'Outlined: regions linked to a selected feature'}</span></span>` +
     '</div>' +
     `<p class="lg-note">${esc(scale.note)} Hover or focus a region for its values; click it to zoom in.</p></div>`
   );
@@ -224,7 +225,7 @@ export function fmtProb(p) {
   const x = num(p);
   if (x >= 0.9999) return '>0.9999';
   if (x <= 0.0001) return '<0.0001';
-  return x >= 0.99 ? x.toFixed(4) : x.toFixed(3);
+  return x >= 0.99 || x < 0.01 ? x.toFixed(4) : x.toFixed(3);
 }
 export const fmtLogit = (p) => {
   const l = logit(p);
