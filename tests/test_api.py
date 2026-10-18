@@ -438,6 +438,18 @@ def test_image_thumbnails_are_downscaled_jpegs(tmp_path):
     assert client.get("/images/demo_0001.jpg").content == (FIXTURES / "demo_0001.jpg").read_bytes()
 
 
+def test_thumbnail_cache_is_bounded_by_bytes(tmp_path, monkeypatch):
+    from backend import app as app_module
+
+    client, _ = make_client(tmp_path, cases_dir=FIXTURES)
+    one = len(client.get("/images/demo_0001.jpg?w=300").content)
+    monkeypatch.setattr(app_module, "THUMB_CACHE_BYTES", 3 * one)
+    monkeypatch.setattr(app_module, "_THUMBS", {})
+    for w in range(300, 340):                           # any width in range is a new entry
+        assert client.get(f"/images/demo_0001.jpg?w={w}").status_code == 200
+        assert sum(map(len, app_module._THUMBS.values())) <= 3 * one
+
+
 def test_static_routes_never_serve_json(tmp_path):
     root = dev_root(tmp_path)
     io.write_json(root / "eval" / "metrics.json", {"name": "metrics", "true_label": ["Invasive"]})

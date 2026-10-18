@@ -22,6 +22,7 @@ import logging
 import mimetypes
 import os
 import re
+import threading
 import zlib
 from collections.abc import Mapping
 from io import BytesIO
@@ -503,7 +504,10 @@ class Backend:
 # images that sat off-screen, which left them blank in full-page captures and slow to appear (case view bug 2).
 # `?w=N` returns a downscaled JPEG (cached in memory, keyed by file + mtime); the full image is unchanged without it.
 THUMB_MIN_PX, THUMB_MAX_PX = 64, 1024
+# Bounded by bytes, not entries: any width in [64, 1024] is accepted, so 2048 near-1024-px entries would hold ~0.5 GB.
+THUMB_CACHE_BYTES = 64 * 1024 * 1024
 _THUMBS: "dict[tuple[str, float, int], bytes]" = {}
+_THUMBS_LOCK = threading.Lock()                 # sync routes run in a thread pool
 
 
 def thumbnail(path: Path, width: int) -> bytes:
@@ -520,9 +524,10 @@ def thumbnail(path: Path, width: int) -> bytes:
         buf = BytesIO()
         im.save(buf, "JPEG", quality=84, optimize=True)
     data = buf.getvalue()
-    if len(_THUMBS) > 2048:                      # bounded: a demo references a few hundred images
-        _THUMBS.clear()
-    _THUMBS[key] = data
+    with _THUMBS_LOCK:
+        if sum(map(len, _THUMBS.values())) + len(data) > THUMB_CACHE_BYTES:
+            _THUMBS.clear()                      # a demo's thumbnails (3 widths x a few hundred images) fit easily
+        _THUMBS[key] = data
     return data
 
 
