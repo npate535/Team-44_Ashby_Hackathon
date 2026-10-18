@@ -107,3 +107,49 @@ def test_missing_or_malformed_files_never_throw(payloads, variant):
     assert "Not available in this run" in html
     for junk in ("NaN", "undefined", "[object Object]"):
         assert junk not in html, junk
+
+
+DEFERRAL_TITLE = "Accuracy on kept reads as the least reliable reads are deferred"
+
+
+@pytest.fixture(scope="module")
+def deferral_json(tmp_path_factory):
+    from eval import deferral as DF
+    from tests.test_deferral import write_deferral_root
+    tmp = tmp_path_factory.mktemp("deferral")
+    write_deferral_root(tmp / "data", CFG)
+    return io.read_json(DF.run(D.make_ctx(CFG, tmp / "data", tmp / "art", step="eval_deferral")))
+
+
+def test_deferral_figure_renders_from_its_json(payloads, deferral_json):
+    p, cfg, tmp = payloads
+    payload = copy.deepcopy(p["full"])
+    payload["eval"]["deferral"] = deferral_json
+    html = _render(payload, cfg, tmp)["html"]
+    assert 'data-testid="metrics-deferral"' in html and DEFERRAL_TITLE in html
+    fig = html[html.index('id="fig-deferral"'):]
+    fig = fig[:fig.index("</figure>")]
+    assert fig.count("cx-line") >= 4 and "cx-dash" in fig                  # reliability x 2 populations, random dashed
+    h = deferral_json["headline"]
+    pct = lambda v: f"{100 * v:.1f}%"                                       # noqa: E731
+    assert pct(h["accuracy_kept"]["estimate"]) in fig and pct(h["accuracy_all"]["estimate"]) in fig
+    assert pct(h["accuracy_random_20"]) in fig and "simulated" in fig and "eval/deferral.json" in fig
+    assert str(h["deferred"]) in fig
+    for junk in ("NaN", "undefined", "[object Object]", "Infinity"):
+        assert junk not in fig, junk
+    # the figure sits in the frozen-section reliability section, after the reliability-score figure
+    sec = html[html.index('id="mx-reliability"'):html.index('id="mx-workflow"')]
+    assert 'id="fig-deferral"' in sec
+    if 'id="fig-relscore"' in sec:                                           # absent when reliability.json is
+        assert sec.index('id="fig-relscore"') < sec.index('id="fig-deferral"')
+
+
+@pytest.mark.parametrize("value", ["absent", None, {"name": "deferral", "populations": {}, "headline": None}])
+def test_deferral_figure_degrades_to_the_missing_card(payloads, value):
+    p, cfg, tmp = payloads
+    payload = copy.deepcopy(p["full"])
+    if value != "absent":
+        payload["eval"]["deferral"] = value
+    html = _render(payload, cfg, tmp)["html"]
+    assert 'data-testid="metrics-missing-deferral"' in html and 'data-testid="metrics-deferral"' not in html
+    assert "undefined" not in html and "NaN" not in html

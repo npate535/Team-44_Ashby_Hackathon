@@ -111,9 +111,10 @@ def test_unmatched_reads_fail_loudly():
         DF.build_reads(cases, preds[preds["case_id"] != "B"], rel[rel["case_id"] != "B"], CFG)
 
 
-def test_run_on_the_eval_fixture(tmp_path):
-    ids = D.write_eval_root(tmp_path / "data", CFG)
-    root = tmp_path / "data"
+def write_deferral_root(root, cfg):
+    """The eval fixture plus what the deferral join needs: the tier-set size, and a reliability row for the fixture's
+    one simulated degraded read. Returns the fixture IDs."""
+    ids = D.write_eval_root(root, cfg)
     preds = io.read_csv(schemas.predictions_csv(root))
     preds["set_tier_size"] = preds["set_size"].clip(lower=1)
     io.write_csv(schemas.predictions_csv(root), preds)
@@ -122,6 +123,12 @@ def test_run_on_the_eval_fixture(tmp_path):
     src = vid.split("_FSIM_")[0]
     extra = dict(rel[rel["case_id"] == src].iloc[0], case_id=vid, variant="blur3", reliability=0.05)
     io.write_csv(schemas.reliability_csv(root), pd.concat([rel, pd.DataFrame([extra])], ignore_index=True))
+    return ids
+
+
+def test_run_on_the_eval_fixture(tmp_path):
+    root = tmp_path / "data"
+    write_deferral_root(root, CFG)
     out = DF.run(D.make_ctx(CFG, root, tmp_path / "art", step="eval_deferral"))
     d = io.read_json(out)
     assert d["name"] == "deferral" and d["synthetic"] is True and d["fractions"] == FRACTIONS
@@ -139,3 +146,20 @@ def test_run_on_the_eval_fixture(tmp_path):
     assert h["accuracy_kept"]["estimate"] == pytest.approx(allr["rankings"]["reliability"][4]["accuracy"])
     assert h["accuracy_random_20"] == pytest.approx(allr["rankings"]["random"][4]["accuracy"])
     assert "NaN" not in out.read_text()
+
+
+def test_results_md_section_quotes_the_headline_and_every_statistic(tmp_path):
+    from eval import results_md as R
+    root = tmp_path / "data"
+    write_deferral_root(root, CFG)
+    d = io.read_json(DF.run(D.make_ctx(CFG, root, tmp_path / "art", step="eval_deferral")))
+    text = "\n".join(R.section_deferral(d))
+    h = d["headline"]
+    assert text.startswith("## Deferral") and "eval/deferral.json" in text and "VALIDATION_ROUND3" in text
+    assert R.fmt(h["accuracy_kept"], pct=True) in text and R.fmt(h["accuracy_all"], pct=True) in text
+    assert f"{100 * h['accuracy_random_20']:.1f}%" in text and "simulated" in text
+    for pop in ("Clean test images", "All test reads"):
+        assert pop in text
+    assert text.count("| 50% |") == 2 and "nan" not in text.lower()
+    md, info = R.build(tmp_path / "art", CFG)
+    assert "## Deferral" in md and "deferral" in info["present"]
