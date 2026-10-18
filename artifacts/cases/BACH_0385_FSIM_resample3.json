@@ -26,7 +26,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.977,
+    "reliability": 0.956,
     "reliability_flag": false
   },
   "prediction": {
@@ -46,6 +46,7 @@
     "risk_score": 0.8526,
     "conformal_alpha": 0.1,
     "conformal_set": [
+      "InSitu",
       "Invasive"
     ]
   },
@@ -753,6 +754,7 @@
     "reasons": [
       "aggressive_top",
       "aggressive_in_conformal_set",
+      "set_size_gt_1",
       "surgical_frozen_section"
     ]
   },
@@ -764,6 +766,7 @@
         "top": "Invasive",
         "p": 0.853,
         "set": [
+          "InSitu",
           "Invasive"
         ],
         "confidence": 0.9,
@@ -833,7 +836,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 0.96,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -866,18 +869,12 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested.",
+        "text": "Invasive carcinoma is suggested; in situ carcinoma cannot be excluded.",
         "findings": [
           "F1"
-        ]
-      },
-      {
-        "text": "Feature lowering the likelihood of invasive carcinoma in this read: dense lymphocytic infiltrate (TILs; regions 4, 9 and 11).",
-        "findings": [
-          "F2"
         ]
       },
       {
@@ -885,6 +882,12 @@
         "findings": [
           "F3",
           "F4"
+        ]
+      },
+      {
+        "text": "Prominent lymphocytic infiltrate (TILs) is associated with a lower likelihood of invasive carcinoma.",
+        "findings": [
+          "F2"
         ]
       },
       {

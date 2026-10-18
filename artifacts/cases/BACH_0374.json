@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.88,
-    "reliability": 0.456,
+    "reliability": 0.314,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,15 +33,16 @@
       "Invasive"
     ],
     "probs": [
-      0.0153,
-      0.8989,
-      0.0842,
-      0.0016
+      0.0182,
+      0.7141,
+      0.2647,
+      0.003
     ],
-    "risk_score": 0.0016,
+    "risk_score": 0.003,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "Benign"
+      "Benign",
+      "InSitu"
     ]
   },
   "concepts": [
@@ -612,6 +613,7 @@
     "flagged": true,
     "tier": 3,
     "reasons": [
+      "set_size_gt_1",
       "low_reliability"
     ]
   },
@@ -621,12 +623,13 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.899,
+        "p": 0.714,
         "set": [
-          "Benign"
+          "Benign",
+          "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.002
+        "risk": 0.003
       }
     },
     {
@@ -691,7 +694,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.46,
+        "reliability": 0.31,
         "ood_percentile": 0.88,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -750,7 +753,7 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "A benign lesion is suggested.",
+        "text": "A benign lesion is suggested, although in situ carcinoma cannot be excluded.",
         "findings": [
           "F1"
         ]
@@ -770,9 +773,10 @@
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced.",
+        "text": "The reliability check flagged the read, so its confidence is reduced; tumor cell fraction is higher than in 100% of benign reference cases.",
         "findings": [
-          "F6"
+          "F6",
+          "F7"
         ]
       }
     ]
@@ -781,20 +785,29 @@
     "status": "drafted",
     "orders": [
       {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "uncertain_benign_atypia",
+        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
+      },
+      {
+        "type": "stain",
+        "items": [
+          "CK5/6",
+          "ER"
+        ],
+        "rule_id": "uncertain_benign_atypia_ihc",
+        "rationale": "CK5/6 with ER helps separate usual hyperplasia from atypical or in situ lesions."
+      },
+      {
         "type": "recut",
         "items": [
           "recut H&E section"
         ],
         "rule_id": "low_quality",
         "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
-      },
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "low_quality_levels",
-        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
       }
     ],
     "blocked": []

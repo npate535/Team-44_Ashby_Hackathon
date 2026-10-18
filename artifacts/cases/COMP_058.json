@@ -24,7 +24,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.98,
-    "reliability": 0.195,
+    "reliability": 0.303,
     "reliability_flag": true
   },
   "prediction": {
@@ -44,7 +44,6 @@
     "risk_score": 0.4456,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "Benign",
       "InSitu",
       "Invasive"
     ]
@@ -749,7 +748,6 @@
         "top": "Invasive",
         "p": 0.446,
         "set": [
-          "Benign",
           "InSitu",
           "Invasive"
         ],
@@ -816,7 +814,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.2,
+        "reliability": 0.3,
         "ood_percentile": 0.98,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -841,7 +839,7 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested; benign lesion and in situ carcinoma cannot be excluded.",
+        "text": "Invasive carcinoma is suggested, and in situ carcinoma cannot be excluded.",
         "findings": [
           "F1"
         ]
@@ -871,20 +869,20 @@
     "status": "drafted",
     "orders": [
       {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "uncertain_benign_atypia",
-        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
-      },
-      {
         "type": "recut",
         "items": [
           "recut H&E section"
         ],
         "rule_id": "low_quality",
         "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
+      },
+      {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "low_quality_levels",
+        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
       }
     ],
     "blocked": [

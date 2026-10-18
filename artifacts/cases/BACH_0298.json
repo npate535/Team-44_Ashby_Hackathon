@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.94,
-    "reliability": 0.96,
+    "reliability": 0.958,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,16 +33,16 @@
       "Invasive"
     ],
     "probs": [
-      0.1248,
-      0.5296,
-      0.3435,
-      0.0021
+      0.1368,
+      0.7234,
+      0.1357,
+      0.0041
     ],
-    "risk_score": 0.0021,
+    "risk_score": 0.0041,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "Benign",
-      "InSitu"
+      "Normal",
+      "Benign"
     ]
   },
   "concepts": [
@@ -833,13 +833,13 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.53,
+        "p": 0.723,
         "set": [
-          "Benign",
-          "InSitu"
+          "Normal",
+          "Benign"
         ],
         "confidence": 0.9,
-        "risk": 0.002
+        "risk": 0.004
       }
     },
     {
@@ -945,7 +945,7 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "A benign lesion is suggested; in situ carcinoma cannot be excluded.",
+        "text": "A benign lesion is suggested; normal breast tissue cannot be excluded.",
         "findings": [
           "F1"
         ]
@@ -972,24 +972,9 @@
     ]
   },
   "agent": {
-    "status": "drafted",
-    "orders": [
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "uncertain_benign_atypia",
-        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
-      }
-    ],
-    "blocked": [
-      {
-        "action": "draft_stains",
-        "reason": "Stains are not drafted for simulated frozen sections.",
-        "rule_id": null
-      }
-    ]
+    "status": "none",
+    "orders": [],
+    "blocked": []
   },
   "eval_only": {
     "true_label": "Benign",

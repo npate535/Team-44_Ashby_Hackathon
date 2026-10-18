@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.3,
-    "reliability": 0.973,
-    "reliability_flag": false
+    "reliability": 0.378,
+    "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,12 +33,12 @@
       "Invasive"
     ],
     "probs": [
-      0.2378,
-      0.7505,
-      0.0112,
-      0.0005
+      0.6007,
+      0.3929,
+      0.0062,
+      0.0001
     ],
-    "risk_score": 0.0005,
+    "risk_score": 0.0001,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Normal",
@@ -498,18 +498,18 @@
     }
   ],
   "contrast_case": {
-    "case_id": "BACH_0071",
-    "label": "Normal",
-    "similarity": 0.936,
+    "case_id": "BACH_0029",
+    "label": "Benign",
+    "similarity": 0.915,
     "differs_most_in": [
-      "lymphocytes",
-      "benign_stroma_fat"
+      "normal_lobules",
+      "duct_confined"
     ],
-    "image": "images/BACH_0071.jpg"
+    "image": "images/BACH_0029.jpg"
   },
   "agreement": {
-    "conch_musk_same_top": true,
-    "neighbor_agreement": 0.0
+    "conch_musk_same_top": false,
+    "neighbor_agreement": 1.0
   },
   "margin": null,
   "cells": {
@@ -615,7 +615,8 @@
     "flagged": true,
     "tier": 3,
     "reasons": [
-      "set_size_gt_1"
+      "set_size_gt_1",
+      "low_reliability"
     ]
   },
   "findings": [
@@ -623,14 +624,14 @@
       "id": "F1",
       "kind": "prediction",
       "data": {
-        "top": "Benign",
-        "p": 0.75,
+        "top": "Normal",
+        "p": 0.601,
         "set": [
           "Normal",
           "Benign"
         ],
         "confidence": 0.9,
-        "risk": 0.001
+        "risk": 0.0
       }
     },
     {
@@ -686,17 +687,17 @@
       "id": "F5",
       "kind": "retrieval",
       "data": {
-        "agree": 0,
+        "agree": 5,
         "of": 5,
-        "label": "Benign"
+        "label": "Normal"
       }
     },
     {
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": false,
-        "reliability": 0.97,
+        "reliability_flag": true,
+        "reliability": 0.38,
         "ood_percentile": 0.3,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -755,7 +756,7 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "A benign lesion is suggested; normal breast tissue cannot be excluded.",
+        "text": "Normal breast tissue is suggested; a benign lesion cannot be excluded.",
         "findings": [
           "F1"
         ]
@@ -768,24 +769,40 @@
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma pushes the read away from invasive carcinoma.",
+        "text": "Scarce tumor infiltrating stroma is associated with a lower likelihood of invasive carcinoma.",
         "findings": [
           "F3"
         ]
       },
       {
-        "text": "No benign reference case has a lower nuclear size, while variation in nuclear size and shape is higher than in 90% of benign reference cases.",
+        "text": "The reliability check flagged the read, so its confidence is reduced; 5 of 5 most similar reference cases share the suggested category.",
         "findings": [
-          "F7",
-          "F8",
-          "F9"
+          "F6",
+          "F5"
         ]
       }
     ]
   },
   "agent": {
-    "status": "none",
-    "orders": [],
+    "status": "drafted",
+    "orders": [
+      {
+        "type": "recut",
+        "items": [
+          "recut H&E section"
+        ],
+        "rule_id": "low_quality",
+        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
+      },
+      {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "low_quality_levels",
+        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
+      }
+    ],
     "blocked": []
   },
   "eval_only": {

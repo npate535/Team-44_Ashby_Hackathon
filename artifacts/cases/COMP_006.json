@@ -24,7 +24,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.193,
+    "reliability": 0.301,
     "reliability_flag": true
   },
   "prediction": {
@@ -44,7 +44,6 @@
     "risk_score": 0.5269,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "Benign",
       "InSitu",
       "Invasive"
     ]
@@ -758,7 +757,6 @@
         "top": "Invasive",
         "p": 0.527,
         "set": [
-          "Benign",
           "InSitu",
           "Invasive"
         ],
@@ -831,7 +829,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.19,
+        "reliability": 0.3,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -856,7 +854,7 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested, although a benign lesion or in situ carcinoma cannot be excluded.",
+        "text": "Invasive carcinoma is suggested, though in situ carcinoma cannot be excluded.",
         "findings": [
           "F1"
         ]
@@ -869,7 +867,7 @@
         ]
       },
       {
-        "text": "Prominent lymphocytic infiltrate pushes the read away from invasive carcinoma.",
+        "text": "Prominent lymphocytic infiltrate (TILs) pushes the read away from invasive carcinoma.",
         "findings": [
           "F2"
         ]
@@ -887,20 +885,20 @@
     "status": "drafted",
     "orders": [
       {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "uncertain_benign_atypia",
-        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
-      },
-      {
         "type": "recut",
         "items": [
           "recut H&E section"
         ],
         "rule_id": "low_quality",
         "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
+      },
+      {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "low_quality_levels",
+        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
       }
     ],
     "blocked": [

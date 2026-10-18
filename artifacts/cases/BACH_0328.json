@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 10,
     "ood_percentile": 0.26,
-    "reliability": 0.552,
+    "reliability": 0.969,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,14 +33,15 @@
       "Invasive"
     ],
     "probs": [
-      0.0216,
-      0.0523,
-      0.9261,
-      0.0001
+      0.6717,
+      0.042,
+      0.2853,
+      0.001
     ],
-    "risk_score": 0.0001,
+    "risk_score": 0.001,
     "conformal_alpha": 0.1,
     "conformal_set": [
+      "Normal",
       "InSitu"
     ]
   },
@@ -456,18 +457,18 @@
     }
   ],
   "contrast_case": {
-    "case_id": "BACH_0170",
-    "label": "Normal",
-    "similarity": 0.871,
+    "case_id": "BACH_0043",
+    "label": "InSitu",
+    "similarity": 0.881,
     "differs_most_in": [
-      "mitoses",
+      "necrosis",
       "lymphocytes"
     ],
-    "image": "images/BACH_0170.jpg"
+    "image": "images/BACH_0043.jpg"
   },
   "agreement": {
-    "conch_musk_same_top": false,
-    "neighbor_agreement": 0.2
+    "conch_musk_same_top": true,
+    "neighbor_agreement": 0.6
   },
   "margin": null,
   "cells": {
@@ -570,22 +571,25 @@
     }
   },
   "flag": {
-    "flagged": false,
-    "tier": 4,
-    "reasons": []
+    "flagged": true,
+    "tier": 3,
+    "reasons": [
+      "set_size_gt_1"
+    ]
   },
   "findings": [
     {
       "id": "F1",
       "kind": "prediction",
       "data": {
-        "top": "InSitu",
-        "p": 0.926,
+        "top": "Normal",
+        "p": 0.672,
         "set": [
+          "Normal",
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.0
+        "risk": 0.001
       }
     },
     {
@@ -641,9 +645,9 @@
       "id": "F5",
       "kind": "retrieval",
       "data": {
-        "agree": 1,
+        "agree": 3,
         "of": 5,
-        "label": "InSitu"
+        "label": "Normal"
       }
     },
     {
@@ -651,7 +655,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.55,
+        "reliability": 0.97,
         "ood_percentile": 0.26,
         "qc_tiles_kept": 10,
         "min_tiles_kept": 3
@@ -662,20 +666,25 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested.",
+        "text": "Normal breast tissue is suggested, and in situ carcinoma cannot be excluded.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent normal lobules with two-layered epithelium and prominent benign fibrous stroma or fat push the read away from invasive carcinoma.",
+        "text": "Prominent normal lobules with two-layered epithelium push the read away from invasive carcinoma.",
         "findings": [
-          "F2",
+          "F2"
+        ]
+      },
+      {
+        "text": "Prominent benign fibrous stroma or fat pushes the read away from invasive carcinoma.",
+        "findings": [
           "F3"
         ]
       },
       {
-        "text": "1 of 5 most similar reference cases shares the suggested category.",
+        "text": "3 of 5 most similar reference cases share the suggested category.",
         "findings": [
           "F5"
         ]
@@ -686,12 +695,21 @@
     "status": "drafted",
     "orders": [
       {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "uncertain_benign_atypia",
+        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
+      },
+      {
         "type": "stain",
         "items": [
+          "CK5/6",
           "ER"
         ],
-        "rule_id": "breast_insitu",
-        "rationale": "ER status is recommended for ductal carcinoma in situ (ASCO/CAP 2020)."
+        "rule_id": "uncertain_benign_atypia_ihc",
+        "rationale": "CK5/6 with ER helps separate usual hyperplasia from atypical or in situ lesions."
       }
     ],
     "blocked": []

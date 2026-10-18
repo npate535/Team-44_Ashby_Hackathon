@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.98,
-    "reliability": 0.304,
+    "reliability": 0.461,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -34,15 +34,14 @@
     ],
     "probs": [
       0.0002,
-      0.0221,
-      0.9016,
-      0.0761
+      0.0009,
+      0.9366,
+      0.0623
     ],
-    "risk_score": 0.0761,
+    "risk_score": 0.0623,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "InSitu",
-      "Invasive"
+      "InSitu"
     ]
   },
   "concepts": [
@@ -611,10 +610,8 @@
   },
   "flag": {
     "flagged": true,
-    "tier": 2,
+    "tier": 3,
     "reasons": [
-      "aggressive_in_conformal_set",
-      "set_size_gt_1",
       "low_reliability"
     ]
   },
@@ -624,13 +621,12 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.902,
+        "p": 0.937,
         "set": [
-          "InSitu",
-          "Invasive"
+          "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.076
+        "risk": 0.062
       }
     },
     {
@@ -692,7 +688,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.3,
+        "reliability": 0.46,
         "ood_percentile": 0.98,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -767,7 +763,7 @@
     "generator": "lumen:gemma-4-31b-it+template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested, and invasive carcinoma cannot be excluded.",
+        "text": "In situ carcinoma is suggested.",
         "findings": [
           "F1"
         ]
@@ -795,15 +791,6 @@
   "agent": {
     "status": "drafted",
     "orders": [
-      {
-        "type": "stain",
-        "items": [
-          "p63",
-          "calponin"
-        ],
-        "rule_id": "breast_insitu_vs_invasive",
-        "rationale": "Myoepithelial markers help distinguish in situ from invasive disease."
-      },
       {
         "type": "stain",
         "items": [

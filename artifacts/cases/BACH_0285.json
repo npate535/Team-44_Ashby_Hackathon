@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 11,
     "ood_percentile": 1.0,
-    "reliability": 0.959,
+    "reliability": 0.956,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,12 +33,12 @@
       "Invasive"
     ],
     "probs": [
-      0.003,
-      0.0053,
-      0.8289,
-      0.1628
+      0.0017,
+      0.0009,
+      0.8384,
+      0.159
     ],
-    "risk_score": 0.1628,
+    "risk_score": 0.159,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "InSitu",
@@ -606,13 +606,13 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.829,
+        "p": 0.838,
         "set": [
           "InSitu",
           "Invasive"
         ],
         "confidence": 0.9,
-        "risk": 0.163
+        "risk": 0.159
       }
     },
     {
@@ -769,7 +769,7 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested, and invasive carcinoma cannot be excluded.",
+        "text": "In situ carcinoma is suggested; invasive carcinoma cannot be excluded.",
         "findings": [
           "F1"
         ]
@@ -789,10 +789,12 @@
         ]
       },
       {
-        "text": "Tumor cell fraction is higher than in 100% of benign reference cases, but no benign reference case has a lower nuclear size.",
+        "text": "Tumor cell fraction, tumor cell density, and variation in nuclear size are higher than in 100% of benign reference cases, but no benign reference case has a lower nuclear size.",
         "findings": [
           "F7",
-          "F9"
+          "F8",
+          "F9",
+          "F10"
         ]
       }
     ]

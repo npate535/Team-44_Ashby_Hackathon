@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.959,
+    "reliability": 0.956,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,12 +33,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0036,
-      0.0048,
-      0.8972,
-      0.0944
+      0.0159,
+      0.0045,
+      0.8211,
+      0.1585
     ],
-    "risk_score": 0.0944,
+    "risk_score": 0.1585,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "InSitu",
@@ -630,13 +630,13 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.897,
+        "p": 0.821,
         "set": [
           "InSitu",
           "Invasive"
         ],
         "confidence": 0.9,
-        "risk": 0.094
+        "risk": 0.159
       }
     },
     {
@@ -792,7 +792,7 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "lumen:gemma-4-31b-it+template",
     "sentences": [
       {
         "text": "In situ carcinoma is suggested, and invasive carcinoma cannot be excluded.",
@@ -801,23 +801,22 @@
         ]
       },
       {
-        "text": "Prominent mitotic figures push the read toward invasive carcinoma, while prominent atypical cells confined within ducts and prominent lymphocytic infiltrate push the read away from invasive carcinoma.",
+        "text": "Feature lowering the likelihood of invasive carcinoma in this read: dense lymphocytic infiltrate (TILs; regions 0, 2 and 8).",
+        "findings": [
+          "F2"
+        ]
+      },
+      {
+        "text": "Prominent mitotic figures push the read toward invasive carcinoma, while prominent atypical cells confined within ducts push the read away from invasive carcinoma.",
         "findings": [
           "F3",
-          "F4",
-          "F2"
+          "F4"
         ]
       },
       {
         "text": "4 of 5 most similar reference cases share the suggested category.",
         "findings": [
           "F5"
-        ]
-      },
-      {
-        "text": "Tumor cell fraction is higher than in 97% of benign reference cases.",
-        "findings": [
-          "F7"
         ]
       }
     ]

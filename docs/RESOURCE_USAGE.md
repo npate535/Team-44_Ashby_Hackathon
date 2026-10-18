@@ -1,5 +1,28 @@
 # Resource usage and GPU decision
 
+## Update, Sunday 2026-10-18 afternoon: what the GPU was used for
+
+The morning recommendation below (skip fine-tuning) was reversed at the user's request: use the GPUs to make the
+model more accurate. The work is pre-registered and reported in [ACCURACY_ROUND2.md](ACCURACY_ROUND2.md).
+
+- **Laptop, no GPU:** train-only cross-validation showed that larger 512-px regions beat the 256-px tiles for UNI2-h.
+  The pre-registered rule adopted `uni2h512_lr`. Test macro-F1 rose from 0.83 to 0.86 (balanced accuracy 0.835 to
+  0.871), now above the published UNI2-h probe (84.7).
+- **Delta GPU (A100, `bfqi-delta-gpu` / `gpuA100x4`), through the guarded `submit.sh`:**
+  - Job 22988201: a LoRA fine-tune of UNI2-h, trained fold by fold on round 1's CV folds (train split only).
+  - Job 22988274: the final fine-tuned model on all 218 train images, plus calibration/test predictions.
+  - Requested GPU time rose from 300 to 400 minutes, inside the 420-minute cap.
+  - Script: `~/pq_ft/ft.py` on Delta, mirroring `pipeline/05c_finetune.py`. The LoRA weights stay in private home
+    (CC-BY-NC-ND derivative).
+- **Access:** Delta was driven through Open OnDemand in the in-app browser after the user signed in. SSH from this Mac
+  was not used.
+
+FT_RESULT_PLACEHOLDER
+
+---
+
+## Morning snapshot (superseded above)
+
 Snapshot: Sunday 2026-10-18, 09:33 CDT. Compiled from repo records (`data/meta/*.json`, `docs/VERIFICATION.md`,
 `docs/BUILD_PLAN.md` §G, `docs/OVERNIGHT.md`). Delta itself was not queried (no live login session), so measured
 GPU-hours and the remaining allocation balance are **unverified**. To confirm, log in with `./scripts/delta.sh` and run

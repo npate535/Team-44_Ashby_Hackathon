@@ -26,7 +26,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.64,
-    "reliability": 0.493,
+    "reliability": 0.34,
     "reliability_flag": true
   },
   "prediction": {
@@ -46,7 +46,8 @@
     "risk_score": 0.0526,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "InSitu"
+      "InSitu",
+      "Invasive"
     ]
   },
   "concepts": [
@@ -736,6 +737,8 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
+      "aggressive_in_conformal_set",
+      "set_size_gt_1",
       "low_reliability",
       "surgical_frozen_section"
     ]
@@ -748,7 +751,8 @@
         "top": "InSitu",
         "p": 0.916,
         "set": [
-          "InSitu"
+          "InSitu",
+          "Invasive"
         ],
         "confidence": 0.9,
         "risk": 0.053
@@ -815,7 +819,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.49,
+        "reliability": 0.34,
         "ood_percentile": 0.64,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -840,7 +844,7 @@
     "generator": "lumen:gemma-4-31b-it+template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested.",
+        "text": "In situ carcinoma is suggested, and invasive carcinoma cannot be excluded.",
         "findings": [
           "F1"
         ]
@@ -852,7 +856,7 @@
         ]
       },
       {
-        "text": "Prominent atypical cells confined within ducts are associated with a lower likelihood of invasive carcinoma.",
+        "text": "Prominent atypical cells confined within ducts push the read away from invasive carcinoma.",
         "findings": [
           "F3"
         ]

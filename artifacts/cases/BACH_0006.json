@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.78,
-    "reliability": 0.331,
-    "reliability_flag": true
+    "reliability": 0.98,
+    "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,16 +33,15 @@
       "Invasive"
     ],
     "probs": [
-      0.4271,
-      0.0185,
-      0.5525,
-      0.0019
+      0.8469,
+      0.0107,
+      0.1396,
+      0.0027
     ],
-    "risk_score": 0.0019,
+    "risk_score": 0.0027,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "Normal",
-      "InSitu"
+      "Normal"
     ]
   },
   "concepts": [
@@ -499,21 +498,21 @@
     }
   ],
   "contrast_case": {
-    "case_id": "BACH_0002",
-    "label": "Normal",
-    "similarity": 0.877,
+    "case_id": "BACH_0043",
+    "label": "InSitu",
+    "similarity": 0.827,
     "differs_most_in": [
-      "necrosis",
+      "duct_confined",
       "invasion"
     ],
-    "image": "images/BACH_0002.jpg"
+    "image": "images/BACH_0043.jpg"
   },
   "agreement": {
-    "conch_musk_same_top": false,
-    "neighbor_agreement": 0.0
+    "conch_musk_same_top": true,
+    "neighbor_agreement": 1.0
   },
   "margin": {
-    "suggested_call": "defer",
+    "suggested_call": "clear",
     "involved": [],
     "per_margin": {
       "superior": 0.928124,
@@ -826,8 +825,6 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
-      "set_size_gt_1",
-      "low_reliability",
       "surgical_frozen_section"
     ]
   },
@@ -836,14 +833,13 @@
       "id": "F1",
       "kind": "prediction",
       "data": {
-        "top": "InSitu",
-        "p": 0.552,
+        "top": "Normal",
+        "p": 0.847,
         "set": [
-          "Normal",
-          "InSitu"
+          "Normal"
         ],
         "confidence": 0.9,
-        "risk": 0.002
+        "risk": 0.003
       }
     },
     {
@@ -901,17 +897,17 @@
       "id": "F5",
       "kind": "retrieval",
       "data": {
-        "agree": 0,
+        "agree": 5,
         "of": 5,
-        "label": "InSitu"
+        "label": "Normal"
       }
     },
     {
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": true,
-        "reliability": 0.33,
+        "reliability_flag": false,
+        "reliability": 0.98,
         "ood_percentile": 0.78,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -921,7 +917,7 @@
       "id": "F7",
       "kind": "margin",
       "data": {
-        "suggested_call": "defer",
+        "suggested_call": "clear",
         "involved": [],
         "per_margin": {
           "superior": 0.93,
@@ -936,60 +932,37 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested, and normal breast tissue cannot be excluded.",
+        "text": "Normal breast tissue is suggested.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent tumor infiltrating stroma pushes the read toward invasive carcinoma.",
-        "findings": [
-          "F3"
-        ]
-      },
-      {
-        "text": "Prominent normal lobules with two-layered epithelium and prominent benign fibrous stroma or fat are associated with a lower likelihood of invasive carcinoma.",
+        "text": "Prominent tumor infiltrating stroma pushes the read toward invasive carcinoma, while prominent normal lobules and benign fibrous stroma or fat push the read away from invasive carcinoma.",
         "findings": [
           "F2",
+          "F3",
           "F4"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced; suggested margin call (simulated frozen section): defer to permanent sections.",
+        "text": "5 of 5 most similar reference cases share the suggested category.",
         "findings": [
-          "F6",
+          "F5"
+        ]
+      },
+      {
+        "text": "Suggested margin call (simulated frozen section): margins clear.",
+        "findings": [
           "F7"
         ]
       }
     ]
   },
   "agent": {
-    "status": "drafted",
-    "orders": [
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "uncertain_benign_atypia",
-        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
-      },
-      {
-        "type": "recut",
-        "items": [
-          "recut H&E section"
-        ],
-        "rule_id": "low_quality",
-        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
-      }
-    ],
-    "blocked": [
-      {
-        "action": "draft_stains",
-        "reason": "Stains are not drafted for simulated frozen sections.",
-        "rule_id": null
-      }
-    ]
+    "status": "none",
+    "orders": [],
+    "blocked": []
   },
   "eval_only": {
     "true_label": "Benign",

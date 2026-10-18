@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.88,
-    "reliability": 0.456,
+    "reliability": 0.314,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,14 +33,15 @@
       "Invasive"
     ],
     "probs": [
-      0.1192,
-      0.0042,
-      0.8739,
-      0.0026
+      0.315,
+      0.0056,
+      0.6771,
+      0.0023
     ],
-    "risk_score": 0.0026,
+    "risk_score": 0.0023,
     "conformal_alpha": 0.1,
     "conformal_set": [
+      "Normal",
       "InSitu"
     ]
   },
@@ -613,6 +614,7 @@
     "flagged": true,
     "tier": 3,
     "reasons": [
+      "set_size_gt_1",
       "low_reliability"
     ]
   },
@@ -622,12 +624,13 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.874,
+        "p": 0.677,
         "set": [
+          "Normal",
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.003
+        "risk": 0.002
       }
     },
     {
@@ -693,7 +696,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.46,
+        "reliability": 0.31,
         "ood_percentile": 0.88,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -736,7 +739,7 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested.",
+        "text": "In situ carcinoma is suggested, and normal breast tissue cannot be excluded.",
         "findings": [
           "F1"
         ]
@@ -750,15 +753,15 @@
         ]
       },
       {
-        "text": "Tumor cell fraction is higher than in 97% of benign reference cases.",
-        "findings": [
-          "F7"
-        ]
-      },
-      {
         "text": "The reliability check flagged the read, so its confidence is reduced.",
         "findings": [
           "F6"
+        ]
+      },
+      {
+        "text": "Tumor cell fraction is higher than in 97% of benign reference cases.",
+        "findings": [
+          "F7"
         ]
       }
     ]
@@ -775,20 +778,28 @@
         "rationale": "ER status is recommended for ductal carcinoma in situ (ASCO/CAP 2020)."
       },
       {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "uncertain_benign_atypia",
+        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
+      },
+      {
+        "type": "stain",
+        "items": [
+          "CK5/6"
+        ],
+        "rule_id": "uncertain_benign_atypia_ihc",
+        "rationale": "CK5/6 with ER helps separate usual hyperplasia from atypical or in situ lesions."
+      },
+      {
         "type": "recut",
         "items": [
           "recut H&E section"
         ],
         "rule_id": "low_quality",
         "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
-      },
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "low_quality_levels",
-        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
       }
     ],
     "blocked": []

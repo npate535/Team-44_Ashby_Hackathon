@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.86,
-    "reliability": 0.962,
+    "reliability": 0.979,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,16 +33,15 @@
       "Invasive"
     ],
     "probs": [
-      0.6864,
-      0.0487,
-      0.2568,
-      0.0081
+      0.89,
+      0.0154,
+      0.0878,
+      0.0067
     ],
-    "risk_score": 0.0081,
+    "risk_score": 0.0067,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "Normal",
-      "InSitu"
+      "Normal"
     ]
   },
   "concepts": [
@@ -613,11 +612,9 @@
     }
   },
   "flag": {
-    "flagged": true,
-    "tier": 3,
-    "reasons": [
-      "set_size_gt_1"
-    ]
+    "flagged": false,
+    "tier": 4,
+    "reasons": []
   },
   "findings": [
     {
@@ -625,13 +622,12 @@
       "kind": "prediction",
       "data": {
         "top": "Normal",
-        "p": 0.686,
+        "p": 0.89,
         "set": [
-          "Normal",
-          "InSitu"
+          "Normal"
         ],
         "confidence": 0.9,
-        "risk": 0.008
+        "risk": 0.007
       }
     },
     {
@@ -699,7 +695,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.96,
+        "reliability": 0.98,
         "ood_percentile": 0.86,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -726,7 +722,7 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "Normal breast tissue is suggested, and in situ carcinoma cannot be excluded.",
+        "text": "Normal breast tissue is suggested.",
         "findings": [
           "F1"
         ]
@@ -754,26 +750,8 @@
     ]
   },
   "agent": {
-    "status": "drafted",
-    "orders": [
-      {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "uncertain_benign_atypia",
-        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
-      },
-      {
-        "type": "stain",
-        "items": [
-          "CK5/6",
-          "ER"
-        ],
-        "rule_id": "uncertain_benign_atypia_ihc",
-        "rationale": "CK5/6 with ER helps separate usual hyperplasia from atypical or in situ lesions."
-      }
-    ],
+    "status": "none",
+    "orders": [],
     "blocked": []
   },
   "eval_only": {

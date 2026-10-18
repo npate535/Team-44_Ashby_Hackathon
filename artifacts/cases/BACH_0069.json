@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.94,
-    "reliability": 0.978,
+    "reliability": 0.958,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,14 +33,15 @@
       "Invasive"
     ],
     "probs": [
-      0.0297,
-      0.9332,
-      0.0359,
-      0.0012
+      0.1753,
+      0.8048,
+      0.0187,
+      0.0011
     ],
-    "risk_score": 0.0012,
+    "risk_score": 0.0011,
     "conformal_alpha": 0.1,
     "conformal_set": [
+      "Normal",
       "Benign"
     ]
   },
@@ -610,9 +611,11 @@
     }
   },
   "flag": {
-    "flagged": false,
-    "tier": 4,
-    "reasons": []
+    "flagged": true,
+    "tier": 3,
+    "reasons": [
+      "set_size_gt_1"
+    ]
   },
   "findings": [
     {
@@ -620,8 +623,9 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.933,
+        "p": 0.805,
         "set": [
+          "Normal",
           "Benign"
         ],
         "confidence": 0.9,
@@ -689,7 +693,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 0.96,
         "ood_percentile": 0.94,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -700,7 +704,7 @@
     "generator": "lumen:gemma-4-31b-it+template",
     "sentences": [
       {
-        "text": "A benign lesion is suggested.",
+        "text": "A benign lesion is suggested, though normal breast tissue cannot be excluded.",
         "findings": [
           "F1"
         ]

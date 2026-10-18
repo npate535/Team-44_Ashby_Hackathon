@@ -26,7 +26,7 @@
   "quality": {
     "qc_tiles_kept": 10,
     "ood_percentile": 1.0,
-    "reliability": 0.438,
+    "reliability": 0.301,
     "reliability_flag": true
   },
   "prediction": {
@@ -46,6 +46,7 @@
     "risk_score": 0.5187,
     "conformal_alpha": 0.1,
     "conformal_set": [
+      "InSitu",
       "Invasive"
     ]
   },
@@ -697,6 +698,7 @@
     "reasons": [
       "aggressive_top",
       "aggressive_in_conformal_set",
+      "set_size_gt_1",
       "low_reliability",
       "surgical_frozen_section"
     ]
@@ -709,6 +711,7 @@
         "top": "Invasive",
         "p": 0.519,
         "set": [
+          "InSitu",
           "Invasive"
         ],
         "confidence": 0.9,
@@ -774,7 +777,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.44,
+        "reliability": 0.3,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 10,
         "min_tiles_kept": 3
@@ -799,27 +802,28 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested.",
+        "text": "Invasive carcinoma is suggested, and in situ carcinoma cannot be excluded.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce normal lobules push the read toward invasive carcinoma.",
+        "text": "Scarce normal lobules, scarce gland / tubule formation, and scarce benign fibrous stroma or fat push the read toward invasive carcinoma.",
         "findings": [
-          "F2"
+          "F2",
+          "F3",
+          "F4"
         ]
       },
       {
-        "text": "Scarce gland / tubule formation pushes the read toward invasive carcinoma.",
+        "text": "The reliability check flagged the read, so its confidence is reduced.",
         "findings": [
-          "F3"
+          "F6"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced, and the suggested margin call (simulated frozen section) is to defer to permanent sections.",
+        "text": "Suggested margin call (simulated frozen section): defer to permanent sections.",
         "findings": [
-          "F6",
           "F7"
         ]
       }

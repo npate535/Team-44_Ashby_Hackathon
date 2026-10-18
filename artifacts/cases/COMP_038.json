@@ -24,7 +24,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.9,
-    "reliability": 0.961,
+    "reliability": 0.921,
     "reliability_flag": false
   },
   "prediction": {
@@ -45,6 +45,7 @@
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Benign",
+      "InSitu",
       "Invasive"
     ]
   },
@@ -761,6 +762,7 @@
         "p": 0.569,
         "set": [
           "Benign",
+          "InSitu",
           "Invasive"
         ],
         "confidence": 0.9,
@@ -832,7 +834,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.96,
+        "reliability": 0.92,
         "ood_percentile": 0.9,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -864,22 +866,23 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested, and a benign lesion cannot be excluded.",
+        "text": "Invasive carcinoma is suggested, though a benign lesion or in situ carcinoma cannot be excluded.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent tumor infiltrating stroma and mitotic figures push the read toward invasive carcinoma.",
+        "text": "Prominent tumor infiltrating stroma and mitotic figures push the read toward invasive carcinoma, while prominent gland / tubule formation is associated with a lower likelihood of invasive carcinoma.",
         "findings": [
           "F2",
-          "F3"
+          "F3",
+          "F4"
         ]
       },
       {
-        "text": "Prominent gland / tubule formation is associated with a lower likelihood of invasive carcinoma.",
+        "text": "1 of 5 most similar reference cases shares the suggested category.",
         "findings": [
-          "F4"
+          "F5"
         ]
       },
       {
@@ -891,8 +894,17 @@
     ]
   },
   "agent": {
-    "status": "none",
-    "orders": [],
+    "status": "drafted",
+    "orders": [
+      {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "uncertain_benign_atypia",
+        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
+      }
+    ],
     "blocked": [
       {
         "action": "draft_stains",

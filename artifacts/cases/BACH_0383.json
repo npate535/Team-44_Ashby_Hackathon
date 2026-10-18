@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.92,
-    "reliability": 0.45,
+    "reliability": 0.468,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,12 +33,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0147,
-      0.9583,
-      0.0264,
-      0.0007
+      0.0032,
+      0.99,
+      0.0066,
+      0.0002
     ],
-    "risk_score": 0.0007,
+    "risk_score": 0.0002,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Benign"
@@ -622,12 +622,12 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.958,
+        "p": 0.99,
         "set": [
           "Benign"
         ],
         "confidence": 0.9,
-        "risk": 0.001
+        "risk": 0.0
       }
     },
     {
@@ -693,7 +693,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.45,
+        "reliability": 0.47,
         "ood_percentile": 0.92,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -740,9 +740,10 @@
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced.",
+        "text": "The reliability check flagged the read, so its confidence is reduced; only 9% of benign reference cases have a lower immune cell fraction.",
         "findings": [
-          "F6"
+          "F6",
+          "F7"
         ]
       }
     ]

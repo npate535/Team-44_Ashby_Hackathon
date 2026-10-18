@@ -25,7 +25,7 @@
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,12 +33,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0009,
-      0.0009,
-      0.8903,
-      0.1079
+      0.0012,
+      0.0002,
+      0.8892,
+      0.1094
     ],
-    "risk_score": 0.1079,
+    "risk_score": 0.1094,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "InSitu"
@@ -622,12 +622,12 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.89,
+        "p": 0.889,
         "set": [
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.108
+        "risk": 0.109
       }
     },
     {
@@ -782,7 +782,7 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "lumen:gemma-4-31b-it+template",
     "sentences": [
       {
         "text": "In situ carcinoma is suggested.",
@@ -791,9 +791,14 @@
         ]
       },
       {
-        "text": "Prominent tumor infiltrating stroma and prominent tumor necrosis push the read toward invasive carcinoma, while prominent lymphocytic infiltrate pushes the read away from invasive carcinoma.",
+        "text": "Feature lowering the likelihood of invasive carcinoma in this read: dense lymphocytic infiltrate (TILs; regions 2, 3 and 7).",
         "findings": [
-          "F2",
+          "F2"
+        ]
+      },
+      {
+        "text": "Prominent tumor infiltrating stroma and prominent tumor necrosis push the read toward invasive carcinoma.",
+        "findings": [
           "F3",
           "F4"
         ]
@@ -802,13 +807,6 @@
         "text": "5 of 5 most similar reference cases share the suggested category.",
         "findings": [
           "F5"
-        ]
-      },
-      {
-        "text": "Tumor cell fraction is higher than in 97% of benign reference cases, and no benign reference case has a lower nuclear size.",
-        "findings": [
-          "F7",
-          "F8"
         ]
       }
     ]

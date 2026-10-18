@@ -26,7 +26,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.302,
+    "reliability": 0.458,
     "reliability_flag": true
   },
   "prediction": {
@@ -46,7 +46,6 @@
     "risk_score": 0.8891,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "InSitu",
       "Invasive"
     ]
   },
@@ -740,7 +739,6 @@
     "reasons": [
       "aggressive_top",
       "aggressive_in_conformal_set",
-      "set_size_gt_1",
       "low_reliability",
       "surgical_frozen_section"
     ]
@@ -753,7 +751,6 @@
         "top": "Invasive",
         "p": 0.889,
         "set": [
-          "InSitu",
           "Invasive"
         ],
         "confidence": 0.9,
@@ -821,7 +818,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.3,
+        "reliability": 0.46,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -843,20 +840,18 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "lumen:gemma-4-31b-it+template",
     "sentences": [
       {
-        "text": "Invasive carcinoma is suggested, and in situ carcinoma cannot be excluded.",
+        "text": "Invasive carcinoma is suggested.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma pushes the read away from invasive carcinoma, while scarce normal lobules with two-layered epithelium and prominent mitotic figures push the read toward invasive carcinoma.",
+        "text": "Feature lowering the likelihood of invasive carcinoma in this read: scarce tumor infiltrating stroma (region 4).",
         "findings": [
-          "F2",
-          "F3",
-          "F4"
+          "F2"
         ]
       },
       {

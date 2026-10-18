@@ -26,7 +26,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.302,
+    "reliability": 0.458,
     "reliability_flag": true
   },
   "prediction": {
@@ -46,8 +46,7 @@
     "risk_score": 0.0005,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "Benign",
-      "InSitu"
+      "Benign"
     ]
   },
   "concepts": [
@@ -738,7 +737,6 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
-      "set_size_gt_1",
       "low_reliability",
       "surgical_frozen_section"
     ]
@@ -751,8 +749,7 @@
         "top": "Benign",
         "p": 0.892,
         "set": [
-          "Benign",
-          "InSitu"
+          "Benign"
         ],
         "confidence": 0.9,
         "risk": 0.001
@@ -821,7 +818,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.3,
+        "reliability": 0.46,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -846,27 +843,27 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "A benign lesion is suggested, and in situ carcinoma cannot be excluded.",
+        "text": "A benign lesion is suggested.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma and prominent gland / tubule formation push the read away from invasive carcinoma.",
+        "text": "Prominent gland / tubule formation is associated with a lower likelihood of invasive carcinoma.",
         "findings": [
-          "F3",
           "F4"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced.",
+        "text": "Scarce tumor infiltrating stroma pushes the read away from invasive carcinoma.",
         "findings": [
-          "F6"
+          "F3"
         ]
       },
       {
-        "text": "Suggested margin call (simulated frozen section): defer to permanent sections.",
+        "text": "The reliability check flagged the read, so its confidence is reduced, and the suggested margin call (simulated frozen section) is to defer to permanent sections.",
         "findings": [
+          "F6",
           "F7"
         ]
       }
@@ -876,29 +873,23 @@
     "status": "drafted",
     "orders": [
       {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "uncertain_benign_atypia",
-        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
-      },
-      {
         "type": "recut",
         "items": [
           "recut H&E section"
         ],
         "rule_id": "low_quality",
         "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
+      },
+      {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "low_quality_levels",
+        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
       }
     ],
-    "blocked": [
-      {
-        "action": "draft_stains",
-        "reason": "Stains are not drafted for simulated frozen sections.",
-        "rule_id": null
-      }
-    ]
+    "blocked": []
   },
   "eval_only": {
     "true_label": "Benign",

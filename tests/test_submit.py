@@ -221,16 +221,16 @@ def test_non_numeric_after_is_refused(env):
 
 
 def test_cumulative_gpu_cap_counts_only_submitted_gpu_jobs(env):
-    for i in range(6):
+    for i in range(7):
         env.jobid = str(900 + i)
-        assert env.run("embed_core").returncode == 0  # 6 x 60 = 360 min
+        assert env.run("embed_core").returncode == 0  # 7 x 60 = 420 min
     assert env.run("text_cpu").returncode == 0           # CPU time is not GPU time
-    res = env.run("embed_extra")                         # 360 + 60 = 420: still allowed
+    res = env.run("embed_extra")                         # 420 + 60 = 480: still allowed
     assert res.returncode == 0
-    res = env.run("smoke")                               # 420 + 20 > 420
-    assert res.returncode == 1 and "cap 420" in res.stderr
+    res = env.run("smoke")                               # 480 + 20 > 480
+    assert res.returncode == 1 and "cap 480" in res.stderr
     statuses = [r[1] for r in env.log_rows()]
-    assert statuses.count("submitted") == 8 and statuses[-1] == "refused"
+    assert statuses.count("submitted") == 9 and statuses[-1] == "refused"
 
 
 def test_failed_test_only_refuses(env):

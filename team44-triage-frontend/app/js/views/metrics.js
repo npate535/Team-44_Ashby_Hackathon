@@ -23,9 +23,12 @@ const SECTIONS = [
   ['limitations', 'Limitations & data']
 ];
 const MODEL_LABEL = {
-  uni2h_lr: 'UNI2-h linear probe',
+  uni2h_lr: 'UNI2-h linear probe (256-px tiles)',
+  uni2h512_lr: 'UNI2-h linear probe (512-px tiles)',
+  uni2h_ft: 'UNI2-h fine-tuned (LoRA, ours)',
   conch_probe_lr: 'CONCH linear probe',
-  hoptimus0_lr: 'H-optimus-0 linear probe',
+  hoptimus0_lr: 'H-optimus-0 linear probe (256-px tiles)',
+  hoptimus0_512_lr: 'H-optimus-0 linear probe (512-px tiles)',
   musk_lr: 'MUSK linear probe',
   abmil: 'Attention MIL (ABMIL)',
   fusion_top3: 'Fusion of top-3 encoders',

@@ -24,7 +24,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.94,
-    "reliability": 0.978,
+    "reliability": 0.958,
     "reliability_flag": false
   },
   "prediction": {
@@ -44,6 +44,7 @@
     "risk_score": 0.028,
     "conformal_alpha": 0.1,
     "conformal_set": [
+      "Benign",
       "InSitu"
     ]
   },
@@ -742,6 +743,7 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
+      "set_size_gt_1",
       "surgical_frozen_section"
     ]
   },
@@ -753,6 +755,7 @@
         "top": "InSitu",
         "p": 0.819,
         "set": [
+          "Benign",
           "InSitu"
         ],
         "confidence": 0.9,
@@ -821,7 +824,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 0.96,
         "ood_percentile": 0.94,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -855,7 +858,7 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested.",
+        "text": "In situ carcinoma is suggested, and a benign lesion cannot be excluded.",
         "findings": [
           "F1"
         ]
@@ -868,7 +871,7 @@
         ]
       },
       {
-        "text": "Suggested margin call (simulated frozen section): tumor at the superior, inferior and lateral margins.",
+        "text": "Suggested margin call (simulated frozen section): tumor at the superior, inferior, and lateral margins.",
         "findings": [
           "F7"
         ]
@@ -876,8 +879,17 @@
     ]
   },
   "agent": {
-    "status": "none",
-    "orders": [],
+    "status": "drafted",
+    "orders": [
+      {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "uncertain_benign_atypia",
+        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
+      }
+    ],
     "blocked": [
       {
         "action": "draft_stains",

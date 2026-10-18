@@ -2,7 +2,7 @@
 
 > Research prototype — not for clinical use. Every number below is quoted from the eval file named beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.
 
-Generated 2026-10-18T13:54:01Z from 16 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 4154f7693e436121aeffecbf8743c5af029a6968, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 7ab2ffcbddd91931b194a5dec698c13622fef8d7).
+Generated 2026-10-18T17:45:53Z from 16 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 4d8e886cc9bb14ce47c967e9cd7fff187aef6e90, 700a3b61b0f999a12e7a1a7b54058d6495b93689).
 
 ## Tissue quality control (fixed in this run)
 
@@ -10,30 +10,30 @@ Source: `eval/qc.json` (pipeline/01q_requalify_qc). The original tissue mask req
 
 ## Classification (test split)
 
-Source: `eval/metrics.json` · test n = 132, 24 patient / pseudo-patient groups · 2248 simulated variants excluded · production model `uni2h_lr`.
+Source: `eval/metrics.json` · test n = 132, 24 patient / pseudo-patient groups · 2248 simulated variants excluded · production model `uni2h512_lr`.
 
 | Metric | Estimate [95% CI] |
 |---|---|
-| Invasive vs rest AUROC | 0.998 [0.994, 1.000] (n 132, 24 groups) |
-| Macro AUROC | 0.947 [0.852, 0.992] (n 132, 24 groups) |
-| Macro-F1 | 0.83 [0.61, 0.93] (n 132, 24 groups) |
-| Balanced accuracy | 0.84 [0.62, 0.94] (n 132, 24 groups) |
-| Accuracy | 0.84 [0.70, 0.94] (n 132, 24 groups) |
+| Invasive vs rest AUROC | 0.999 [0.996, 1.000] (n 132, 24 groups) |
+| Macro AUROC | 0.965 [0.883, 0.995] (n 132, 24 groups) |
+| Macro-F1 | 0.86 [0.68, 0.93] (n 132, 24 groups) |
+| Balanced accuracy | 0.87 [0.68, 0.94] (n 132, 24 groups) |
+| Accuracy | 0.86 [0.76, 0.94] (n 132, 24 groups) |
 | Invasive sensitivity | 1.000 [1.000, 1.000] (n 132, 24 groups) |
 | Invasive specificity | 0.970 [0.936, 1.000] (n 132, 24 groups) |
 
-Model A `uni2h_lr` vs Model B `cb_text` (Invasive-vs-rest AUROC (uncalibrated scores)): A 0.998 [0.994, 1.000] (n 132, 24 groups); B 1.000 [1.000, 1.000] (n 132, 24 groups); paired difference A − B 0.00 [-0.01, 0.00] (n 132, 24 groups).
+Model A `uni2h512_lr` vs Model B `cb_text` (Invasive-vs-rest AUROC (uncalibrated scores)): A 0.999 [0.996, 1.000] (n 132, 24 groups); B 1.000 [1.000, 1.000] (n 132, 24 groups); paired difference A − B 0.00 [0.00, 0.00] (n 132, 24 groups).
 
 In situ ↔ invasive confusion: 3 of 30 in situ cases called invasive; 0 of 31 invasive cases called in situ.
 
 ## Calibration
 
-Source: `eval/calibration.json` · temperature 0.501 fit on train_oof · 10 equal-mass ECE bins (biased at small n).
+Source: `eval/calibration.json` · temperature 0.342 fit on train_oof · 10 equal-mass ECE bins (biased at small n).
 
 | | ECE | Brier | NLL |
 |---|---|---|---|
-| before temperature | 0.10 [0.07, 0.19] (n 132, 24 groups) | 0.28 [0.14, 0.47] (n 132, 24 groups) | 0.56 [0.29, 1.00] (n 132, 24 groups) |
-| after temperature | 0.05 [0.04, 0.22] (n 132, 24 groups) | 0.27 [0.11, 0.53] (n 132, 24 groups) | 0.66 [0.20, 1.56] (n 132, 24 groups) |
+| before temperature | 0.18 [0.12, 0.25] (n 132, 24 groups) | 0.28 [0.16, 0.40] (n 132, 24 groups) | 0.57 [0.35, 0.82] (n 132, 24 groups) |
+| after temperature | 0.05 [0.03, 0.18] (n 132, 24 groups) | 0.23 [0.09, 0.41] (n 132, 24 groups) | 0.57 [0.18, 1.32] (n 132, 24 groups) |
 
 ## Conformal prediction sets
 
@@ -41,16 +41,16 @@ Source: `eval/conformal.json` · alpha 0.1 (target coverage 90%) · tiers use ap
 
 | Method | Coverage | Mean set size | Empty sets |
 |---|---|---|---|
-| lac_marginal | 72.7% [60.7%, 84.4%] (n 132, 24 groups) | 0.81 [0.76, 0.89] (n 132, 24 groups) | 18.9% |
-| aps | 87.9% [73.7%, 95.7%] (n 132, 24 groups) | 1.29 [1.15, 1.36] (n 132, 24 groups) | 2.3% |
-| mondrian | 53.0% [38.7%, 73.6%] (n 132, 24 groups) | 0.61 [0.48, 0.81] (n 132, 24 groups) | 39.4% |
-| aps_marginal_nonempty | 90.2% [75.7%, 98.1%] (n 132, 24 groups) | 1.31 [1.18, 1.38] (n 132, 24 groups) | 0.0% |
+| lac_marginal | 72.0% [60.8%, 85.2%] (n 132, 24 groups) | 0.79 [0.74, 0.87] (n 132, 24 groups) | 21.2% |
+| aps | 88.6% [77.7%, 95.2%] (n 132, 24 groups) | 1.27 [1.11, 1.34] (n 132, 24 groups) | 3.0% |
+| mondrian | 53.8% [40.4%, 80.7%] (n 132, 24 groups) | 0.64 [0.51, 0.89] (n 132, 24 groups) | 36.4% |
+| aps_marginal_nonempty | 91.7% [80.8%, 98.1%] (n 132, 24 groups) | 1.30 [1.16, 1.37] (n 132, 24 groups) | 0.0% |
 
-Per-class coverage of the tier set (aps_marginal_nonempty): Normal 82.6% [60.9%, 100.0%] (n 23, 6 groups); Benign 87.5% [52.9%, 100.0%] (n 48, 6 groups); InSitu 90.0% [66.7%, 94.7%] (n 30, 6 groups); Invasive 100.0% [100.0%, 100.0%] (n 31, 17 groups).
+Per-class coverage of the tier set (aps_marginal_nonempty): Normal 95.7% [87.5%, 100.0%] (n 23, 6 groups); Benign 85.4% [50.0%, 100.0%] (n 48, 6 groups); InSitu 90.0% [66.7%, 94.7%] (n 30, 6 groups); Invasive 100.0% [100.0%, 100.0%] (n 31, 17 groups).
 
-Per-class LAC coverage (pre-registered): Normal 56.5% [26.3%, 80.0%] (n 23, 6 groups); Benign 70.8% [44.4%, 88.2%] (n 48, 6 groups); InSitu 66.7% [33.3%, 79.0%] (n 30, 6 groups); Invasive 93.5% [83.3%, 100.0%] (n 31, 17 groups).
+Per-class LAC coverage (pre-registered): Normal 69.6% [34.6%, 92.9%] (n 23, 6 groups); Benign 64.6% [40.0%, 79.6%] (n 48, 6 groups); InSitu 60.0% [33.3%, 68.4%] (n 30, 6 groups); Invasive 96.8% [90.0%, 100.0%] (n 31, 17 groups).
 
-**Post-hoc change, disclosed:** marginal LAC was the pre-registered tier set. On the held-out test split it returned empty sets for 18.9% of cases and no multi-class sets, so it gave the reader no differential; the 50-image calibration split is far easier than the test split, which likely violates the exchangeability the guarantee needs. Tiers now use the set named above (APS, Romano et al. 2020, with the argmax class added to empty sets). The switch was made after viewing test results, so its observed coverage is optimistic and is not an independent confirmation.
+**Post-hoc change, disclosed:** marginal LAC was the pre-registered tier set. On the held-out test split it returned empty sets for 21.2% of cases and no multi-class sets, so it gave the reader no differential; the 50-image calibration split is far easier than the test split, which likely violates the exchangeability the guarantee needs. Tiers now use the set named above (APS, Romano et al. 2020, with the argmax class added to empty sets). The switch was made after viewing test results, so its observed coverage is optimistic and is not an independent confirmation.
 
 Under exchangeability and continuous scores, coverage conditional on a random calibration set follows ~Beta(46, 5) (mean 0.902, SD 0.041); the 1 - alpha = 0.90 guarantee is marginal over calibration sets, not a guarantee for this test cohort. Compare the observed held-out coverage with the target.
 
@@ -65,16 +65,18 @@ Source: `eval/thunder.json` · **same split, different protocol (published: whol
 | published linear probe · musk | 69.9 (no CI) | — |
 | published zero-shot · conch | 56.1 (no CI) | — |
 | published zero-shot · musk | 62.5 (no CI) | — |
-| ours · uni2h_lr (production (calibrated)) | 83.0 [60.9, 92.7] | 83.5 [61.6, 94.0] |
-| ours · abmil (evaluated model) | 81.0 [63.4, 90.1] | 80.9 [63.8, 91.6] |
+| ours · uni2h512_lr (production (calibrated)) | 86.0 [67.8, 92.8] | 87.1 [67.6, 93.8] |
+| ours · abmil (evaluated model) | 83.7 [70.5, 91.3] | 84.8 [70.8, 93.1] |
 | ours · cb_cells (evaluated model) | 24.4 [15.7, 33.4] | 34.1 [24.0, 40.7] |
 | ours · cb_text (evaluated model) | 70.8 [53.0, 82.3] | 74.2 [58.2, 86.5] |
 | ours · cb_text_cells (evaluated model) | 66.7 [56.5, 76.1] | 74.0 [65.7, 79.5] |
 | ours · conch_probe_lr (evaluated model) | 78.4 [63.2, 88.0] | 81.9 [67.1, 90.7] |
-| ours · fusion_top3 (evaluated model) | 80.7 [62.6, 89.3] | 81.1 [62.6, 90.1] |
-| ours · hoptimus0_lr (evaluated model) | 78.2 [59.9, 87.1] | 78.6 [60.7, 88.6] |
-| ours · musk_lr (evaluated model) | 69.4 [56.2, 81.7] | 70.5 [57.5, 86.2] |
-| ours · uni2h_lr (evaluated model) | 83.0 [61.1, 92.2] | 83.5 [62.2, 93.6] |
+| ours · fusion_top3 (evaluated model) | 84.5 [68.3, 92.6] | 85.8 [68.0, 93.9] |
+| ours · hoptimus0_512_lr (evaluated model) | 81.1 [64.0, 90.1] | 81.9 [63.1, 91.7] |
+| ours · hoptimus0_lr (evaluated model) | 78.2 [60.1, 87.4] | 78.6 [60.6, 88.9] |
+| ours · musk_lr (evaluated model) | 69.4 [55.8, 81.8] | 70.5 [57.5, 86.3] |
+| ours · uni2h512_lr (evaluated model) | 86.0 [69.2, 92.7] | 87.1 [69.1, 93.6] |
+| ours · uni2h_lr (evaluated model) | 83.0 [62.1, 92.8] | 83.5 [63.1, 93.8] |
 
 - Same split, different protocol: published THUNDER probes resize the whole image; we embed tiles with test-time augmentation and select models by grouped CV inside train.
 - Not compared with the 87% ICIAR 2018 challenge result, which used a different, hidden test set.
@@ -87,31 +89,31 @@ Source: `eval/queue_sim.json` · 1000 simulated days · minutes, mean [2.5–97.
 | Policy | Invasive: mean first look | Invasive: P90 | Unflagged: mean wait | Overtime |
 |---|---|---|---|---|
 | FIFO (arrival order) | 20.2 [3.5, 60.1] | 37.7 [8.1, 100.8] | 20.0 [4.0, 59.5] | 29.3 [0.0, 104.3] |
-| Sepia tiers | 6.0 [1.9, 12.9] | 13.0 [4.8, 31.5] | 45.0 [5.6, 151.9] | 29.3 [0.0, 104.3] |
-| Sepia tiers + aging guard (configured targets) | 6.0 [1.9, 12.9] | 13.0 [4.8, 31.5] | 45.0 [5.6, 151.9] | 29.3 [0.0, 104.3] |
-| Sensitivity: tiers + aging, day-scale targets | 6.0 [1.9, 12.9] | 13.0 [4.8, 31.5] | 44.8 [5.6, 151.2] | 29.3 [0.0, 104.3] |
+| Sepia tiers | 6.0 [1.9, 12.9] | 12.9 [4.8, 31.5] | 45.2 [5.5, 157.0] | 29.3 [0.0, 104.3] |
+| Sepia tiers + aging guard (configured targets) | 6.0 [1.9, 12.9] | 12.9 [4.8, 31.5] | 45.2 [5.5, 157.0] | 29.3 [0.0, 104.3] |
+| Sensitivity: tiers + aging, day-scale targets | 6.0 [1.9, 12.9] | 12.9 [4.8, 31.5] | 44.9 [5.5, 152.8] | 29.3 [0.0, 104.3] |
 
-Sepia tiers vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 25.0 [0.7, 93.2] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
+Sepia tiers vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 25.2 [0.7, 99.0] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
 
-Sepia tiers + aging guard (configured targets) vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 25.0 [0.7, 93.2] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
+Sepia tiers + aging guard (configured targets) vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 25.2 [0.7, 99.0] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
 
-Sensitivity: tiers + aging, day-scale targets vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 24.8 [0.7, 92.7] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
+Sensitivity: tiers + aging, day-scale targets vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 24.9 [0.7, 96.0] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
 
-Aging guard: share of reads promoted per day — Sepia tiers + aging guard (configured targets) 0.0%; Sensitivity: tiers + aging, day-scale targets 2.7%.
+Aging guard: share of reads promoted per day — Sepia tiers + aging guard (configured targets) 0.0%; Sensitivity: tiers + aging, day-scale targets 2.8%.
 
 Assumptions: arrivals: Poisson, 6 per hour for 8 h; cases drawn uniformly with replacement from the clean test split; reader: one reader, fixed 9 min per case, non-preemptive, works overtime until empty; utilization: 0.9; tiers: core.tiers (surgical 1; Invasive top or in the aps_marginal_nonempty conformal set 2; set size != 1, reliability flag or insufficient tissue 3; else 4); common_random_numbers: True; seed: 44; interval: 2.5-97.5 percentiles over simulated days (simulation uncertainty only); truth_use: true labels only score the waits; they never drive the queue.
 
 - Prioritizing flagged cases delays non-flagged ones: the vs_fifo rows report that cost (and the delay of false negatives) next to the benefit (cf. Annarumma 2019).
 - A simulation with stated assumptions, not a measured workflow outcome.
 - At the configured aging targets (tier 1: 20 min, tier 2: 1440 min, tier 3: 1440 min, tier 4: 2880 min) no case waits long enough to be promoted within a 8 h day, so tiers and tiers_aging coincide: the aging guard has NO measured effect here and must not be claimed to protect unflagged cases.
-- tiers_aging_day_scale is a sensitivity run with illustrative day-scale aging targets (settings queue_sim.aging_scenarios), not the configured system: 2.7% of reads promoted; unflagged mean wait 45.0 -> 44.8 min vs plain tiers.
+- tiers_aging_day_scale is a sensitivity run with illustrative day-scale aging targets (settings queue_sim.aging_scenarios), not the configured system: 2.8% of reads promoted; unflagged mean wait 45.2 -> 44.9 min vs plain tiers.
 
 ## Simulated margin read
 
 Source: `eval/margin.json` · threshold P = 0.99982 [0.84738, 0.99989] (n 30, 6 groups), from 30 benign calibration images.
 
 - Benign test images, false tumor-at-margin per margin (pooled over 4 margins): 0.0% [0.0%, 0.0%] (n 284, 7 groups) (the threshold targets ≤ 5% per margin; 71 of 71 benign test images scored). Image-level, any of 4 margins: 0.0% [0.0%, 0.0%] (n 71, 7 groups) (no 5% target at image level).
-- Carcinoma test images with ≥ 1 margin called clear: 47.5% [25.0%, 64.7%] (n 61, 19 groups); Spearman(max margin score, case risk) 0.54 [0.05, 0.84] (n 61, 19 groups).
+- Carcinoma test images with ≥ 1 margin called clear: 47.5% [25.0%, 64.7%] (n 61, 19 groups); Spearman(max margin score, case risk) 0.56 [0.09, 0.80] (n 61, 19 groups).
 - Composite fields (64 of 64 scored): exact-negative margin called clear 100.0% [100.0%, 100.0%] (n 64, 41 groups); benign-half segments below threshold 100.0% [100.0%, 100.0%] (n 768, 41 groups); carcinoma-half segments above threshold 40.0% [30.8%, 50.9%] (n 768, 41 groups); tumor-side margin involved 70.3% [57.7%, 82.4%] (n 64, 41 groups). An echo of the diagnosis would score ~0% clear.
 - Annotated WSI windows (84, 10 patients): sensitivity 45.4% [25.4%, 65.2%] (n 141, 10 groups), specificity 98.5% [96.7%, 100.0%] (n 195, 10 groups).
 
@@ -133,11 +135,21 @@ Source: `eval/margin.json` · threshold P = 0.99982 [0.84738, 0.99989] (n 30, 6 
 - cv_metrics · uni2h_lr · balanced_accuracy: 0.949 [0.916, 0.981] (n 218, 49 groups)
 - cv_metrics · uni2h_lr · macro_f1: 0.951 [0.915, 0.980] (n 218, 49 groups)
 - cv_metrics · uni2h_lr · macro_auroc: 0.993 [0.984, 0.999] (n 218, 49 groups)
+- cv_metrics · uni2h512_lr · log_loss: 0.36 [0.30, 0.43] (n 218, 49 groups)
+- cv_metrics · uni2h512_lr · auroc_invasive: 1.000 [1.000, 1.000] (n 218, 49 groups)
+- cv_metrics · uni2h512_lr · balanced_accuracy: 0.953 [0.922, 0.982] (n 218, 49 groups)
+- cv_metrics · uni2h512_lr · macro_f1: 0.955 [0.920, 0.982] (n 218, 49 groups)
+- cv_metrics · uni2h512_lr · macro_auroc: 0.993 [0.983, 0.999] (n 218, 49 groups)
 - cv_metrics · hoptimus0_lr · log_loss: 0.32 [0.25, 0.40] (n 218, 49 groups)
 - cv_metrics · hoptimus0_lr · auroc_invasive: 0.997 [0.991, 1.000] (n 218, 49 groups)
 - cv_metrics · hoptimus0_lr · balanced_accuracy: 0.910 [0.867, 0.952] (n 218, 49 groups)
 - cv_metrics · hoptimus0_lr · macro_f1: 0.913 [0.865, 0.952] (n 218, 49 groups)
 - cv_metrics · hoptimus0_lr · macro_auroc: 0.990 [0.978, 0.998] (n 218, 49 groups)
+- cv_metrics · hoptimus0_512_lr · log_loss: 0.43 [0.37, 0.49] (n 218, 49 groups)
+- cv_metrics · hoptimus0_512_lr · auroc_invasive: 0.998 [0.995, 1.000] (n 218, 49 groups)
+- cv_metrics · hoptimus0_512_lr · balanced_accuracy: 0.928 [0.887, 0.966] (n 218, 49 groups)
+- cv_metrics · hoptimus0_512_lr · macro_f1: 0.929 [0.884, 0.965] (n 218, 49 groups)
+- cv_metrics · hoptimus0_512_lr · macro_auroc: 0.991 [0.979, 0.998] (n 218, 49 groups)
 - cv_metrics · musk_lr · log_loss: 0.33 [0.24, 0.44] (n 218, 49 groups)
 - cv_metrics · musk_lr · auroc_invasive: 0.983 [0.953, 0.998] (n 218, 49 groups)
 - cv_metrics · musk_lr · balanced_accuracy: 0.89 [0.84, 0.94] (n 218, 49 groups)
@@ -158,16 +170,16 @@ Source: `eval/margin.json` · threshold P = 0.99982 [0.84738, 0.99989] (n 30, 6 
 - cv_metrics · cb_cells · balanced_accuracy: 0.37 [0.31, 0.44] (n 218, 49 groups)
 - cv_metrics · cb_cells · macro_f1: 0.33 [0.26, 0.39] (n 218, 49 groups)
 - cv_metrics · cb_cells · macro_auroc: 0.62 [0.57, 0.67] (n 218, 49 groups)
-- cv_metrics · abmil · log_loss: 0.26 [0.12, 0.43] (n 218, 49 groups)
-- cv_metrics · abmil · auroc_invasive: 1.000 [0.999, 1.000] (n 218, 49 groups)
-- cv_metrics · abmil · balanced_accuracy: 0.921 [0.881, 0.959] (n 218, 49 groups)
-- cv_metrics · abmil · macro_f1: 0.922 [0.877, 0.957] (n 218, 49 groups)
-- cv_metrics · abmil · macro_auroc: 0.991 [0.982, 0.998] (n 218, 49 groups)
-- cv_metrics · fusion_top3 · log_loss: 0.21 [0.13, 0.32] (n 218, 49 groups)
-- cv_metrics · fusion_top3 · auroc_invasive: 0.998 [0.995, 1.000] (n 218, 49 groups)
-- cv_metrics · fusion_top3 · balanced_accuracy: 0.942 [0.905, 0.977] (n 218, 49 groups)
-- cv_metrics · fusion_top3 · macro_f1: 0.943 [0.903, 0.976] (n 218, 49 groups)
-- cv_metrics · fusion_top3 · macro_auroc: 0.991 [0.978, 0.998] (n 218, 49 groups)
+- cv_metrics · abmil · log_loss: 0.18 [0.07, 0.32] (n 218, 49 groups)
+- cv_metrics · abmil · auroc_invasive: 1.000 [1.000, 1.000] (n 218, 49 groups)
+- cv_metrics · abmil · balanced_accuracy: 0.946 [0.906, 0.981] (n 218, 49 groups)
+- cv_metrics · abmil · macro_f1: 0.946 [0.901, 0.980] (n 218, 49 groups)
+- cv_metrics · abmil · macro_auroc: 0.992 [0.983, 0.999] (n 218, 49 groups)
+- cv_metrics · fusion_top3 · log_loss: 0.19 [0.11, 0.31] (n 218, 49 groups)
+- cv_metrics · fusion_top3 · auroc_invasive: 0.999 [0.997, 1.000] (n 218, 49 groups)
+- cv_metrics · fusion_top3 · balanced_accuracy: 0.947 [0.910, 0.980] (n 218, 49 groups)
+- cv_metrics · fusion_top3 · macro_f1: 0.948 [0.907, 0.979] (n 218, 49 groups)
+- cv_metrics · fusion_top3 · macro_auroc: 0.991 [0.979, 0.999] (n 218, 49 groups)
 - ablation_concepts_cells · cb_text · log_loss: 0.48 [0.38, 0.59] (n 218, 49 groups)
 - ablation_concepts_cells · cb_text · auroc_invasive: 0.990 [0.975, 0.999] (n 218, 49 groups)
 - ablation_concepts_cells · cb_text · balanced_accuracy: 0.85 [0.80, 0.90] (n 218, 49 groups)
@@ -270,27 +282,27 @@ Source: `eval/margin.json` · threshold P = 0.99982 [0.84738, 0.99989] (n 30, 6 
 
 ### `eval/reliability.json`
 
-- accuracy_vs_degradation · curve · blur · 0: 0.84 [0.68, 0.94] (n 132, 24 groups)
+- accuracy_vs_degradation · curve · blur · 0: 0.86 [0.75, 0.94] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · blur · 1: 0.70 [0.55, 0.86] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · blur · 2: 0.73 [0.56, 0.89] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · blur · 3: 0.69 [0.57, 0.84] (n 132, 24 groups)
-- accuracy_vs_degradation · curve · jpeg · 0: 0.84 [0.68, 0.94] (n 132, 24 groups)
+- accuracy_vs_degradation · curve · jpeg · 0: 0.86 [0.75, 0.94] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · jpeg · 1: 0.70 [0.56, 0.90] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · jpeg · 2: 0.70 [0.54, 0.90] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · jpeg · 3: 0.67 [0.56, 0.80] (n 132, 24 groups)
-- accuracy_vs_degradation · curve · stain · 0: 0.84 [0.68, 0.94] (n 132, 24 groups)
+- accuracy_vs_degradation · curve · stain · 0: 0.86 [0.75, 0.94] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · stain · 1: 0.70 [0.54, 0.84] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · stain · 2: 0.69 [0.54, 0.84] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · stain · 3: 0.70 [0.57, 0.83] (n 132, 24 groups)
-- accuracy_vs_degradation · curve · resample · 0: 0.84 [0.68, 0.94] (n 132, 24 groups)
+- accuracy_vs_degradation · curve · resample · 0: 0.86 [0.75, 0.94] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · resample · 1: 0.69 [0.54, 0.84] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · resample · 2: 0.74 [0.61, 0.88] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · resample · 3: 0.73 [0.64, 0.85] (n 132, 24 groups)
-- error_auroc_test: 0.70 [0.59, 0.86] (n 1716, 24 groups)
-- feature_auroc_test · ood_percentile: 0.49 [0.40, 0.58] (n 1716, 24 groups)
+- error_auroc_test: 0.71 [0.59, 0.87] (n 1716, 24 groups)
+- feature_auroc_test · ood_percentile: 0.49 [0.41, 0.58] (n 1716, 24 groups)
 - feature_auroc_test · set_size: 0.70 [0.64, 0.79] (n 1716, 24 groups)
 - feature_auroc_test · conch_musk_disagree: 0.61 [0.51, 0.75] (n 1716, 24 groups)
-- error_recall_test: 0.46 [0.29, 0.61] (n 1716, 24 groups)
+- error_recall_test: 0.47 [0.29, 0.61] (n 1716, 24 groups)
 
 ### `eval/retrieval.json`
 
@@ -298,16 +310,16 @@ Source: `eval/margin.json` · threshold P = 0.99982 [0.84738, 0.99989] (n 30, 6 
 
 ### `eval/deletion.json`
 
-- models · uni2h_lr · predicted_aggressive · mean_drop_random: 0.00 [0.00, 0.00] (n 34, 17 groups)
-- models · uni2h_lr · predicted_aggressive · mean_drop_risk: 0.02 [0.00, 0.04] (n 34, 17 groups)
-- models · uni2h_lr · predicted_aggressive · mean_drop_concept: 0.00 [-0.02, 0.01] (n 34, 17 groups)
-- models · uni2h_lr · predicted_aggressive · concept_minus_random: 0.00 [-0.02, 0.01] (n 34, 17 groups)
-- models · uni2h_lr · predicted_aggressive · risk_minus_random: 0.02 [0.00, 0.05] (n 34, 17 groups)
-- models · uni2h_lr · all_eligible · mean_drop_random: 0.00 [0.00, 0.00] (n 132, 24 groups)
-- models · uni2h_lr · all_eligible · mean_drop_risk: 0.01 [0.00, 0.02] (n 132, 24 groups)
-- models · uni2h_lr · all_eligible · mean_drop_concept: 0.00 [-0.01, 0.01] (n 132, 24 groups)
-- models · uni2h_lr · all_eligible · concept_minus_random: 0.00 [-0.01, 0.01] (n 132, 24 groups)
-- models · uni2h_lr · all_eligible · risk_minus_random: 0.01 [0.00, 0.02] (n 132, 24 groups)
+- models · uni2h512_lr · predicted_aggressive · mean_drop_random: 0.00 [0.00, 0.00] (n 34, 17 groups)
+- models · uni2h512_lr · predicted_aggressive · mean_drop_risk: 0.02 [0.00, 0.05] (n 34, 17 groups)
+- models · uni2h512_lr · predicted_aggressive · mean_drop_concept: 0.00 [-0.02, 0.02] (n 34, 17 groups)
+- models · uni2h512_lr · predicted_aggressive · concept_minus_random: 0.00 [-0.01, 0.02] (n 34, 17 groups)
+- models · uni2h512_lr · predicted_aggressive · risk_minus_random: 0.02 [0.00, 0.05] (n 34, 17 groups)
+- models · uni2h512_lr · all_eligible · mean_drop_random: 0.00 [0.00, 0.00] (n 132, 24 groups)
+- models · uni2h512_lr · all_eligible · mean_drop_risk: 0.01 [0.00, 0.02] (n 132, 24 groups)
+- models · uni2h512_lr · all_eligible · mean_drop_concept: 0.00 [-0.01, 0.01] (n 132, 24 groups)
+- models · uni2h512_lr · all_eligible · concept_minus_random: 0.00 [0.00, 0.01] (n 132, 24 groups)
+- models · uni2h512_lr · all_eligible · risk_minus_random: 0.01 [0.00, 0.02] (n 132, 24 groups)
 
 ### `eval/cells.json`
 

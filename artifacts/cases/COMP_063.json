@@ -24,7 +24,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.94,
-    "reliability": 0.31,
+    "reliability": 0.466,
     "reliability_flag": true
   },
   "prediction": {
@@ -44,7 +44,6 @@
     "risk_score": 0.0316,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "Benign",
       "InSitu"
     ]
   },
@@ -736,7 +735,6 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
-      "set_size_gt_1",
       "low_reliability",
       "surgical_frozen_section"
     ]
@@ -749,7 +747,6 @@
         "top": "InSitu",
         "p": 0.532,
         "set": [
-          "Benign",
           "InSitu"
         ],
         "confidence": 0.9,
@@ -819,7 +816,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.31,
+        "reliability": 0.47,
         "ood_percentile": 0.94,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -844,7 +841,7 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested, and a benign lesion cannot be excluded.",
+        "text": "In situ carcinoma is suggested.",
         "findings": [
           "F1"
         ]
@@ -857,13 +854,13 @@
         ]
       },
       {
-        "text": "Typical normal lobules with two-layered epithelium push the read toward invasive carcinoma.",
+        "text": "1 of 5 most similar reference cases shares the suggested category.",
         "findings": [
-          "F4"
+          "F5"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced, and the suggested margin call (simulated frozen section) is to defer to permanent sections.",
+        "text": "The reliability check flagged the read, so its confidence is reduced; suggested margin call (simulated frozen section): defer to permanent sections.",
         "findings": [
           "F6",
           "F7"
@@ -875,20 +872,20 @@
     "status": "drafted",
     "orders": [
       {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "uncertain_benign_atypia",
-        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
-      },
-      {
         "type": "recut",
         "items": [
           "recut H&E section"
         ],
         "rule_id": "low_quality",
         "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
+      },
+      {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "low_quality_levels",
+        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
       }
     ],
     "blocked": [

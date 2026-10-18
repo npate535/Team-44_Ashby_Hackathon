@@ -14,11 +14,11 @@
 #      the 07:59-08:00 gap, or Sun 18:00 (end of the event); --deadline is added for the block the job is in;
 #   4. GPU jobs: no other GPU job of ours (users in $PQ_TEAM_USERS, default $USER) may be running or pending unless
 #      this one is chained after the TAIL of that chain with --after (one GPU per team at a time);
-#   5. GPU jobs: cumulative requested GPU time in the submission log + this job <= 7 h (420 min);
+#   5. GPU jobs: cumulative requested GPU time in the submission log + this job <= 8 h (480 min);
 #   6. `sbatch --test-only` accepts the job. It validates syntax only: it ignores the magnetic reservations and
 #      reports a far-future start, which is NOT an error.
 # Every submission (and every refusal) is appended to ~/pathqueue/logs/submissions.log (tab-separated; one log per
-# user however many checkouts exist, so the 7 h cap is global). A mkdir lock serializes concurrent submissions.
+# user however many checkouts exist, so the 8 h cap is global). A mkdir lock serializes concurrent submissions.
 # --print-only runs all checks and prints the sbatch command without submitting or logging.
 # Bash 3.2 compatible (the tests run on macOS).
 set -euo pipefail
@@ -30,8 +30,8 @@ LOG="$LOG_DIR/submissions.log"
 LOCK="$LOG_DIR/.submit.lock"
 TEAM_USERS="${PQ_TEAM_USERS:-${USER:-$(id -un)}}"
 
-ALLOWED="download_bach prep_a prep_b smoke embed_core embed_extra embed_aux text_cpu cells_spike cells finetune"
-GPU_CAP_MIN=420                  # 7 h of Rishabh's 10 GPU-hours (BUILD_PLAN §G)
+ALLOWED="download_bach prep_a prep_b smoke embed_core embed_extra embed_aux text_cpu cells_spike cells finetune finetune_cv embed_ctx"
+GPU_CAP_MIN=480                  # 8 h of Rishabh's 10 GPU-hours (BUILD_PLAN §G; raised for accuracy round 2, docs/ACCURACY_ROUND2.md)
 GPU_MAX_MIN=60                   # realistic 1 h GPU requests (CLAUDE.md, §C.2)
 OVERNIGHT_END=1792328340         # Sun 2026-10-18 07:59:00 CDT (12:59:00Z): overnight reserved block ends
 DAY_START=1792328400             # Sun 2026-10-18 08:00:00 CDT: Sunday reserved block starts

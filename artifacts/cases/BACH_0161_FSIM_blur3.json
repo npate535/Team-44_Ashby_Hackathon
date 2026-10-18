@@ -26,7 +26,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.96,
-    "reliability": 0.444,
+    "reliability": 0.305,
     "reliability_flag": true
   },
   "prediction": {
@@ -46,7 +46,8 @@
     "risk_score": 0.1295,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "InSitu"
+      "InSitu",
+      "Invasive"
     ]
   },
   "concepts": [
@@ -734,6 +735,8 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
+      "aggressive_in_conformal_set",
+      "set_size_gt_1",
       "low_reliability",
       "surgical_frozen_section"
     ]
@@ -746,7 +749,8 @@
         "top": "InSitu",
         "p": 0.82,
         "set": [
-          "InSitu"
+          "InSitu",
+          "Invasive"
         ],
         "confidence": 0.9,
         "risk": 0.13
@@ -812,7 +816,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.44,
+        "reliability": 0.3,
         "ood_percentile": 0.96,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -837,7 +841,7 @@
     "generator": "lumen:gemma-4-31b-it+template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested.",
+        "text": "In situ carcinoma is suggested, and invasive carcinoma cannot be excluded.",
         "findings": [
           "F1"
         ]

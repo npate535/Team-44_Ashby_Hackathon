@@ -61,7 +61,7 @@ encoders:
     autocast: null                                  # the adapter itself loads MUSK in fp16 on CUDA (card)
     text_aligned: true
     nct_floor: 0.55
-  uni2h:
+  uni2h: &uni2h
     repo: MahmoodLab/UNI2-h
     files: [config.json, pytorch_model.bin]
     loader: timm_hub
@@ -93,6 +93,10 @@ encoders:
       probe: {dim: 1536, normalized: false}
     autocast: bf16                                  # trained bf16 (card); TRIDENT bf16
     text_aligned: false
+  uni2h_ft:                                         # accuracy round 2: UNI2-h + LoRA from pipeline/05c_finetune.py
+    <<: *uni2h
+    native_grid: g512                               # fine-tuned on 512-px crops (docs/ACCURACY_ROUND2.md)
+    lora: {r: 8, alpha: 16, weights: ~/.cache/pathqueue_ft/uni2h_ft_lora.pt}   # private home: CC-BY-NC-ND derivative
   hoptimus0:
     repo: bioptimus/H-optimus-0
     files: [config.json, pytorch_model.bin]
@@ -215,7 +219,7 @@ encoders:
 
 # Embedding engine (pipeline/02_embed.py).
 engine:
-  batch_size: {default: 128, conch: 128, musk: 64, uni2h: 128, hoptimus0: 96, virchow2: 128, phikonv2: 128, pathgenclip: 256}
+  batch_size: {default: 128, conch: 128, musk: 64, uni2h: 128, uni2h_ft: 128, hoptimus0: 96, virchow2: 128, phikonv2: 128, pathgenclip: 256}
   num_workers: 14                     # DataLoader workers (<= 16 CPUs per GPU job)
   pin_memory: true
   chunk_rows: 4096                    # manifest rows per float16 chunk file (resume unit)

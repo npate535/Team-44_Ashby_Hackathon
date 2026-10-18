@@ -262,7 +262,9 @@ class RiskStep:
         self.splits = rm.cv_splits(train, self.cfg)
         self.n_folds = int(self.cfg["split"]["cv"]["folds"])
         self.skipped: dict[str, str] = {}
-        self.complexity = {n: i for i, n in enumerate(self.cfg["risk_model"]["complexity"])}
+        # "a|b" in risk_model.complexity gives candidates equal rank (same encoder at another tile size)
+        self.complexity = {part: i for i, n in enumerate(self.cfg["risk_model"]["complexity"])
+                           for part in str(n).split("|")}
         comp_csv = schemas.composites_csv(self.root)
         if comp_csv.is_file():
             self.composites = rm.read_csv(comp_csv)
@@ -599,6 +601,7 @@ class RiskStep:
             model_parts.append((b, c, var_df))
         else:
             fallback = [m for m in self.cfg["risk_model"]["variant_fallback"] if m in self.cands and m != b]
+            fallback.sort(key=lambda m: self.cands[m].family != "concept")   # concept explanations prefer concept models
             for fb in fallback:
                 fbc = self.cands[fb]
                 if getattr(fbc, "fs", None) is not None and fbc.fs.variants is not None and not fbc.fs.variants.empty:

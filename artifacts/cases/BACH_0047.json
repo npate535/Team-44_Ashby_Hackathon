@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.88,
-    "reliability": 0.456,
+    "reliability": 0.473,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,12 +33,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0195,
-      0.9514,
-      0.0286,
-      0.0004
+      0.0265,
+      0.9567,
+      0.0165,
+      0.0002
     ],
-    "risk_score": 0.0004,
+    "risk_score": 0.0002,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Benign"
@@ -831,7 +831,7 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.951,
+        "p": 0.957,
         "set": [
           "Benign"
         ],
@@ -900,7 +900,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.46,
+        "reliability": 0.47,
         "ood_percentile": 0.88,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -986,7 +986,7 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "lumen:gemma-4-31b-it+template",
     "sentences": [
       {
         "text": "A benign lesion is suggested.",
@@ -1002,15 +1002,14 @@
         ]
       },
       {
-        "text": "3 of 5 most similar reference cases share the suggested category.",
+        "text": "The reliability check flagged the read, so its confidence is reduced.",
         "findings": [
-          "F5"
+          "F6"
         ]
       },
       {
-        "text": "The reliability check flagged the read, so its confidence is reduced; suggested margin call (simulated frozen section): defer to permanent sections.",
+        "text": "Suggested margin call (simulated frozen section): defer to permanent sections, because the reliability check flagged this read.",
         "findings": [
-          "F6",
           "F11"
         ]
       }

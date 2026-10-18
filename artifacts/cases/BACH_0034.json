@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.88,
-    "reliability": 0.962,
-    "reliability_flag": false
+    "reliability": 0.314,
+    "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,12 +33,12 @@
       "Invasive"
     ],
     "probs": [
-      0.057,
-      0.4234,
-      0.519,
-      0.0006
+      0.0749,
+      0.5369,
+      0.3879,
+      0.0003
     ],
-    "risk_score": 0.0006,
+    "risk_score": 0.0003,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Benign",
@@ -506,8 +506,8 @@
     "image": "images/BACH_0088.jpg"
   },
   "agreement": {
-    "conch_musk_same_top": true,
-    "neighbor_agreement": 0.0
+    "conch_musk_same_top": false,
+    "neighbor_agreement": 0.2
   },
   "margin": null,
   "cells": {
@@ -613,7 +613,8 @@
     "flagged": true,
     "tier": 3,
     "reasons": [
-      "set_size_gt_1"
+      "set_size_gt_1",
+      "low_reliability"
     ]
   },
   "findings": [
@@ -621,14 +622,14 @@
       "id": "F1",
       "kind": "prediction",
       "data": {
-        "top": "InSitu",
-        "p": 0.519,
+        "top": "Benign",
+        "p": 0.537,
         "set": [
           "Benign",
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.001
+        "risk": 0.0
       }
     },
     {
@@ -683,17 +684,17 @@
       "id": "F5",
       "kind": "retrieval",
       "data": {
-        "agree": 0,
+        "agree": 1,
         "of": 5,
-        "label": "InSitu"
+        "label": "Benign"
       }
     },
     {
       "id": "F6",
       "kind": "quality",
       "data": {
-        "reliability_flag": false,
-        "reliability": 0.96,
+        "reliability_flag": true,
+        "reliability": 0.31,
         "ood_percentile": 0.88,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -752,28 +753,30 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested; a benign lesion cannot be excluded.",
+        "text": "A benign lesion is suggested; in situ carcinoma cannot be excluded.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Scarce tumor infiltrating stroma pushes the read away from invasive carcinoma.",
+        "text": "Scarce tumor infiltrating stroma, prominent normal lobules with two-layered epithelium, and prominent atypical cells confined within ducts push the read away from invasive carcinoma.",
         "findings": [
-          "F2"
-        ]
-      },
-      {
-        "text": "Prominent normal lobules with two-layered epithelium and atypical cells confined within ducts push the read away from invasive carcinoma.",
-        "findings": [
+          "F2",
           "F3",
           "F4"
         ]
       },
       {
-        "text": "Tumor cell fraction is higher than in 97% of benign reference cases.",
+        "text": "The reliability check flagged the read, so its confidence is reduced.",
         "findings": [
-          "F7"
+          "F6"
+        ]
+      },
+      {
+        "text": "Tumor cell fraction is higher than in 97% of benign reference cases, and variation in nuclear shape is higher than in 90% of benign reference cases.",
+        "findings": [
+          "F7",
+          "F8"
         ]
       }
     ]
@@ -781,14 +784,6 @@
   "agent": {
     "status": "drafted",
     "orders": [
-      {
-        "type": "stain",
-        "items": [
-          "ER"
-        ],
-        "rule_id": "breast_insitu",
-        "rationale": "ER status is recommended for ductal carcinoma in situ (ASCO/CAP 2020)."
-      },
       {
         "type": "deeper_levels",
         "items": [
@@ -800,10 +795,19 @@
       {
         "type": "stain",
         "items": [
-          "CK5/6"
+          "CK5/6",
+          "ER"
         ],
         "rule_id": "uncertain_benign_atypia_ihc",
         "rationale": "CK5/6 with ER helps separate usual hyperplasia from atypical or in situ lesions."
+      },
+      {
+        "type": "recut",
+        "items": [
+          "recut H&E section"
+        ],
+        "rule_id": "low_quality",
+        "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
       }
     ],
     "blocked": []

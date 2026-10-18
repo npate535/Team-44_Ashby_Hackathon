@@ -26,7 +26,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.977,
+    "reliability": 0.956,
     "reliability_flag": false
   },
   "prediction": {
@@ -46,7 +46,8 @@
     "risk_score": 0.2546,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "InSitu"
+      "InSitu",
+      "Invasive"
     ]
   },
   "concepts": [
@@ -751,6 +752,8 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
+      "aggressive_in_conformal_set",
+      "set_size_gt_1",
       "surgical_frozen_section"
     ]
   },
@@ -762,7 +765,8 @@
         "top": "InSitu",
         "p": 0.738,
         "set": [
-          "InSitu"
+          "InSitu",
+          "Invasive"
         ],
         "confidence": 0.9,
         "risk": 0.255
@@ -833,7 +837,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.98,
+        "reliability": 0.96,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -869,21 +873,23 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested.",
+        "text": "In situ carcinoma is suggested, and invasive carcinoma cannot be excluded.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent atypical cells confined within ducts are associated with a lower likelihood of invasive carcinoma.",
+        "text": "Prominent atypical cells confined within ducts and prominent lymphocytic infiltrate push the read away from invasive carcinoma, while prominent mitotic figures push the read toward invasive carcinoma.",
         "findings": [
-          "F3"
+          "F2",
+          "F3",
+          "F4"
         ]
       },
       {
-        "text": "Prominent mitotic figures push the read toward invasive carcinoma.",
+        "text": "4 of 5 most similar reference cases share the suggested category.",
         "findings": [
-          "F4"
+          "F5"
         ]
       },
       {

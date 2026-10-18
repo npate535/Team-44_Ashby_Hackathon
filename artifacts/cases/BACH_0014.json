@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 10,
     "ood_percentile": 1.0,
-    "reliability": 0.302,
+    "reliability": 0.301,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,12 +33,12 @@
       "Invasive"
     ],
     "probs": [
-      0.0297,
-      0.7385,
-      0.2256,
-      0.0063
+      0.0378,
+      0.8263,
+      0.1333,
+      0.0026
     ],
-    "risk_score": 0.0063,
+    "risk_score": 0.0026,
     "conformal_alpha": 0.1,
     "conformal_set": [
       "Benign",
@@ -584,13 +584,13 @@
       "kind": "prediction",
       "data": {
         "top": "Benign",
-        "p": 0.739,
+        "p": 0.826,
         "set": [
           "Benign",
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.006
+        "risk": 0.003
       }
     },
     {
@@ -727,31 +727,32 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it+template",
+    "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "A benign lesion is suggested, though in situ carcinoma cannot be excluded.",
+        "text": "A benign lesion is suggested, and in situ carcinoma cannot be excluded.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Features lowering the likelihood of invasive carcinoma in this read: dense lymphocytic infiltrate (TILs) and prominent gland / tubule formation.",
+        "text": "Prominent gland / tubule formation and dense lymphocytic infiltrate push the read away from invasive carcinoma, while scarce benign fibrous stroma or fat pushes the read toward invasive carcinoma.",
         "findings": [
           "F2",
+          "F3",
           "F4"
-        ]
-      },
-      {
-        "text": "Tumor cell fraction is higher than in 100% of benign reference cases.",
-        "findings": [
-          "F7"
         ]
       },
       {
         "text": "The reliability check flagged the read, so its confidence is reduced.",
         "findings": [
           "F6"
+        ]
+      },
+      {
+        "text": "Tumor cell fraction is higher than in 100% of benign reference cases.",
+        "findings": [
+          "F7"
         ]
       }
     ]

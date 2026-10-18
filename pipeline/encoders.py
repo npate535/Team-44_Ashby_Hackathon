@@ -441,10 +441,55 @@ def _timm_kwargs(spec: Mapping[str, Any]) -> dict[str, Any]:
             for k, v in dict(spec.get("timm_kwargs") or {}).items()}
 
 
+def add_lora(model: Any, r: int, alpha: float) -> list[Any]:
+    """Wrap every attention qkv and proj Linear of a timm ViT with a rank-r LoRA adapter (pipeline/05c_finetune.py).
+    lora_b starts at zero, so the wrapped model is initially identical to the base. Returns the adapter parameters."""
+    import math
+
+    import torch
+
+    class LoRALinear(torch.nn.Module):
+        def __init__(self, base: Any) -> None:
+            super().__init__()
+            self.base, self.scale = base, float(alpha) / int(r)
+            self.lora_a = torch.nn.Parameter(torch.empty(int(r), base.in_features))
+            self.lora_b = torch.nn.Parameter(torch.zeros(base.out_features, int(r)))
+            torch.nn.init.kaiming_uniform_(self.lora_a, a=math.sqrt(5))
+
+        def forward(self, x: Any) -> Any:
+            return self.base(x) + (x @ self.lora_a.t().to(x.dtype)) @ self.lora_b.t().to(x.dtype) * self.scale
+
+    params = []
+    for block in model.blocks:
+        for attr in ("qkv", "proj"):
+            wrapped = LoRALinear(getattr(block.attn, attr))
+            setattr(block.attn, attr, wrapped)
+            params += [wrapped.lora_a, wrapped.lora_b]
+    return params
+
+
+def lora_state(model: Any) -> dict[str, Any]:
+    return {k: v.detach().cpu() for k, v in model.state_dict().items() if ".lora_" in k}
+
+
+def lora_weights_path(spec: Mapping[str, Any]) -> Path:
+    return Path(str(spec["lora"]["weights"])).expanduser()
+
+
 def _load_timm(name: str, spec: Mapping[str, Any], device: str) -> Encoder:
     import timm
 
-    model = timm.create_model(f"hf-hub:{spec['repo']}", pretrained=True, **_timm_kwargs(spec)).eval().to(device)
+    model = timm.create_model(f"hf-hub:{spec['repo']}", pretrained=True, **_timm_kwargs(spec))
+    if spec.get("lora"):                       # fine-tuned variant (uni2h_ft): base weights + private LoRA adapters
+        import torch
+
+        add_lora(model, int(spec["lora"]["r"]), float(spec["lora"]["alpha"]))
+        state = torch.load(lora_weights_path(spec), map_location="cpu")
+        expected = set(lora_state(model))
+        if set(state["lora"]) != expected:
+            raise ValueError(f"{name}: LoRA weights do not match the model ({len(state['lora'])} vs {len(expected)} tensors)")
+        model.load_state_dict(state["lora"], strict=False)
+    model = model.eval().to(device)
     output, registers = spec["output"], int(spec.get("register_tokens", 0))
 
     def forward(x: Any) -> dict[str, Any]:
@@ -521,6 +566,8 @@ def load_encoder(name: str, ecfg: Mapping[str, Any], device: str = "cuda") -> En
     spec = encoder_spec(ecfg, name)
     if spec["loader"] != "official_test":
         missing = missing_files(spec)
+        if spec.get("lora") and not lora_weights_path(spec).is_file():
+            missing.append(str(lora_weights_path(spec)))
         if missing:
             raise EncoderUnavailable(f"{name}: not in the HF cache: {missing}. Run pipeline/jobs/hf_download.sh "
                                      f"on the login node (HF access must be granted for this account).")

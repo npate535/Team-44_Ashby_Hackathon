@@ -58,6 +58,7 @@ pipeline-laptop:
 	$(call run_step,pipeline,04_concepts)
 	$(call run_step,pipeline,04c_cell_features)
 	$(call run_step,pipeline,05_risk_model)
+	$(call run_step,pipeline,05c_finetune)
 	$(call run_step,pipeline,05b_abmil)
 	$(call run_step,pipeline,06_reliability)
 	$(call run_step,pipeline,07_retrieval)

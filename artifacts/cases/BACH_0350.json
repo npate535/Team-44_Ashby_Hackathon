@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.302,
+    "reliability": 0.458,
     "reliability_flag": true
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,15 +33,14 @@
       "Invasive"
     ],
     "probs": [
-      0.0005,
-      0.086,
-      0.8477,
-      0.0658
+      0.0002,
+      0.0037,
+      0.9188,
+      0.0773
     ],
-    "risk_score": 0.0658,
+    "risk_score": 0.0773,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "Benign",
       "InSitu"
     ]
   },
@@ -614,7 +613,6 @@
     "flagged": true,
     "tier": 3,
     "reasons": [
-      "set_size_gt_1",
       "low_reliability"
     ]
   },
@@ -624,13 +622,12 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.848,
+        "p": 0.919,
         "set": [
-          "Benign",
           "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.066
+        "risk": 0.077
       }
     },
     {
@@ -694,7 +691,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": true,
-        "reliability": 0.3,
+        "reliability": 0.46,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -766,24 +763,31 @@
     }
   ],
   "summary": {
-    "generator": "lumen:gemma-4-31b-it",
+    "generator": "lumen:gemma-4-31b-it+template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested, and a benign lesion cannot be excluded.",
+        "text": "In situ carcinoma is suggested.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent atypical cells confined within ducts is associated with a lower likelihood of invasive carcinoma.",
+        "text": "Features lowering the likelihood of invasive carcinoma in this read: prominent atypical cells confined within ducts and scarce tumor infiltrating stroma.",
         "findings": [
-          "F2"
+          "F2",
+          "F4"
         ]
       },
       {
         "text": "The reliability check flagged the read, so its confidence is reduced.",
         "findings": [
           "F6"
+        ]
+      },
+      {
+        "text": "Tumor cell fraction is higher than in 100% of benign reference cases.",
+        "findings": [
+          "F7"
         ]
       }
     ]
@@ -800,28 +804,20 @@
         "rationale": "ER status is recommended for ductal carcinoma in situ (ASCO/CAP 2020)."
       },
       {
-        "type": "deeper_levels",
-        "items": [
-          "deeper levels"
-        ],
-        "rule_id": "uncertain_benign_atypia",
-        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
-      },
-      {
-        "type": "stain",
-        "items": [
-          "CK5/6"
-        ],
-        "rule_id": "uncertain_benign_atypia_ihc",
-        "rationale": "CK5/6 with ER helps separate usual hyperplasia from atypical or in situ lesions."
-      },
-      {
         "type": "recut",
         "items": [
           "recut H&E section"
         ],
         "rule_id": "low_quality",
         "rationale": "The reliability check flagged this read; a recut may give a more reliable section."
+      },
+      {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "low_quality_levels",
+        "rationale": "The reliability check flagged this read; deeper levels may give a more reliable section."
       }
     ],
     "blocked": []

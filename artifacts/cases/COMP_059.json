@@ -24,7 +24,7 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 0.94,
-    "reliability": 0.96,
+    "reliability": 0.92,
     "reliability_flag": false
   },
   "prediction": {
@@ -44,6 +44,7 @@
     "risk_score": 0.3869,
     "conformal_alpha": 0.1,
     "conformal_set": [
+      "Benign",
       "InSitu",
       "Invasive"
     ]
@@ -758,6 +759,7 @@
         "top": "InSitu",
         "p": 0.414,
         "set": [
+          "Benign",
           "InSitu",
           "Invasive"
         ],
@@ -828,7 +830,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.96,
+        "reliability": 0.92,
         "ood_percentile": 0.94,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -862,13 +864,13 @@
     "generator": "lumen:gemma-4-31b-it",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested, and invasive carcinoma cannot be excluded.",
+        "text": "In situ carcinoma is suggested; benign lesion and invasive carcinoma cannot be excluded.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent tumor infiltrating stroma and prominent nuclear pleomorphism push the read toward invasive carcinoma.",
+        "text": "Prominent tumor infiltrating stroma and nuclear pleomorphism push the read toward invasive carcinoma.",
         "findings": [
           "F2",
           "F4"
@@ -889,8 +891,17 @@
     ]
   },
   "agent": {
-    "status": "none",
-    "orders": [],
+    "status": "drafted",
+    "orders": [
+      {
+        "type": "deeper_levels",
+        "items": [
+          "deeper levels"
+        ],
+        "rule_id": "uncertain_benign_atypia",
+        "rationale": "Deeper levels can show whether an atypical or in situ lesion is present."
+      }
+    ],
     "blocked": [
       {
         "action": "draft_stains",

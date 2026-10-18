@@ -21,11 +21,11 @@
   "quality": {
     "qc_tiles_kept": 12,
     "ood_percentile": 1.0,
-    "reliability": 0.959,
+    "reliability": 0.977,
     "reliability_flag": false
   },
   "prediction": {
-    "model": "uni2h_lr",
+    "model": "uni2h512_lr",
     "classes": [
       "Normal",
       "Benign",
@@ -33,16 +33,15 @@
       "Invasive"
     ],
     "probs": [
-      0.0036,
-      0.0371,
-      0.908,
-      0.0513
+      0.0114,
+      0.0162,
+      0.9125,
+      0.0599
     ],
-    "risk_score": 0.0513,
+    "risk_score": 0.0599,
     "conformal_alpha": 0.1,
     "conformal_set": [
-      "InSitu",
-      "Invasive"
+      "InSitu"
     ]
   },
   "concepts": [
@@ -835,8 +834,6 @@
     "flagged": false,
     "tier": 1,
     "reasons": [
-      "aggressive_in_conformal_set",
-      "set_size_gt_1",
       "surgical_frozen_section"
     ]
   },
@@ -846,13 +843,12 @@
       "kind": "prediction",
       "data": {
         "top": "InSitu",
-        "p": 0.908,
+        "p": 0.912,
         "set": [
-          "InSitu",
-          "Invasive"
+          "InSitu"
         ],
         "confidence": 0.9,
-        "risk": 0.051
+        "risk": 0.06
       }
     },
     {
@@ -917,7 +913,7 @@
       "kind": "quality",
       "data": {
         "reliability_flag": false,
-        "reliability": 0.96,
+        "reliability": 0.98,
         "ood_percentile": 1.0,
         "qc_tiles_kept": 12,
         "min_tiles_kept": 3
@@ -1017,13 +1013,13 @@
     "generator": "lumen:gemma-4-31b-it+template",
     "sentences": [
       {
-        "text": "In situ carcinoma is suggested; invasive carcinoma cannot be excluded.",
+        "text": "In situ carcinoma is suggested.",
         "findings": [
           "F1"
         ]
       },
       {
-        "text": "Prominent atypical cells confined within ducts and prominent normal lobules with two-layered epithelium are associated with a lower likelihood of invasive carcinoma.",
+        "text": "Prominent atypical cells confined within ducts and prominent normal lobules with two-layered epithelium push the read away from invasive carcinoma.",
         "findings": [
           "F2",
           "F4"
