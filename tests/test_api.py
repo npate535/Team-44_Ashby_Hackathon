@@ -421,6 +421,22 @@ def test_fixture_media_is_served_flat(tmp_path):
         assert client.get(url).status_code == 404, url
 
 
+def test_image_thumbnails_are_downscaled_jpegs(tmp_path):
+    from io import BytesIO
+
+    from PIL import Image
+
+    client, _ = make_client(tmp_path, cases_dir=FIXTURES)
+    res = client.get("/images/demo_0001.jpg?w=128")
+    assert res.status_code == 200 and res.headers["content-type"] == "image/jpeg"
+    with Image.open(BytesIO(res.content)) as im:
+        assert im.width == 128
+    assert client.get("/images/demo_0001.jpg?w=128").content == res.content          # cached, deterministic
+    assert client.get("/images/demo_0001.jpg?w=5000").status_code == 422              # bounded size
+    assert client.get("/images/missing.jpg?w=128").status_code == 404
+    assert client.get("/images/demo_0001.jpg").content == (FIXTURES / "demo_0001.jpg").read_bytes()
+
+
 def test_static_routes_never_serve_json(tmp_path):
     root = dev_root(tmp_path)
     io.write_json(root / "eval" / "metrics.json", {"name": "metrics", "true_label": ["Invasive"]})

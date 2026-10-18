@@ -60,6 +60,33 @@ export async function createMockApi() {
   const speed = config.sim.speed;
   const hold = config.sim.hold_surgical_for_injection;
   let state;
+  let routedSeq = 0;
+  // Mirrors backend Backend.routed_report(): read-only context for a routed result (never ground truth).
+  function report(x, to) {
+    const c = x.c;
+    const probs = c.prediction.probs;
+    const out = {
+      lane: c.lane,
+      top_class: c.prediction.classes[probs.indexOf(Math.max(...probs))],
+      tier: c.flag.tier,
+      reasons: [...c.flag.reasons],
+      quality: { reliability: c.quality.reliability, reliability_flag: c.quality.reliability_flag, qc_tiles_kept: c.quality.qc_tiles_kept },
+      simulated: !!c.simulated,
+      arrived_at: x.arrivedWall ? new Date(x.arrivedWall).toISOString() : null
+    };
+    if (to === 'oncologist')
+      out.features = [...(c.concepts || [])]
+        .sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution))
+        .slice(0, 3)
+        .map((k) => ({ id: k.id, label: k.label, contribution: k.contribution, direction: k.direction, source: k.source || 'text' }));
+    else {
+      const m = c.margin || {};
+      out.margin = { suggested_call: m.suggested_call, involved: m.involved || [], per_margin: m.per_margin || {}, threshold: m.threshold ?? null };
+      out.simulated_variant = c.simulated_variant || null;
+      out.degradation = c.degradation || null;
+    }
+    return out;
+  }
 
   function seed() {
     const cases = manifest.cases.map((entry) => {
@@ -245,6 +272,8 @@ export async function createMockApi() {
       x.call = { call: payload.call, margins, at: now, wall: Date.now() };
       const elapsed = (x.call.wall - x.arrivedWall) / 1000;
       state.routed.surgeon.unshift({
+        id: ++routedSeq,
+        report: report(x, 'surgeon'),
         case_id: id,
         to: 'surgeon',
         kind: 'margin_call',
@@ -265,6 +294,8 @@ export async function createMockApi() {
         .filter((_, i) => ['approved', 'edited'].includes(x.orderStatus[i]))
         .map((o) => ({ type: o.type, rule_id: o.rule_id, items: o.items }));
       state.routed.oncologist.unshift({
+        id: ++routedSeq,
+        report: report(x, 'oncologist'),
         case_id: id,
         to: 'oncologist',
         kind: 'sign_out',
@@ -317,6 +348,7 @@ export async function createMockApi() {
       loaded: state.cases.length,
       skipped: [],
       open_cases: state.cases.filter((x) => x.arrived && !x.signedOut && !x.call).length,
+      open_surgical: state.cases.filter((x) => x.arrived && x.c.lane === 'surgical' && !x.call).length,
       sim: simStatus()
     }),
     config: async () => clone(config),

@@ -6,12 +6,12 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#202437" />
+    <meta name="theme-color" content="#1B1A2E" />
     <meta
       name="description"
-      content="PathQueue — explainable, confidence-aware pathology review. A Team 44 research prototype."
+      content="PathQueue — an AI-prioritized breast pathology worklist. Team 44 research prototype, not for clinical use."
     />
-    <title>PathQueue · Pathology workspace</title>
+    <title>Worklist · PathQueue</title>
     <link rel="icon" href="mark.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="workspace.css" />
@@ -22,40 +22,50 @@
   <body>
     <a class="skip" href="#app">Skip to workspace</a>
     <aside class="sidebar">
-      <a class="brand" href="#/worklist" aria-label="PathQueue home"
-        ><img src="mark.svg" alt="" width="34" height="34" /><span
-          >PathQueue<span class="brand-sub">INTELLIGENT PATHOLOGY</span></span
+      <a class="brand" href="#/worklist" aria-label="PathQueue worklist"
+        ><img src="mark.svg" alt="" width="30" height="30" /><span
+          >PathQueue<span class="brand-sub">Breast · Team 44</span></span
         ></a
       >
-      <div class="workspace-label">
-        <span class="workspace-avatar">44</span
-        ><span>Team 44<span>Breast pathology · BACH</span></span>
-      </div>
-      <div class="nav-label">WORKSPACE</div>
       <nav aria-label="Workspace">
+        <div class="nav-label">Review</div>
         <button
           data-nav="worklist"
           data-testid="nav-worklist"
           aria-current="page"
         >
-          <svg><use href="icons.svg#queue" /></svg>Worklist<span
+          <svg aria-hidden="true"><use href="icons.svg#queue" /></svg>Worklist<span
             class="nav-count"
             id="queue-count"
+            title="Open cases"
             >0</span
           >
         </button>
         <button data-nav="surgeon" data-testid="nav-surgeon">
-          <svg><use href="icons.svg#pulse" /></svg>Operating rooms
+          <svg aria-hidden="true"><use href="icons.svg#pulse" /></svg>Operating rooms<span
+            class="nav-count live"
+            id="or-count"
+            title="Frozen sections awaiting a margin call"
+            hidden
+            >0</span
+          >
         </button>
         <button data-nav="oncologist" data-testid="nav-oncologist">
-          <svg><use href="icons.svg#inbox" /></svg>Oncology inbox
+          <svg aria-hidden="true"><use href="icons.svg#inbox" /></svg>Oncology inbox<span
+            class="nav-count unread"
+            id="inbox-count"
+            data-testid="inbox-unread"
+            title="Unread results"
+            hidden
+            >0</span
+          >
         </button>
-        <div class="nav-label">RESEARCH</div>
+        <div class="nav-label">Research</div>
         <button data-nav="metrics" data-testid="nav-metrics">
-          <svg><use href="icons.svg#chart" /></svg>Model evaluation
+          <svg aria-hidden="true"><use href="icons.svg#chart" /></svg>Model evaluation
         </button>
         <button data-nav="spotcheck" data-testid="nav-spotcheck">
-          <svg><use href="icons.svg#scan" /></svg>Evidence review
+          <svg aria-hidden="true"><use href="icons.svg#scan" /></svg>Evidence review
         </button>
       </nav>
       <div class="sidebar-bottom">
@@ -63,93 +73,93 @@
           <span class="status-dot"></span><b id="data-title">Connecting</b
           ><span id="data-detail">Checking case artifacts…</span>
         </div>
-        <div class="sidebar-credit">
-          ASHBY PRIZE HACKATHON<span>NCSA · 2026</span>
-        </div>
+        <p class="kbd-help">
+          <kbd>J</kbd><kbd>K</kbd> move · <kbd>Enter</kbd> open ·
+          <kbd>N</kbd> next case · <kbd>/</kbd> search
+        </p>
       </div>
     </aside>
     <div class="workspace">
-      <div class="topbar">
-        <span
-          >Workspace <span class="crumb-sep">/</span>
-          <b id="breadcrumb">Worklist</b></span
+      <header class="topbar" id="topbar">
+        <div class="tb-title">
+          <h1 id="page-title"><span id="breadcrumb">Worklist</span></h1>
+          <span id="page-description" class="tb-desc"></span>
+        </div>
+        <section
+          class="replay"
+          aria-label="Arrival replay controls"
+          data-state="paused"
         >
-        <div class="topbar-right">
-          <span id="connection" role="status">Connecting…</span
-          ><span class="avatar" title="Team 44 research workspace">44</span>
-        </div>
-      </div>
-      <div class="wrap">
-        <div class="banner" data-testid="banner-research" role="note">
-          Research prototype — not for clinical use
-        </div>
-        <div class="mock" data-testid="banner-mock" hidden>
-          <b>Synthetic development data.</b> Images and model scores are
-          generated placeholders. This workspace is for workflow testing.
-        </div>
-        <header class="page-header">
-          <div>
-            <div class="eyebrow" id="page-eyebrow">REVIEW & PRIORITIZE</div>
-            <h1 id="page-title">Every case. A clearer next step.</h1>
-            <p id="page-description">
-              An evidence-led worklist, with the cases that need you first.
-            </p>
-          </div>
-          <div class="page-context">
-            <span class="context-dot"></span> Breast pathology<span
-              >Public, de-identified BACH data</span
+          <span class="replay-state" id="sim" data-testid="sim-clock"
+            >Checking simulator…</span
+          >
+          <div class="replay-btns" role="group" aria-label="Replay">
+            <button class="rb primary" data-sim="start" data-testid="sim-start">
+              <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z" /></svg>Start replay
+            </button>
+            <button
+              class="rb primary"
+              id="pp"
+              data-sim="pause"
+              data-testid="sim-pause"
+              aria-pressed="false"
+              hidden
             >
+              Pause replay
+            </button>
+            <button class="rb" data-sim="reset" data-testid="sim-reset">
+              Reset
+            </button>
           </div>
-        </header>
-        <section class="replay-toolbar" aria-label="Arrival replay controls">
-          <div class="replay-label">
-            <svg><use href="icons.svg#replay" /></svg>
-            <div>
-              <b>Arrival replay</b
-              ><span id="sim" data-testid="sim-clock">Checking simulator…</span>
-            </div>
-          </div>
-          <div class="simctl">
-            <div class="seg" role="group" aria-label="Simulator">
-              <button data-sim="start" data-testid="sim-start">
-                Start replay</button
-              ><button
-                id="pp"
-                data-sim="pause"
-                data-testid="sim-pause"
-                aria-pressed="false"
-              >
-                Pause replay</button
-              ><button data-sim="reset" data-testid="sim-reset">Reset</button>
-            </div>
-            <div
-              class="inject-options"
-              role="group"
-              aria-label="Inject a simulated frozen section"
+          <div
+            class="inject"
+            role="group"
+            aria-label="Send a simulated frozen section from the operating room"
+          >
+            <span class="inject-label" aria-hidden="true">Frozen section</span>
+            <button
+              class="rb"
+              data-sim="inject_surgical"
+              data-variant="normal"
+              data-testid="sim-inject-surgical"
+              aria-label="Send a simulated frozen section"
             >
-              <span class="sub">Simulated:</span
-              ><button
-                data-sim="inject_surgical"
-                data-variant="normal"
-                data-testid="sim-inject-surgical"
-              >
-                + Frozen</button
-              ><button
-                data-sim="inject_surgical"
-                data-variant="degraded"
-                data-testid="sim-inject-degraded"
-              >
-                + Degraded</button
-              ><button
-                data-sim="inject_surgical"
-                data-variant="composite"
-                data-testid="sim-inject-composite"
-              >
-                + Composite
-              </button>
-            </div>
+              + Standard<span class="rb-n" data-pending="normal"></span>
+            </button>
+            <button
+              class="rb"
+              data-sim="inject_surgical"
+              data-variant="degraded"
+              data-testid="sim-inject-degraded"
+              aria-label="Send a degraded simulated frozen section"
+            >
+              + Degraded<span class="rb-n" data-pending="degraded"></span>
+            </button>
+            <button
+              class="rb"
+              data-sim="inject_surgical"
+              data-variant="composite"
+              data-testid="sim-inject-composite"
+              aria-label="Send a composite simulated frozen section"
+            >
+              + Composite<span class="rb-n" data-pending="composite"></span>
+            </button>
           </div>
         </section>
+        <div class="tb-right">
+          <time id="clock" class="clock" data-testid="clock" aria-label="Local time"></time>
+          <span id="connection" role="status">Connecting…</span>
+        </div>
+      </header>
+      <div class="notice" role="note">
+        <span data-testid="banner-research">Research prototype — not for clinical use</span
+        ><span class="notice-more">Frozen sections and arrivals are simulated · public, de-identified BACH data · suggestions support, never replace, the pathologist</span>
+      </div>
+      <div class="wrap">
+        <div class="mock" data-testid="banner-mock" hidden>
+          <b>Synthetic development data.</b> Images and model scores are
+          generated placeholders for workflow testing.
+        </div>
         <div
           id="offline"
           class="offline"
@@ -157,28 +167,28 @@
           role="status"
           hidden
         ></div>
+        <div id="casebar" class="casebar" data-testid="casebar" hidden></div>
         <main id="app" tabindex="-1">
           <div class="card empty-state" data-testid="state-loading">
-            <h2>Connecting your workspace</h2>
-            <p>Loading case artifacts and checking the local service.</p>
+            <h2>Connecting to the local service</h2>
+            <p>Loading case artifacts.</p>
           </div>
         </main>
         <footer class="quiet">
-          <span class="footer-mark">P<span>Q</span></span>
           <p>
-            Research prototype on public, de-identified BACH data. Not
-            clinically validated.<br />AI suggestions support pathologist
-            review. Frozen sections are simulated.
+            PathQueue research prototype on public, de-identified BACH data
+            (Aresta et al., 2019). Not clinically validated. Frozen sections,
+            operating rooms and arrivals are simulated.
           </p>
-          <span>TEAM 44 · 2026</span>
+          <span>Team 44 · Ashby Prize 2026</span>
         </footer>
       </div>
       <div
         id="toast"
-        class="toast"
+        class="toasts"
         role="status"
         aria-live="polite"
-        hidden
+        data-testid="toasts"
       ></div>
     </div>
     <dialog
@@ -187,11 +197,11 @@
       aria-describedby="reset-description"
     >
       <form method="dialog">
-        <div class="eyebrow">ARRIVAL REPLAY</div>
         <h2 id="reset-title">Start a fresh replay?</h2>
         <p id="reset-description">
-          This clears recorded decisions, approved orders, and routed results
-          from this replay. The case evidence stays available for a new review.
+          This clears recorded decisions, approved orders and routed results
+          from this replay, and rewinds the arrival clock. The case evidence
+          stays available.
         </p>
         <div class="btns">
           <button class="btn" autofocus>Keep reviewing</button

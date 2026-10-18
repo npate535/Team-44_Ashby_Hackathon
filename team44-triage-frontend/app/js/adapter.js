@@ -60,6 +60,11 @@ export function mmss(seconds) {
 export function cssUrl(u) {
   return encodeURI(String(u)).replace(/['()]/g, (c) => '%' + c.charCodeAt(0).toString(16));
 }
+/** A downscaled copy of a media image for thumbnails (backend `?w=`; static/mock servers ignore the query). */
+export function thumbUrl(url, width) {
+  const u = String(url || '');
+  return u && !u.includes('?') ? `${u}?w=${Math.round(width)}` : u;
+}
 /** Only #rgb / #rrggbb colors from config are inlined into styles. */
 export function cssColor(c) {
   return /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(String(c)) ? c : 'var(--mut)';
@@ -180,6 +185,7 @@ export function whyRows(c, cfg) {
     id: k.id,
     label: k.label,
     value: k.value,
+    valueStd: k.value_std ?? null, // optional: case feature standardized against training cases
     contribution: k.contribution,
     spread: k.spread,
     tiles: k.top_tiles || [],

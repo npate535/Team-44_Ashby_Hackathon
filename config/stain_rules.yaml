@@ -9,6 +9,7 @@
 # Rule conditions (all keys of `when` must hold; omitted keys are not checked):
 #   top_class: <class>            argmax of the calibrated probabilities equals the class
 #   in_set_all: [<class>, ...]    every listed class is in the conformal prediction set
+#   in_set_any: [<class>, ...]    at least one listed class is in the conformal prediction set
 #   reliability_flag: true|false  quality.reliability_flag
 #   insufficient_tissue: true     quality.qc_tiles_kept < settings qc.min_tiles_kept
 #   lanes: [biopsy, surgical]     restrict to lanes (default: both)
@@ -73,10 +74,12 @@ rules:
     note: "ASCO/CAP 2020 recommends ER testing for newly diagnosed DCIS; PR is optional."
     citations: [ASCO-ER]
 
-  # [CAP-IHC] Benign vs atypical / in situ: look deeper first, then a basal-cytokeratin and ER pair.
+  # [CAP-IHC] Benign vs atypical / in situ: look deeper first, then a basal-cytokeratin and ER pair. Fires when in situ
+  # carcinoma shares the confidence set with a benign OR normal class (2026-10-18: Normal + InSitu sets drafted
+  # nothing before, although in situ disease could not be excluded).
   - id: uncertain_benign_atypia
     label: Benign vs atypia / in situ
-    when: {in_set_all: [Benign, InSitu]}
+    when: {in_set_all: [InSitu], in_set_any: [Normal, Benign]}
     order: {type: deeper_levels, items: [deeper levels]}
     rationale: "Deeper levels can show whether an atypical or in situ lesion is present."
     citations: [CAP-IHC]
@@ -84,7 +87,7 @@ rules:
   # Same conditions: the immunohistochemistry half of the benign-vs-atypia work-up.
   - id: uncertain_benign_atypia_ihc
     label: Benign vs atypia / in situ (CK5/6, ER)
-    when: {in_set_all: [Benign, InSitu]}
+    when: {in_set_all: [InSitu], in_set_any: [Normal, Benign]}
     order: {type: stain, items: [CK5/6, ER]}
     rationale: "CK5/6 with ER helps separate usual hyperplasia from atypical or in situ lesions."
     note: "Usual ductal hyperplasia is typically CK5/6 mosaic and ER heterogeneous; atypia/low-grade DCIS is CK5/6 negative and ER diffusely positive."
