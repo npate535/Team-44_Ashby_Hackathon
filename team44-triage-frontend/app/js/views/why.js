@@ -197,7 +197,10 @@ function setStatement(v, cfg) {
   else if (v.setSize === 1)
     s = `One category in the set: <b>${esc(names[0])}</b>. This is the most confident outcome the method gives, and still not a guarantee for this case.`;
   else
-    s = `${v.setSize === 2 ? 'Two' : v.setSize} categories remain possible: <b>${names.map(esc).join('</b> or <b>')}</b>. The model cannot separate them at the ${esc(v.alphaPct)}% target, so treat the read as uncertain between them.`;
+    s = `${['Two', 'Three', 'Four'][v.setSize - 2] || v.setSize} categories remain possible: ${names
+      .map((n) => `<b>${esc(n)}</b>`)
+      .join(', ')
+      .replace(/, (?=[^,]*$)/, ' or ')}. The model cannot separate them at the ${esc(v.alphaPct)}% target, so treat the read as uncertain between them.`;
   if (v.set.includes('InSitu') && v.set.includes('Invasive'))
     s += ' This is the in situ vs invasive differential; myoepithelial markers (p63, calponin) are the usual way to separate it.';
   if (v.set.includes(agg) && v.top !== agg)
