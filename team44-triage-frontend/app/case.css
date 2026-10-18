@@ -2426,3 +2426,65 @@ dialog.cv-compare::backdrop {
   color: var(--mut);
   font-size: 13px;
 }
+.cv-events li {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 7px 0 !important;
+  font-size: var(--cv-fs-s);
+  color: var(--ink);
+}
+.cv-events time {
+  color: var(--mut);
+  font-variant-numeric: tabular-nums;
+}
+.cv .reasons {
+  margin-top: 8px;
+}
+.cv .reason {
+  font-size: 10.5px;
+  padding: 2px 7px;
+}
+/* level column: replace the pip glyph with a small SD track */
+.wr-level.lo b::before,
+.wr-level.mid b::before,
+.wr-level.hi b::before {
+  display: none;
+}
+.sd-track {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 132px;
+  height: 6px;
+  margin-top: 4px;
+  border-radius: 3px;
+  background: var(--bl);
+}
+.sd-band {
+  position: absolute;
+  left: 41.67%;
+  width: 16.67%;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--mut) 30%, transparent);
+}
+.sd-track.pct .sd-band {
+  left: 10%;
+  width: 80%;
+  background: color-mix(in srgb, var(--mut) 18%, transparent);
+}
+.sd-dot {
+  position: absolute;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 0 0 2px var(--sf);
+}
+.wr-level.hi .sd-dot {
+  background: var(--ink);
+}

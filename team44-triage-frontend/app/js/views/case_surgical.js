@@ -97,7 +97,7 @@ function callPanel(v, ST) {
     const clear = p.action === 'margin_clear';
     const against = sug && sug !== (clear ? 'clear' : 'defer') ? ` The suggestion was “${esc(suggestedText(m))}”.` : '';
     h +=
-      `<div class="cv-confirm" role="alertdialog" aria-labelledby="cv-confirm-t" data-testid="confirm-box" data-action="${p.action}">` +
+      `<div class="cv-confirm" role="group" aria-labelledby="cv-confirm-t" data-testid="confirm-box" data-action="${p.action}">` +
       `<b id="cv-confirm-t">Send “${clear ? 'Margins clear' : 'Cannot determine — defer to permanent sections'}” to the surgeon?</b>` +
       `<p>This stops the timer and cannot be changed here.${against}</p>` +
       `<div class="btns"><button class="btn p" data-call="${clear ? 'clear' : 'defer'}" data-testid="confirm-action"${dis}>Confirm: ${clear ? 'margins clear' : 'defer'}</button><button class="btn" data-cv-cancel data-testid="confirm-cancel">Cancel</button></div></div>`;

@@ -9,18 +9,31 @@ import { heatmap, heatmapControls, heatmapLegend } from './heatmap.js';
 import { compared, howSure, summary, why } from './why.js';
 import { reasonBadges } from './worklist.js';
 
+const ACTION_TEXT = {
+  approve_orders: 'orders placed',
+  edit_orders: 'orders edited and placed',
+  closer_look: 'closer look first',
+  dismiss_flag: 'flag dismissed',
+  sign_out: 'signed out',
+  margin_call: 'margin call'
+};
+const CALL_WORDS = { clear: 'margins clear', tumor_at_margin: 'tumor at margin', defer: 'defer to permanent sections' };
+
 export function activity(events) {
   if (!events || !events.length) return '<div class="note">No activity yet.</div>';
   const text = (e) => {
-    if (e.type === 'agent_transition') return `${e.from} → ${e.to} (${e.action})`;
-    if (e.type === 'routed') return `routed to the ${e.payload && e.payload.to}`;
+    const p = e.payload || {};
+    if (e.type === 'arrived') return `Arrived${p.lane ? ` (${p.lane === 'surgical' ? 'simulated frozen section' : 'biopsy'})` : ''}`;
+    if (e.type === 'agent_transition') return `Decision: ${ACTION_TEXT[e.action] || e.action} (${e.from} → ${e.to})`;
+    if (e.type === 'routed') return `Routed to the ${p.to || 'next screen'}`;
+    if (e.type === 'signed_out') return 'Signed out by the pathologist';
     if (e.type === 'margin_call')
-      return `margin call: ${e.payload.call}${e.payload.margins && e.payload.margins.length ? ' · ' + e.payload.margins.join(', ') : ''}`;
-    return e.type.replace(/_/g, ' ');
+      return `Margin call: ${CALL_WORDS[p.call] || p.call}${p.margins && p.margins.length ? ' · ' + p.margins.join(', ') : ''}`;
+    return e.type.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
   };
-  return `<ul class="events">${events
-    .map((e) => `<li><b>${esc(new Date(e.at).toLocaleTimeString())}</b> · sim +${mmss(e.sim_time_s)} · ${esc(text(e))}</li>`)
-    .join('')}</ul>`;
+  return `<ol class="events cv-events">${events
+    .map((e) => `<li><time>${esc(new Date(e.at).toLocaleTimeString())}</time><span>${esc(text(e))}</span><span class="sub">sim +${mmss(e.sim_time_s)}</span></li>`)
+    .join('')}</ol>`;
 }
 
 /** At-a-glance read for the case header (every value from the case JSON). */

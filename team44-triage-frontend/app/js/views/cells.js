@@ -39,6 +39,14 @@ function pctTrack(p) {
   );
 }
 
+/** AI spot check of the cell overlays (eval/spotcheck.json summary.cells), if recorded. */
+function spotNote(metrics) {
+  const sc = metrics && metrics.eval && metrics.eval.spotcheck;
+  const e = sc && sc.summary ? sc.summary.cells : null;
+  if (!e || !isNum(e.n) || !isNum(e.acceptable) || Number(e.n) <= 0) return '';
+  return ` AI spot check of overlays (AI-reviewed, not a pathologist): ${Number(e.acceptable)} of ${Number(e.n)} judged acceptable.`;
+}
+
 export function cellsTab(v, ST, assetUrl) {
   const cells = v.cells;
   const cfg = ST.cfg;
@@ -147,7 +155,7 @@ export function cellsTab(v, ST, assetUrl) {
   return (
     `<div class="card cv-cells" data-testid="cells-tab"><div class="card-h"><h2>Measured features associated with invasive carcinoma</h2>` +
     `<span class="sub">${esc(cells.model || '')}${cells.mpp_model ? ` at ${esc(cells.mpp_model)} µm/px` : ''}</span></div>` +
-    '<p class="cells-warn" role="note"><b>Not pathologist-validated.</b> Nuclei are segmented and typed automatically (PanNuke classes) on the selected regions only. Counts and measurements are estimates; they are associations with the read, not causes.</p>' +
+    `<p class="cells-warn" role="note"><b>Not pathologist-validated.</b> Nuclei are segmented and typed automatically (PanNuke classes) on the selected regions only. Counts and measurements are estimates; they are associations with the read, not causes.${spotNote(ST.metrics)}</p>` +
     stats +
     `<div class="cells-ctl"><label class="cells-toggle"><input type="checkbox" data-testid="cells-overlay-toggle" data-cells="overlay"${ST.cellsOverlay ? ' checked' : ''}> Show cell overlay</label>${legend}</div>` +
     `${flag}<div class="cells-grid cv-cells-grid">${figs}</div>` +

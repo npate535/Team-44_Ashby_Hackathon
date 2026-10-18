@@ -24,7 +24,7 @@ export function levelOf(r, cells) {
     if (isNum(p)) {
       const q = Math.round(p * 100);
       const word = p >= 0.9 ? 'High' : p >= 0.6 ? 'Above typical' : p > 0.4 ? 'Typical' : p > 0.1 ? 'Below typical' : 'Low';
-      return { word, cls: p >= 0.6 ? 'hi' : p > 0.4 ? 'mid' : 'lo', short: `${q}th percentile`, long: `higher than ${q}% of benign/normal reference cases`, tip: '' };
+      return { word, cls: p >= 0.6 ? 'hi' : p > 0.4 ? 'mid' : 'lo', short: `${q}th percentile`, long: `higher than ${q}% of benign/normal reference cases`, tip: '', pct: Number(p) };
     }
     return { word: '', cls: 'none', short: '', long: '', tip: 'no reference percentile available' };
   }
@@ -44,6 +44,15 @@ function spotOf(metrics, id) {
   if (!e || !isNum(e.n) || !isNum(e.acceptable) || Number(e.n) <= 0) return null;
   const low = Number(e.acceptable) / Number(e.n) <= 0.25;
   return { n: Number(e.n), ok: Number(e.acceptable), low };
+}
+
+/** Tiny SD track (−3…+3, typical band ±0.5) so levels scan down the column; percentiles use 0…100. */
+function sdTrack(lvl) {
+  let x;
+  if (isNum(lvl.std)) x = (Math.max(-3, Math.min(3, lvl.std)) + 3) / 6;
+  else if (isNum(lvl.pct)) x = Math.max(0, Math.min(1, lvl.pct));
+  else return '';
+  return `<i class="sd-track${isNum(lvl.pct) ? ' pct' : ''}" aria-hidden="true"><i class="sd-band"></i><i class="sd-dot" style="left:${(x * 100).toFixed(1)}%"></i></i>`;
 }
 
 function pushOf(c) {
@@ -105,17 +114,23 @@ function whyRow(r, hm, maxAbs, cells, metrics) {
   const how = `In the concept model it ${push.word.replace(' carcinoma', '')}.`;
   const sentence = `${lead}${lead ? ' ' : ''}${how}${context ? ' Context feature, not ranked as a risk criterion.' : ''}`;
   const tiles = (r.tiles || []).filter((t) => Number.isInteger(t));
+  // the level and push columns already say both halves of `sentence`; show only what they do not
+  const visibleNote = [r.measured && lvl.long ? `Measured: ${lvl.long}.` : '', context ? 'Context feature, not ranked as a risk criterion.' : '']
+    .filter(Boolean)
+    .join(' ');
   const tipText = [lvl.tip, spread.trim()].filter(Boolean).join(' · ');
   return (
     `<button type="button" class="why-row${hm.why === r.id ? ' on' : ''}" data-testid="why-bar-${esc(r.id)}" data-why="${esc(r.id)}" data-tiles="${esc(tiles.join(','))}"${tipText ? ` title="${esc(tipText)}"` : ''} ` +
     `aria-pressed="${hm.why === r.id}" aria-label="${esc(r.label)}. ${esc(sentence)} Contribution ${esc(isNum(r.contribution) ? signed(r.contribution) : 'not available')}.${tipText ? ' ' + esc(tipText) + '.' : ''}${spot ? ` AI spot check ${spot.ok} of ${spot.n}, not pathologist-validated.` : ''}${tiles.length ? ` Highlights regions ${esc(tiles.join(', '))}.` : ''}">` +
     `<span class="wr-head"><span class="lbl">${esc(r.label)}</span><span class="wr-badges">${cc}${spotBadge}${context ? '<span class="src ctx" title="Plan §6.4: context, not ranked">context</span>' : ''}</span></span>` +
     (lvl.word
-      ? `<span class="wr-level ${lvl.cls}"><b>${esc(lvl.word)}</b>${lvl.short ? `<span>${esc(lvl.short)}</span>` : ''}</span>`
+      ? `<span class="wr-level ${lvl.cls}"><b>${esc(lvl.word)}</b>${lvl.short ? `<span>${esc(lvl.short)}</span>` : ''}${sdTrack(lvl)}</span>`
       : '<span class="wr-level none"><span>—</span></span>') +
     `<span class="wr-bar">${pushBar(r.contribution, maxAbs)}</span>` +
     `<span class="v ${push.cls}"><b>${isNum(r.contribution) ? signed(r.contribution) : '—'}</b><span>${esc(push.short)}</span></span>` +
-    `<span class="wr-say">${esc(sentence)}${tiles.length ? ` <span class="wr-tiles">Regions ${esc(tiles.join(', '))}</span>` : ''}</span>` +
+    (visibleNote || tiles.length
+      ? `<span class="wr-say">${esc(visibleNote)}${tiles.length ? `${visibleNote ? ' ' : ''}<span class="wr-tiles">Strongest regions ${esc(tiles.join(', '))}</span>` : ''}</span>`
+      : '') +
     '</button>'
   );
 }
@@ -221,6 +236,7 @@ function check(state, label, value, good, extra = '') {
 }
 
 export function howSure(v, cfg, metrics, { compact = false } = {}) {
+  if (!v.probs.length) return '<div class="note" data-testid="no-prediction">No model prediction in this case file. Read the image directly; nothing here is scored.</div>';
   const ev = (metrics && metrics.eval) || {};
   const ag = v.agreement || {};
   const r = v.reliability;

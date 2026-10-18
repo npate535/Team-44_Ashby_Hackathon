@@ -93,7 +93,7 @@ function confirmBox(v, ST, detail) {
   if (!text) return '';
   const can = v.agent.allowed.includes(p.action) && !ST.busy;
   return (
-    `<div class="cv-confirm" role="alertdialog" aria-labelledby="cv-confirm-t" aria-describedby="cv-confirm-b" data-testid="confirm-box" data-action="${esc(p.action)}">` +
+    `<div class="cv-confirm" role="group" aria-labelledby="cv-confirm-t" aria-describedby="cv-confirm-b" data-testid="confirm-box" data-action="${esc(p.action)}">` +
     `<b id="cv-confirm-t">${text.title}</b><p id="cv-confirm-b">${text.body}</p>` +
     `<div class="btns"><button class="btn p${p.action === 'dismiss_flag' ? ' dd' : ''}" data-act="${esc(p.action)}" data-testid="confirm-action"${can ? '' : ' disabled'}>${text.ok}</button>` +
     '<button class="btn" data-cv-cancel data-testid="confirm-cancel">Cancel</button></div></div>'
