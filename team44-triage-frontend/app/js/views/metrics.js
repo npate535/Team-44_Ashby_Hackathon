@@ -770,7 +770,7 @@ function figSetSize(ST, ev, L) {
   const sizes = [...Array(nCls + 1).keys()];
   const rows = order.map((k) => {
     const h = CF.methods[k].set_size_histogram || get(ev, ['analytics', 'conformal', 'methods', k, 'set_size']) || {};
-    return { label: methodName(k), parts: sizes.map((s) => ({ name: s === 0 ? 'Empty set' : plural(s, 'class', 'classes'), value: h[String(s)] || 0, color: sizeColor(s), onStrong: s === 0 ? false : s >= 2 })) };
+    return { label: methodName(k), parts: sizes.map((s) => ({ name: s === 0 ? 'Empty set' : plural(s, 'class', 'classes'), value: h[String(s)] || 0, color: sizeColor(s), onStrong: s >= 3 })) };
   });
   const chart = C.stackedRows({ width: L.two ? L.half : L.full, rows, legendItems: sizes.map((s) => ({ name: s === 0 ? 'Empty set' : plural(s, 'class', 'classes'), color: sizeColor(s), kind: 'rect' })), aria: 'Share of test images by conformal set size, per method' });
   const h = (k, s) => ((CF.methods[k] || {}).set_size_histogram || {})[String(s)] || 0;
