@@ -123,6 +123,14 @@ function onRoute() {
     if (active) b.setAttribute('aria-current', 'page');
     else b.removeAttribute('aria-current');
   });
+  // phones: the sidebar is a horizontally scrolling tab strip; keep the current page's tab in view
+  const strip = document.querySelector('.sidebar nav');
+  const cur = strip && strip.querySelector('[aria-current=page]');
+  if (cur && strip.scrollWidth > strip.clientWidth) {
+    const s = strip.getBoundingClientRect(),
+      c = cur.getBoundingClientRect();
+    if (c.left < s.left || c.right > s.right) strip.scrollLeft += c.left - s.left - 16;
+  }
   lastFp = null;
   if (!api || !ST.cfg) return;
   draw();
@@ -220,10 +228,11 @@ async function poll(force = false) {
     if (ST.fail >= 2) toast('Connection to the local service restored', { tone: 'ok' });
     ST.fail = 0;
     ST.staleSince = null;
+    ST.lastOk = new Date();
   } catch (err) {
     if (seq !== pollSeq) return;
     ST.fail += 1;
-    if (!ST.staleSince) ST.staleSince = new Date();
+    if (!ST.staleSince) ST.staleSince = ST.lastOk || new Date(); // the screen shows data from the last good poll
     if (!(err instanceof ApiError) || err.status === 0 || err.status >= 500) console.warn('poll failed', err);
   }
   showOffline();
@@ -493,13 +502,14 @@ function updateReplay() {
   const box = $('.replay');
   const start = $('[data-testid=sim-start]');
   const pp = $('#pp');
-  const loaded = !!(h && h.loaded);
+  // offline: the commands would fail, and the replay state on screen is stale
+  const loaded = !!(h && h.loaded) && ST.fail < 2;
   if (!sim) {
     start.disabled = true;
     return;
   }
   const fresh = !sim.running && !(sim.sim_time_s > 0);
-  box.dataset.state = sim.running ? 'running' : fresh ? 'ready' : 'paused';
+  box.dataset.state = ST.fail >= 2 ? 'paused' : sim.running ? 'running' : fresh ? 'ready' : 'paused';
   start.hidden = !fresh;
   start.disabled = !loaded || ST.simBusy;
   pp.hidden = fresh;
@@ -577,9 +587,10 @@ function tickClock() {
   }
   const sim = ST.sim;
   if (!sim) return;
-  const since = sim._fetched_ms && sim.running ? ((Date.now() - sim._fetched_ms) / 1000) * (Number(sim.speed) || 1) : 0;
+  const offline = ST.fail >= 2;
+  const since = sim._fetched_ms && sim.running && !offline ? ((Date.now() - sim._fetched_ms) / 1000) * (Number(sim.speed) || 1) : 0;
   const fresh = !sim.running && !(sim.sim_time_s > 0);
-  const state = sim.running ? 'Replay running' : fresh ? 'Replay ready' : 'Replay paused';
+  const state = offline ? 'Replay status unknown' : sim.running ? 'Replay running' : fresh ? 'Replay ready' : 'Replay paused';
   $('#sim').innerHTML =
     `<i class="rs-dot" aria-hidden="true"></i><b>${state}</b><span class="rs-t">+${mmss((Number(sim.sim_time_s) || 0) + since)}</span><span class="rs-x">×${Number((Number(sim.speed) || 1).toFixed(1))}</span>${ST.mock ? '<span class="rs-x">mock</span>' : ''}` +
     `<span class="sr-only"> · simulator ${sim.running ? 'running' : 'paused'}</span>`;
