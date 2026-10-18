@@ -52,6 +52,7 @@ synthetic:
 # Laptop analytics in dependency order (BUILD_PLAN §B). Each step is idempotent/resumable and reads the roots
 # from PATHQUEUE_DATA_ROOT / PATHQUEUE_ARTIFACTS_ROOT. Pass extra flags with STEP_ARGS="--limit 5".
 pipeline-laptop:
+	$(call run_step,pipeline,01q_requalify_qc)
 	$(call run_step,pipeline,04_cav)
 	$(call run_step,pipeline,04_concepts)
 	$(call run_step,pipeline,04c_cell_features)
