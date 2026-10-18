@@ -40,7 +40,7 @@ function recordedPanel(sc, groups) {
   const row = (name, b) => `<li><span class="sc-rec-name">${esc(name)}</span>${bar(b)}<span class="sc-rec-n">${b.acceptable}/${b.n} show it${b.unsure ? `, ${b.unsure} unsure` : ''}</span></li>`;
   const ai = v.kinds.length === 1 && v.kinds[0] === 'ai';
   return `<section class="sc-recorded" aria-labelledby="sc-rec-h"><div class="sc-rec-head"><h3 id="sc-rec-h">Reviews already recorded</h3>
-    <p>${ai ? '<b>AI-reviewed, not a pathologist.</b> ' : ''}${esc(v.reviewers.map((r) => `${r.name} (${r.kind === 'ai' ? 'AI' : r.kind})`).join('; '))}. A plausibility check, not validation.</p>
+    <p>${ai ? '<b>AI-reviewed, not a pathologist.</b> ' : ''}${esc(v.reviewers.map((r) => (/\bAI\b/.test(r.name) ? r.name : `${r.name} (${r.kind === 'ai' ? 'AI' : r.kind})`)).join('; '))}. A plausibility check, not validation.</p>
     <label class="sc-toggle"><input type="checkbox" id="sc-show-recorded"${showRecorded ? ' checked' : ''}> Show recorded verdicts on each region</label></div>
     <ul class="sc-rec-list">${ids.map((id) => row(labelOf[id] || id, v.concepts[id])).join('')}${v.cells ? row('Cell overlays', v.cells) : ''}</ul>
     <p class="sc-fine"><span class="sc-key sc-seg-ok"></span>shows it <span class="sc-key sc-seg-unsure"></span>unsure <span class="sc-key sc-seg-not_ok"></span>does not show it</p></section>`;
