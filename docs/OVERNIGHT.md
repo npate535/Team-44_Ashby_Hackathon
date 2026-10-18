@@ -25,7 +25,7 @@ turnaround timer · **+ Degraded** → reliability flag → suggested **Defer to
 
 ### 1. Tissue QC bug fixed (accuracy)
 The tissue mask required HSV value < 0.92. HSV value is the brightest RGB channel, so pale H&E tissue sits at
-V ≈ 0.95–1.0 and was rejected: **50 of 400 images (32 of 100 Invasive) were flagged "insufficient tissue"** and their
+V ≈ 0.95–1.0 and was rejected: **51 of 400 images (32 of 100 Invasive) were flagged "insufficient tissue"** and their
 reads used only the few surviving tiles. Saturation alone separates BACH's grey glass background from tissue (checked
 visually on the lowest-tissue images). `pipeline/01q_requalify_qc.py` recomputes tile QC from the display JPEGs (the
 old rule recomputed the same way reproduces the Delta full-resolution values, r = 0.998). Every tile had already been

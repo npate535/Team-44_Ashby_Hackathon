@@ -4,7 +4,7 @@
 
 Why: 01_build_cases (Delta) marked a pixel as tissue when HSV saturation > qc.saturation_min AND HSV value <
 qc.brightness_max (0.92). HSV value is the max RGB channel, so pale eosin/hematoxylin pixels in BACH sit at V ~ 0.95-1.0
-and the value cut rejected real tissue: 50 of 400 images (31 of 100 Invasive) kept fewer than qc.min_tiles_kept
+and the value cut rejected real tissue: 51 of 400 images (32 of 100 Invasive) kept fewer than qc.min_tiles_kept
 contract tiles and were flagged "insufficient tissue", and their concept scores / pooled embeddings fell back to
 whatever tiles survived. Saturation alone separates BACH's grey glass background (S ~ 0.00-0.05) from tissue.
 
