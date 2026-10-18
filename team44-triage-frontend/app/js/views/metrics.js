@@ -607,11 +607,19 @@ function figThunder(ST, ev, L) {
   const pc_ = prod && ci(prod.macro_f1);
   const pubBest = Object.entries(get(TH, 'published.linear_probe') || {}).sort((a, b) => b[1] - a[1])[0];
   const inside = pc_ && pubBest && isNum(pc_.lo) && pubBest[1] >= pc_.lo && pubBest[1] <= pc_.hi;
+  // zero-shot vs linear probe, computed (published pairs of the same encoder; our zero-shot reads vs our probe)
+  const pubZ = get(TH, 'published.zero_shot') || {},
+    pubL = get(TH, 'published.linear_probe') || {};
+  const gaps = Object.keys(pubZ).filter((m) => isNum(pubZ[m]) && isNum(pubL[m])).map((m) => pubL[m] - pubZ[m]);
+  const oursZ = (TH.ours_zero_shot || []).map((o) => ci(o.macro_f1)).filter(Boolean);
+  const zsText = gaps.length && gaps.every((g) => g > 0)
+    ? ` Published zero-shot text matching scores ${gaps.length > 1 ? `${f1(Math.min(...gaps))}–${f1(Math.max(...gaps))}` : f1(gaps[0])} points below the linear probe of the same encoder${oursZ.length && pc_ && oursZ.every((z) => z.est < pc_.est) ? '; every zero-shot read of ours is also below the production probe' : ''}.`
+    : '';
   return figure({
     id: 'thunder',
     title: 'How does this compare with published benchmarks?',
     caveat: `Same split, different protocol: ${String(TH.label || '').replace(/^same split, different protocol\s*/i, '').replace(/^\(|\)$/g, '') || 'published probes resize the whole image; ours tiles the image'}. Not compared with the ICIAR 2018 challenge, which used a hidden test set.`,
-    takeaway: pc_ && pubBest ? `Our production macro-F1 is ${ciText(pc_, { digits: 1, unit: '%' })}; the best published linear probe (${modelName(pubBest[0])}) is ${f1(pubBest[1])}%, which ${inside ? 'lies inside our interval' : 'lies outside our interval'}. Zero-shot text matching is far weaker for every encoder.` : 'Published THUNDER results next to this project.',
+    takeaway: pc_ && pubBest ? `Our production macro-F1 is ${ciText(pc_, { digits: 1, unit: '%' })}; the best published linear probe (${modelName(pubBest[0])}) is ${f1(pubBest[1])}%, which ${inside ? 'lies inside our interval' : 'lies outside our interval'}.${zsText}` : 'Published THUNDER results next to this project.',
     chart,
     population: `${TH.n ?? 132} test images, ${TH.n_groups ?? '?'} groups (ours); published values carry no CI`,
     source: 'eval/thunder.json',
@@ -682,18 +690,20 @@ function figRiskHist(ST, ev, L) {
   if (!H || !H.by_class) return '';
   const edges = H.bin_edges || [];
   const cats = edges.slice(0, -1).map((e, i) => `${C.fmtNum(e, 1)}–${C.fmtNum(edges[i + 1], 1)}`);
-  const classes = Object.keys(H.by_class);
+  const classes = Object.keys(H.by_class).filter((c) => Array.isArray(H.by_class[c]));
+  const nOf = (c) => (H.n_by_class && isNum(H.n_by_class[c]) ? H.n_by_class[c] : sum(H.by_class[c]));
   const ymax = Math.max(...classes.flatMap((c) => H.by_class[c]), 1);
   const cols = L.full < 640 ? 1 : 2;
   const pw = L.panel(L.full, cols);
   const panels = classes.map((c) => ({
-    title: `${cls(c, ST)} (n = ${H.n_by_class[c]})`,
+    title: `${cls(c, ST)} (n = ${nOf(c)})`,
     body: C.columns({
       width: pw,
       height: 150,
       categories: cats.map((cat, i) => (L.narrow || pw < 420 ? (i % 2 ? '' : C.fmtNum(edges[i], 1)) : cat)),
       series: [{ name: cls(c, ST), color: c === ST.cfg.aggressive_class ? C.COLOR[2] : C.COLOR[1], values: H.by_class[c] }],
       y: { max: ymax * 1.15, label: 'Images' },
+      x: { label: `P(${ST.cfg.aggressive_class}), calibrated` },
       tip: (j) => [`${H.by_class[c][j]} images`, `${cls(c, ST)}, P(${ST.cfg.aggressive_class}) ${cats[j]}`],
       aria: `${c}: histogram of the calibrated invasive risk score`
     })
@@ -702,9 +712,9 @@ function figRiskHist(ST, ev, L) {
   const above = (c, t) => sum(H.by_class[c].filter((_, i) => edges[i] >= t));
   const benignish = classes.filter((c) => c !== k && c !== 'InSitu');
   const takeParts = [];
-  for (const c of benignish) takeParts.push(`${above(c, 0.1) === 0 ? 'all' : `${H.n_by_class[c] - above(c, 0.1)} of ${H.n_by_class[c]}`} ${shortClass(c).toLowerCase()} images scored below 0.1`);
-  if (H.by_class.InSitu) takeParts.push(`${above('InSitu', 0.5)} of ${H.n_by_class.InSitu} in situ images scored 0.5 or more`);
-  if (H.by_class[k]) takeParts.push(`${above(k, 0.9)} of ${H.n_by_class[k]} invasive images scored 0.9 or more`);
+  for (const c of benignish) takeParts.push(`${above(c, 0.1) === 0 ? 'all' : `${nOf(c) - above(c, 0.1)} of ${nOf(c)}`} ${shortClass(c).toLowerCase()} images scored below 0.1`);
+  if (H.by_class.InSitu) takeParts.push(`${above('InSitu', 0.5)} of ${nOf('InSitu')} in situ images scored 0.5 or more`);
+  if (H.by_class[k]) takeParts.push(`${above(k, 0.9)} of ${nOf(k)} invasive images scored 0.9 or more`);
   return figure({
     id: 'riskhist',
     wide: true,
@@ -753,7 +763,7 @@ function figCoverage(ST, ev, L) {
   const low = per.length ? per.reduce((a, b) => (b[1].est < a[1].est ? b : a)) : null;
   const fs = CF.finite_sample;
   const take = cov
-    ? `${methodName(tm.key)} covered ${pc(cov.est, 1)} of test images against a ${pc(target)} target${cov.est < target ? ` (${f1((target - cov.est) * 100)} points short${isNum(cov.hi) && cov.hi < target ? '; even the upper CI bound is below target' : ''})` : ''}. Coverage was lowest for ${low ? `${shortClass(low[0]).toLowerCase()} (${pc(low[1].est)})` : 'n/a'}.${tm.postHoc ? ` The pre-registered ${methodName(tm.preRegistered)} covered ${pc(ci(get(CF, ['methods', tm.preRegistered, 'coverage']))?.est, 1)}.` : ''}`
+    ? `${methodName(tm.key)} covered ${pc(cov.est, 1)} of test images against a ${pc(target)} target${cov.est < target ? ` (${f1((target - cov.est) * 100)} points short${isNum(cov.hi) && cov.hi < target ? '; even the upper CI bound is below target' : ''})` : ''}.${low ? ` Coverage was lowest for ${shortClass(low[0]).toLowerCase()} (${pc(low[1].est)}).` : ''}${tm.postHoc && ci(get(CF, ['methods', tm.preRegistered, 'coverage'])) ? ` The pre-registered ${methodName(tm.preRegistered)} covered ${pc(ci(get(CF, ['methods', tm.preRegistered, 'coverage'])).est, 1)}.` : ''}`
     : 'Conformal coverage by method.';
   const notes = [];
   if (fs && fs.note) notes.push(`With ${fs.n_calibration} calibration images, coverage for a random calibration draw varies (Beta(${(fs.beta || []).join(', ')}), SD ${pc(fs.sd, 1)}); the guarantee is an average over calibration draws, not a promise for this test set.`);
@@ -778,30 +788,37 @@ function figSetSize(ST, ev, L) {
   if (!CF || !CF.methods) return '';
   const order = methodOrder(tm);
   const nCls = ST.cfg.classes.length;
-  const RAMP = [22, 58, 82, 100];
+  const RAMP = [32, 58, 82, 100]; // 1 class must stay distinct from the card surface in dark mode
   const sizeColor = (s) => (s === 0 ? 'var(--cx-empty)' : `color-mix(in srgb, var(--cx1) ${RAMP[Math.min(s, RAMP.length) - 1]}%, var(--cx-seq0))`);
   const sizes = [...Array(nCls + 1).keys()];
-  const rows = order.map((k) => {
-    const h = CF.methods[k].set_size_histogram || get(ev, ['analytics', 'conformal', 'methods', k, 'set_size']) || {};
-    return { label: methodName(k), parts: sizes.map((s) => ({ name: s === 0 ? 'Empty set' : plural(s, 'class', 'classes'), value: h[String(s)] || 0, color: sizeColor(s), onStrong: s >= 3 })) };
-  });
+  // one histogram source for chart, sentence and table; a method without one is left out (never shown as zeros)
+  const hist = (k) => {
+    const raw = get(CF, ['methods', k, 'set_size_histogram']) || get(ev, ['analytics', 'conformal', 'methods', k, 'set_size']);
+    return raw && typeof raw === 'object' && Object.values(raw).some(isNum) ? raw : null;
+  };
+  const withHist = order.filter((k) => hist(k));
+  if (!withHist.length) return '';
+  const h = (k, s) => (isNum(hist(k)[String(s)]) ? hist(k)[String(s)] : 0);
+  const rows = withHist.map((k) => ({ label: methodName(k), parts: sizes.map((s) => ({ name: s === 0 ? 'Empty set' : plural(s, 'class', 'classes'), value: h(k, s), color: sizeColor(s), onStrong: s >= 3 })) }));
   const chart = C.stackedRows({ width: L.two ? L.half : L.full, rows, legendItems: sizes.map((s) => ({ name: s === 0 ? 'Empty set' : plural(s, 'class', 'classes'), color: sizeColor(s), kind: 'rect' })), aria: 'Share of test images by conformal set size, per method' });
-  const h = (k, s) => ((CF.methods[k] || {}).set_size_histogram || {})[String(s)] || 0;
-  const n = CF.n || 0;
+  const total = (k) => sum(sizes.map((s) => h(k, s)));
+  const n = CF.n || total(withHist[0]);
   const multi = (k) => sum(sizes.filter((s) => s >= 2).map((s) => h(k, s)));
-  const lac = CF.methods.lac_marginal ? 'lac_marginal' : null;
+  const lac = hist('lac_marginal') ? 'lac_marginal' : null;
   const parts = [];
-  if (lac) parts.push(`${methodName(lac)} returned an empty set for ${h(lac, 0)} of ${n} images (${pc(n ? h(lac, 0) / n : null)}) and a multi-class set for ${multi(lac)}`);
-  if (tm.key !== lac) parts.push(`${methodName(tm.key)} returned ${multi(tm.key)} multi-class sets and ${h(tm.key, 0)} empty ones`);
-  else if (CF.methods.aps) parts.push(`APS returned ${multi('aps')} multi-class sets`);
+  if (lac) parts.push(`${methodName(lac)} returned an empty set for ${h(lac, 0)} of ${total(lac)} images (${pc(total(lac) ? h(lac, 0) / total(lac) : null)}) and a multi-class set for ${multi(lac)}`);
+  if (tm.key !== lac && hist(tm.key)) parts.push(`${methodName(tm.key)} returned ${multi(tm.key)} multi-class sets and ${h(tm.key, 0)} empty ones`);
+  else if (tm.key === lac && hist('aps')) parts.push(`APS returned ${multi('aps')} multi-class sets`);
+  const skipped = order.filter((k) => !hist(k));
   return figure({
     id: 'setsize',
     title: 'How many classes does each method suggest?',
-    takeaway: parts.join('; ') + '. An empty set means no class reached the threshold; the worklist treats it as low confidence (tier 3).',
+    takeaway: (parts.length ? parts.join('; ') + '. ' : '') + 'An empty set means no class reached the threshold; the worklist treats it as low confidence (tier 3).',
     chart,
+    notes: skipped.length ? [`No set-size counts in this run for ${skipped.map(methodName).join(', ')}.`] : [],
     population: `held-out test split, n = ${n} images`,
     source: 'eval/conformal.json',
-    table: { head: ['Method', ...sizes.map((s) => (s === 0 ? 'Empty' : String(s)))], rows: order.map((k) => [methodName(k), ...sizes.map((s) => String(h(k, s)))]), num: sizes.map((s) => s + 1) }
+    table: { head: ['Method', ...sizes.map((s) => (s === 0 ? 'Empty' : String(s)))], rows: withHist.map((k) => [methodName(k), ...sizes.map((s) => String(h(k, s)))]), num: sizes.map((s) => s + 1) }
   });
 }
 function figComposition(ST, ev, L) {
@@ -818,7 +835,7 @@ function figComposition(ST, ev, L) {
     value: c.count,
     color: isDiff(c.members) ? C.COLOR[2] : c.members.length ? C.COLOR[1] : 'var(--cx-empty)',
     emphasis: isDiff(c.members),
-    valueText: `${c.count} (${pc(c.count / (AC.methods[key].n || 1))})`
+    valueText: `${c.count} (${pc(c.count / (AC.methods[key].n || sum(comp.map((x) => x.count)) || 1))})`
   }));
   const chart = C.hbars({ width: L.two ? L.half : L.full, rows, aria: `Conformal set composition for ${methodName(key)}` });
   const diff = comp.filter((c) => isDiff(c.members)).reduce((a, c) => a + c.count, 0);
@@ -828,7 +845,7 @@ function figComposition(ST, ev, L) {
     title: 'Which differentials does the tier-driving set produce?',
     takeaway: `${methodName(key)} put both in situ and invasive carcinoma in the set for ${plural(diff, 'image')}: the ambiguity that drafts p63 / calponin.${others.length ? ` For comparison: ${others.map(([m, n]) => `${methodName(m)} ${n}`).join(', ')}.` : ''}`,
     chart,
-    population: `held-out test split, n = ${AC.methods[key].n} images${AC.methods[key].column ? ` (predictions.csv ${AC.methods[key].column})` : ''}`,
+    population: `held-out test split, n = ${AC.methods[key].n ?? sum(comp.map((x) => x.count))} images${AC.methods[key].column ? ` (predictions.csv ${AC.methods[key].column})` : ''}`,
     source: 'eval/analytics.json',
     table: { head: ['Set', 'Images'], rows: comp.map((c) => [c.members.length ? c.members.map((m) => cls(m, ST)).join(' + ') : 'Empty', String(c.count)]), num: [1] }
   });
@@ -1096,8 +1113,9 @@ function figDeletion(ST, ev, L) {
 function figDegradation(ST, ev, L) {
   const REL = ev.reliability;
   const curve = get(REL, 'accuracy_vs_degradation.curve');
-  if (!curve) return missing('reliability', 'How does accuracy hold up on simulated frozen-section artifacts?', 'accuracy vs degradation');
-  const types = Object.keys(curve);
+  // an artifact type with no readable severity point is left out (it would otherwise read "—" and win "hurts most")
+  const types = curve && typeof curve === 'object' ? Object.keys(curve).filter((t) => curve[t] && Object.values(curve[t]).some((b) => ci(b))) : [];
+  if (!types.length) return missing('reliability', 'How does accuracy hold up on simulated frozen-section artifacts?', 'accuracy vs degradation');
   const all = types.flatMap((t) => Object.values(curve[t]).map(ci).filter(Boolean)).flatMap((c) => [c.lo, c.hi, c.est]).filter(isNum);
   const ymin = Math.max(0, Math.floor(Math.min(...all) * 10) / 10),
     ymax = Math.min(1, Math.ceil(Math.max(...all) * 10) / 10);
@@ -1115,10 +1133,11 @@ function figDegradation(ST, ev, L) {
     };
   });
   const finals = types.map((t) => {
-    const ks = Object.keys(curve[t]).map(Number).sort((a, b) => a - b);
-    return [t, ci(curve[t][String(ks[ks.length - 1])])?.est, ci(curve[t][String(ks[0])])?.est];
+    const ks = Object.keys(curve[t]).filter((k) => ci(curve[t][k])).sort((a, b) => Number(a) - Number(b));
+    return [t, ci(curve[t][ks[ks.length - 1]]).est, ci(curve[t][ks[0]]).est];
   });
   const worst = finals.reduce((a, b) => (b[1] < a[1] ? b : a));
+  const skipped = Object.keys(curve).filter((t) => !types.includes(t));
   return figure({
     id: 'degradation',
     wide: true,
@@ -1127,6 +1146,7 @@ function figDegradation(ST, ev, L) {
     caveat: 'Simulated degradations of microscopy images (no frozen-section data was available). Shaded bands are 95% cluster-bootstrap intervals.',
     takeaway: `Four-class accuracy falls from ${pc(finals[0][2])} on clean single-view reads to ${finals.map(([t, v]) => `${pc(v)} (${lowerFirst(DEGRADE_LABEL[t] || t)})`).join(', ')} at the highest severity; ${lowerFirst(DEGRADE_LABEL[worst[0]] || worst[0])} hurts most. This drop is why degraded reads carry a reliability flag and can be deferred to permanent sections.`,
     chart: C.multiples(panels, { cols }),
+    notes: skipped.length ? [`No accuracy values in this run for ${skipped.map((t) => lowerFirst(DEGRADE_LABEL[t] || humanize(t))).join(', ')}.`] : [],
     population: `held-out test split, ${get(REL, 'accuracy_vs_degradation.model') ? modelName(get(REL, 'accuracy_vs_degradation.model')) : 'production model'}; clean = ${get(REL, 'accuracy_vs_degradation.clean_read') || 'single view'} reads`,
     source: 'eval/reliability.json',
     table: { head: ['Artifact', 'Severity', 'Accuracy [95% CI]', 'n'], rows: types.flatMap((t) => Object.entries(curve[t]).map(([s, b]) => [DEGRADE_LABEL[t] || t, s, ciShort(ci(b), { pct: true }), String(ci(b)?.n ?? '')])) }
@@ -1204,7 +1224,8 @@ function figTiers(ST, ev, L) {
   const chart = C.heatmap({
     width: L.two ? L.half : L.full,
     rows: classes.map((c) => `${shortClass(c)} (n = ${totals[classes.indexOf(c)]})`),
-    cols: tiers.map((t) => `${t}. ${tierLabel(t)}`),
+    // phones: four columns cannot hold the tier names without splitting words; number them and name them in a note
+    cols: tiers.map((t) => (L.full < 520 ? `Tier ${t}` : `${t}. ${tierLabel(t)}`)),
     values: counts.map((r, i) => r.map((v) => (totals[i] ? v / totals[i] : null))),
     scale: { kind: 'sequential', max: 1 },
     text: (i, j) => String(counts[i][j]),
@@ -1219,9 +1240,10 @@ function figTiers(ST, ev, L) {
   return figure({
     id: 'tiers',
     title: 'Where do truly invasive cases land in the worklist?',
-    takeaway: ki >= 0 ? `${counts[ki][0] + counts[ki][1]} of ${totals[ki]} invasive test images land in tier 1 or 2 (${counts[ki][0]} through the simulated surgical lane); ${T.aggressive_not_flagged} would wait in tiers 3–4. ${nonInvT2} non-invasive images were sent to tier 2, the price of the safety rule.` : '',
+    takeaway: ki >= 0 ? `${counts[ki][0] + counts[ki][1]} of ${totals[ki]} invasive test images land in tier 1 or 2 (${counts[ki][0]} through the simulated surgical lane); ${T.aggressive_not_flagged ?? counts[ki][2] + counts[ki][3]} would wait in tiers 3–4. ${nonInvT2} non-invasive images were sent to tier 2, the price of the safety rule.` : '',
     chart: chart + C.scaleLegend({ caption: 'Shade = share of the row', lo: '0%', hi: '100%' }),
-    population: `held-out test split, ${T.n} images; static tiers (no aging)`,
+    notes: L.full < 520 ? [`Tiers: ${tiers.map((t) => `${t} ${lowerFirst(tierLabel(t))}`).join(', ')}.`] : [],
+    population: `held-out test split, ${T.n ?? sum(totals)} images; static tiers (no aging)`,
     source: 'eval/analytics.json',
     table: { head: ['True class', ...tiers.map((t) => `Tier ${t}`)], rows: classes.map((c, i) => [cls(c, ST), ...counts[i].map(String)]), num: [1, 2, 3, 4] }
   });
@@ -1288,7 +1310,16 @@ function figQueue(ST, ev, L) {
   const dA = get(AQ, 'vs_fifo.tiers.aggressive_mean'),
     dN = get(AQ, 'vs_fifo.tiers.non_flagged_mean');
   const promo = Q.aging_promotions || {};
-  const take = `In ${Q.reps} simulated reading days, PathQueue tiers cut the mean time to first look for invasive cases from ${f1(get(fifo, 'aggressive_mean.mean'))} to ${f1(get(tiers, 'aggressive_mean.mean'))} min${dA && isNum(dA.share_days_lower) ? ` (sooner on ${pc(dA.share_days_lower)} of days)` : ''}, while unflagged cases waited ${f1(get(fifo, 'non_flagged_mean.mean'))} → ${f1(get(tiers, 'non_flagged_mean.mean'))} min${dN && isNum(dN.share_days_higher) ? ` (longer on ${pc(dN.share_days_higher)} of days)` : ''}. ${isNum(promo.tiers_aging) && promo.tiers_aging === 0 ? 'The configured aging guard never promoted a case within an 8-hour day, so it has no measured effect here.' : ''}`;
+  // the comparison sentence needs both policies; with one missing, say what is there instead of printing "—"
+  const both = (m) => isNum(get(fifo, [m, 'mean'])) && isNum(get(tiers, [m, 'mean']));
+  const firstLook = both('aggressive_mean')
+    ? `PathQueue tiers ${get(tiers, 'aggressive_mean.mean') <= get(fifo, 'aggressive_mean.mean') ? 'cut' : 'raised'} the mean time to first look for invasive cases from ${f1(get(fifo, 'aggressive_mean.mean'))} to ${f1(get(tiers, 'aggressive_mean.mean'))} min${dA && isNum(dA.share_days_lower) ? ` (sooner on ${pc(dA.share_days_lower)} of days)` : ''}`
+    : '';
+  const unflagged = both('non_flagged_mean')
+    ? `unflagged cases waited ${f1(get(fifo, 'non_flagged_mean.mean'))} → ${f1(get(tiers, 'non_flagged_mean.mean'))} min${dN && isNum(dN.share_days_higher) ? ` (longer on ${pc(dN.share_days_higher)} of days)` : ''}`
+    : '';
+  const compare = firstLook && unflagged ? `${firstLook}, while ${unflagged}.` : firstLook || unflagged ? `${firstLook || unflagged}.` : 'the arrival-order and PathQueue-tier results are not both present in this run, so no comparison is drawn.';
+  const take = `In ${isNum(Q.reps) ? Q.reps + ' ' : ''}simulated reading days, ${compare} ${isNum(promo.tiers_aging) && promo.tiers_aging === 0 ? 'The configured aging guard never promoted a case within an 8-hour day, so it has no measured effect here.' : ''}`;
   const a = Q.assumptions || {};
   const assumptions = [a.arrivals, a.reader, isNum(a.utilization) ? `reader utilization ${pc(a.utilization)}` : null, a.tiers, a.interval, a.truth_use].filter(Boolean);
   const rows = [];
@@ -1397,7 +1428,7 @@ function figDataQuality(ST, ev, L) {
   return figure({
     id: 'dataquality',
     title: 'Data quality: how much tissue passed QC?',
-    takeaway: `A tissue-mask fix raised the tile QC pass rate ${grids.map((g) => `${pc(qp.old[g])} → ${pc((qp.new || {})[g])} (${g})`).join(', ')} and reduced images flagged "insufficient tissue" from ${it.old} to ${it.new}${it.old_by_class && it.old_by_class.Invasive ? `; ${it.old_by_class.Invasive} of the ${it.old} were invasive, so the bug mostly hid real tumour tissue` : ''}.`,
+    takeaway: `A tissue-mask fix ${grids.length ? `raised the tile QC pass rate ${grids.map((g) => `${pc(qp.old[g])} → ${pc((qp.new || {})[g])} (${g})`).join(', ')} and ` : ''}${isNum(it.old) && isNum(it.new) ? `reduced images flagged "insufficient tissue" from ${it.old} to ${it.new}` : 'changed which images are flagged "insufficient tissue"'}${isNum(it.old) && it.old_by_class && isNum(it.old_by_class.Invasive) && it.old_by_class.Invasive * 2 > it.old ? `; ${it.old_by_class.Invasive} of the ${it.old} were invasive, so the bug mostly hid real tumour tissue` : ''}.`,
     chart,
     population: `all ${DQ.n_cases ?? ''} BACH images (every split), ${DQ.n_tiles ?? ''} tiles; tile-level QC, not a model result`,
     source: 'eval/qc.json',
@@ -1439,7 +1470,7 @@ function limitationsSection(ST, ev, m, L, ctx) {
   return `<figure class="mx-fig mx-wide" data-testid="limitations"><figcaption><h3>Limitations</h3></figcaption><ul class="mx-limits">${LIMITATIONS.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></figure>` +
     figDataQuality(ST, ev, L) +
     `<figure class="mx-fig"><figcaption><h3>Datasets, models and methods</h3></figcaption><dl class="mx-cite">${CITATIONS.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></figure>` +
-    `<figure class="mx-fig mx-wide"><figcaption><h3>Data provenance</h3><p class="mx-take">Every number on this page is read from these files at page load; re-running the pipeline updates the page.${expected.length ? ` Not produced in this run: ${expected.map((e) => `${e}.json`).join(', ')}.` : ''}</p></figcaption>${table(['File', 'Created (UTC)', 'Git commit', 'Kind'], files)}${(m.figures || []).length ? details('figures-png', `Static PNG figures (${m.figures.length})`, `<div class="mx-pngs">${m.figures.map((f) => `<a href="${esc(ctx && ctx.assetUrl ? ctx.assetUrl(f.url) : f.url)}" target="_blank" rel="noopener">${esc(f.file)}</a>`).join('')}</div>`) : ''}</figure>`;
+    `<figure class="mx-fig mx-wide"><figcaption><h3>Data provenance</h3><p class="mx-take">Every number on this page is read from these files at page load; re-running the pipeline updates the page.${expected.length ? ` Not produced in this run: ${esc(expected.map((e) => `${e}.json`).join(', '))}.` : ''}</p></figcaption>${table(['File', 'Created (UTC)', 'Git commit', 'Kind'], files)}${(m.figures || []).length ? details('figures-png', `Static PNG figures (${m.figures.length})`, `<div class="mx-pngs">${m.figures.map((f) => `<a href="${esc(ctx && ctx.assetUrl ? ctx.assetUrl(f.url) : f.url)}" target="_blank" rel="noopener">${esc(f.file)}</a>`).join('')}</div>`) : ''}</figure>`;
 }
 
 // ---- page -------------------------------------------------------------------------------------------------------------
@@ -1451,7 +1482,7 @@ function scope(ST, ev) {
     vx = M.variants_excluded ?? A.variants_excluded;
   const prod = get(M, 'models.production') || get(A, 'models.production');
   const parts = [];
-  if (isNum(n)) parts.push(`<b>${n}</b> held-out test images from <b>${ng ?? '?'}</b> patient or pseudo-patient groups`);
+  if (isNum(n)) parts.push(`<b>${n}</b> held-out test images from <b>${esc(ng ?? '?')}</b> patient or pseudo-patient groups`);
   if (isNum(vx)) parts.push(`${vx} simulated degraded / composite variants kept out of headline numbers`);
   parts.push('intervals are 95% cluster-bootstrap CIs over those groups');
   if (prod) parts.push(`production read: ${esc(modelName(prod))}`);
@@ -1520,7 +1551,7 @@ function install() {
     raf = 0;
     const navEl = document.querySelector('.mx-nav');
     if (!navEl) return;
-    const offset = navEl.getBoundingClientRect().height + 24;
+    const offset = navEl.getBoundingClientRect().bottom + 24; // the nav sits below the sticky header
     let current = null;
     for (const [id] of SECTIONS) {
       const s = document.getElementById(`mx-${id}`);

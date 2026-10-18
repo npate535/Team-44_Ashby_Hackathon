@@ -74,7 +74,8 @@
 }
 .mx-nav {
   position: sticky;
-  top: 0;
+  /* below the sticky workspace header (app.js syncStick sets --stick; 0 when the header scrolls away on phones) */
+  top: var(--stick, 0px);
   z-index: 20;
   margin: 0 0 6px;
   padding: 8px 0;
@@ -123,7 +124,7 @@
 /* ---- sections ------------------------------------------------------------------------------------------------------- */
 .mx-section {
   margin-top: 34px;
-  scroll-margin-top: 58px;
+  scroll-margin-top: calc(var(--stick, 0px) + 58px);
 }
 .mx-section-head {
   margin-bottom: 14px;
