@@ -625,7 +625,8 @@ function regionArrow(e) {
   const rg = e.target.closest && e.target.closest('[data-rg]');
   if (!rg || typeof e.key !== 'string' || !e.key.startsWith('Arrow')) return false;
   const grid = rg.closest('.rg-grid');
-  const cols = Number(grid && grid.dataset.cols) || 1;
+  if (!grid) return false; // region links outside the image grid (Why card) keep normal key behaviour
+  const cols = Number(grid.dataset.cols) || 1;
   const all = $$('[data-rg]', grid);
   const i = Number(rg.dataset.rg);
   const col = i % cols;

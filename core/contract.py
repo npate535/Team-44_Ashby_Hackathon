@@ -13,7 +13,8 @@ Every model forbids unknown fields, so drift fails loudly. Cross-field rules (en
   * simulated_variant "degraded" needs `degradation`; any variant needs source_case_ids (the case(s) it was built from).
   * prediction: probs align with classes and sum to 1 (+-0.01); conformal_set uses those classes.
   * tiles are the QC-kept contract-grid tiles: idx = row * cols + col, x = col * tile_size, y = row * tile_size,
-    unique idx, quality.qc_tiles_kept == len(tiles); concepts[].top_tiles and cells.tiles[].idx are listed tiles.
+    unique idx, quality.qc_tiles_kept == len(tiles); concepts[].top_tiles and cells.tiles[].idx are listed tiles;
+    tiles[].contribution only with prediction.attribution (whose target is a prediction class).
   * findings ids are unique F<n>; each finding's data carries its kind's keys (FINDING_REQUIRED_KEYS); summary
     sentences cite at least one existing finding.
   * margin: per_margin has all four margins and equals the max p of that margin's segments; involved == margins with
@@ -111,6 +112,15 @@ class Quality(_Model):
     reliability_flag: bool
 
 
+class Attribution(_Model):
+    """How tiles[].contribution decomposes the read: constant + sum of the contributions of every listed tile equals
+    log P(target) - mean_k log P(k) of the calibrated probabilities (pipeline/05d_tile_contrib.py)."""
+    method: Literal["exact_linear"]
+    target: NonEmptyStr               # class whose centered logit is decomposed (the aggressive class)
+    constant: float                   # centered intercept / temperature
+    unit: Literal["centered calibrated logit"]
+
+
 class Prediction(_Model):
     model: NonEmptyStr                # production model name (settings model_choice)
     classes: list[NonEmptyStr] = Field(min_length=2)
@@ -118,6 +128,7 @@ class Prediction(_Model):
     risk_score: Prob                  # calibrated P(aggressive class)
     conformal_alpha: Annotated[float, Field(gt=0.0, lt=1.0)]
     conformal_set: list[str]          # may be empty (flagged as reason empty_set)
+    attribution: Optional[Attribution] = None   # null when the read's model has no per-tile decomposition
 
     @model_validator(mode="after")
     def _consistent(self) -> "Prediction":
@@ -130,6 +141,8 @@ class Prediction(_Model):
         unknown = [c for c in self.conformal_set if c not in self.classes]
         if unknown or len(set(self.conformal_set)) != len(self.conformal_set):
             raise ValueError(f"prediction.conformal_set must hold unique prediction classes; unknown {unknown}")
+        if self.attribution is not None and self.attribution.target not in self.classes:
+            raise ValueError(f"prediction.attribution.target {self.attribution.target!r} is not a prediction class")
         return self
 
 
@@ -164,6 +177,7 @@ class Tile(_Model):
     risk: Prob                        # tile-level P(aggressive class) (heatmap)
     concepts: dict[str, float]        # concept id -> tile z
     attention: Optional[Annotated[float, Field(ge=0.0)]] = None   # ABMIL attention when that model is used
+    contribution: Optional[float] = None   # region's additive term (prediction.attribution); null when not pooled
 
 
 class SimilarCase(_Model):
@@ -397,6 +411,8 @@ class CaseBase(_Model):
             if tile.idx in seen:
                 raise ValueError(f"tile {tile.idx} is listed twice")
             seen.add(tile.idx)
+        if self.prediction.attribution is None and any(t.contribution is not None for t in self.tiles):
+            raise ValueError("tiles[].contribution needs prediction.attribution")
         if self.quality.qc_tiles_kept != len(self.tiles):
             raise ValueError(f"quality.qc_tiles_kept = {self.quality.qc_tiles_kept} but {len(self.tiles)} tiles are listed")
         ids = [c.id for c in self.concepts]
@@ -446,7 +462,7 @@ class CasePublic(CaseBase):
 
 # Models mirrored field for field in frontend/src/types.ts (tests/test_contract.py).
 PUBLIC_MODELS = (
-    ImageInfo, Quality, Prediction, ConceptComponents, Concept, Tile, SimilarCase, ContrastCase, Agreement,
+    ImageInfo, Quality, Attribution, Prediction, ConceptComponents, Concept, Tile, SimilarCase, ContrastCase, Agreement,
     MarginSegment, Margin, CellTile, CellFeature, CellsBlock, Flag, Finding, SummarySentence, Summary, Order,
     BlockedAction, Agent, Degradation, CasePublic,
 )

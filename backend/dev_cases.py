@@ -25,6 +25,7 @@ Rule ids and items mirror BUILD_PLAN §A14 for display only; the real drafts com
 from __future__ import annotations
 
 import copy
+import math
 import random
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -124,6 +125,17 @@ def _tiles(base: Sequence[Mapping[str, Any]], risk_scale: float, keep: int | Non
         tiles = sorted(tiles, key=lambda t: -t["risk"])[:keep]
         tiles.sort(key=lambda t: t["idx"])
     return tiles
+
+
+def with_contributions(tiles: Sequence[Mapping[str, Any]], probs: Sequence[float], classes: Sequence[str],
+                       target: str, constant: float = -0.06) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Synthetic region contributions shaped like 05d's: constant + their sum equals the case's own centered logit
+    log p_target - mean_k log p_k (probabilities floored at 1e-4); regions with higher tile risk push harder."""
+    logs = [math.log(max(float(p), 1e-4)) for p in probs]
+    rest = logs[list(classes).index(target)] - sum(logs) / len(logs) - constant
+    mean_risk = sum(t["risk"] for t in tiles) / len(tiles)
+    out = [{**t, "contribution": round(2.0 * (t["risk"] - mean_risk) + rest / len(tiles), 4)} for t in tiles]
+    return out, {"method": "exact_linear", "target": target, "constant": constant, "unit": "centered calibrated logit"}
 
 
 def _concepts(base: Sequence[Mapping[str, Any]], sign: float, kept: set[int], cells: bool) -> list[dict[str, Any]]:
@@ -243,7 +255,8 @@ def build_case(base: Mapping[str, Any], scenario: Mapping[str, Any], case_id: st
     probs = [round(p, 4) for p in scenario["probs"]]
     risk = probs[classes.index(cfg["aggressive_class"])]
     keep = scenario.get("qc_tiles")
-    tiles = _tiles(base["tiles"], risk / 0.72 if risk > 0 else 0.1, keep)
+    tiles, attribution = with_contributions(_tiles(base["tiles"], risk / 0.72 if risk > 0 else 0.1, keep), probs,
+                                            classes, cfg["aggressive_class"])
     kept = {t["idx"] for t in tiles}
     cells_on = bool(scenario.get("cells"))
     carcinoma = scenario["truth"] in cfg["carcinoma_classes"]
@@ -255,7 +268,8 @@ def build_case(base: Mapping[str, Any], scenario: Mapping[str, Any], case_id: st
                     "reliability": 0.31 if scenario.get("reliability_flag") else 0.81,
                     "reliability_flag": bool(scenario.get("reliability_flag"))},
         "prediction": {**base["prediction"], "classes": classes, "probs": probs, "risk_score": risk,
-                       "conformal_alpha": cfg["alpha"], "conformal_set": list(scenario["set"])},
+                       "conformal_alpha": cfg["alpha"], "conformal_set": list(scenario["set"]),
+                       "attribution": attribution},
         "tiles": tiles,
         "concepts": _concepts(base["concepts"], 1.0 if carcinoma else -1.0, kept, cells_on),
     })

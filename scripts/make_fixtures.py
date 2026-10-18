@@ -19,6 +19,7 @@ from PIL import Image, ImageDraw
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
+from backend.dev_cases import with_contributions  # noqa: E402
 from core import config, contract, tiers  # noqa: E402
 
 OUT = REPO / "fixtures"
@@ -217,6 +218,9 @@ def surgical() -> dict:
 def main() -> None:
     OUT.mkdir(exist_ok=True)
     for case in (biopsy(), surgical()):
+        pred = case["prediction"]
+        case["tiles"], pred["attribution"] = with_contributions(case["tiles"], pred["probs"], pred["classes"],
+                                                                CFG["aggressive_class"])
         case["flag"] = tiers.flag_for(case, CFG)
         contract.Case.model_validate(case)
         (OUT / f"{case['case_id']}.json").write_text(json.dumps(case, indent=2, ensure_ascii=False) + "\n")

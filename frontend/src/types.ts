@@ -33,6 +33,13 @@ export interface Quality {
   reliability_flag: boolean;
 }
 
+export interface Attribution {
+  method: "exact_linear";
+  target: string;
+  constant: number;
+  unit: "centered calibrated logit";
+}
+
 export interface Prediction {
   model: string;
   classes: string[];
@@ -40,6 +47,7 @@ export interface Prediction {
   risk_score: number;
   conformal_alpha: number;
   conformal_set: string[];
+  attribution?: Attribution | null;
 }
 
 export interface ConceptComponents {
@@ -71,6 +79,7 @@ export interface Tile {
   risk: number;
   concepts: Record<string, number>;
   attention?: number | null;
+  contribution?: number | null;
 }
 
 export interface SimilarCase {

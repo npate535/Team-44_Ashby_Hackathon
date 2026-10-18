@@ -202,6 +202,25 @@
 .hm-svg[data-kind='attention'] .hm-tile {
   fill: var(--amb);
 }
+/* exact region contribution: pink (eosin) toward invasive, blue away; the legend names these two colours */
+:root {
+  --away: #3b6db3;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --away: #8fb6ec;
+  }
+}
+:root[data-theme='dark'],
+.vw-foot {
+  --away: #8fb6ec;
+}
+.hm-svg[data-kind='contribution'] .hm-tile.pos {
+  fill: var(--eos);
+}
+.hm-svg[data-kind='contribution'] .hm-tile.neg {
+  fill: var(--away);
+}
 .hm-svg .hm-drop {
   fill-opacity: 0.85;
 }
@@ -338,6 +357,9 @@
 }
 .cv-legend[data-kind='attention'] .lg-bar {
   background: linear-gradient(90deg, color-mix(in srgb, var(--amb) 0%, transparent), var(--amb));
+}
+.cv-legend[data-kind='contribution'] .lg-bar {
+  background: linear-gradient(90deg, var(--away), transparent 50%, var(--eos));
 }
 .lg-ticks {
   display: flex;
@@ -593,6 +615,45 @@
 }
 .cv .why-row:hover {
   background: color-mix(in srgb, var(--bl) 70%, transparent);
+}
+.why-regions {
+  margin: 0 0 14px;
+}
+.why-regions h3 {
+  margin: 0 0 2px;
+  padding-left: 8px;
+}
+.why-regions > .sub {
+  margin: 0 0 6px;
+  padding-left: 8px;
+}
+.cv .why-region {
+  display: grid;
+  grid-template-columns: 84px 64px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+.cv .why-region:hover {
+  background: color-mix(in srgb, var(--bl) 70%, transparent);
+}
+.cv .why-region .wg-n {
+  font-weight: 600;
+}
+.cv .why-region .v {
+  color: var(--eos);
+  font-variant-numeric: tabular-nums;
+}
+.cv .why-region .wg-z {
+  font-size: var(--cv-fs-xs);
+  color: var(--mut);
 }
 .cv .why-row.on {
   background: var(--bl);

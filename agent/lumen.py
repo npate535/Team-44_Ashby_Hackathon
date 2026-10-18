@@ -165,6 +165,17 @@ class LumenClient:
                    cache_dir=cache_dir, max_calls=max_calls, retries=llm["retries"], timeout_s=llm["timeout_s"],
                    temperature=llm["temperature"], max_tokens=llm["max_output_tokens"], **kwargs)
 
+    @classmethod
+    def cache_only(cls, cfg: Mapping[str, Any], *, cache_dir: str | Path, **kwargs: Any) -> "LumenClient":
+        """A client that can only replay cached replies: no key, no budget, no /models lookup. Its model is the first
+        llm.model_preference entry with a cache directory; a cache miss raises NoApiKey before any request."""
+        llm = cfg["llm"]
+        cached = [m for m in llm["model_preference"] if (Path(cache_dir) / _safe_name(m)).is_dir()]
+        return cls(base_url=llm["base_url"], api_key=None, model_preference=llm["model_preference"],
+                   cache_dir=cache_dir, max_calls=0, retries=llm["retries"], timeout_s=llm["timeout_s"],
+                   temperature=llm["temperature"], max_tokens=llm["max_output_tokens"],
+                   model=(cached or llm["model_preference"])[0], **kwargs)
+
     @property
     def has_key(self) -> bool:
         return bool(self._key)

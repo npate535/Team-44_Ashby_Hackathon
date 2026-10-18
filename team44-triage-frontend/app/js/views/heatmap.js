@@ -1,6 +1,8 @@
 // Image evidence (plan §8.1 "Where"): the display JPEG with an absolutely positioned SVG in source-pixel coordinates
 // (the downscaled JPEG scales for free) and an HTML region grid on top for hover / focus / click.
-// Biopsy: per-tile heatmap (risk / a concept's tile z / ABMIL attention) with highlighted tiles.
+// Biopsy: per-tile heatmap (exact region contribution / risk / a concept's tile z / ABMIL attention) with highlighted
+// tiles. The contribution layer, when the case has one, is the default: each region's additive term of the production
+// model's centered calibrated logit (prediction.attribution), pink toward invasive and blue away.
 // Surgical: the four margins as per-segment strips (BUILD_PLAN §A12), a specimen diagram and per-margin score bars.
 // Every number shown comes from the case JSON; nothing here is a diagnosis.
 import { esc, exactProb, MARGINS, num } from '../adapter.js';
@@ -12,10 +14,30 @@ const f2 = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) 
 /** Tile probability on the image: never 1.00 / 0.00. */
 const fp2 = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? '—' : Number(x) >= 0.995 ? '>0.99' : Number(x) < 0.005 ? '<0.01' : Number(x).toFixed(2));
 const sz = (x) => (x > 0 ? '+' : x < 0 ? '−' : '±') + Math.abs(x).toFixed(2);
+const isNum = (x) => x !== null && x !== undefined && Number.isFinite(Number(x));
 
-/** Heatmap layers available for a case: risk, every concept with tile values, attention when present. */
+/** True when the case carries an exact region decomposition (prediction.attribution + tile contributions). */
+export function hasContributions(v) {
+  return !!v.attribution && v.tiles.some((t) => isNum(t.contribution));
+}
+
+/** Largest |contribution| over the case's regions (the contribution layer's full-shade value). */
+export function maxAbsContribution(v) {
+  return Math.max(0, ...v.tiles.filter((t) => isNum(t.contribution)).map((t) => Math.abs(Number(t.contribution))));
+}
+
+/** "Region 7 · +0.42 toward invasive" (the contribution layer's tooltip line). */
+export function contributionLine(idx, c) {
+  if (!isNum(c)) return `Region ${idx} · contribution not available`;
+  const x = Number(c);
+  return `Region ${idx} · ${sz(x)} ${x > 0 ? 'toward' : x < 0 ? 'away from' : 'neutral for'} invasive`;
+}
+
+/** Heatmap layers available for a case: exact contribution (first, the default) when present, risk, every concept with
+ * tile values, attention when present. */
 export function layers(v) {
-  const out = [{ id: 'risk', label: 'Overall risk (tile P(Invasive))', kind: 'risk' }];
+  const out = hasContributions(v) ? [{ id: 'contribution', label: 'Region contribution (exact)', kind: 'contribution' }] : [];
+  out.push({ id: 'risk', label: 'Overall risk (tile P(Invasive))', kind: 'risk' });
   const tileConcepts = new Set(v.tiles.flatMap((t) => Object.keys(t.concepts || {})));
   for (const c of v.concepts) if (tileConcepts.has(c.id)) out.push({ id: c.id, label: c.label, kind: 'concept' });
   if (v.tiles.some((t) => t.attention !== null && t.attention !== undefined))
@@ -27,7 +49,8 @@ export function layerOf(v, id) {
   return layers(v).find((l) => l.id === id) || layers(v)[0];
 }
 
-function tileValue(t, layer, maxAttention) {
+function tileValue(t, layer, maxAttention, maxContribution) {
+  if (layer === 'contribution') return isNum(t.contribution) && maxContribution > 0 ? clamp01(Math.abs(Number(t.contribution)) / maxContribution) : 0;
   if (layer === 'risk') return clamp01(num(t.risk));
   if (layer === 'attention') return maxAttention > 0 ? clamp01((t.attention || 0) / maxAttention) : 0;
   const z = t.concepts ? t.concepts[layer] : undefined;
@@ -60,6 +83,26 @@ export function regionInfo(v, hm, idx) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
   const layer = layerOf(v, hm.sel);
+  if (layer.kind === 'contribution') {
+    const line = contributionLine(idx, t.contribution);
+    const text =
+      `${line} (${where}). ` +
+      (strongestText(v, zs) ? `Strongest concept scores: ${strongestText(v, zs)}. ` : '') +
+      `Tile P(Invasive) ${fp2(t.risk)}. Passed tissue QC.` +
+      (linked ? ` Linked to ${linked}.` : '');
+    const html =
+      `<b>${esc(line)}</b><span class="tip-sub">${esc(where)}</span>` +
+      '<span class="tip-sub">Additive term of the model\'s invasive score (centered calibrated logit)</span>' +
+      (zs.length
+        ? `<span class="tip-h">Strongest concept scores (z vs. reference regions)</span>${zs
+            .map(([id, z]) => `<span class="tip-row"><span>${esc(conceptLabel(v, id))}</span><b>${esc(sz(z))}</b></span>`)
+            .join('')}`
+        : '') +
+      `<span class="tip-row"><span>Tile P(Invasive)</span><b>${fp2(t.risk)}</b></span>` +
+      `<span class="tip-qc ok">Passed tissue QC</span>` +
+      (linked ? `<span class="tip-link">Linked to: ${esc(linked)}</span>` : '');
+    return { text, html };
+  }
   const cur =
     layer.kind === 'concept' && t.concepts && t.concepts[layer.id] !== undefined
       ? { k: `${layer.label} (z)`, v: sz(t.concepts[layer.id]) }
@@ -88,6 +131,10 @@ export function regionInfo(v, hm, idx) {
   return { text, html };
 }
 
+function strongestText(v, zs) {
+  return zs.map(([id, z]) => `${conceptLabel(v, id)} ${sz(z)}`).join('; ');
+}
+
 /** The SVG overlay (fills, QC hatch, highlight outlines). hlClass lets the full-screen viewer avoid `rect.hl`. */
 export function overlaySvg(v, hm, { hlClass = 'hl', idPrefix = 'hm', opacity = null } = {}) {
   const w = num(v.image.w),
@@ -95,6 +142,7 @@ export function overlaySvg(v, hm, { hlClass = 'hl', idPrefix = 'hm', opacity = n
     tile = num(v.image.tile);
   const [rows, cols] = v.image.grid.map(num);
   const maxA = Math.max(0, ...v.tiles.map((t) => t.attention || 0));
+  const maxC = maxAbsContribution(v);
   const byIdx = new Map(v.tiles.map((t) => [t.idx, t]));
   const hl = new Set(hm.hl || []);
   const op = opacity === null ? hm.opacity : opacity;
@@ -108,8 +156,9 @@ export function overlaySvg(v, hm, { hlClass = 'hl', idPrefix = 'hm', opacity = n
         rects += `<rect class="hm-drop" style="fill:url(#${idPrefix}-hatch)" data-tile="${idx}" x="${c * tile}" y="${r * tile}" width="${tile}" height="${tile}"/>`;
         continue;
       }
-      const val = tileValue(t, layer.id, maxA);
-      rects += `<rect class="hm-tile" data-testid="hm-tile" data-tile="${idx}" data-v="${val.toFixed(4)}" x="${num(t.x)}" y="${num(t.y)}" width="${tile}" height="${tile}" fill-opacity="${(val * op).toFixed(3)}"/>`;
+      const val = tileValue(t, layer.id, maxA, maxC);
+      const sign = layer.kind === 'contribution' ? (num(t.contribution) < 0 ? ' neg' : ' pos') : '';
+      rects += `<rect class="hm-tile${sign}" data-testid="hm-tile" data-tile="${idx}" data-v="${val.toFixed(4)}" x="${num(t.x)}" y="${num(t.y)}" width="${tile}" height="${tile}" fill-opacity="${(val * op).toFixed(3)}"/>`;
     }
   }
   for (const idx of hl) {
@@ -141,6 +190,7 @@ export function regionGrid(v, hm, { scope = 'case' } = {}) {
   const maxA = Math.max(0, ...v.tiles.map((t) => t.attention || 0));
   const valueText = (t) => {
     if (!t) return 'QC';
+    if (layer.kind === 'contribution') return isNum(t.contribution) ? sz(Number(t.contribution)) : '—';
     if (layer.kind === 'risk') return fp2(t.risk);
     if (layer.kind === 'attention') return maxA > 0 ? f2((t.attention || 0) / maxA) : '—';
     const z = t.concepts ? t.concepts[layer.id] : undefined;
@@ -179,8 +229,11 @@ export function heatmap(v, hm, assetUrl) {
 /** Legend with units for the active layer, plus the QC-hatch and highlight swatches. */
 export function heatmapLegend(v, hm) {
   const layer = layerOf(v, hm.sel);
+  const maxC = maxAbsContribution(v);
   const scale =
-    layer.kind === 'risk'
+    layer.kind === 'contribution'
+      ? { title: 'Region contribution (centered logit)', lo: `${sz(-maxC)} away`, mid: '0', hi: `${sz(maxC)} toward`, note: "Each region's push toward (pink) or away from (blue) invasive carcinoma. The pushes plus a constant add up exactly to the model's invasive score." }
+      : layer.kind === 'risk'
       ? { title: 'Tile P(Invasive)', lo: '0', mid: '0.5', hi: '1', note: 'Per-region probability from the tile-level probe. Shading is proportional to the probability; it localises the read, it does not grade a region.' }
       : layer.kind === 'attention'
         ? { title: 'ABMIL attention', lo: '0', mid: '', hi: 'case max', note: 'Relative attention weight, scaled to the most attended region in this case.' }
@@ -200,15 +253,16 @@ export function heatmapLegend(v, hm) {
 
 export function heatmapControls(v, hm) {
   const ls = layers(v);
+  const cur = layerOf(v, hm.sel).id;
   const group = (kind, label) => {
     const opts = ls
       .filter((l) => l.kind === kind)
-      .map((l) => `<option value="${esc(l.id)}"${l.id === hm.sel ? ' selected' : ''}>${esc(l.label)}</option>`)
+      .map((l) => `<option value="${esc(l.id)}"${l.id === cur ? ' selected' : ''}>${esc(l.label)}</option>`)
       .join('');
     return opts ? (label ? `<optgroup label="${esc(label)}">${opts}</optgroup>` : opts) : '';
   };
   return (
-    `<div class="hmctl cv-hmctl"><label>Layer <select data-testid="heatmap-select" data-hm="sel" aria-label="Heatmap layer">${group('risk')}${group('concept', 'Concept scores (z)')}${group('attention', 'Model attention')}</select></label>` +
+    `<div class="hmctl cv-hmctl"><label>Layer <select data-testid="heatmap-select" data-hm="sel" aria-label="Heatmap layer">${group('contribution')}${group('risk')}${group('concept', 'Concept scores (z)')}${group('attention', 'Model attention')}</select></label>` +
     `<label>Overlay opacity <input type="range" min="0" max="1" step="0.05" value="${hm.opacity}" data-testid="heatmap-opacity" data-hm="opacity" aria-label="Overlay opacity"></label></div>`
   );
 }

@@ -61,6 +61,7 @@ pipeline-laptop:
 	$(call run_step,pipeline,05c_finetune)
 	$(call run_step,pipeline,05b_abmil)
 	$(call run_step,pipeline,06_reliability)
+	$(call run_step,pipeline,05d_tile_contrib)
 	$(call run_step,pipeline,07_retrieval)
 	$(call run_step,pipeline,08_build_case_json)
 

@@ -209,3 +209,18 @@ def test_truncated_or_empty_replies_are_not_cached(tmp_path):
     client.chat([{"role": "user", "content": "x"}])
     client.chat([{"role": "user", "content": "x"}])
     assert client.calls == 2 and client.cache_hits == 0 and not list((tmp_path / "cache").rglob("*.json"))
+
+
+def test_cache_only_client_reuses_cached_replies_with_zero_network_calls(tmp_path):
+    cache = tmp_path / "cache"
+    live = lumen.LumenClient.from_settings(CFG, cache_dir=cache, max_calls=1, env={"LUMEN_API_KEY": SECRET},
+                                           transport=httpx.MockTransport(FakeServer(replies=[{"content": "kept"}])))
+    live.chat([{"role": "user", "content": "same"}])
+    server = FakeServer()
+    client = lumen.LumenClient.cache_only(CFG, cache_dir=cache, transport=httpx.MockTransport(server))
+    assert not client.has_key and client.model == live.model
+    hit = client.chat([{"role": "user", "content": "same"}])
+    assert (hit["content"], hit["cached"]) == ("kept", True)
+    with pytest.raises(lumen.NoApiKey):
+        client.chat([{"role": "user", "content": "not cached"}])
+    assert server.requests == [] and client.calls == 0 and client.cache_hits == 1

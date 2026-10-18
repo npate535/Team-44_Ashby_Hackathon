@@ -530,3 +530,43 @@ def test_frozen_interfaces_keep_their_signatures(module_name):
 def test_contract_dump_is_json_serialisable_for_the_api():
     public = contract.to_public(copy.deepcopy(surgical_case()))
     assert json.loads(json.dumps(public)) == public
+
+
+# ---- exact region contributions (VALIDATION_ROUND3 §3) -----------------------------------------------------------------
+ATTRIBUTION = {"method": "exact_linear", "target": "Invasive", "constant": -0.0612,
+               "unit": "centered calibrated logit"}
+
+
+def test_tile_contributions_and_attribution_validate():
+    case = biopsy_case()
+    case["prediction"]["attribution"] = dict(ATTRIBUTION)
+    for tile, value in zip(case["tiles"], [0.42, -0.1, None]):
+        tile["contribution"] = value
+    model = contract.Case.model_validate(case)
+    assert model.prediction.attribution.method == "exact_linear"
+    assert [t.contribution for t in model.tiles] == [0.42, -0.1, None]
+    assert contract.Case.model_validate(json.loads(model.model_dump_json())) == model
+
+
+def test_attribution_and_contributions_may_be_null():
+    case = biopsy_case()
+    case["prediction"]["attribution"] = None
+    for tile in case["tiles"]:
+        tile["contribution"] = None
+    public = contract.to_public(case)
+    assert public["prediction"]["attribution"] is None
+    assert all(t["contribution"] is None for t in public["tiles"])
+
+
+def test_tile_contributions_need_an_attribution():
+    case = biopsy_case()
+    case["tiles"][0]["contribution"] = 0.3
+    rejects(case, "attribution")
+
+
+@pytest.mark.parametrize("field,value", [("method", "shap"), ("unit", "probability"), ("target", "Carcinoma")])
+def test_attribution_fields_are_fixed(field, value):
+    case = biopsy_case()
+    case["prediction"]["attribution"] = {**ATTRIBUTION, field: value}
+    with pytest.raises(ValidationError):
+        contract.Case.model_validate(case)

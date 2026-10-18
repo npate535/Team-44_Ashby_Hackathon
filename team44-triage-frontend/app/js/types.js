@@ -34,6 +34,14 @@
  */
 
 /**
+ * @typedef {Object} Attribution
+ * @property {"exact_linear"} method
+ * @property {string} target
+ * @property {number} constant
+ * @property {"centered calibrated logit"} unit
+ */
+
+/**
  * @typedef {Object} Prediction
  * @property {string} model
  * @property {string[]} classes
@@ -41,6 +49,7 @@
  * @property {number} risk_score
  * @property {number} conformal_alpha
  * @property {string[]} conformal_set
+ * @property {Attribution | null} [attribution]
  */
 
 /**
@@ -73,6 +82,7 @@
  * @property {number} risk
  * @property {Record<string, number>} concepts
  * @property {number | null} [attention]
+ * @property {number | null} [contribution]
  */
 
 /**

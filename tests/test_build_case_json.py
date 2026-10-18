@@ -379,3 +379,66 @@ def test_every_case_loads_into_the_backend(env):
     run(env)
     loaded = db.load_case_dir(env["art"] / "cases")
     assert loaded.skipped == [] and len(loaded.cases) == 18
+
+
+# ---- exact region contributions (tile_contrib.csv from 05d) -------------------------------------------------------------
+def _write_tile_contrib(root, rows):
+    cols = [c.name for c in schemas.TILE_CONTRIB.columns]
+    io.write_csv(schemas.tile_contrib_csv(root), pd.DataFrame(rows, columns=cols))
+
+
+def _contrib_rows(root, read_id, tiles, constant=-0.06):
+    pred = pd.read_csv(schemas.predictions_csv(root)).set_index("case_id")
+    model = pred.loc[read_id, "model"]
+    return [{"read_id": read_id, "model": model, "tile_idx": t, "contribution": 0.012345 * (t + 1) - 0.05,
+             "constant": constant, "target": CFG["aggressive_class"], "temperature": 0.34, "n_rows": 12}
+            for t in tiles]
+
+
+def test_tile_contributions_come_from_tile_contrib_csv(env):
+    hero = D.HERO_BIOPSY
+    variant = schemas.variant_case_id(D.TEST_SURGICAL[1], "blur", int(CFG["degrade"]["display_severity"]))
+    _write_tile_contrib(env["root"], _contrib_rows(env["root"], hero, range(12))
+                        + _contrib_rows(env["root"], variant, range(11)))
+    run(env)
+    cases = load_cases(env["art"])
+    case = cases[hero]
+    assert case["prediction"]["attribution"] == {"method": "exact_linear", "target": CFG["aggressive_class"],
+                                                 "constant": -0.06, "unit": "centered calibrated logit"}
+    for tile in case["tiles"]:
+        assert tile["contribution"] == round(0.012345 * (tile["idx"] + 1) - 0.05, 4)
+    var = cases[variant]
+    assert var["prediction"]["attribution"]["constant"] == -0.06
+    by_idx = {t["idx"]: t["contribution"] for t in var["tiles"]}
+    if 11 in by_idx:                       # a displayed region the read did not pool stays null
+        assert by_idx[11] is None
+    other = cases[D.TEST_SURGICAL[0]]
+    assert other["prediction"]["attribution"] is None
+    assert all(t["contribution"] is None for t in other["tiles"])
+    for c in cases.values():
+        contract.Case.model_validate(c)
+
+
+def test_absent_tile_contrib_gives_null(env):
+    assert not schemas.tile_contrib_csv(env["root"]).exists()
+    run(env)
+    for case in load_cases(env["art"]).values():
+        assert case["prediction"]["attribution"] is None
+        assert all(t["contribution"] is None for t in case["tiles"])
+
+
+def test_terms_outside_the_displayed_regions_null_the_read(env):
+    """INSUFFICIENT shows 2 QC tiles; a read with terms in other regions cannot add up on screen, so it is null."""
+    _write_tile_contrib(env["root"], _contrib_rows(env["root"], D.INSUFFICIENT, range(12)))
+    extra = run(env)
+    case = load_cases(env["art"])[D.INSUFFICIENT]
+    assert case["prediction"]["attribution"] is None
+    assert all(t["contribution"] is None for t in case["tiles"])
+    assert D.INSUFFICIENT in extra["attribution_hidden_terms"]
+
+
+def test_tile_contrib_from_another_model_is_an_error(env):
+    rows = _contrib_rows(env["root"], D.HERO_BIOPSY, range(12))
+    _write_tile_contrib(env["root"], [{**r, "model": "some_other_lr"} for r in rows])
+    with pytest.raises(STEP.InputError, match="rerun pipeline.05d_tile_contrib"):
+        run(env)

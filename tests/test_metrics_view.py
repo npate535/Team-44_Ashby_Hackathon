@@ -203,3 +203,54 @@ def test_deferral_figure_degrades_to_the_missing_card(payloads, value):
     html = _render(payload, cfg, tmp)["html"]
     assert 'data-testid="metrics-missing-deferral"' in html and 'data-testid="metrics-deferral"' not in html
     assert "undefined" not in html and "NaN" not in html
+
+
+def _deletion_doc():
+    def blk(e, n=34, g=17):
+        return {"estimate": e, "lo": e - 0.01, "hi": e + 0.02, "n": n, "n_groups": g}
+
+    pop = {"n": 34, "n_groups": 17, "mean_drop_random": blk(-0.0012), "mean_drop_risk": blk(0.0237),
+           "mean_drop_concept": blk(0.0016), "mean_drop_contribution": blk(0.0324),
+           "mean_drop_logit_random": blk(-0.0127), "mean_drop_logit_risk": blk(0.2087),
+           "mean_drop_logit_concept": blk(-0.033), "mean_drop_logit_contribution": blk(0.4472),
+           "risk_minus_random": blk(0.0249), "concept_minus_random": blk(0.0029),
+           "contribution_minus_random": blk(0.0336), "risk_minus_random_logit": blk(0.2213),
+           "concept_minus_random_logit": blk(-0.0203), "contribution_minus_random_logit": blk(0.4599)}
+    return {"name": "deletion", "synthetic": True, "settings": {"n_tiles": 3, "n_random": 20,
+                                                               "primary_subset": "predicted_aggressive"},
+            "models": {"uni2h512_lr": {"kind": "lr_embedding", "predicted_aggressive": pop, "all_eligible": pop}}}
+
+
+def test_deletion_figure_shows_four_arms_in_probability_and_logit_units(payloads):
+    p, cfg, tmp = payloads
+    full = copy.deepcopy(p["full"])
+    full["eval"]["deletion"] = _deletion_doc()
+    html = _render(full, cfg, tmp)["html"]
+    start = html.index('id="fig-deletion"')
+    fig = html[start:html.index("</figure>", start)]
+    for arm in ("3 random regions", "Top 3 tile-probe regions", "Top 3 regions of the top concept",
+                "Top 3 regions by exact contribution"):
+        assert arm in fig, arm
+    assert "Drop in P(Invasive)" in fig and "Drop in the centered logit" in fig
+    title = fig[fig.index("<h3>") + 4:fig.index("</h3>")]
+    assert "?" not in title and "↗" not in fig
+    take = fig[fig.index("What this shows"):]
+    assert "0.45" in take and "exact contribution" in take and "0.21" in take and "random" in take
+    for junk in ("NaN", "undefined", "[object Object]"):
+        assert junk not in fig
+
+
+def test_deletion_figure_without_the_contribution_arm_still_renders(payloads):
+    p, cfg, tmp = payloads
+    full = copy.deepcopy(p["full"])
+    doc = _deletion_doc()
+    pop = doc["models"]["uni2h512_lr"]["predicted_aggressive"]
+    for key in [k for k in pop if "contribution" in k or "logit" in k]:
+        del pop[key]
+    full["eval"]["deletion"] = doc
+    html = _render(full, cfg, tmp)["html"]
+    start = html.index('id="fig-deletion"')
+    fig = html[start:html.index("</figure>", start)]
+    assert "Top 3 tile-probe regions" in fig and "What this shows" in fig
+    for junk in ("NaN", "undefined", "[object Object]"):
+        assert junk not in fig

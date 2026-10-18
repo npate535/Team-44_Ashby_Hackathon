@@ -361,6 +361,7 @@ export function toView(raw, nowMs, cfg, sim) {
     cells: c.cells && c.cells.status ? c.cells : { status: 'disabled' },
     margin: marginView(c.margin),
     model: pred ? pred.model : null,
+    attribution: (pred && pred.attribution) || null, // exact region decomposition of the read (tiles[].contribution)
     schema: c.schema_version || null
   };
 }
