@@ -9,6 +9,8 @@ const clamp01 = (x) => Math.max(0, Math.min(1, x));
 const Z_FULL = 3; // concept layers: z <= 0 is not shaded, z >= Z_FULL is fully shaded (display mapping only)
 export const cap = (s) => String(s || '').replace(/^./, (c) => c.toUpperCase());
 const f2 = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? '—' : Number(x).toFixed(2));
+/** Tile probability on the image: never 1.00 / 0.00. */
+const fp2 = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? '—' : Number(x) >= 0.995 ? '>0.99' : Number(x) < 0.005 ? '<0.01' : Number(x).toFixed(2));
 const sz = (x) => (x > 0 ? '+' : x < 0 ? '−' : '±') + Math.abs(x).toFixed(2);
 
 /** Heatmap layers available for a case: risk, every concept with tile values, attention when present. */
@@ -65,14 +67,14 @@ export function regionInfo(v, hm, idx) {
         : null;
   const strongest = zs.map(([id, z]) => `${conceptLabel(v, id)} ${sz(z)}`);
   const text =
-    `Region ${idx} (${where}). Tile P(Invasive) ${f2(t.risk)}. ` +
+    `Region ${idx} (${where}). Tile P(Invasive) ${fp2(t.risk)} (${Number(t.risk).toFixed(3)}). ` +
     (cur ? `${cur.k} ${cur.v}. ` : '') +
     (strongest.length ? `Strongest concept scores: ${strongest.join('; ')}. ` : '') +
     'Passed tissue QC.' +
     (linked ? ` Linked to ${linked}.` : '');
   const html =
     `<b>Region ${idx}</b><span class="tip-sub">${esc(where)}</span>` +
-    `<span class="tip-row"><span>Tile P(Invasive)</span><b>${f2(t.risk)}</b></span>` +
+    `<span class="tip-row"><span>Tile P(Invasive)</span><b>${fp2(t.risk)} <span class="tip-sub">(${esc(Number(t.risk).toFixed(3))})</span></b></span>` +
     (cur ? `<span class="tip-row"><span>${esc(cur.k)}</span><b>${esc(cur.v)}</b></span>` : '') +
     (strongest.length
       ? `<span class="tip-h">Strongest concept scores (z vs. reference regions)</span>${zs
@@ -138,7 +140,7 @@ export function regionGrid(v, hm, { scope = 'case' } = {}) {
   const maxA = Math.max(0, ...v.tiles.map((t) => t.attention || 0));
   const valueText = (t) => {
     if (!t) return 'QC';
-    if (layer.kind === 'risk') return f2(t.risk);
+    if (layer.kind === 'risk') return fp2(t.risk);
     if (layer.kind === 'attention') return maxA > 0 ? f2((t.attention || 0) / maxA) : '—';
     const z = t.concepts ? t.concepts[layer.id] : undefined;
     return z === undefined || z === null ? '—' : sz(Number(z)).replace('.00', '.0');
