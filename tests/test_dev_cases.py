@@ -96,3 +96,19 @@ def test_with_eval_writes_synthetic_eval_files(tmp_path):
     for p in (out / "eval").glob("*.json"):
         data = json.loads(p.read_text())
         assert data["synthetic"] is True and data["name"] == p.stem
+
+
+def test_synthetic_cases_carry_exact_contributions(root):
+    """Dev cases and fixtures carry the attribution fields, and constant + sum matches their own probabilities."""
+    import math
+
+    target = CFG["aggressive_class"]
+    for case in _cases(root) + [json.loads((FIXTURES / f).read_text()) for f in ("demo_0001.json", "demo_0002.json")]:
+        attribution = case["prediction"]["attribution"]
+        assert attribution["method"] == "exact_linear" and attribution["target"] == target
+        probs = case["prediction"]["probs"]
+        logs = [math.log(max(p, 1e-4)) for p in probs]
+        want = logs[case["prediction"]["classes"].index(target)] - sum(logs) / len(logs)
+        values = [t["contribution"] for t in case["tiles"]]
+        assert all(isinstance(v, float) for v in values)
+        assert abs(attribution["constant"] + sum(values) - want) <= 5e-5 * (len(values) + 1)

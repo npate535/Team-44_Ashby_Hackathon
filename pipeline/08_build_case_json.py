@@ -1,11 +1,13 @@
 """Step 08: assemble one contract case JSON per test case and simulated surgical variant (plan §6.10, §7).
 
-    python -m pipeline.08_build_case_json [--limit N] [--max-llm-calls N] [--llm-agent] [--force] [--clean]
+    python -m pipeline.08_build_case_json [--limit N] [--max-llm-calls N | --llm-cache-only] [--llm-agent] [--force]
+                                          [--clean]
 
 Laptop step. It NEVER refits a model: every number comes from the producers' files (core.schemas):
     cases.csv, tiles.csv, composites.csv (Agent 1)        case_features.csv, concepts_tile.npz (Agent 2)
     predictions.csv, tile_risk.csv, contributions.csv,      cell_features.csv, cell_features_tile.csv,
     tile_attention.csv (optional), reliability.csv,         cells/<case>/<idx>_overlay.png (Agent 1, optional)
+    tile_contrib.csv (05d, optional),
     retrieval.json, margins.json (Agent 3)                  config/concepts.yaml, config/cell_features.yaml
 A missing required input, a clean test case missing from one, or a blank/NaN value in a required field (flags,
 probabilities, contributions, tile scores) is an error — blanks never become False/0. A simulated variant that fails
@@ -21,14 +23,17 @@ Cases written (artifacts root):
 
 Blocks follow core.contract exactly (fixtures/demo_0001.json, demo_0002.json):
   quality      qc_tiles_kept = QC-passing g512 tiles; ood_percentile, reliability, flag from reliability.csv
-  prediction   calibrated probs (pcal__<class>), risk, settings alpha, tier set (predictions.csv set_tier, else set_lac)
+  prediction   calibrated probs (pcal__<class>), risk, settings alpha, tier set (predictions.csv set_tier, else set_lac);
+               attribution {method exact_linear, target, constant, unit} from tile_contrib.csv, null when the read has
+               no rows or has terms in regions the case does not list (then every tiles[].contribution is null too)
   concepts     per concept: value (case_features c__top<k>), value_std / frac_std (contributions.csv value_std of
                <c>__top<k> / <c>__frac),
                contribution = sum of its contributions.csv rows,
                expected direction/label (concept bank), spread (c__spread), top_tiles (top-k tiles by z with
                z >= concepts.z_threshold, at least one), source/components/caption_consistent; measured cell
                features (contributions.csv source "cell") appear as source "cell" entries
-  tiles        QC g512 tiles: risk (tile_risk.csv), concept z (concepts_tile.npz), optional ABMIL attention
+  tiles        QC g512 tiles: risk (tile_risk.csv), concept z (concepts_tile.npz), optional ABMIL attention,
+               contribution (tile_contrib.csv, 4 dp; null for a region the read did not pool)
   similar_cases / contrast_case / agreement   retrieval.json (train reference labels may be shown)
   margin       surgical only: margins.json segments + per_margin, core.margin.suggest_call(per_margin, threshold,
                reliability_flag), threshold (kept for defer calls too, ruling M8), strip_um = margin.strip_px x core.config.effective_mpp, involved_length_um
@@ -36,7 +41,8 @@ Blocks follow core.contract exactly (fixtures/demo_0001.json, demo_0002.json):
   flag         core.tiers.flag_for(case, cfg) with now=None (static)
   findings     F1 prediction; concepts (|contribution| >= findings.min_abs_contribution, top findings.max_concepts);
                retrieval; quality; cells (CELLS_SPEC §7.2 extreme-percentile / non-trivial-contribution rule); margin
-  summary      backend.summary.generate (template unless --max-llm-calls > 0 and a Lumen key exists)
+  summary      backend.summary.generate (template unless --max-llm-calls > 0 and a Lumen key exists, or
+               --llm-cache-only: cached LLM replies only, zero network calls, template on a cache miss)
   agent        agent.agent.draft (rules; LLM rationales only with --llm-agent and budget)
   eval_only    true_label, split, source ids, group (+ composite margin truth) — the ONLY place ground truth appears
 
@@ -160,6 +166,7 @@ class Inputs:
     bank: schemas.ConceptBank
     concepts_eval: dict[str, Any]
     inputs_used: list[str] = field(default_factory=list)
+    tile_contrib: pd.DataFrame | None = None  # 05d region contributions (optional)
 
 
 def load_cell_meta(path: Path) -> dict[str, dict[str, Any]]:
@@ -257,8 +264,13 @@ def load_inputs(cfg: Mapping[str, Any], root: Path, artifacts: Path, *, concept_
     eval_path = schemas.eval_json(artifacts, "concepts")
     if eval_path.is_file():
         concepts_eval = io.read_json(track(eval_path))
+    tile_contrib = None
+    if schemas.tile_contrib_csv(root).is_file():
+        tile_contrib = _read_table(schemas.TILE_CONTRIB, track(schemas.tile_contrib_csv(root)))
+        tile_contrib["read_id"] = tile_contrib["read_id"].astype(str)
     return Inputs(cases, tiles, predictions, reliability, contributions, case_features, tile_risk, tile_attention,
-                  concepts_tile, concept_ids, retrieval, margins, composites, cells, bank, concepts_eval, used)
+                  concepts_tile, concept_ids, retrieval, margins, composites, cells, bank, concepts_eval, used,
+                  tile_contrib)
 
 
 # ---- the case plan ---------------------------------------------------------------------------------------------------
@@ -368,7 +380,30 @@ def quality_block(spec: CaseSpec, inputs: Inputs, n_tiles: int) -> dict[str, Any
             "reliability_flag": as_bool(row["reliability_flag"], f"{spec.case_id} reliability_flag")}
 
 
-def tiles_block(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], qc: Sequence[int]) -> list[dict[str, Any]]:
+def attribution_block(spec: CaseSpec, inputs: Inputs, qc: Sequence[int]) -> tuple[dict[str, Any] | None,
+                                                                                   dict[int, float]]:
+    """(prediction.attribution, {tile idx: contribution}) from tile_contrib.csv. Null when the read has no rows, or
+    when some of its terms lie in regions the case does not list: the listed contributions plus the constant must add
+    up to the read's centered logit."""
+    table = inputs.tile_contrib
+    rows = table[table["read_id"] == spec.case_id] if table is not None else None
+    if rows is None or rows.empty:
+        return None, {}
+    model = str(inputs.predictions.loc[spec.case_id, "model"])
+    if set(rows["model"].astype(str)) != {model}:
+        raise InputError(f"{spec.case_id}: tile_contrib.csv model {sorted(set(rows['model']))} differs from "
+                         f"predictions.csv model {model}; rerun pipeline.05d_tile_contrib")
+    if not set(rows["tile_idx"].astype(int)) <= set(qc):
+        return None, {}
+    values = {int(t): round(req_float(v, f"{spec.case_id} tile {t} contribution"), 4)
+              for t, v in zip(rows["tile_idx"], rows["contribution"])}
+    constant = req_float(rows["constant"].iloc[0], f"{spec.case_id} attribution constant")
+    return ({"method": "exact_linear", "target": str(rows["target"].iloc[0]), "constant": round(constant, 4),
+             "unit": "centered calibrated logit"}, values)
+
+
+def tiles_block(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], qc: Sequence[int],
+                contributions: Mapping[int, float]) -> list[dict[str, Any]]:
     gspec = cfg["tiles"]["grids"][cfg["tiles"]["contract_grid"]]
     size, cols = int(gspec["size"]), int(gspec["cols"])
     risk = inputs.tile_risk[inputs.tile_risk["case_id"] == spec.case_id].set_index("tile_idx")["risk"]
@@ -389,6 +424,7 @@ def tiles_block(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], qc: Sequ
                 "concepts": {c: round(v, 2) for c, v in zip(inputs.concept_ids, z)}}
         if attention is not None and idx in attention.index:
             tile["attention"] = round(req_float(attention[idx], f"{spec.case_id} tile {idx} attention"), 4)
+        tile["contribution"] = contributions.get(idx)
         out.append(tile)
     return out
 
@@ -612,9 +648,10 @@ def assemble(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], rules: rule
     cells, cell_tiles, warn = cells_block(spec, inputs, cfg, qc)
     if warn:
         warnings.append(warn)
-    tiles = tiles_block(spec, inputs, cfg, qc)
+    attribution, contributions = attribution_block(spec, inputs, qc)
+    tiles = tiles_block(spec, inputs, cfg, qc, contributions)
     quality = quality_block(spec, inputs, len(tiles))
-    prediction = prediction_block(spec, inputs, cfg)
+    prediction = {**prediction_block(spec, inputs, cfg), "attribution": attribution}
     similar, contrast, neighbor_agreement, retrieval_entry = retrieval_blocks(spec, inputs)
     if retrieval_entry is None and spec.variant is None:
         warnings.append(f"{spec.case_id}: not in retrieval.json (no similar cases)")
@@ -850,7 +887,7 @@ def spotcheck_items(cases_df: pd.DataFrame, inputs: Inputs, cfg: Mapping[str, An
 # ---- main -------------------------------------------------------------------------------------------------------------------
 def build(ctx: cli.StepContext, *, max_llm_calls: int = 0, llm_agent: bool = False, clean: bool = False,
           concept_bank_path: Path | None = None, cell_features_path: Path | None = None,
-          client: LumenClient | None = None) -> dict[str, Any]:
+          client: LumenClient | None = None, llm_cache_only: bool = False) -> dict[str, Any]:
     cfg, root, art = ctx.cfg, ctx.data_root, ctx.artifacts_root
     inputs = load_inputs(cfg, root, art, concept_bank_path=concept_bank_path, cell_features_path=cell_features_path)
     rules = rules_mod.load_rules(cfg)
@@ -877,6 +914,8 @@ def build(ctx: cli.StepContext, *, max_llm_calls: int = 0, llm_agent: bool = Fal
     for case in cases:
         case["arrived_offset_s"] = offsets[case["case_id"]]
 
+    if client is None and llm_cache_only:
+        client = LumenClient.cache_only(cfg, cache_dir=root / cfg["llm"]["cache_dir"])
     if client is None and max_llm_calls > 0:
         client = LumenClient.from_settings(cfg, cache_dir=root / cfg["llm"]["cache_dir"], max_calls=max_llm_calls)
         if not client.has_key:
@@ -951,6 +990,7 @@ def build(ctx: cli.StepContext, *, max_llm_calls: int = 0, llm_agent: bool = Fal
     io.write_json(schemas.spotcheck_items_json(art),
                   spotcheck_items(inputs.cases, inputs, cfg, root, art, ctx.synthetic, ctx.force))
 
+    contrib_reads = set(inputs.tile_contrib["read_id"]) if inputs.tile_contrib is not None else set()
     extra = {
         "n_cases": len(cases), "written": written, "unchanged": unchanged, "removed": removed,
         "by_kind": {"test": sum(c["simulated_variant"] is None for c in cases),
@@ -962,12 +1002,15 @@ def build(ctx: cli.StepContext, *, max_llm_calls: int = 0, llm_agent: bool = Fal
         "llm_cache_hits": client.cache_hits if client is not None else 0,
         "llm_model": client.model if client is not None and client.calls + client.cache_hits > 0 else None,
         "summary_paths": summary_paths, "agent_paths": agent_paths, "llm_cases": llm_cases, "mpp": mpp,
+        "attribution_cases": sum(c["prediction"]["attribution"] is not None for c in cases),
+        "attribution_hidden_terms": sorted(c["case_id"] for c in cases if c["prediction"]["attribution"] is None
+                                           and c["case_id"] in contrib_reads),
     }
     io.write_meta(schemas.step_meta_json(root, STEP), step=STEP, cfg=cfg, inputs=inputs.inputs_used,
                   outputs=[str(art / "cases"), str(art / "images"), str(schemas.reference_index_json(art)),
                            str(schemas.spotcheck_items_json(art))],
                   args={"limit": ctx.limit, "force": ctx.force, "max_llm_calls": max_llm_calls,
-                        "llm_agent": llm_agent, "clean": clean},
+                        "llm_agent": llm_agent, "clean": clean, "llm_cache_only": llm_cache_only},
                   synthetic=ctx.synthetic, extra=extra)
     return extra
 
@@ -978,12 +1021,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                         help="Lumen call budget for summaries (and --llm-agent rationales); 0 = templates only")
     parser.add_argument("--llm-agent", action="store_true", help="also let the LLM write agent rationales")
     parser.add_argument("--clean", action="store_true", help="remove case JSONs this run did not produce")
+    parser.add_argument("--llm-cache-only", action="store_true",
+                        help="reuse cached LLM summaries only: no key, zero network calls, template on a cache miss")
     args = parser.parse_args(argv)
     if args.max_llm_calls < 0:
         parser.error("--max-llm-calls must be >= 0")
     ctx = cli.context(args)
     try:
-        extra = build(ctx, max_llm_calls=args.max_llm_calls, llm_agent=args.llm_agent, clean=args.clean)
+        extra = build(ctx, max_llm_calls=args.max_llm_calls, llm_agent=args.llm_agent, clean=args.clean,
+                      llm_cache_only=args.llm_cache_only)
     except (InputError, ValueError) as exc:
         print(f"08_build_case_json: {exc}", file=sys.stderr)
         return 1
