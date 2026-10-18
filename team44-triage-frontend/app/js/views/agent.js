@@ -60,8 +60,8 @@ function stepper(v, signed) {
         : STATUS[s].toLowerCase();
   return (
     '<ol class="stepper" aria-label="Decision steps">' +
-    step(hasOrders ? 'done' : 'skip', 1, 'Agent draft', hasOrders ? `${nOrders} order${nOrders === 1 ? '' : 's'} from rules` : 'no rule fired') +
-    step(decided ? (hasOrders ? 'done' : 'skip') : 'current', 2, 'Your decision', decisionSub) +
+    step(hasOrders ? 'done' : 'st-skip', 1, 'Agent draft', hasOrders ? `${nOrders} order${nOrders === 1 ? '' : 's'} from rules` : 'no rule fired') +
+    step(decided ? (hasOrders ? 'done' : 'st-skip') : 'current', 2, 'Your decision', decisionSub) +
     step(signed ? 'done' : decided ? 'current' : 'todo', 3, 'Sign out', signed ? 'routed to oncologist' : 'routes to the oncologist') +
     '</ol>'
   );
