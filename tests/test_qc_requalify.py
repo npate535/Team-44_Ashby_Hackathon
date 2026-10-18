@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
-from core import config, conformal
+from core import config, conformal, io, schemas
 from pipeline import common
 
 step01q = importlib.import_module("pipeline.01q_requalify_qc")
@@ -50,3 +50,15 @@ def test_tier_set_source_and_name():
     lac = {"conformal": {"method": "lac", "mode": "mondrian"}}
     assert conformal.tier_set_source(lac) == "set_mondrian"
     assert conformal.tier_set_name(lac) == "lac_mondrian"
+
+
+def test_qc_eval_json_carries_the_full_eval_envelope(tmp_path, monkeypatch):
+    summary = {"insufficient_tissue_cases": {"old": 2, "new": 1},
+               "validation_old_rule_display_vs_fullres": {"pearson_r": 0.99}}
+    monkeypatch.setattr(step01q, "run", lambda ctx, old: summary)
+    data, art = tmp_path / "data", tmp_path / "art"
+    (data / "meta").mkdir(parents=True)
+    assert step01q.main(["--data-root", str(data), "--artifacts-root", str(art)]) == 0
+    doc = io.read_json(schemas.eval_json(art, "qc"))
+    assert [k for k in schemas.EVAL_ENVELOPE if k not in doc] == []
+    assert doc["name"] == "qc" and doc["insufficient_tissue_cases"]["new"] == 1
