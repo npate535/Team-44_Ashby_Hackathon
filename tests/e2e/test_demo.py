@@ -321,8 +321,10 @@ def test_keyboard_next_case_and_routing_feedback(page, api, roles):
     pg.goto(page.base + f"/#/case/{hero}")
     expect(pg.locator(f"{tid('case-view')}[data-case-id='{hero}']")).to_be_visible()
     pg.click(tid("action-approve"))
+    pg.click(tid("confirm-action"))                             # case views confirm irreversible actions inline
     expect(pg.locator(tid("toast")).filter(has_text="Orders placed")).to_be_visible()
     pg.click(tid("action-signout"))
+    pg.click(tid("confirm-action"))
     expect(pg.locator(tid("casebar-done"))).to_contain_text("Signed out")
     expect(pg.locator(tid("toast")).filter(has_text="signed out")).to_be_visible()
     expect(pg.locator(tid("inbox-unread"))).to_have_text("1")
@@ -371,6 +373,7 @@ def test_or_board_runs_then_stops_and_highlights_the_call(page, api, roles):
     card.get_by_role("link", name="Open case").click()
     expect(pg.locator(f"{tid('case-view')}[data-lane=surgical]")).to_be_visible()
     pg.click(tid("call-clear"))
+    pg.click(tid("confirm-action"))
     expect(pg.locator(tid("casebar-done"))).to_contain_text("Call sent")
     expect(pg.locator(tid("toast")).filter(has_text="Margin call sent")).to_be_visible()
     pg.click(tid("nav-surgeon"))
