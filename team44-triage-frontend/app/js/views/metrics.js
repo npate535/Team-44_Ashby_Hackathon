@@ -98,6 +98,18 @@ const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 const lowerFirst = (t) => (/^[A-Z]{2}/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1));
 /** AUROC-style values near 1 need a third decimal to be told apart. */
 const fa = (v) => C.fmtNum(v, isNum(v) && v >= 0.98 ? 3 : 2);
+/** A probability for display that is never rounded to 0 or 1: enough digits to differ from the bound, plus log-odds
+ *  when it is extreme (0.999823 -> "0.99982 (log-odds +8.6)"). */
+function probText(p) {
+  if (!isNum(p)) return 'n/a';
+  if (p <= 0 || p >= 1) return C.fmtNum(p, 3);
+  const tail = Math.min(p, 1 - p);
+  const digits = Math.min(8, Math.max(3, Math.ceil(-Math.log10(tail)) + 1));
+  let text = p.toFixed(digits);
+  if (/^(1\.0+|0\.0+)$/.test(text)) text = p.toPrecision(6);
+  const logit = Math.log(p / (1 - p));
+  return tail < 0.01 ? `${text} (log-odds ${logit >= 0 ? '+' : '−'}${Math.abs(logit).toFixed(1)})` : text;
+}
 const nShort = (c) => (c && isNum(c.n) ? `n = ${c.n}${isNum(c.ng) ? `, ${c.ng} groups` : ''}` : '');
 const sum = (a) => a.reduce((x, y) => x + (isNum(y) ? y : 0), 0);
 const cls = (c, ST) => classLabel(c, ST.cfg);
@@ -351,7 +363,7 @@ function rocPoints(curve, name) {
   return curve.fpr.map((x, i) => ({
     x,
     y: curve.tpr[i],
-    tip: [`Sensitivity ${pc(curve.tpr[i])}, false-positive rate ${pc(x)}`, `${name}${isNum(curve.threshold && curve.threshold[i]) ? `, flags cases scoring ≥ ${C.fmtNum(curve.threshold[i], 3)}` : ', nothing flagged'}`]
+    tip: [`Sensitivity ${pc(curve.tpr[i])}, false-positive rate ${pc(x)}`, `${name}${isNum(curve.threshold && curve.threshold[i]) ? `, flags cases scoring ≥ ${probText(curve.threshold[i])}` : ', nothing flagged'}`]
   }));
 }
 function figRoc(ST, ev, L) {
@@ -444,7 +456,7 @@ function figPr(ST, ev, L) {
     for (let i = rs.length - 1; i >= 0; i--) {
       run = Math.max(run, best.get(rs[i]).q);
       const t = best.get(rs[i]).t;
-      out.unshift({ x: rs[i], y: run, tip: [`Precision ${pc(run)} at recall ${pc(rs[i])}`, `${name}${isNum(t) ? `, flags cases scoring ≥ ${C.fmtNum(t, 3)}` : ''}`] });
+      out.unshift({ x: rs[i], y: run, tip: [`Precision ${pc(run)} at recall ${pc(rs[i])}`, `${name}${isNum(t) ? `, flags cases scoring ≥ ${probText(t)}` : ''}`] });
     }
     return out;
   };
@@ -961,7 +973,7 @@ function figSpotcheck(ST, ev, L) {
     wide: true,
     side: true,
     title: 'Are the top-scoring regions what the feature names?',
-    caveat: `${ai ? 'AI-reviewed (not a pathologist)' : `Reviewed by: ${v.kinds.join(', ')}`}: a plausibility check of each concept's ${n} highest-scoring regions, not pathologist validation. Reviewers: ${v.reviewers.map((r) => `${r.name} (${r.kind})`).join('; ')}.`,
+    caveat: `${ai ? 'AI-reviewed (not a pathologist)' : `Reviewed by: ${v.kinds.join(', ')}`}: a plausibility check of each concept's ${n} highest-scoring regions, not pathologist validation. Reviewers: ${v.reviewers.map((r) => (/\bAI\b/.test(r.name) ? r.name : `${r.name} (${r.kind})`)).join('; ')}.`,
     takeaway: `${high.length ? `${high.map(label).join(', ')}: at least 85% of top regions looked right. ` : ''}${low.length ? `${low.map((id) => `${label(id)} (${v.concepts[id].acceptable}/${v.concepts[id].n})`).join(', ')} rarely did, so explanations that cite these concepts should be discounted.` : 'No concept fell to 25% or below.'}`,
     chart,
     population: `${n} top-scoring regions per concept from the test split${v.cells ? `; ${v.cells.n} cell overlays` : ''}`,
@@ -1173,7 +1185,7 @@ function figMargin(ST, ev, L) {
     caveat: 'Simulation: image borders stand in for inked margins (top superior, bottom inferior, left medial, right lateral). Composite fields are synthetic constructions from test images.',
     takeaway: `On composite fields the read kept ${pc(g('composite.exact_negative_margin_clear_rate'))} of tumour-free margins clear and called the tumour-side margin involved ${pc(g('composite.tumor_side_margin_sensitivity'))} of the time; on annotated slide windows sensitivity was ${pc(g('wsi_windows.sensitivity'))} at ${pc(g('wsi_windows.specificity'))} specificity. The threshold is conservative (few false alarms on benign images, ${pc(g('benign_fpr.pooled_per_margin'))}) and misses many involved margins, so the surgeon-facing call stays with the pathologist.`,
     chart,
-    population: `test images (${get(MG, 'benign_fpr.n_benign_test') ?? '?'} benign, ${get(MG, 'echo.n_carcinoma_test') ?? '?'} carcinoma), ${get(MG, 'composite.n_composites') ?? '?'} composites, ${get(MG, 'wsi_windows.n_windows') ?? '?'} WSI windows from ${get(MG, 'wsi_windows.n_patients') ?? '?'} patients; threshold ${C.fmtNum(MG.threshold, 3)} from benign calibration images`,
+    population: `test images (${get(MG, 'benign_fpr.n_benign_test') ?? '?'} benign, ${get(MG, 'echo.n_carcinoma_test') ?? '?'} carcinoma), ${get(MG, 'composite.n_composites') ?? '?'} composites, ${get(MG, 'wsi_windows.n_windows') ?? '?'} WSI windows from ${get(MG, 'wsi_windows.n_patients') ?? '?'} patients; threshold ${probText(MG.threshold)} from benign calibration images`,
     source: 'eval/margin.json',
     table: { head: ['Check', 'Rate [95% CI]', 'Population'], rows: rows.filter((r) => !r.header).map((r) => [r.label, ciShort(r, { pct: true }), r.sub || '']) }
   });
