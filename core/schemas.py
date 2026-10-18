@@ -81,6 +81,8 @@ EVAL_FILES: dict[str, str] = {
     "conformal": "Task 11 · coverage and set size: marginal, per class, APS, Mondrian",
     "thunder": "Task 11 · comparison with published THUNDER probes (same split, different protocol)",
     "deletion": "Task 11 · deletion-test faithfulness",
+    "tile_contrib": "05d · exact region contributions: identity check against predictions.csv, reads without "
+                    "per-tile embeddings",
     "queue_sim": "Task 11 · FIFO vs tiers vs tiers+aging queue simulation",
     "margin": "Task 11 · margin eval: benign FPR, composite exact-negative clear rate, echo stats, WSI windows",
     "cells": "Task 8 · cell-feature validation (CELLS_SPEC §8)",
@@ -442,9 +444,27 @@ CELL_FEATURES_TILE = Table(
     notes="Plus the per-tile feature values f (same ids as cell_features.csv).",
 )
 
+TILE_CONTRIB = Table(
+    "tile_contrib.csv", "05d_tile_contrib", "08 (contract tiles[].contribution, prediction.attribution)",
+    key=("read_id", "tile_idx"),
+    columns=(
+        _c("read_id", "str", "predictions.csv case_id of the read (variants use their variant IDs)"),
+        _c("model", "str", "model that produced the read (predictions.csv model)"),
+        _c("tile_idx", "int", "region index on the contract grid (settings tiles.contract_grid)"),
+        _c("contribution", "float", "region's additive term of the centered calibrated logit of `target`"),
+        _c("constant", "float", "read constant: centered intercept / temperature (same on every row of a read)"),
+        _c("target", "str", "class whose centered logit is decomposed (settings aggressive_class)"),
+        _c("temperature", "float", "the read's temperature (predictions.csv)"),
+        _c("n_rows", "int", "embedding rows pooled by the read"),
+    ),
+    notes="constant + sum of a read's contributions = log pcal__target - mean_k log pcal__k. Regions excluded from "
+          "pooling (QC-failed) and reads whose model has no per-tile embeddings have no rows (contract null).",
+)
+
 TABLES = (
     CASES, TILES, EMBED_MANIFEST, EMB_INDEX, COMPOSITES, WSI_WINDOWS, CASE_FEATURES, TILE_RISK, TILE_RISK_OOF,
     PREDICTIONS, RELIABILITY, CONTRIBUTIONS, TILE_ATTENTION, CELL_TILES, CELL_FEATURES, CELL_FEATURES_TILE,
+    TILE_CONTRIB,
 )
 
 # ---- JSON files -----------------------------------------------------------------------------------------------------
@@ -788,6 +808,10 @@ def contributions_csv(root: str | Path) -> Path:
 
 def tile_attention_csv(root: str | Path) -> Path:
     return Path(root) / "tile_attention.csv"
+
+
+def tile_contrib_csv(root: str | Path) -> Path:
+    return Path(root) / "tile_contrib.csv"
 
 
 def cell_tiles_csv(root: str | Path) -> Path:
