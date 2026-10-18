@@ -63,3 +63,25 @@ def test_results_md_quotes_every_number_with_its_source(tmp_path):
     assert "same split, different protocol" in text and "AI-reviewed (Claude), not a pathologist" in text
     assert "delay imposed on unflagged cases" in text and "## Limitations" in text
     assert "[" in text and "groups" in text
+
+
+def test_results_md_post_hoc_note_is_built_from_conformal_json():
+    from eval import results_md
+
+    def block(est):
+        return {"estimate": est, "lo": est, "hi": est, "n": 10}
+
+    lac = {"coverage": block(0.8), "mean_set_size": block(1.2), "empty_set_rate": 0.1,
+           "set_size_histogram": {"0": 1, "1": 6, "2": 3, "3": 0, "4": 0}, "per_class": {}}
+    tier = {**lac, "empty_set_rate": 0.0, "set_size_histogram": {"0": 0, "1": 7, "2": 3, "3": 0, "4": 0}}
+    c = {"alpha": 0.1, "target_coverage": 0.9, "drives_tiers": "lac_mondrian", "finite_sample": {"n_calibration": 77},
+         "methods": {"lac_marginal": lac, "lac_mondrian": tier}}
+    text = "\n".join(results_md.section_conformal(c))
+    assert "multi-class sets for 30.0% of cases" in text and "no differential" not in text
+    assert "77-image calibration" in text and "50-image" not in text
+    assert "Romano" not in text and "argmax" not in text                 # not APS, not nonempty
+    lac["set_size_histogram"] = {"0": 1, "1": 9, "2": 0, "3": 0, "4": 0}
+    c["drives_tiers"] = "aps_marginal_nonempty"
+    c["methods"] = {"lac_marginal": lac, "aps_marginal_nonempty": tier}
+    text = "\n".join(results_md.section_conformal(c))
+    assert "no multi-class sets" in text and "Romano" in text and "argmax class added" in text

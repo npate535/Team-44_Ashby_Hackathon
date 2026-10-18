@@ -94,15 +94,24 @@ def section_conformal(c: Mapping[str, Any]) -> list[str]:
     if lac:
         out += ["", "Per-class LAC coverage (pre-registered): "
                 + "; ".join(f"{k} {fmt(v, pct=True)}" for k, v in lac["per_class"].items()) + "."]
-    if c["drives_tiers"] != "lac_marginal" and lac:
-        out += ["", "**Post-hoc change, disclosed:** marginal LAC was the pre-registered tier set. On the held-out test "
-                "split it returned empty sets for "
-                f"{100 * lac['empty_set_rate']:.1f}% of cases and no multi-class sets, so it gave the reader no "
-                "differential; the 50-image calibration split is far easier than the test split, which violates the "
-                "exchangeability the guarantee needs. Tiers now use the set named above (APS, Romano et al. 2020, with "
-                "the argmax class added to empty sets). The switch was made after viewing test results, so its "
-                "observed coverage is optimistic and is not an independent confirmation."]
     fs = c.get("finite_sample") or {}
+    if c["drives_tiers"] != "lac_marginal" and lac:
+        # every number and qualifier comes from conformal.json, so a re-run cannot leave a stale claim here
+        hist = {int(k): int(v) for k, v in (lac.get("set_size_histogram") or {}).items()}
+        n_multi, n_all = sum(v for k, v in hist.items() if k >= 2), sum(hist.values())
+        multi = ("no multi-class sets, so it gave the reader no differential" if hist and not n_multi else
+                 f"multi-class sets for {100 * n_multi / n_all:.1f}% of cases" if n_all else "")
+        n_cal = fs.get("n_calibration")
+        name = str(c["drives_tiers"])
+        method = ("APS, Romano et al. 2020" if name.startswith("aps") else name) + (
+            ", with the argmax class added to empty sets" if name.endswith("_nonempty") else "")
+        out += ["", "**Post-hoc change, disclosed:** marginal LAC was the pre-registered tier set. On the held-out test "
+                f"split it returned empty sets for {100 * lac['empty_set_rate']:.1f}% of cases"
+                + (f" and {multi}" if multi else "") + "; the "
+                + (f"{n_cal}-image " if n_cal is not None else "") + "calibration split is far easier than the test "
+                "split, which violates the exchangeability the guarantee needs. Tiers now use the set named above "
+                f"({method}). The switch was made after viewing test results, so its observed coverage is optimistic "
+                "and is not an independent confirmation."]
     if fs.get("note"):
         out += ["", fs["note"]]
     return out + [""]
