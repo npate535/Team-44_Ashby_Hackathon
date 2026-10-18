@@ -66,7 +66,9 @@ class Workspace:
         if WORK.exists():
             shutil.rmtree(WORK)
         shutil.copytree(ROOT / 'artifacts', WORK)
-        os.environ.setdefault('PATHQUEUE_CURSOR_CLI', str(ROOT / 'cursor-launch.sh'))
+        os.environ.setdefault('PATHQUEUE_CURSOR_CLI', '/tmp/sepia-cursor-runtime/cursor-agent')
+        os.environ.setdefault('PATHQUEUE_CURSOR_ARCHIVE', str(ROOT / 'cursor-runtime.tar.gz'))
+        os.environ.setdefault('PATHQUEUE_CURSOR_HOME', '/tmp/sepia-home')
         os.environ.setdefault('XDG_CACHE_HOME', '/tmp/sepia-cache')
         self.inner = create_app(artifacts_root=WORK, db_path=WORK / 'pathqueue.sqlite', env=os.environ)
         self.backend = self.inner.state.backend

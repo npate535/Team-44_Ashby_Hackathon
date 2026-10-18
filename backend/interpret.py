@@ -22,6 +22,7 @@ import os
 import re
 import shutil
 import subprocess
+import tarfile
 import tempfile
 import time
 from pathlib import Path
@@ -395,6 +396,12 @@ def _model() -> str:
 
 def _cli() -> str:
     cli = (os.environ.get(ENV_CLI) or "").strip() or shutil.which("cursor-agent") or shutil.which("agent")
+    archive = os.environ.get('PATHQUEUE_CURSOR_ARCHIVE')
+    if cli and archive and not Path(cli).is_file():
+        destination = Path(cli).parent
+        destination.mkdir(parents=True, exist_ok=True)
+        with tarfile.open(archive, 'r:gz') as bundle:
+            bundle.extractall(destination, filter='data')
     if not cli:
         raise InterpretError("cursor-agent CLI not found: install the Cursor CLI or set PATHQUEUE_CURSOR_CLI")
     return cli
@@ -417,6 +424,9 @@ def _run(prompt: str, model: str) -> tuple[str, dict[str, Any]]:
 def _run_once(prompt: str, model: str, key: str) -> tuple[str, dict[str, Any]]:
     cmd = [_cli(), "-p", "--mode", "ask", "--trust", "--model", model, "--output-format", "json", prompt]
     env = {**os.environ, ENV_KEY: key}
+    if os.environ.get('PATHQUEUE_CURSOR_HOME'):
+        env['HOME'] = os.environ['PATHQUEUE_CURSOR_HOME']
+        Path(env['HOME']).mkdir(parents=True, exist_ok=True)
     env.pop(ENV_KEY_BACKUP, None)
     with tempfile.TemporaryDirectory(prefix="pq-interp-") as scratch:   # empty workspace: nothing to read
         try:

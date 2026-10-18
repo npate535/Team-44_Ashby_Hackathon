@@ -58,8 +58,6 @@ def main():
     (out / 'media-manifest.json').write_text(json.dumps(manifest, sort_keys=True))
     shutil.copy2(ROOT / 'deploy/requirements.txt', out / 'requirements.txt')
     shutil.copy2(ROOT / 'deploy/build_vercel.sh', out / 'build.sh')
-    shutil.copy2(ROOT / 'deploy/cursor_vercel.sh', out / 'cursor-launch.sh')
-    (out / 'cursor-launch.sh').chmod(0o755)
     (out / '.python-version').write_text('3.13\n')
     dependencies = [line.strip() for line in (out / 'requirements.txt').read_text().splitlines()
                     if line.strip() and not line.startswith('#')]
