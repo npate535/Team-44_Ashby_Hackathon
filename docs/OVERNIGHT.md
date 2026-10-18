@@ -49,8 +49,9 @@ In situ ↔ invasive confusion: 3 of 30 in situ images called invasive (was 4); 
 
 ### 2. Conformal sets made usable (disclosed post-hoc change)
 Pre-registered LAC returned **empty sets for 23.5%** of test images and never a multi-class set, so the worklist
-showed "∅ empty" and the InSitu-vs-Invasive story never happened with real data. Cause: the 50-image calibration split
-is far easier than the test split (98% vs 84% accurate), which breaks the exchangeability the guarantee needs.
+showed "∅ empty" and the InSitu-vs-Invasive story never happened with real data. Likely cause: the 50-image calibration
+split is far easier than the test split (98% vs 84% accurate), which suggests the exchangeability the guarantee needs
+does not hold.
 Tiers now use **APS (Romano et al. 2020) with the argmax added to an empty set** (`conformal.method: aps`,
 `conformal.nonempty: true`; plan §6.6 allows APS or LAC). LAC is still computed and reported next to it.
 
@@ -66,7 +67,8 @@ BACH_0167: {InSitu, Invasive} → tier 2 → drafted p63/calponin and ER/PR/HER2
 
 ### 3. Grounded LLM summaries that are actually grounded
 All 328 summaries were template fallbacks: `ornith-1.0-35b` spent its 1,500-token budget on hidden reasoning and
-returned empty replies. Summaries now come from `gemma-4-31b-it` via Lumen (328 calls, cached offline; the live demo
+returned empty replies. Summaries now come from `gemma-4-31b-it` via Lumen (one cached reply per case, 328 in all; 656 gemma replies were
+cached across overnight re-runs (distinct prompts); the live demo
 makes zero LLM calls). The number/citation validator was not enough: early outputs said "Margins are clear." for
 deferred reads and called scarce features "prominent" (a positive push was read as presence). Added:
 - concept findings carry a `level` (above / typical / below the training average, from the new `value_std`);

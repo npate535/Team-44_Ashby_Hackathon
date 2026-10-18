@@ -86,12 +86,14 @@ measured effect: [docs/OVERNIGHT.md](docs/OVERNIGHT.md).
 
 - BACH: Aresta et al., *BACH: Grand challenge on breast cancer histology images*, Medical Image Analysis (2019), ICIAR 2018 dataset; CC BY-NC-ND 4.0. Cite the original release in presentations.
 - CONCH: Mahmood Lab; MUSK: Stanford Li Lab. Model checkpoints remain subject to their respective licenses and individual gated access.
-- Additional encoder experiments: UNI2-H, H-optimus-0, Virchow2, Phikon-v2, and PathGen-CLIP. The selected prediction model is recorded in each case and in the model-choice evaluation.
+- UNI2-h (Mahmood Lab) is the production prediction encoder. H-optimus-0 was a model-selection candidate and PathGen-CLIP a zero-shot comparison; Virchow2 and Phikon-v2 were embedded on Delta but are not among the pre-registered candidates or any reported model. The selected prediction model is recorded in each case and in the model-choice evaluation.
 - [THUNDER](https://mics-lab.github.io/thunder/leaderboards/): split/benchmark reference; published comparison values were checked against the authors’ leaderboard. See [verification](docs/research/benchmark-verification.md).
 - NCT-CRC-HE-100K provides cross-organ concept sanity checks; it is not breast validation.
+- PathMMU: the shared `pathmmu/BACH` folder was inventoried, but it is the 2015 Bioimaging breast set, not ICIAR 2018 BACH, so the official BACH release is the dataset of record.
 - Quilt and PathGen provide caption-based concept candidates when their actual feature outputs are available. Caption consistency is not pathologist validation.
 - HoVer-Net / PanNuke and TIAToolbox support the optional cell module; model and weight licensing is recorded in configuration.
 - Summaries: `gemma-4-31b-it` via NCSA Lumen, generated offline from structured findings only and validated.
+- AI spot check of concept tiles and cell overlays: Claude (Anthropic), recorded as AI review, not a pathologist.
 - Conformal prediction: APS (Romano, Sesia & Candès, NeurIPS 2020) and LAC (Sadinle, Lei & Wasserman, JASA 2019).
 - NCSA Delta, Lumen, and the MIT-licensed `ncsa/ashby-hackathon-2026` tooling under `resources/official/`.
 - Original teammate worklist by adas286, extended with the API adapter, workflow views, and cohesive PathQueue workspace.

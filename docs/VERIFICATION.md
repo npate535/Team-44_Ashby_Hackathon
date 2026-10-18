@@ -37,14 +37,17 @@ system. Overnight changes and their measured effect: [OVERNIGHT.md](OVERNIGHT.md
 - Tile QC re-run on the laptop with the corrected mask (`pipeline/01q_requalify_qc.py`): insufficient-tissue images
   51 → 0; display-JPEG recomputation of the old rule reproduces the Delta full-resolution values (r = 0.998). The
   original columns are kept in `data/meta/tiles_qc_v1.csv`. No new GPU work was needed: every tile had been embedded on
-  Delta. The earlier Delta GPU usage (300 of 420 allowed GPU-minutes) is unchanged.
+  Delta. Requested Delta GPU time is unchanged at 300 of the 420 GPU-minutes the submission guard allows (Slurm time limits
+  requested, not measured GPU use).
 - Laptop steps 04 → 08 and the whole evaluation suite were re-run (`make analyze` order) after the QC fix and the
   conformal change; `eval/analytics.py` reproduces every AUROC in `metrics.json` exactly from its ROC points.
-- Summaries: 328 Lumen calls to `gemma-4-31b-it`, cached under `data/llm_cache/`; 176 summaries are fully LLM-written,
+- Summaries: one cached `gemma-4-31b-it` (Lumen) reply per case, 328 in all (the final step-08 build made 0 calls and
+  328 cache hits; `data/llm_cache/` holds 656 gemma replies from overnight re-runs (distinct prompts)); 176 summaries are fully LLM-written,
   152 carry a required deterministic margin / quality sentence (`lumen:gemma-4-31b-it+template`). Every sentence passed
   the citation, number and semantic checks; the live demo makes zero LLM calls.
-- AI spot check (Claude, not a pathologist): 200 tiles reviewed through the app's API, recorded in
-  `eval/spotcheck.json` with per-tile notes; no human review has been recorded yet.
+- AI spot check (Claude, not a pathologist): 200 tiles reviewed through the app's API (180 concept tiles, 20 cell
+  overlays), recorded in `eval/spotcheck.json` with per-tile notes, plus one cell-overlay check from the Codex UI
+  verification (also AI); no human review has been recorded yet.
 - The workspace databases from earlier sessions are archived under `artifacts/archive/` (never deleted).
 
 ## Results and limits
