@@ -21,7 +21,7 @@ from core import cli, config, io, schemas
 from eval.figures import ci_blocks
 
 STEP = "eval_results_md"
-OWN = ("qc", "metrics", "calibration", "conformal", "thunder", "queue_sim", "margin")
+OWN = ("qc", "metrics", "calibration", "conformal", "conformal_resplit", "thunder", "queue_sim", "margin")
 FOREIGN = ("model_choice", "concepts", "concepts_bach", "zeroshot", "reliability", "retrieval", "deletion", "cells",
            "finetune", "spotcheck")
 
@@ -127,6 +127,47 @@ def section_conformal(c: Mapping[str, Any]) -> list[str]:
                 "and is not an independent confirmation."]
     if fs.get("note"):
         out += ["", fs["note"]]
+    return out + [""]
+
+
+def section_conformal_resplit(r: Mapping[str, Any]) -> list[str]:
+    """Coverage distribution across the pre-registered re-splits (docs/VALIDATION_ROUND3.md §1); every number from
+    eval/conformal_resplit.json."""
+    def pct(v: Any, digits: int = 1) -> str:
+        return "n/a" if v is None else _num(100 * float(v), digits, "%")
+
+    n = f"{int(r['n_splits']):,}"
+    sizes = (r.get("partition_sizes") or {}).get("n_cal") or {}
+    out = [f"## Conformal coverage across {n} random re-splits", "",
+           f"Source: `eval/conformal_resplit.json` · pre-registered in `docs/VALIDATION_ROUND3.md` §1 · model "
+           f"{r['model']} · {r['n_images']} held-out images (calibration + test), {r['n_groups']} patient groups kept "
+           f"whole · calibration part at least {r['n_cal_target']} images"
+           + (f" ({sizes['min']}–{sizes['max']}, median {sizes['p50']:g})" if sizes else "")
+           + f" · alpha {r['alpha']} · seed {r['seed']}.", "",
+           "Coverage percentiles describe variation across calibration/test partitions of the same images, not a "
+           "confidence interval for a new cohort. The original split is the THUNDER partition the app uses.", "",
+           "| Method | Coverage mean | Median | 2.5th–97.5th pct | Re-splits ≥ target | Mean set size | Empty sets "
+           "| Invasive in set (invasive) | Invasive in set (other) | Original split coverage |",
+           "|---|---|---|---|---|---|---|---|---|---|"]
+    for name, b in r["methods"].items():
+        q, o = b["coverage"], (r.get("original_split") or {}).get(name) or {}
+        size = "n/a" if b.get("mean_set_size") is None else _num(b["mean_set_size"], 2)
+        out.append(f"| {name} | {pct(q['mean'])} | {pct(q['p50'])} | {pct(q['p2_5'])}–{pct(q['p97_5'])} | "
+                   f"{pct(b['share_at_or_above_target'])} | {size} | {pct(b.get('empty_share'))} | "
+                   f"{pct(b.get('invasive_in_set_given_invasive'))} | {pct(b.get('invasive_in_set_given_not_invasive'))} | "
+                   f"{pct(o.get('coverage'))} |")
+    mond = r["methods"].get("mondrian") or {}
+    if mond.get("unbounded_class_share") is not None:
+        out += ["", f"Mondrian had at least one class with too few calibration images for a finite threshold in "
+                    f"{pct(mond['unbounded_class_share'])} of re-splits; that class was then in every set."]
+    check = (r.get("original_split_check") or {}).get("matches_conformal_json")
+    if check is not None:
+        out += ["", "Original-split coverage " + ("equals" if check else "does NOT equal")
+                + " `eval/conformal.json` for every method."]
+    tier = r.get("drives_tiers")
+    if tier in r["methods"] and tier != "lac_marginal":
+        out += ["", f"{tier} drives the worklist tiers and was chosen after viewing test coverage on the original "
+                    "split; this check was pre-registered afterwards and applies the same rules to every method."]
     return out + [""]
 
 
@@ -280,6 +321,7 @@ def build(art: Path, cfg: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
     sha = sorted({str(d["git_sha"]) for d in present.values() if d.get("git_sha") not in (None, "", "None")})
     lines += [f"Generated {io.utc_now()} from {len(present)} eval files (git {', '.join(sha) or 'n/a'}).", ""]
     renderers = {"qc": section_qc, "metrics": section_metrics, "calibration": section_calibration, "conformal": section_conformal,
+                 "conformal_resplit": section_conformal_resplit,
                  "thunder": section_thunder, "queue_sim": section_queue, "margin": section_margin}
     for name in OWN:
         if name in present:

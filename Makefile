@@ -66,6 +66,7 @@ pipeline-laptop:
 
 eval:
 	$(call run_step,eval,metrics)
+	$(call run_step,eval,conformal_resplit)
 	$(call run_step,eval,deletion_test)
 	$(call run_step,eval,queue_sim)
 	$(call run_step,eval,margin_eval)

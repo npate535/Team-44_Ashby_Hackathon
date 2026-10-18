@@ -15,6 +15,7 @@ import pytest
 from backend.app import create_app
 from core import config, io, schemas
 from eval import analytics as A
+from eval import conformal_resplit as CR
 from eval import metrics as M
 from eval import queue_sim as Q
 from tests import downstream_fixture as D
@@ -34,6 +35,7 @@ def payloads(tmp_path_factory):
     M.run(D.make_ctx(CFG, tmp / "data", tmp / "art", step="eval_metrics"))
     Q.run(D.make_ctx(CFG, tmp / "data", tmp / "art", step="eval_queue_sim"), reps=10)
     A.run(D.make_ctx(CFG, tmp / "data", tmp / "art", step="eval_analytics"), reps=10)
+    CR.run(D.make_ctx(CFG, tmp / "data", tmp / "art", step="eval_conformal_resplit"), n_splits=40)
     ev = {p.stem: io.read_json(p) for p in sorted((tmp / "art" / "eval").glob("*.json"))}
     ev["spotcheck"] = {"name": "spotcheck", "reviewer_kind": "ai", "reviews": [
         {"item_id": "concept:invasion:X:1", "reviewer": "AI reviewer", "reviewer_kind": "ai", "verdict": "acceptable"},
@@ -107,3 +109,45 @@ def test_missing_or_malformed_files_never_throw(payloads, variant):
     assert "Not available in this run" in html
     for junk in ("NaN", "undefined", "[object Object]"):
         assert junk not in html, junk
+
+
+def test_resplit_figure_renders_from_json(payloads):
+    p, cfg, tmp = payloads
+    RS = p["full"]["eval"]["conformal_resplit"]
+    html = _render(p["full"], cfg, tmp)["html"]
+    assert 'data-testid="metrics-conformal-resplit"' in html
+    assert "Conformal coverage across 40 random re-splits" in html            # count comes from the JSON
+    assert "90% target" in html and 'class="cx-ref"' in html
+    assert "Original split" in html and "2.5th–97.5th percentile" in html
+    # takeaway is computed from the JSON: the tier set's share of re-splits at or above target
+    tier = RS["drives_tiers"] if RS["drives_tiers"] in RS["methods"] else "aps"
+    share = round(100 * RS["methods"][tier]["share_at_or_above_target"])
+    assert f"{share}% of re-splits" in html
+    # confidence section order: re-split figure follows the coverage figure
+    assert html.index('id="fig-coverage"') < html.index('id="fig-resplit"')
+    for junk in ("NaN", "undefined", "[object Object]", "Infinity"):
+        assert junk not in html, junk
+
+
+def test_resplit_mean_on_the_tier_tile(payloads):
+    p, cfg, tmp = payloads
+    RS = p["full"]["eval"]["conformal_resplit"]
+    html = _render(p["full"], cfg, tmp)["html"]
+    headline = html[html.index('data-testid="metrics-headline"'):]
+    tile = headline[headline.index("Conformal coverage ("):]
+    tile = tile[: tile.index("</article>")]
+    conf = p["full"]["eval"]["conformal"]["methods"]
+    key = p["full"]["eval"]["conformal"]["drives_tiers"]          # the tile's method, as tierMethod() picks it
+    key = key if key in conf else ("aps" if key == "aps_marginal" and "aps" in conf else "lac_marginal")
+    mean = RS["methods"][key]["coverage"]["mean"]
+    assert f"Mean across {RS['n_splits']} random re-splits: {100 * mean:.1f}%" in tile
+
+
+def test_resplit_missing_file_gives_standard_card(payloads):
+    p, cfg, tmp = payloads
+    payload = copy.deepcopy(p["full"])
+    del payload["eval"]["conformal_resplit"]
+    html = _render(payload, cfg, tmp)["html"]
+    assert 'data-testid="metrics-missing-conformal_resplit"' in html
+    assert "Not available in this run: <code>eval/conformal_resplit.json</code>" in html
+    assert "random re-splits:" not in html                                   # the tile drops the re-split line

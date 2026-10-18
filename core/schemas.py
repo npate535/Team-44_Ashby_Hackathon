@@ -79,6 +79,7 @@ EVAL_FILES: dict[str, str] = {
     "metrics": "Task 11 · AUROC A vs B, macro AUROC/F1, BAcc, confusion, InSitu<->Invasive counts",
     "calibration": "Task 11 · ECE/Brier/NLL before/after temperature + reliability-diagram data",
     "conformal": "Task 11 · coverage and set size: marginal, per class, APS, Mondrian",
+    "conformal_resplit": "Round 3 · conformal coverage across 1,000 patient-grouped calibration/test re-splits",
     "thunder": "Task 11 · comparison with published THUNDER probes (same split, different protocol)",
     "deletion": "Task 11 · deletion-test faithfulness",
     "queue_sim": "Task 11 · FIFO vs tiers vs tiers+aging queue simulation",
