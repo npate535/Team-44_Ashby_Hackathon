@@ -243,11 +243,12 @@ async function poll(force = false) {
     if (!ST.staleSince) ST.staleSince = ST.lastOk || new Date(); // the screen shows data from the last good poll
     if (!(err instanceof ApiError) || err.status === 0 || err.status >= 500) console.warn('poll failed', err);
   }
+  const base = ST.cfg ? ST.cfg.poll_ms : 2000;
+  // Background screens keep synchronizing, with a lower polling frequency. Scheduled before drawing: a view that
+  // throws on unexpected data must not stop the poll loop for good.
+  pollTimer = setTimeout(poll, document.hidden ? base * 5 : ST.fail >= 5 ? base * 2.5 : base);
   showOffline();
   draw();
-  const base = ST.cfg ? ST.cfg.poll_ms : 2000;
-  // Background screens keep synchronizing, with a lower polling frequency.
-  pollTimer = setTimeout(poll, document.hidden ? base * 5 : ST.fail >= 5 ? base * 2.5 : base);
 }
 
 function showOffline() {
@@ -409,7 +410,14 @@ function draw(forceRender = false) {
   // again by its identifying attributes, and open <details> stay open.
   const focusSel = focusKey(active);
   const openDetails = [...$('#app').querySelectorAll('details[open]')].map(detailsKey);
-  $('#app').innerHTML = view();
+  let html;
+  try {
+    html = view();
+  } catch (err) {
+    console.error('view failed to render', err);
+    html = `<div class="card" data-testid="state-render-error"><h2>This page could not be drawn</h2><p>${esc(err && err.message ? err.message : err)}. The data keeps refreshing in the background; other pages still work.</p></div>`;
+  }
+  $('#app').innerHTML = html;
   if (searchFocused && $('#case-search')) {
     $('#case-search').focus({ preventScroll: true });
     $('#case-search').setSelectionRange(caret, caret);
@@ -629,7 +637,7 @@ function renderCasebar() {
   const pos = queuePosition(ST.items, ST.caseId);
   const open = openItems(ST.items).length;
   const next = nextCase(ST.items, ST.caseId);
-  const nextTier = next ? tierInfo(next.runtime ? next.runtime.tier : next.flag.tier, ST.cfg) : null;
+  const nextTier = next ? tierInfo(next.runtime ? next.runtime.tier : (next.flag || {}).tier ?? 4, ST.cfg) : null;
   let status;
   if (done && c.lane === 'surgical') {
     const call = c.runtime.decision.margin_call;
