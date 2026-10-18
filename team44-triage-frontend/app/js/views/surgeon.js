@@ -44,8 +44,15 @@ function calledCard(v, r, fresh) {
   const [head, detail] = callParts(r);
   const tone = CALL_TONE[r.call] || 'defer';
   const turnaround = Number.isFinite(r.timer_elapsed_s) ? mmss(r.timer_elapsed_s) : null;
-  const suggested = r.suggested_call ? suggestedCall({ suggested_call: r.suggested_call, involved: (r.report && r.report.margin && r.report.margin.involved) || [] }) : null;
-  const agrees = r.suggested_call && r.suggested_call === r.call;
+  const aiMargins = (r.report && r.report.margin && r.report.margin.involved) || [];
+  const suggested = r.suggested_call ? suggestedCall({ suggested_call: r.suggested_call, involved: aiMargins }) : null;
+  // "tumor at margin" agrees only when the same margins were named
+  const sameMargins = (a, b) => a.length === b.length && a.every((m) => b.includes(m));
+  const agreement = !r.suggested_call || r.suggested_call !== r.call
+    ? ' · pathologist decided differently'
+    : r.call === 'tumor_at_margin' && !sameMargins(aiMargins, r.margins || [])
+      ? ' · same call, different margins'
+      : ' · matches the call';
   return (
     `<div class="or-case called${fresh ? ' fresh' : ''}" data-testid="or-card" data-case-id="${esc(r.case_id)}">` +
     `<div class="or-line"><b class="or-id">${esc(r.case_id)}</b><span class="or-kind">${esc(v ? variantText(v) : 'frozen section')}</span>${fresh ? '<span class="or-new" data-testid="or-new-call">New call</span>' : ''}</div>` +
@@ -53,7 +60,7 @@ function calledCard(v, r, fresh) {
     `<div class="or-meta"><span>Called ${esc(clock(r.at))} by the reading pathologist</span>` +
     (turnaround ? `<span>Turnaround <b class="timer stopped" data-testid="or-turnaround">${esc(turnaround)}</b> · timer stopped</span>` : '') +
     '</div>' +
-    (suggested ? `<div class="or-ai">AI read: ${esc(suggested)}${agrees ? ' · matches the call' : ' · pathologist decided differently'}</div>` : '') +
+    (suggested ? `<div class="or-ai">AI read: ${esc(suggested)}${agreement}</div>` : '') +
     `<a class="case-link" href="#/case/${encodeURIComponent(r.case_id)}">Open case</a>` +
     '</div>'
   );
