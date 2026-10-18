@@ -239,7 +239,7 @@ def fig_margin(data: Mapping[str, Any], path: Path, dpi: int) -> Path:
         ax.text(data["max_fpr"], 1.01, f"per-margin FPR target {100 * data['max_fpr']:.0f}%", color=INK2, fontsize=8,
                 transform=ax.get_xaxis_transform())
     ax.set_xlabel("Rate (95% cluster-bootstrap CI)", color=INK2)
-    return _finish(fig, f"Simulated margin read: localizer or echo? (threshold {data['threshold']:.2f})",
+    return _finish(fig, f"Simulated margin read: localizer or echo? (threshold P = {data['threshold']:.5f})",
                    bool(data.get("synthetic")), path, dpi)
 
 
@@ -258,12 +258,31 @@ def ci_blocks(obj: Any, prefix: str = "") -> list[tuple[str, Mapping[str, Any]]]
     return out
 
 
+_STRUCTURAL = {"features", "class_means", "curve", "cv_metrics", "concepts", "models", "encoders", "direction_checks",
+               "accuracy_vs_degradation", "feature_auroc_test"}
+
+
+def short_labels(labels: Sequence[str], width: int = 52) -> list[str]:
+    """Readable row labels for key paths: drop leading parts shared by every label and structural keys, use spaces for
+    underscores, and keep the most specific end when a label is still too long."""
+    parts = [lab.split(" · ") for lab in labels]
+    k = 0
+    while parts and all(len(p) > k + 1 for p in parts) and len({p[k] for p in parts}) == 1:
+        k += 1
+    out = []
+    for p in parts:
+        kept = [t for t in p[k:] if t not in _STRUCTURAL] or p[k:]
+        text = " · ".join(kept).replace("_", " ")
+        out.append(text if len(text) <= width else "…" + text[-(width - 1):])
+    return out
+
+
 def fig_generic(name: str, data: Mapping[str, Any], path: Path, dpi: int, limit: int = 16) -> Path | None:
     blocks = ci_blocks({k: v for k, v in data.items() if k not in schemas.EVAL_ENVELOPE})[:limit]
     if not blocks:
         return None
     fig, (ax,) = _figure(width=7.6, height=0.42 * len(blocks) + 1.6)
-    _dots(ax, [lab[-60:] for lab, _ in blocks], [b for _, b in blocks], SERIES[0])
+    _dots(ax, short_labels([lab for lab, _ in blocks]), [b for _, b in blocks], SERIES[0])
     ax.set_xlabel("Estimate (95% CI as reported in the eval file)", color=INK2)
     return _finish(fig, f"{name}: reported estimates with CIs", bool(data.get("synthetic")), path, dpi)
 
