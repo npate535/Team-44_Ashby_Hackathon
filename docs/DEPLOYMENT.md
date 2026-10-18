@@ -1,25 +1,64 @@
 # Sepia deployment
 
-The frontend and FastAPI API run together on Fly.io as `sepia-ashby`, in Chicago (`ord`). The public domain is https://sepia-ashby.xyz, with https://sepia-ashby.fly.dev as the Fly hostname.
+Sepia runs on Vercel in the **Sepia** team (`sepia2`), project `sepia-ashby`.
+Production: https://sepia-ashby.xyz and https://sepia-ashby.vercel.app.
+The Vercel Pro trial runs through November 1, 2026.
 
-## Cost boundary
+## Runtime and persistence
 
-This account was deployed using Fly's free trial without adding a payment method. Fly documents a limit of **7 days or 2 total VM hours, whichever comes first**. Trial machines also stop after five minutes. This is a temporary demo deployment, not permanent free hosting. Do not add billing, upgrade, allocate a dedicated IPv4, or increase resources automatically. Once the allowance expires, deployments and the app stop until the account's hosting arrangement changes. See https://docs.fly.io/about/free-trial.
+The frontend and immutable tissue images are served by Vercel's CDN. FastAPI
+runs in `iad1` using Python 3.13. Model embeddings and training remain offline.
+The private upload includes real case artifacts, measured cell evidence,
+evaluation results, and cached interpretations. Case/evaluation JSONs continue
+through the API's ground-truth filtering; only image assets go in `public/`.
+
+Vercel's filesystem is temporary. `backend/vercel.py` keeps decisions, routing,
+events, replay-clock state, edited spot checks, and new interpretations in the
+connected **sepia-workspace** Upstash Redis database (free plan). Each API
+request restores the shared workspace under a Redis lease; the response is sent
+after an atomic save verifies ownership. Immutable case JSONs are excluded from
+the saved SQLite snapshot and restored from packaged evidence. The initial
+snapshot is about 48 KB. Changed case evidence requires an explicit workspace
+migration; it must not silently reset saved decisions. Do not delete Redis to
+deploy code.
+
+Cursor's Linux CLI is compressed in the function bundle and extracted into
+`/tmp` when a new interpretation is requested. Cached interpretations need no
+model call. `CURSOR_API_KEY`, `CURSOR_API_KEY_BACKUP`, and
+`PATHQUEUE_INTERPRET_MODEL` are encrypted Vercel environment variables. Redis
+credentials come from the connected integration. Never commit tokens,
+databases, `.env` files, or private deployment uploads.
 
 ## Code updates
 
-Push application changes to `main`. The `Deploy Sepia` GitHub Actions workflow runs the web runtime tests and deploys one Fly machine, using the encrypted, app-scoped `FLY_API_TOKEN` repository secret. The token expires after one year and must be replaced before then. Cursor credentials are Fly secrets and are never passed through the build context or committed.
+Push to `main`. `.github/workflows/deploy.yml` verifies the web runtime,
+packages the current case assets, and deploys to Vercel using the encrypted
+`VERCEL_TOKEN` GitHub repository secret. `scripts/package_vercel.py` builds a
+dedicated web Python project without the offline Torch/training dependencies.
+`X-Sepia-Release` identifies the source commit.
 
-The workflow preserves the existing `sepia_data` volume. The first private deployment seeded the real case artifacts into this volume; subsequent builds contain no case dataset. `/data/pathqueue.sqlite`, images, measured evidence and cached interpretations stay on the mounted volume across code updates. Do not destroy or replace this volume. This is one machine with SQLite; do not scale it to multiple machines.
-
-`X-Sepia-Release` on HTTP responses identifies the deployed commit. Check `/api/health` after a deployment and confirm the header matches the workflow's commit. The CI health check uses the Fly hostname so a registrar's DNS propagation delay does not block code updates. Check the custom-domain certificate with `fly certs check sepia-ashby.xyz --app sepia-ashby`. DNS uses an apex A and AAAA record and a `www` CNAME to the Fly hostname.
-
-## Manual deployment
-
-With the correct Fly account authenticated, run:
+For an authenticated manual deployment:
 
 ```sh
-fly deploy --remote-only --depot=false --ha=false --build-arg RELEASE_SHA="$(git rev-parse HEAD)"
+uv run python scripts/package_vercel.py --out /tmp/sepia-vercel
+cd /tmp/sepia-vercel
+vercel link --project sepia-ashby --scope sepia2
+vercel deploy --prod
+curl --fail https://sepia-ashby.vercel.app/api/health
 ```
 
-The repository's `deploy/seed/.gitkeep` intentionally holds an empty seed directory. Existing deployments read data from the volume. A completely new volume requires the private, curated case artifact seed before it can start; it must never be committed to Git.
+The staging directory contains private case data. Keep it outside Git.
+
+## DNS and former Fly deployment
+
+The registrar is gen.xyz; authoritative DNS uses topdns.com nameservers.
+Vercel recommends apex A records `216.198.79.1` and `64.29.17.1`, with
+`www` CNAME `96e160bdaf0f8bbf.vercel-dns-017.com`. Remove the former Fly A
+and AAAA records when switching; preserve unrelated mail/TXT records. Check
+Vercel's Domains page for current recommendations.
+
+The former Fly app `sepia-ashby` and `sepia_data` volume are retained for
+recovery. The machine is stopped and GitHub Actions no longer deploys to Fly.
+The volume has not been destroyed or replaced. Its latest review state could
+not be read while the exhausted trial machine was stopped; the Vercel workspace
+was seeded from the matching local artifact workspace.
