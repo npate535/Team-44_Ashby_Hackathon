@@ -6,6 +6,7 @@ import { esc, num, toView } from '../adapter.js';
 import {
   composition,
   conformalInfo,
+  pctText,
   miniBar,
   nextAction,
   nextCase,
@@ -19,7 +20,7 @@ const TIER_NAME = { 1: 'Frozen section', 2: 'Likely invasive', 3: 'Low confidenc
 const TIER_NOTE = {
   1: 'Simulated frozen sections from the OR · 20-minute target',
   2: 'Invasive suggested, or Invasive in the confidence set',
-  3: 'Ambiguous or empty confidence set, low reliability, or too little tissue',
+  3: 'Ambiguous confidence set, low reliability, or too little tissue',
   4: 'Read in arrival order · unflagged does not mean cleared'
 };
 
@@ -76,10 +77,12 @@ export function setChips(v) {
   const order = (v.probs || []).map((p) => p.cls);
   const set = [...v.set].sort((a, b) => order.indexOf(a) - order.indexOf(b));
   if (set.length <= 2) return set.map(chip).join('');
-  // 3+ classes: keep the two most severe (class order runs Normal → Invasive, so Invasive is never hidden)
-  const shown = set.slice(-2);
-  const rest = set.slice(0, -2);
-  return `<span class="chip more" title="Also in the set: ${esc(rest.map(suggestedLabel).join(', '))}">+${rest.length}</span>${shown.map(chip).join('')}`;
+  // 3+ classes: two named chips, then "+N". Invasive is always one of the named chips (safety rule); the other is
+  // the most severe remaining class. Named chips keep class order; the hidden ones are listed in the tooltip.
+  const keep = new Set(set.includes('Invasive') ? ['Invasive', set.filter((c) => c !== 'Invasive').pop()] : set.slice(-2));
+  const shown = set.filter((c) => keep.has(c));
+  const rest = set.filter((c) => !keep.has(c));
+  return `${shown.map(chip).join('')}<span class="chip more" title="Also in the set: ${esc(rest.map(suggestedLabel).join(', '))}">+${rest.length}</span>`;
 }
 
 export function reasonBadges(v, { skipSurgical = true } = {}) {
@@ -119,21 +122,22 @@ export function heldHint(sim) {
 // ---- pieces --------------------------------------------------------------------------------------------------------
 function row(v, ST, rank) {
   const isNew = !ST.seen.has(v.id) && !ST.firstLoad;
-  const pInv = v.risk === null ? '—' : v.risk + '%';
+  const pRaw = (v.probs.find((x) => x.cls === 'Invasive') || {}).p;
+  const pInv = pctText(pRaw ?? (v.risk === null ? null : v.risk / 100));
   const sugg =
     v.lane === 'surgical'
       ? `<span class="sugg surg">${esc(suggestedCall(v.margin ? { suggested_call: v.margin.call, involved: v.margin.involved } : null))}</span>`
       : `<span class="sugg${v.top === 'Invasive' ? ' inv' : ''}">${esc(suggestedLabel(v.top))}</span>`;
   const lane =
     v.lane === 'surgical'
-      ? `<span class="lane surg">Frozen${v.room ? ' · ' + esc(v.room) : ''}</span>${v.variant ? `<span class="variant">${esc(v.variant === 'degraded' ? 'degraded' : 'composite')}</span>` : ''}`
+      ? `<span class="lane surg">Frozen${v.room ? ' ' + esc(v.room) : ''}</span>${v.variant ? `<span class="variant">${esc(v.variant === 'degraded' ? 'degraded' : 'composite')}</span>` : ''}`
       : '<span class="lane bx">Biopsy</span>';
   const next = nextAction(v);
   const label = `${v.id}, tier ${v.tier} ${TIER_NAME[v.tier] || ''}, ${v.lane === 'surgical' ? 'frozen section' : 'biopsy'}`;
   return (
     `<tr class="row tr-${num(v.tier)}${isNew ? ' new' : ''}${v.done ? ' done' : ''}" tabindex="0" aria-label="${esc(label)}" data-testid="worklist-row" data-case-id="${esc(v.id)}" data-tier="${num(v.tier)}" data-lane="${esc(v.lane)}" data-done="${v.done}" data-reasons="${esc(codes(v).join(' '))}" data-rank="${rank}">` +
     `<td class="c-tier"><span class="tierno t${num(v.tier)}" data-testid="tier-badge" title="Tier ${num(v.tier)} · ${esc(v.tierLabel)}">${num(v.tier)}</span></td>` +
-    `<td class="c-case"><b class="cid">${esc(v.id)}</b>${v.lane === 'surgical' ? `<span class="lane-inline">Frozen${v.room ? ' ' + esc(v.room) : ''}</span>` : ''}${isNew ? '<span class="newtag">New</span>' : ''}</td>` +
+    `<td class="c-case"><div class="wl-cc"><b class="cid" title="${esc(v.id)}">${esc(v.id)}</b>${v.lane === 'surgical' ? `<span class="lane-inline">Frozen${v.room ? ' ' + esc(v.room) : ''}</span>` : ''}${isNew ? '<span class="newtag">New</span>' : ''}</div></td>` +
     `<td class="c-lane">${lane}</td>` +
     `<td class="c-sugg">${sugg}</td>` +
     `<td class="c-p"><span class="pnum${v.risk >= 50 ? ' hi' : ''}">${pInv}</span>${v.risk === null ? '' : miniBar(v.risk / 100, v.risk >= 50 ? 'hi' : '')}</td>` +
@@ -178,7 +182,7 @@ function howPopover() {
     '<div class="how-pop" data-testid="order-note"><ol class="how-tiers">' +
     '<li><span class="tierno t1">1</span><div><b>Frozen section (simulated)</b>Always first. The timer runs from arrival; target 20 minutes, amber at 15.</div></li>' +
     '<li><span class="tierno t2">2</span><div><b>Likely invasive</b>Invasive is the top suggestion. <em>Safety rule:</em> if Invasive is anywhere in the 90% confidence set, the case is tier 2 even when it is not the top suggestion.</div></li>' +
-    '<li><span class="tierno t3">3</span><div><b>Low confidence</b>More than one class, or no class, in the confidence set; reliability flag raised; or too little tissue passed quality control.</div></li>' +
+    '<li><span class="tierno t3">3</span><div><b>Low confidence</b>More than one class in the confidence set, reliability flag raised, or too little tissue passed quality control.</div></li>' +
     '<li><span class="tierno t4">4</span><div><b>Unflagged</b>Read in turn. Unflagged does not mean cleared.</div></li></ol>' +
     '<p>Within a tier: higher calibrated P(Invasive) first, then earlier arrival. A tier 3 or 4 case that has waited 75% of its target moves up one tier (never above tier 2). Completed cases sink to the bottom.</p>' +
     '<p class="sub">Targets are illustrative, not validated: tier 2–3 within 24 h, tier 4 within 48 h (simulated clock).</p></div></details>'
