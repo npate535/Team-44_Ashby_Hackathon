@@ -18,6 +18,9 @@ system. Overnight changes and their measured effect: [OVERNIGHT.md](OVERNIGHT.md
   plain-language defer reason → Defer to permanent → routed. After the full replay the planned hero BACH_0167 sits in
   tier 2 with the set {InSitu, Invasive} and drafted p63/calponin + ER/PR/HER2/Ki-67. All decisions were made by the
   operator for testing, not clinical assessments; the workspace was then archived and reset for the morning.
+- Accessibility: axe-core 4.10 on the worklist, a biopsy case, a surgical case, the OR board, the oncology inbox, the
+  evaluation and evidence-review pages, at 1440×900 and 390×844, light and dark: **0 serious or critical violations**
+  (after fixing a chart role, four sub-4.5:1 text colours, the dark tier-1 badge and phone table focus).
 - The three UI agents each screenshot-checked their pages at 1440×900 and 390×844 in light and dark: no page errors,
   no horizontal overflow, no broken images (scripts and screenshots under `.worktrees/ov-*-env/shots/`, git-ignored
   because they contain BACH-derived imagery).
