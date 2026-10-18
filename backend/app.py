@@ -478,6 +478,9 @@ class Backend:
                 "missing": missing, "models": sorted(models)}
 
     def health(self) -> dict[str, Any]:
+        # a read like any other: deliver due arrivals first, so sim_time_s is the ticked clock (the after-arrivals
+        # slowdown is applied at a tick; an unticked read could report a time the next tick then moves back from)
+        self.sim.tick()
         wall = self.sim.wall_now()
         rows = self.store.rows()
         loaded = len(self.sim.loaded.cases)

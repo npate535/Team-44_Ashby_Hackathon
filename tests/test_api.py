@@ -731,3 +731,16 @@ def test_shutdown_checkpoints_the_running_replay_clock(tmp_path):
     restarted, _ = make_client(tmp_path, artifacts_root=root, clock=clock)
     sim = restarted.get("/api/health").json()["sim"]
     assert sim["running"] is False and sim["sim_time_s"] == pytest.approx(restored)
+
+
+def test_health_sim_time_never_runs_ahead_of_the_next_read(tmp_path):
+    # health ticks like every other read: it must not report the unticked boosted-speed time that the
+    # after-arrivals slowdown then moves back from
+    root = dev_root(tmp_path)
+    client, clock = make_client(tmp_path, artifacts_root=root)
+    client.post("/api/sim/start")
+    clock.advance(CFG["sim"]["max_replay_wall_s"] + 30)      # every scheduled biopsy came due; nobody polled
+    health = client.get("/api/health").json()["sim"]
+    assert health["pending"]["biopsy"] == 0
+    later = client.get("/api/worklist").json()["sim"]
+    assert later["sim_time_s"] >= health["sim_time_s"] - 1e-9
