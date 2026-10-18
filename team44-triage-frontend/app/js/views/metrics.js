@@ -138,7 +138,8 @@ function details(id, summary, body) {
 function table(head, rows, { num = [] } = {}) {
   if (!rows.length) return '<p class="mx-muted">No rows.</p>';
   const numCol = (i) => (num.includes(i) ? ' class="mx-n"' : '');
-  return `<div class="mx-tablewrap"><table class="mx-table"><thead><tr>${head.map((h, i) => `<th scope="col"${numCol(i)}>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows
+  // focusable + labelled so a table that scrolls sideways on a phone is reachable by keyboard (axe scrollable-region)
+  return `<div class="mx-tablewrap" tabindex="0" role="region" aria-label="Source numbers table (scrolls sideways)"><table class="mx-table"><thead><tr>${head.map((h, i) => `<th scope="col"${numCol(i)}>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows
     .map((r) => `<tr>${r.map((c, i) => `<td${numCol(i)}>${esc(c)}</td>`).join('')}</tr>`)
     .join('')}</tbody></table></div>`;
 }
