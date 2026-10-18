@@ -132,6 +132,8 @@ def fig_calibration(data: Mapping[str, Any], path: Path, dpi: int) -> Path:
 def fig_conformal(data: Mapping[str, Any], path: Path, dpi: int) -> Path:
     methods = list(data.get("methods") or {})
     tier = data.get("drives_tiers", "lac_marginal")
+    if tier == "aps_marginal" and tier not in methods:      # plain marginal APS is keyed "aps" in conformal.json
+        tier = "aps"
     names = {"lac_marginal": "LAC, marginal", "aps": "APS", "mondrian": "Mondrian (per class)",
              "aps_marginal_nonempty": "APS, never empty", "lac_marginal_nonempty": "LAC, never empty"}
     if tier != "lac_marginal" and "lac_marginal" in methods:

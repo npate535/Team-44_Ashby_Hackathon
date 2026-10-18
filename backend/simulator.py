@@ -168,42 +168,57 @@ class Simulator:
         """Mark every case whose offset the simulator clock has passed as arrived; returns the new case ids."""
         with self.store.lock:
             sim, wall = self.sim_now(), self.wall_now()
-            speed = self.clock_sim.speed
-            arrived: list[str] = []
+            speed, running = self.clock_sim.speed, self.clock_sim.running
+            due: list[Any] = []
+            waiting = False                      # a self-arriving case is still ahead on the simulator clock
             for row in self.store.pending_rows():
-                if row["arrived_offset_s"] > sim:
-                    break   # pending_rows is ordered by offset
                 if self.hold_surgical and row["lane"] == "surgical":
                     continue
+                if row["arrived_offset_s"] > sim:
+                    waiting = True
+                    break   # pending_rows is ordered by offset
+                due.append(row)
+            stamp = sim
+            if not waiting:
+                stamp = self._settle_after_arrivals(sim, max((float(r["arrived_offset_s"]) for r in due), default=None))
+            arrived: list[str] = []
+            for row in due:
                 # wall time at which the simulator clock crossed the offset (exact while running, else now)
-                lag = (sim - row["arrived_offset_s"]) / speed if self.clock_sim.running else 0.0
+                lag = (sim - row["arrived_offset_s"]) / speed if running else 0.0
                 self.store.mark_arrived(row["case_id"], arrived_sim=float(row["arrived_offset_s"]),
-                                        arrived_wall=wall - lag, injected=False, wall=wall, sim=sim)
+                                        arrived_wall=wall - lag, injected=False, wall=wall, sim=stamp)
                 arrived.append(row["case_id"])
-            self.store.checkpoint_clock(sim)
-            self._settle_after_arrivals()
+            self.store.checkpoint_clock(stamp)
             return arrived
 
-    def _settle_after_arrivals(self) -> None:
+    def _settle_after_arrivals(self, sim: float, last_due: float | None) -> float:
         """Once every self-arriving case is in, run the clock at sim.after_arrivals_speed (1 = wall time) so biopsy waits
         keep their meaning: at the boosted replay speed every case would pass its target within minutes and the aging
-        guard would promote the whole queue. Reset restores the replay speed."""
+        guard would promote the whole queue. Reset restores the replay speed.
+
+        Arrivals are checked lazily (every API call ticks), so the switch is dated to when the last scheduled arrival
+        came due in this run, not to this tick: otherwise the clock keeps the replay speed for as long as nobody polls
+        (a backgrounded tab polls about once a minute: ~2.7 simulated hours at 160x) and the hero opens far past its
+        target. Every arrival stays at or before the corrected time. Returns the simulator time now."""
         target = self.after_arrivals_speed
-        if target is None or not self.clock_sim.running or self.clock_sim.speed <= target:
-            return
-        if any(not (self.hold_surgical and r["lane"] == "surgical") for r in self.store.pending_rows()):
-            return
+        clock = self.clock_sim
+        if target is None or not clock.running or clock.speed <= target:
+            return sim
+        knee = clock._base if last_due is None else max(clock._base, last_due)   # _base: simulator time at this Start
+        settled = knee + max(0.0, sim - knee) * target / clock.speed
         mono = self.clock.mono()
-        self.clock_sim.pause(mono)                      # continuous: the simulator time does not jump
-        self.clock_sim.speed = target
-        self.clock_sim.start(mono)
-        log.info("every scheduled arrival is in: simulator speed now %gx", target)
+        clock.pause(mono)
+        clock._base, clock.speed = settled, target
+        clock.start(mono)
+        log.info("every scheduled arrival is in: simulator speed now %gx (from +%.1fs)", target, knee)
+        return settled
 
     def inject_surgical(self, variant: str) -> str:
         """Make the next matching pending surgical case arrive now. Raises TransitionError if none is left."""
         if variant not in VARIANTS:
             raise db.PayloadError(f"unknown variant {variant!r}; expected one of {list(VARIANTS)}")
         with self.store.lock:
+            self.tick()                          # cases already due arrive first (event order, settled clock)
             candidates = [r for r in self.store.pending_rows()
                           if r["lane"] == "surgical" and (r["variant"] or "normal") == variant]
             if not candidates:

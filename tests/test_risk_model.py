@@ -187,3 +187,42 @@ def test_tier_set_follows_configured_method_and_is_nonempty(run05):
             assert tier == base
         else:
             assert tier == [row.top]
+
+
+def test_view0_file_carries_the_same_tier_set_as_predictions(run05):
+    # 06 fits its combiner on these view-0 reads and applies it to predictions.csv reads: same set_size meaning
+    root, _, cfg = run05
+    v0 = read(root / "predictions_view0.csv")
+    assert {"set_aps", "set_tier", "set_tier_size"} <= set(v0.columns)
+    source = conformal.tier_set_source(cfg)
+    nonempty = bool(cfg["conformal"].get("nonempty", False))
+    for row in v0.itertuples():
+        base, tier = schemas.parse_set(getattr(row, source)), schemas.parse_set(row.set_tier)
+        assert row.set_tier_size == len(tier) and set(base) <= set(tier)
+        assert tier == (base if base or not nonempty else [row.top])
+
+
+def test_contribution_source_is_cav_only_for_concepts_04_blended_a_caption_vector(run05, tmp_path):
+    import shutil
+
+    from tests.a3_synthetic import clone_root
+
+    root0, art0, cfg = run05
+    con0 = read(schemas.contributions_csv(root0))
+    concept_ids = set(cfg["concepts"]["ids"])
+    assert set(con0[con0.concept.isin(concept_ids)].source) == {"text"}       # no c__cav_top<k> columns here
+    root, art = clone_root(root0, tmp_path / "data"), tmp_path / "art"
+    shutil.copytree(art0, art)
+    k = int(cfg["concepts"]["top_k"])
+    feats = pd.read_csv(schemas.case_features_csv(root), keep_default_na=False, na_values=[""])
+    cav, text = sorted(concept_ids)[:2]
+    feats[f"{cav}__cav_top{k}"] = feats[f"{cav}__top{k}"]                      # caption-consistent: blended
+    feats[f"{text}__cav_top{k}"] = np.nan                                        # not caption-consistent
+    feats.to_csv(schemas.case_features_csv(root), index=False)
+    cfg_path = after_05()[2]
+    assert step05.main(["--data-root", str(root), "--artifacts-root", str(art), "--config", str(cfg_path),
+                        "--force"]) == 0
+    con = read(schemas.contributions_csv(root))
+    by_concept = con[con.concept.isin(concept_ids)].groupby("concept").source.agg(set).to_dict()
+    assert by_concept[cav] == {"cav"}
+    assert all(v == {"text"} for c, v in by_concept.items() if c != cav)

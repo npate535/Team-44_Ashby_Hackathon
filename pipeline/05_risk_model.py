@@ -287,6 +287,12 @@ class RiskStep:
                 self.skipped[name] = "no specification in risk_model.embedding_candidates"
         concepts = rm.concept_frame(self.root, cfg)
         concepts_v0 = rm.concept_frame(self.root, cfg, view0=True)
+        # contract concepts[].source: "cav" when 04_concepts blended a caption-derived vector into the concept score
+        # (c__cav_top<k> is finite; NaN when the concept is not caption-consistent), else "text"
+        top_k = int(cfg["concepts"]["top_k"])
+        self.concept_sources = {cid: "cav" if concepts is not None and f"{cid}__cav_top{top_k}" in concepts.columns
+                                and bool(pd.to_numeric(concepts[f"{cid}__cav_top{top_k}"], errors="coerce").notna().any())
+                                else "text" for cid in cfg["concepts"]["ids"]}
         cells = rm.cell_frame(self.root, cfg)
         for name in mc["concept_models"]:
             fs = rm.concept_features(name, concepts, cells, cfg, self.cases, concepts_v0)
@@ -455,6 +461,26 @@ class RiskStep:
         row.update({schemas.cal_prob_col(k): float(v) for k, v in zip(self.classes, pcal)})
         return row
 
+    def add_aps_and_tier_sets(self, df: pd.DataFrame) -> None:
+        """set_aps, set_tier and set_tier_size columns of a frame of rows_for() rows (in place)."""
+        cfg = self.cfg
+        # randomized APS: one call on the whole matrix per model, fit seed for q-hat, seed + 1 for the sets
+        seed = int(cfg["conformal"]["seed"])
+        df["set_aps"] = ""
+        for model, part in df.groupby("model"):
+            p = part[[schemas.cal_prob_col(k) for k in self.classes]].to_numpy()
+            sets = conformal.aps_sets(p, self.conf[model]["qhat_aps"], seed + 1, bool(cfg["conformal"]["aps_randomized"]))
+            df.loc[part.index, "set_aps"] = [schemas.format_set(conformal.set_labels(s, self.classes), self.classes)
+                                             for s in sets]
+        # tier-driving set (settings conformal.method x mode; argmax added to empty rows when conformal.nonempty)
+        source = conformal.tier_set_source(cfg)
+        pcal = df[[schemas.cal_prob_col(k) for k in self.classes]].to_numpy()
+        tier = np.array([[k in schemas.parse_set(v) for k in self.classes] for v in df[source]], dtype=bool)
+        if bool(cfg["conformal"].get("nonempty", False)):
+            tier = conformal.nonempty_sets(tier, pcal)
+        df["set_tier"] = [schemas.format_set(conformal.set_labels(t, self.classes), self.classes) for t in tier]
+        df["set_tier_size"] = tier.sum(axis=1).astype(int)
+
     def write_predictions(self) -> None:
         cfg = self.cfg
         prod = self.production
@@ -488,22 +514,7 @@ class RiskStep:
         for i, rid in enumerate(self.train_ids):           # OOF probabilities are already temperature-scaled
             rows.append(self.rows_for(rid, prod, np.empty(0), "train", calibrated=oof_cal[i]))
         df = pd.DataFrame(rows)
-        # randomized APS: one call on the whole matrix per model, fit seed for q-hat, seed + 1 for the sets
-        seed = int(cfg["conformal"]["seed"])
-        df["set_aps"] = ""
-        for model, part in df.groupby("model"):
-            p = part[[schemas.cal_prob_col(k) for k in self.classes]].to_numpy()
-            sets = conformal.aps_sets(p, self.conf[model]["qhat_aps"], seed + 1, bool(cfg["conformal"]["aps_randomized"]))
-            df.loc[part.index, "set_aps"] = [schemas.format_set(conformal.set_labels(s, self.classes), self.classes)
-                                             for s in sets]
-        # tier-driving set (settings conformal.method x mode; argmax added to empty rows when conformal.nonempty)
-        source = conformal.tier_set_source(cfg)
-        pcal = df[[schemas.cal_prob_col(k) for k in self.classes]].to_numpy()
-        tier = np.array([[k in schemas.parse_set(v) for k in self.classes] for v in df[source]], dtype=bool)
-        if bool(cfg["conformal"].get("nonempty", False)):
-            tier = conformal.nonempty_sets(tier, pcal)
-        df["set_tier"] = [schemas.format_set(conformal.set_labels(t, self.classes), self.classes) for t in tier]
-        df["set_tier_size"] = tier.sum(axis=1).astype(int)
+        self.add_aps_and_tier_sets(df)
         # uncalibrated probabilities of every evaluated model; OOF means for train rows
         for model, c in self.cands.items():
             cols = [schemas.prob_col(model, k) for k in self.classes]
@@ -562,6 +573,10 @@ class RiskStep:
                     row.update({schemas.prob_col(model, k): float(x) for k, x in zip(self.classes, p)})
             rows.append(row)
         df = pd.DataFrame(rows)
+        if len(df):
+            # 06 reads set_tier_size from here for its clean fit reads and from predictions.csv for every other read:
+            # both files must carry the same tier set, or the combiner's set_size means LAC in fit and the tier set in use
+            self.add_aps_and_tier_sets(df)
         io.write_csv(self.root / "predictions_view0.csv", df)
 
     # -- contributions -------------------------------------------------------------------------------------------------
@@ -593,6 +608,7 @@ class RiskStep:
                     model_parts.append((fb, fbc, var_df))
                     break
         concepts = set(self.cfg["concepts"]["ids"])
+        sources = getattr(self, "concept_sources", {})
         rows = []
         for model_name, cand, x_df in model_parts:
             if x_df.empty:
@@ -604,7 +620,8 @@ class RiskStep:
                 for j, feat in enumerate(cand.fs.names):
                     base = feat.split("__")[0]
                     rows.append({"case_id": rid, "split": split, "model": model_name, "feature": feat, "concept": base,
-                                 "source": "text" if base in concepts else "cell", "value": float(x_df.iloc[i, j]),
+                                 "source": sources.get(base, "text") if base in concepts else "cell",
+                                 "value": float(x_df.iloc[i, j]),
                                  "value_std": float(std[i, j]), "contribution": float(contrib[i, j])})
         df = pd.DataFrame(rows)
         schemas.validate_frame(schemas.CONTRIBUTIONS, df)

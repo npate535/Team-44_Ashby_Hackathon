@@ -122,8 +122,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     summary = run(ctx, args.old_brightness_max)
     io.write_json(ctx.data_root / "meta" / f"{STEP}_summary.json", summary)
-    io.write_json(schemas.eval_json(ctx.artifacts_root, "qc"), {"name": "qc", "created_utc": io.utc_now(), "git_sha": io.git_sha(),
-                                                                "synthetic": bool(ctx.synthetic), **summary})
+    io.write_json(schemas.eval_json(ctx.artifacts_root, "qc"),       # full EVAL_ENVELOPE (config_hash included)
+                  {"name": "qc", **io.provenance(ctx.cfg, synthetic=bool(ctx.synthetic)), **summary})
     io.write_meta(meta, step=STEP, cfg=ctx.cfg, inputs=[schemas.tiles_csv(ctx.data_root), "display/"],
                   outputs=[schemas.tiles_csv(ctx.data_root), ctx.data_root / "meta" / "tiles_qc_v1.csv"],
                   args={"limit": ctx.limit, "force": ctx.force}, synthetic=ctx.synthetic)

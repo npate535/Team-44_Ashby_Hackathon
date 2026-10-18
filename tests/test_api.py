@@ -438,6 +438,18 @@ def test_image_thumbnails_are_downscaled_jpegs(tmp_path):
     assert client.get("/images/demo_0001.jpg").content == (FIXTURES / "demo_0001.jpg").read_bytes()
 
 
+def test_thumbnail_cache_is_bounded_by_bytes(tmp_path, monkeypatch):
+    from backend import app as app_module
+
+    client, _ = make_client(tmp_path, cases_dir=FIXTURES)
+    one = len(client.get("/images/demo_0001.jpg?w=300").content)
+    monkeypatch.setattr(app_module, "THUMB_CACHE_BYTES", 3 * one)
+    monkeypatch.setattr(app_module, "_THUMBS", {})
+    for w in range(300, 340):                           # any width in range is a new entry
+        assert client.get(f"/images/demo_0001.jpg?w={w}").status_code == 200
+        assert sum(map(len, app_module._THUMBS.values())) <= 3 * one
+
+
 def test_static_routes_never_serve_json(tmp_path):
     root = dev_root(tmp_path)
     io.write_json(root / "eval" / "metrics.json", {"name": "metrics", "true_label": ["Invasive"]})
@@ -446,6 +458,17 @@ def test_static_routes_never_serve_json(tmp_path):
         assert client.get(url).status_code == 404, url
     assert client.get("/fixtures/demo_0001.json").status_code == 200       # public form, artifacts mode too
     assert "true_label" not in client.get("/fixtures/demo_0001.json").text
+
+
+def test_fixture_json_suffix_case_never_serves_the_raw_case(tmp_path):
+    # case-insensitive filesystems (macOS/APFS) open demo_0001.json for demo_0001.JSON: still the public form only
+    client, _ = make_client(tmp_path, cases_dir=FIXTURES)
+    for url in ("/fixtures/demo_0001.JSON", "/fixtures/demo_0001.Json"):
+        res = client.get(url)
+        assert res.status_code in (200, 404), url
+        assert "eval_only" not in res.text and "true_label" not in res.text, url
+        if res.status_code == 200:
+            assert find_keys(res.json()) == []
 
 
 def test_non_string_payload_values_are_422(dev):
@@ -694,3 +717,30 @@ def test_changed_artifacts_cannot_silently_erase_saved_workspace(dev, tmp_path):
     with pytest.raises(ServerDataError, match='case artifacts differ'):
         make_client(tmp_path, cases_dir=root / 'cases', artifacts_root=root, clock=clock)
     assert client.get('/api/worklist').json()['items'] == before
+
+
+def test_shutdown_checkpoints_the_running_replay_clock(tmp_path):
+    root = dev_root(tmp_path)
+    client, clock = make_client(tmp_path, artifacts_root=root)
+    with client:                                         # lifespan: the shutdown hook runs on exit
+        client.post("/api/sim/start")
+        clock.advance(3)                                 # no request after this: only the shutdown hook sees it
+    from backend import db as store_db
+    restored = store_db.Store(tmp_path / "test.sqlite").restore(store_db.load_case_dir(root / "cases"))
+    assert restored > 0 and restored == pytest.approx(client.app.state.backend.sim.sim_now())   # not the Start time
+    restarted, _ = make_client(tmp_path, artifacts_root=root, clock=clock)
+    sim = restarted.get("/api/health").json()["sim"]
+    assert sim["running"] is False and sim["sim_time_s"] == pytest.approx(restored)
+
+
+def test_health_sim_time_never_runs_ahead_of_the_next_read(tmp_path):
+    # health ticks like every other read: it must not report the unticked boosted-speed time that the
+    # after-arrivals slowdown then moves back from
+    root = dev_root(tmp_path)
+    client, clock = make_client(tmp_path, artifacts_root=root)
+    client.post("/api/sim/start")
+    clock.advance(CFG["sim"]["max_replay_wall_s"] + 30)      # every scheduled biopsy came due; nobody polled
+    health = client.get("/api/health").json()["sim"]
+    assert health["pending"]["biopsy"] == 0
+    later = client.get("/api/worklist").json()["sim"]
+    assert later["sim_time_s"] >= health["sim_time_s"] - 1e-9

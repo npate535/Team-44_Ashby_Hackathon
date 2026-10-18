@@ -92,7 +92,10 @@ def pr_curve(y_bin: np.ndarray, scores: np.ndarray) -> dict[str, Any]:
     if n_pos == 0 or n_pos == len(y_bin):
         return {**out, "recall": [], "precision": [], "threshold": [], "average_precision": None}
     precision, recall, thr = precision_recall_curve(y_bin, scores)
-    order = np.argsort(recall, kind="stable")                   # ascending recall for plotting
+    # sklearn orders points by increasing threshold (recall non-increasing). Reversed = decreasing threshold: recall
+    # ascending for plotting, and points sharing a recall stay in walk order (a stable argsort of recall would put
+    # them in increasing-threshold order inside each tie, so a curve drawn through the points zig-zags)
+    order = np.arange(len(recall))[::-1]
     thr_full = np.append(thr, np.nan)                            # last point (recall 0) has no threshold
     out.update(recall=_r(recall[order]), precision=_r(precision[order]), threshold=_r(thr_full[order]),
                average_precision=float(average_precision_score(y_bin, scores)))

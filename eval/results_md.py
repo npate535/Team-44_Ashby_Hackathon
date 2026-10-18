@@ -26,11 +26,23 @@ FOREIGN = ("model_choice", "concepts", "concepts_bach", "zeroshot", "reliability
            "finetune", "spotcheck")
 
 
-def fmt(block: Mapping[str, Any] | None, *, pct: bool = False, digits: int = 2) -> str:
-    """'0.91 [0.85, 0.96] (n 132, 61 groups)'; 'n/a' when undefined."""
+def _num(value: float, digits: int, suffix: str = "") -> str:
+    """Fixed-point text without a signed zero ('-0.00' -> '0.00')."""
+    text = f"{value:.{digits}f}"
+    if text.startswith("-") and float(text) == 0.0:
+        text = text[1:]
+    return text + suffix
+
+
+def fmt(block: Mapping[str, Any] | None, *, pct: bool = False, digits: int | None = None) -> str:
+    """'0.91 [0.85, 0.96] (n 132, 61 groups)'; 'n/a' when undefined. digits=None: 2 decimals, or 3 when a value is on
+    the probability scale near 1 (an AUROC of 0.998 is not '1.00')."""
     if not block or block.get("estimate") is None:
         return "n/a"
-    f = (lambda v: f"{100 * v:.1f}%") if pct else (lambda v: f"{v:.{digits}f}")
+    if digits is None:
+        values = [block.get(k) for k in ("estimate", "lo", "hi") if isinstance(block.get(k), (int, float))]
+        digits = 3 if any(0.95 <= v <= 1.0 for v in values) else 2
+    f = (lambda v: _num(100 * v, 1, "%")) if pct else (lambda v: _num(v, digits))
     text = f(block["estimate"])
     if block.get("lo") is not None and block.get("hi") is not None:
         text += f" [{f(block['lo'])}, {f(block['hi'])}]"
@@ -43,7 +55,7 @@ def fmt(block: Mapping[str, Any] | None, *, pct: bool = False, digits: int = 2) 
 def sim_fmt(block: Mapping[str, Any] | None) -> str:
     if not block or block.get("mean") is None:
         return "n/a"
-    return f"{block['mean']:.1f} [{block['lo']:.1f}, {block['hi']:.1f}]"
+    return f"{_num(block['mean'], 1)} [{_num(block['lo'], 1)}, {_num(block['hi'], 1)}]"
 
 
 def section_metrics(m: Mapping[str, Any]) -> list[str]:
@@ -86,7 +98,8 @@ def section_conformal(c: Mapping[str, Any]) -> list[str]:
     for name, b in c["methods"].items():
         out.append(f"| {name} | {fmt(b['coverage'], pct=True)} | {fmt(b['mean_set_size'])} | "
                    f"{100 * b['empty_set_rate']:.1f}% |")
-    tier = c["methods"].get(c["drives_tiers"])
+    # conformal.json keys plain marginal APS as "aps" (set_tier is only added when it is a distinct set)
+    tier = c["methods"].get(c["drives_tiers"]) or (c["methods"].get("aps") if c["drives_tiers"] == "aps_marginal" else None)
     if tier and c["drives_tiers"] != "lac_marginal":
         out += ["", f"Per-class coverage of the tier set ({c['drives_tiers']}): "
                 + "; ".join(f"{k} {fmt(v, pct=True)}" for k, v in tier["per_class"].items()) + "."]
@@ -94,15 +107,24 @@ def section_conformal(c: Mapping[str, Any]) -> list[str]:
     if lac:
         out += ["", "Per-class LAC coverage (pre-registered): "
                 + "; ".join(f"{k} {fmt(v, pct=True)}" for k, v in lac["per_class"].items()) + "."]
-    if c["drives_tiers"] != "lac_marginal" and lac:
-        out += ["", "**Post-hoc change, disclosed:** marginal LAC was the pre-registered tier set. On the held-out test "
-                "split it returned empty sets for "
-                f"{100 * lac['empty_set_rate']:.1f}% of cases and no multi-class sets, so it gave the reader no "
-                "differential; the 50-image calibration split is far easier than the test split, which violates the "
-                "exchangeability the guarantee needs. Tiers now use the set named above (APS, Romano et al. 2020, with "
-                "the argmax class added to empty sets). The switch was made after viewing test results, so its "
-                "observed coverage is optimistic and is not an independent confirmation."]
     fs = c.get("finite_sample") or {}
+    if c["drives_tiers"] != "lac_marginal" and lac:
+        # every number and qualifier comes from conformal.json, so a re-run cannot leave a stale claim here
+        hist = {int(k): int(v) for k, v in (lac.get("set_size_histogram") or {}).items()}
+        n_multi, n_all = sum(v for k, v in hist.items() if k >= 2), sum(hist.values())
+        multi = ("no multi-class sets, so it gave the reader no differential" if hist and not n_multi else
+                 f"multi-class sets for {100 * n_multi / n_all:.1f}% of cases" if n_all else "")
+        n_cal = fs.get("n_calibration")
+        name = str(c["drives_tiers"])
+        method = ("APS, Romano et al. 2020" if name.startswith("aps") else name) + (
+            ", with the argmax class added to empty sets" if name.endswith("_nonempty") else "")
+        out += ["", "**Post-hoc change, disclosed:** marginal LAC was the pre-registered tier set. On the held-out test "
+                f"split it returned empty sets for {100 * lac['empty_set_rate']:.1f}% of cases"
+                + (f" and {multi}" if multi else "") + "; the "
+                + (f"{n_cal}-image " if n_cal is not None else "") + "calibration split is far easier than the test "
+                "split, which likely violates the exchangeability the guarantee needs. Tiers now use the set named above "
+                f"({method}). The switch was made after viewing test results, so its observed coverage is optimistic "
+                "and is not an independent confirmation."]
     if fs.get("note"):
         out += ["", fs["note"]]
     return out + [""]
@@ -148,9 +170,11 @@ def section_queue(q: Mapping[str, Any]) -> list[str]:
     for p, r in q["results"].items():
         if "vs_fifo" in r:
             v = r["vs_fifo"]
+            fn = v.get("false_negative_mean") or {}
+            fn_text = (f"false negatives {sim_fmt(fn)} min" if fn.get("mean") is not None else
+                       "false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2)")
             out.append(f"\n{q['policies'].get(p, p)} vs FIFO: invasive first look {sim_fmt(v['aggressive_mean'])} min; "
-                       f"**delay imposed on unflagged cases {sim_fmt(v['non_flagged_mean'])} min**; false negatives "
-                       f"{sim_fmt(v['false_negative_mean'])} min.")
+                       f"**delay imposed on unflagged cases {sim_fmt(v['non_flagged_mean'])} min**; {fn_text}.")
     promos = q.get("aging_promotions") or {}
     if promos:
         out += ["", "Aging guard: share of reads promoted per day — " + "; ".join(
@@ -160,8 +184,10 @@ def section_queue(q: Mapping[str, Any]) -> list[str]:
 
 
 def section_margin(m: Mapping[str, Any]) -> list[str]:
-    out = ["## Simulated margin read", "", f"Source: `eval/margin.json` · threshold {m['threshold']:.3f} "
-           f"(CI {m.get('threshold_ci')}, from {m.get('n_benign_cal_images')} benign calibration images).", "",
+    ci = m.get("threshold_ci") if isinstance(m.get("threshold_ci"), Mapping) else {}
+    threshold = fmt({**ci, "estimate": m["threshold"]}, digits=5)    # P near 1: 0.99982, not 1.000
+    out = ["## Simulated margin read", "", f"Source: `eval/margin.json` · threshold P = {threshold}, from "
+           f"{m.get('n_benign_cal_images')} benign calibration images.", "",
            f"- Benign test images, false tumor-at-margin per margin (pooled over 4 margins): "
            f"{fmt(m['benign_fpr'].get('pooled_per_margin'), pct=True)} (the threshold targets ≤ "
            f"{100 * m['benign_fpr']['target_max_fpr']:.0f}% per margin; {m['benign_fpr']['n_scored']} of "
@@ -188,7 +214,7 @@ def section_foreign(name: str, data: Mapping[str, Any]) -> list[str]:
     out = [f"### `eval/{name}.json`", ""]
     if not blocks:
         return out + ["(no estimate/CI blocks; see the file)", ""]
-    return out + [f"- {label}: {fmt(b)}" for label, b in blocks[:40]] + [""]
+    return out + [f"- {label}: {fmt(b)}" for label, b in blocks] + [""]           # every block, no truncation
 
 
 def review_lines(art: Path) -> list[str]:
@@ -197,11 +223,18 @@ def review_lines(art: Path) -> list[str]:
     if path.is_file():
         sc = io.read_json(path)
         kind = sc.get("reviewer_kind", "unknown")
-        who = "AI-reviewed (Claude), not a pathologist" if kind == "ai" else (
-            "human-reviewed" if kind == "human" else f"reviewer kind {kind!r}")
+        who = "AI-reviewed, not a pathologist" if kind == "ai" else (
+            "human-reviewed" if kind == "human" else "mixed AI and human review" if kind == "mixed"
+            else f"reviewer kind {kind!r}")
+        counts: dict[str, int] = {}                  # reviewer names as recorded, never assumed
+        for r in sc.get("reviews", []):
+            name = str(r.get("reviewer") or "unnamed reviewer")
+            counts[name] = counts.get(name, 0) + 1
+        by = "; ".join(f"{name} × {n}" for name, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])))
         summary = sc.get("summary") or {}
-        lines.append(f"- Concept top-tile and cell-overlay spot check: **{who}** · `eval/spotcheck.json`. Plausibility "
-                     "of the top-scoring tiles per concept (acceptable / reviewed; the rest unsure or not acceptable):")
+        lines.append(f"- Concept top-tile and cell-overlay spot check: **{who}**" + (f" (reviews by {by})" if by else "")
+                     + " · `eval/spotcheck.json`. Plausibility of the top-scoring tiles per concept (acceptable / "
+                     "reviewed; the rest unsure or not acceptable):")
         lines += ["", "| Feature | Acceptable |", "|---|---|"]
         for cid, b in sorted((summary.get("concept") or {}).items(), key=lambda kv: -kv[1].get("acceptable", 0)):
             lines.append(f"| {cid} | {b.get('acceptable', 0)} / {b.get('n', 0)} |")
@@ -244,7 +277,7 @@ def build(art: Path, cfg: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
         lines += ["> **SYNTHETIC DATA — these numbers come from generated test data and are NOT results.**", ""]
     lines += ["> Research prototype — not for clinical use. Every number below is quoted from the eval file named "
               "beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.", ""]
-    sha = sorted({str(d.get("git_sha")) for d in present.values()})
+    sha = sorted({str(d["git_sha"]) for d in present.values() if d.get("git_sha") not in (None, "", "None")})
     lines += [f"Generated {io.utc_now()} from {len(present)} eval files (git {', '.join(sha) or 'n/a'}).", ""]
     renderers = {"qc": section_qc, "metrics": section_metrics, "calibration": section_calibration, "conformal": section_conformal,
                  "thunder": section_thunder, "queue_sim": section_queue, "margin": section_margin}
