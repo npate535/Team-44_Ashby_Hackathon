@@ -81,6 +81,9 @@ function toast(msg, opts = {}) {
       : `<button class="toast-act" data-toast-next>${esc(opts.action.label)}</button>`
     : '';
   el.innerHTML = `<div class="toast-msg"><b>${esc(msg)}</b>${opts.sub ? `<span>${esc(opts.sub)}</span>` : ''}</div>${action}<button class="toast-x" aria-label="Dismiss notification">×</button>`;
+  // the same notice twice (N pressed again on a clear queue, a repeated rejection) replaces the first one
+  el.dataset.key = `${msg}|${opts.sub || ''}`;
+  for (const old of [...box.children]) if (old.dataset.key === el.dataset.key) old.remove();
   box.prepend(el);
   while (box.children.length > 2) box.lastElementChild.remove();
   const ttl = opts.ttl || (opts.action ? 6500 : 4000);
@@ -167,7 +170,8 @@ async function refresh(force, seq) {
   else if (route === 'case' && caseId) {
     try {
       [detail, events] = await Promise.all([api.getCase(caseId), api.events(caseId)]);
-      if (!ST.metrics) evaluation = await api.metrics();
+      // optional context (held-out coverage line): a failing /api/metrics must not mark the case missing or offline
+      if (!ST.metrics) evaluation = await api.metrics().catch(() => null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) missing = true;
       else throw err;
@@ -196,7 +200,10 @@ async function refresh(force, seq) {
   noticeRouted(toSurgeon || [], toOncologist || []);
   ST.routed.surgeon = toSurgeon || [];
   ST.routed.oncologist = toOncologist || [];
-  if (evaluation) ST.metrics = evaluation;
+  if (evaluation) {
+    ST.metrics = evaluation;
+    ST.metricsRev = (ST.metricsRev || 0) + 1; // "Reload results" with changed numbers redraws the dashboard
+  }
   if (spot) ST.spot = spot;
 }
 
@@ -264,8 +271,29 @@ function view() {
 }
 
 function currentFp() {
+  // Pages that do not read the queue redraw only for their own data: a running replay must not re-render the
+  // dashboard (charts lose focus and tooltips) or the evidence review (images reload under the reviewer).
+  if (ST.route === 'metrics') return ['metrics', ST.metricsRev || 0, !!ST.metrics].join('|');
+  if (ST.route === 'spotcheck')
+    return [
+      'spotcheck',
+      ST.spot ? ST.spot.items.length : 'none',
+      JSON.stringify(ST.spotDraft),
+      ST.spotResult || '',
+      ST.spotGroup || '',
+      ST.metricsRev || 0
+    ].join('|');
+  if (ST.route === 'oncologist')
+    return [
+      'oncologist',
+      JSON.stringify(ST.routed.oncologist.map(routedKey)),
+      [...ST.inboxRead].length,
+      ST.inboxOpen || '',
+      ST.metricsRev || 0
+    ].join('|');
   const sim = ST.sim || {};
   const parts = [
+    ST.metricsRev || 0,
     ST.route,
     ST.caseId,
     ST.order,
@@ -317,20 +345,7 @@ function currentFp() {
     parts.push((ST.events[ST.caseId] || []).length, ST.metrics?.eval?.conformal?.created_utc || '');
   }
   if (ST.route === 'surgeon')
-    parts.push(JSON.stringify(ST.routed.surgeon.map((r) => r.id)), [...ST.freshCalls].join());
-  if (ST.route === 'oncologist')
-    parts.push(JSON.stringify(ST.routed.oncologist.map((r) => r.id)), [...ST.inboxRead].length, ST.inboxOpen || '');
-  if (ST.route === 'metrics')
-    parts.push(
-      ST.metrics ? Object.keys(ST.metrics.eval || {}).join() + (ST.metrics.figures || []).length : 'none'
-    );
-  if (ST.route === 'spotcheck')
-    parts.push(
-      ST.spot ? ST.spot.items.length : 'none',
-      JSON.stringify(ST.spotDraft),
-      ST.spotResult || '',
-      ST.spotGroup || ''
-    );
+    parts.push(JSON.stringify(ST.routed.surgeon.map(routedKey)), [...ST.freshCalls].join());
   return parts.join('|');
 }
 
@@ -449,14 +464,16 @@ function pageDescription() {
     const n = ST.routed.oncologist.length;
     return `${n} result${n === 1 ? '' : 's'}${ST.inboxUnread ? ` · ${ST.inboxUnread} unread` : ''}`;
   }
-  if (ST.route === 'metrics') return 'Held-out test split · bootstrap 95% intervals';
-  return 'Independent review of model-highlighted regions';
+  if (ST.route === 'metrics') return 'Held-out test split · 95% CIs';
+  return 'Model-highlighted regions';
 }
 
 function updateShell() {
   const crumb = PAGE[ST.route] || PAGE.worklist;
   $('#breadcrumb').textContent = crumb;
-  $('#page-description').textContent = pageDescription();
+  const desc = pageDescription();
+  $('#page-description').textContent = desc;
+  $('#page-description').title = desc; // the header truncates it on narrower screens
   document.title = `${ST.route === 'case' && ST.caseId ? ST.caseId + ' · ' : ''}${crumb} · PathQueue`;
   $('.workspace').dataset.route = ST.route;
   $('#queue-count').textContent = ST.health?.open_cases ?? openItems(ST.items).length;
