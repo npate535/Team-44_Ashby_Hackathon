@@ -180,6 +180,7 @@ async function refresh(force, seq) {
   }
   if (seq !== pollSeq) return;
   ST.items = wl.items || [];
+  ST.itemsFor = JSON.stringify(worklistQuery(route)); // which query these items answer (the OR board asks for one lane)
   ST.loadedOnce = true;
   ST.sim = wl.sim || ST.sim;
   ST.health = health;
@@ -408,7 +409,7 @@ function draw(forceRender = false) {
         if (openDetails.includes(detailsKey(el))) el.open = true;
       });
   window.scrollTo(0, y);
-  if (ST.route === 'worklist' && ST.loadedOnce) {
+  if (ST.route === 'worklist' && ST.loadedOnce && ST.itemsFor === JSON.stringify(worklistQuery('worklist'))) {
     // arrivals after the first rendered data animate in; whatever was there on load does not
     ST.items.forEach((c) => ST.seen.add(c.case_id));
     ST.firstLoad = false;
