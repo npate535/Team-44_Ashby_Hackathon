@@ -39,8 +39,11 @@ def test_demo_script(page, api, roles):
     start_and_wait_for_biopsies(pg, api, roles)
     hero_row = pg.locator(f"{ROW}[data-case-id='{hero}']")
     expect(hero_row).to_have_attribute("data-tier", "2")
-    expect(hero_row.locator(tid("reason-aggressive_in_conformal_set"))).to_be_visible()
+    # every live reason is on the row; the Flags column shows only those the Suggested column does not already say
+    expect(hero_row).to_have_attribute("data-reasons", re.compile(r"\baggressive_in_conformal_set\b"))
     expect(hero_row.locator(tid("orders-drafted"))).to_be_visible()
+    expect(pg.locator(tid("queue-stats"))).to_be_visible()
+    expect(pg.locator(tid("open-next"))).to_be_enabled()
     expect(pg.locator(tid("held-surgical"))).to_be_visible()
     ids_ai = pg.locator(ROW).evaluate_all("rows => rows.map(r => r.dataset.caseId)")
     pg.click(tid("order-arrival"))
@@ -90,7 +93,7 @@ def test_demo_script(page, api, roles):
     first = pg.locator(ROW).first
     expect(first).to_have_attribute("data-lane", "surgical")
     expect(first).to_have_attribute("data-tier", "1")
-    timer = first.locator("[data-timer]")
+    timer = first.locator("[data-wait] b")
     before = timer.inner_text()
     pg.wait_for_timeout(2200)
     assert timer.inner_text() != before
@@ -261,7 +264,7 @@ def test_evidence_chart_style_and_navigation(page, api, roles):
     expect(pg.locator('#breadcrumb')).to_have_text('Operating rooms')
     expect(pg.locator(tid('nav-surgeon'))).to_have_attribute('aria-current', 'page')
     pg.click(tid('nav-worklist'))
-    expect(pg.locator('#page-title')).to_have_text('Every case. A clearer next step.')
+    expect(pg.locator('#page-title')).to_have_text('Worklist')
     page.assert_no_horizontal_scroll()
 
 
@@ -284,3 +287,193 @@ def test_replay_pause_resume_and_reset_guard(page, api, roles):
     pg.click('[data-reset-confirm]')
     expect(pg.locator('#reset-dialog')).to_be_hidden()
     expect(pg.locator(tid('state-empty'))).to_be_visible()
+
+
+# ---- workflow shell: keyboard, next case, routing feedback, OR board, inbox, persistence --------------------------------
+def focused_case(pg) -> str | None:
+    return pg.evaluate("document.activeElement && document.activeElement.dataset.caseId || null")
+
+
+def test_keyboard_next_case_and_routing_feedback(page, api, roles):
+    pg = page.page
+    pg._base = page.base
+    start_and_wait_for_biopsies(pg, api, roles)
+    hero = roles["hero_biopsy"]
+    ids = pg.locator(ROW).evaluate_all("rows => rows.map(r => r.dataset.caseId)")
+    pg.keyboard.press("/")
+    assert pg.evaluate("document.activeElement.id") == "case-search"
+    pg.evaluate("document.activeElement.blur()")
+    pg.keyboard.press("j")
+    assert focused_case(pg) == ids[0]
+    pg.keyboard.press("j")
+    assert focused_case(pg) == ids[1]
+    pg.keyboard.press("k")
+    assert focused_case(pg) == ids[0]
+    pg.wait_for_timeout(2300)                                   # a poll re-render keeps the row focus
+    assert focused_case(pg) == ids[0]
+    pg.keyboard.press("Enter")
+    expect(pg.locator(f"{tid('case-view')}[data-case-id='{ids[0]}']")).to_be_visible()
+    expect(pg.locator(tid("casebar"))).to_contain_text("Case 1 of")
+    pg.keyboard.press("n")                                      # next case in priority order
+    expect(pg.locator(f"{tid('case-view')}[data-case-id='{ids[1]}']")).to_be_visible()
+
+    # act on the hero: orders placed, sign-out routed, the shell offers the next case and counts the unread result
+    pg.goto(page.base + f"/#/case/{hero}")
+    expect(pg.locator(f"{tid('case-view')}[data-case-id='{hero}']")).to_be_visible()
+    pg.click(tid("action-approve"))
+    expect(pg.locator(tid("toast")).filter(has_text="Orders placed")).to_be_visible()
+    pg.click(tid("action-signout"))
+    expect(pg.locator(tid("casebar-done"))).to_contain_text("Signed out")
+    expect(pg.locator(tid("toast")).filter(has_text="signed out")).to_be_visible()
+    expect(pg.locator(tid("inbox-unread"))).to_have_text("1")
+    nxt = pg.locator(tid("casebar-next"))
+    expect(nxt).to_be_focused()
+    pg.keyboard.press("Enter")
+    expect(pg.locator(tid("case-view"))).not_to_have_attribute("data-case-id", hero)
+    page.shot(f"09-next-case-{page.name}")
+
+    # inbox report card: unread until read, then the badge clears
+    pg.click(tid("nav-oncologist"))
+    item = pg.locator(f"{tid('oncologist-item')}[data-case-id='{hero}']")
+    expect(item).to_have_attribute("data-unread", "true")
+    expect(item.locator(tid("inbox-category"))).not_to_be_empty()
+    expect(item.locator(tid("inbox-signed-out"))).to_contain_text("Signed out")
+    assert item.locator(tid("inbox-order")).count() >= 1
+    item.locator("[data-inbox-read]").click()
+    expect(item).to_have_attribute("data-unread", "false")
+    expect(pg.locator(tid("inbox-unread"))).to_be_hidden()
+    page.assert_no_horizontal_scroll()
+    page.shot(f"10-inbox-{page.name}")
+
+    # reload: decisions persist (server state), and the read state persists (per viewer)
+    pg.reload()
+    expect(pg.locator(f"{tid('oncologist-item')}[data-case-id='{hero}']")).to_have_attribute("data-unread", "false")
+    pg.click(tid("nav-worklist"))
+    expect(pg.locator(f"{ROW}[data-case-id='{hero}']")).to_have_attribute("data-done", "true")
+    page.assert_no_ground_truth()
+
+
+def test_or_board_runs_then_stops_and_highlights_the_call(page, api, roles):
+    pg = page.page
+    pg._base = page.base
+    pg.goto(page.base + "/#/surgeon")
+    expect(pg.locator(tid("surgeon-empty"))).to_be_visible()
+    expect(pg.locator(tid("or-room"))).to_have_count(api.get("/api/config")["sim"]["or_rooms"])
+    pg.click(tid("sim-inject-surgical"))
+    card = pg.locator(f"{tid('or-card')}").first
+    expect(card.locator(tid("or-awaiting"))).to_be_visible()
+    timer = card.locator(tid("or-timer"))
+    before = timer.inner_text()
+    pg.wait_for_timeout(2200)
+    assert timer.inner_text() != before                          # live while awaiting the call
+    expect(pg.locator(tid("nav-surgeon")).locator("#or-count")).to_have_text("1")
+    case_id = card.get_attribute("data-case-id")
+    card.get_by_role("link", name="Open case").click()
+    expect(pg.locator(f"{tid('case-view')}[data-lane=surgical]")).to_be_visible()
+    pg.click(tid("call-clear"))
+    expect(pg.locator(tid("casebar-done"))).to_contain_text("Call sent")
+    expect(pg.locator(tid("toast")).filter(has_text="Margin call sent")).to_be_visible()
+    pg.click(tid("nav-surgeon"))
+    called = pg.locator(f"{tid('or-card')}[data-case-id='{case_id}']")
+    expect(called.locator(tid("surgeon-result"))).to_have_attribute("data-call", "clear")
+    expect(called.locator(tid("or-new-call"))).to_be_visible()
+    stopped = called.locator(tid("or-turnaround")).inner_text()
+    pg.wait_for_timeout(2200)
+    assert called.locator(tid("or-turnaround")).inner_text() == stopped   # timer stopped at the call
+    expect(pg.locator("#or-count")).to_be_hidden()
+    page.assert_no_horizontal_scroll()
+    page.shot(f"11-or-board-call-{page.name}")
+
+
+def test_worklist_filters_composition_and_priority_popover(page, api, roles):
+    pg = page.page
+    pg._base = page.base
+    start_and_wait_for_biopsies(pg, api, roles)
+    total = pg.locator(ROW).count()
+    pg.click("summary[aria-label='How cases are prioritized']")
+    expect(pg.locator(tid("order-note"))).to_contain_text("Safety rule")
+    pg.keyboard.press("Escape")
+    expect(pg.locator(tid("order-note"))).to_be_hidden()
+    pg.click(tid("tier-filter-2"))
+    tiers = set(pg.locator(ROW).evaluate_all("rows => rows.map(r => r.dataset.tier)"))
+    assert tiers == {"2"}
+    pg.click(tid("tier-filter-2"))
+    assert pg.locator(ROW).count() == total
+    pg.check(tid("orders-only"))
+    assert pg.locator(ROW).count() == pg.locator(f"{ROW} {tid('orders-drafted')}").count() > 0
+    pg.uncheck(tid("orders-only"))
+    pg.select_option(tid("flag-filter"), "any")
+    assert pg.locator(ROW).count() <= total
+    pg.select_option(tid("flag-filter"), "all")
+    assert pg.locator(ROW).count() == total
+    page.assert_no_horizontal_scroll()
+
+
+def test_restart_preserves_the_workflow(browser, dev_root, roles, tmp_path):
+    """Decisions, routing and the replay clock survive a backend restart (separate server + copied workspace)."""
+    import shutil
+    import socket
+    import subprocess
+    import sys
+    import time
+
+    from tests.e2e.conftest import REPO, _get, _post
+
+    root = tmp_path / "ws"
+    shutil.copytree(dev_root, root, ignore=shutil.ignore_patterns("*.sqlite*"))
+
+    def serve():
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
+        env = {**__import__("os").environ, "PATHQUEUE_ARTIFACTS_ROOT": str(root), "PATHQUEUE_CASES_DIR": ""}
+        proc = subprocess.Popen([sys.executable, "-m", "uvicorn", "backend.app:app", "--host", "127.0.0.1", "--port",
+                                 str(port)], cwd=REPO, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        base = f"http://127.0.0.1:{port}"
+        for _ in range(150):
+            try:
+                if _get(base + "/api/health")["loaded"]:
+                    return proc, base
+            except OSError:
+                time.sleep(0.1)
+        proc.kill()
+        raise RuntimeError("backend did not start")
+
+    hero = roles["hero_biopsy"]
+    proc, base = serve()
+    try:
+        _post(base + "/api/sim/start")
+        for _ in range((REPLAY_S + 20) * 4):
+            if any(i["case_id"] == hero for i in _get(base + "/api/worklist")["items"]):
+                break
+            time.sleep(0.25)
+        _post(base + f"/api/cases/{hero}/decision", {"action": "approve_orders"})
+        _post(base + f"/api/cases/{hero}/decision", {"action": "sign_out"})
+        surgical = _post(base + "/api/sim/inject_surgical", {"variant": "normal"})["injected"]
+        _post(base + f"/api/cases/{surgical}/decision", {"action": "margin_call", "payload": {"call": "defer"}})
+        before = _get(base + "/api/health")["sim"]["sim_time_s"]
+        time.sleep(0.5)                                   # the replay keeps running until the process stops
+    finally:
+        proc.terminate()
+        proc.wait(timeout=10)
+    proc, base = serve()
+    try:
+        assert _get(base + "/api/health")["sim"]["sim_time_s"] >= before
+        ctx = browser.new_context(viewport={"width": 1280, "height": 900})
+        pg = ctx.new_page()
+        errors = []
+        pg.on("pageerror", lambda e: errors.append(str(e)))
+        pg.goto(base + "/#/worklist")
+        expect(pg.locator(f"{ROW}[data-case-id='{hero}']")).to_have_attribute("data-done", "true")
+        expect(pg.locator(f"{ROW}[data-case-id='{surgical}']")).to_have_attribute("data-done", "true")
+        expect(pg.locator(tid("sim-pause"))).to_have_text("Resume replay")      # restored paused, never auto-run
+        pg.click(tid("nav-oncologist"))
+        expect(pg.locator(f"{tid('oncologist-item')}[data-case-id='{hero}']")).to_be_visible()
+        pg.click(tid("nav-surgeon"))
+        expect(pg.locator(f"{tid('or-card')}[data-case-id='{surgical}'] {tid('surgeon-result')}")).to_have_attribute(
+            "data-call", "defer")
+        assert errors == []
+        ctx.close()
+    finally:
+        proc.terminate()
+        proc.wait(timeout=10)

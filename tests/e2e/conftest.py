@@ -77,14 +77,16 @@ def roles(dev_root) -> dict[str, str]:
 
 
 @pytest.fixture(scope="session")
-def server(dev_root):
+def server(dev_root, tmp_path_factory):
     port = _free_port()
     env = {**os.environ, "PATHQUEUE_ARTIFACTS_ROOT": str(dev_root), "PATHQUEUE_CASES_DIR": ""}
+    # The access log goes to a file: an unread pipe fills up after a few thousand polls and blocks the server.
+    log_path = tmp_path_factory.mktemp("e2e-server") / "uvicorn.log"
+    log_file = open(log_path, "wb")
     proc = subprocess.Popen([sys.executable, "-m", "uvicorn", "backend.app:app", "--host", "127.0.0.1",
-                             "--port", str(port)], cwd=REPO, env=env, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
+                             "--port", str(port)], cwd=REPO, env=env, stdout=log_file, stderr=subprocess.STDOUT)
     base = f"http://127.0.0.1:{port}"
-    for _ in range(100):
+    for _ in range(150):
         try:
             if _get(base + "/api/health")["loaded"]:
                 break
@@ -92,10 +94,12 @@ def server(dev_root):
             time.sleep(0.1)
     else:
         proc.kill()
-        raise RuntimeError("backend did not start: " + proc.stdout.read().decode()[-2000:])
+        log_file.close()
+        raise RuntimeError("backend did not start: " + log_path.read_text(errors="replace")[-2000:])
     yield base
     proc.terminate()
     proc.wait(timeout=10)
+    log_file.close()
 
 
 @pytest.fixture()

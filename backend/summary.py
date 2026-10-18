@@ -19,8 +19,12 @@ Validator (a sentence is dropped when any rule fails; reasons are returned):
       - counts and indices (keys tiles, agree, of, qc_tiles_kept, min_tiles_kept) support only whole numbers, never
         decimals or percentages; signs are ignored; "3,150" is 3150;
   * it matches a settings summary.banned_patterns regex (no diagnosis stated as fact, no causal claims);
+  * it contradicts a cited finding's categorical facts (semantic_problem: margin call, reliability flag, concept
+    level above/below typical);
   * it is not a {"text": str, "findings": [str]} object.
 At most summary.max_sentences survivors are kept; fewer than summary.min_valid_sentences => the template.
+Required facts: the margin call and any quality concern must be cited; when the LLM omits one, its template sentence
+is appended (ensure_required) and the generator reads "lumen:<model>+template".
 
 Template: one sentence per finding kind in a fixed narrative order (prediction, concepts, cells, retrieval, quality,
 margin), chosen by clinical priority when more than max_sentences are possible. It only quotes numbers present in the
@@ -123,6 +127,99 @@ def _banned(cfg: Mapping[str, Any]) -> list[re.Pattern[str]]:
     return [re.compile(p, re.I) for p in cfg["summary"]["banned_patterns"]]
 
 
+# ---- semantic consistency (safety-critical facts must not be contradicted) ------------------------------------------
+_CLEAR = re.compile(r"\b(clear|negative|free of tumou?r|uninvolved)\b", re.I)
+_DEFER = re.compile(r"\b(defer\w*|permanent sections?|cannot be (determined|assessed)|unreliable|not reliable)\b", re.I)
+_INVOLVED = re.compile(r"\b(tumou?r (is )?(suggested )?at|involv\w*|positive)\b", re.I)
+_RELIABLE = re.compile(r"\b(high(ly)? reliab\w*|reliable|no (image[- ]quality )?concern\w*|good quality)\b", re.I)
+_UNRELIABLE = re.compile(r"\b(flag\w*|unreliable|not reliable|reduced (confidence|reliability)|low reliability)\b", re.I)
+_PRESENT = re.compile(r"\b(prominent|present|presence|frequent|abundant|dense|marked|extensive|increased|high|"
+                      r"numerous|conspicuous|notable|evident|observed|seen|shows?|showing)\b", re.I)
+_ABSENT = re.compile(r"\b(scarce|absent|absence|few|fewer|sparse|reduced|low|lack\w*|minimal|less|below|"
+                     r"decreased|limited|rare)\b", re.I)
+
+
+def _without(text: str, phrases: Sequence[str]) -> str:
+    for phrase in sorted({p for p in phrases if p}, key=len, reverse=True):
+        text = re.sub(re.escape(phrase), " ", text, flags=re.I)
+    return text
+
+
+def semantic_problem(text: str, cited: Sequence[Mapping[str, Any]]) -> str | None:
+    """Reason the sentence contradicts a cited finding's categorical facts, or None.
+
+    margin: the stated call must be the suggested call (defer never reads as clear; clear never as involved; tumor at
+    margin names every involved margin). quality: a flagged read is never called reliable and vice versa. concept: with
+    every cited feature label removed, a feature is called present only when its `level` is above_typical and scarce
+    only when below_typical (a scarce benign feature can still push toward invasive carcinoma)."""
+    labels = [x for f in cited if isinstance(f.get("data"), Mapping)
+              for x in (str(f["data"].get("label", "")), str(f["data"].get("concept", "")).replace("_", " "))]
+    rest = _without(text, labels)              # feature names ("Dense lymphocytic infiltrate") are not claims
+    for f in cited:
+        d = f.get("data") if isinstance(f.get("data"), Mapping) else {}
+        kind = f.get("kind")
+        if kind == "margin":
+            call = d.get("suggested_call")
+            if call == "defer" and (_CLEAR.search(text) or not _DEFER.search(text)):
+                return "margin call is defer: the sentence must defer, never call margins clear"
+            if call == "clear" and (_INVOLVED.search(text) or not _CLEAR.search(text)):
+                return "margin call is clear: the sentence must say clear, never involved"
+            if call == "tumor_at_margin":
+                involved = list(d.get("involved") or [])
+                every = set(involved) >= set(MARGIN_ORDER) and re.search(r"\ball (four |4 )?margins\b", text, re.I)
+                missing = [] if every else [m for m in involved if not re.search(rf"\b{m}\b", text, re.I)]
+                if missing or _DEFER.search(text):
+                    return f"margin call is tumor at margin: the sentence must name {missing or 'the involved margins'}"
+        elif kind == "quality":
+            flagged = bool(d.get("reliability_flag"))
+            if flagged and _RELIABLE.search(_UNRELIABLE.sub(" ", text)):
+                return "reliability flag is raised: the sentence must not call the read reliable"
+            if not flagged and _UNRELIABLE.search(text):
+                return "reliability flag is not raised: the sentence must not call the read unreliable"
+    levels = {f["data"].get("level") for f in cited if f.get("kind") == "concept" and isinstance(f.get("data"), Mapping)
+              and f["data"].get("level")}
+    names = ", ".join(str(f["data"].get("concept")) for f in cited if f.get("kind") == "concept")
+    if levels:                                 # a presence word needs a cited concept above typical, and vice versa
+        present, absent = bool(_PRESENT.search(rest)), bool(_ABSENT.search(rest))
+        if present and not absent and levels == {"below_typical"}:
+            return f"{names} below typical here: the sentence must not call it present"
+        if absent and not present and levels == {"above_typical"}:
+            return f"{names} above typical here: the sentence must not call it scarce"
+    return None
+
+
+def required_findings(findings: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    """Findings every summary must cite: the margin call, and a quality concern (reliability flag or too few tiles)."""
+    out = [f for f in findings if f["kind"] == "margin"][:1]
+    for f in findings:
+        if f["kind"] == "quality" and _quality_sentence(f)[1]:
+            out.append(f)
+            break
+    return out
+
+
+def ensure_required(kept: list[dict[str, Any]], findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]
+                    ) -> tuple[list[dict[str, Any]], int]:
+    """Append the template sentence for each required finding no kept sentence cites, dropping trailing sentences that
+    cite no required finding to stay within summary.max_sentences. Returns (sentences, n_template_sentences)."""
+    out = list(kept)
+    need = required_findings(findings)
+    req_ids = {f["id"] for f in need}
+    added = 0
+    for f in need:
+        if any(f["id"] in s["findings"] for s in out):
+            continue
+        text = _margin_sentence(f) if f["kind"] == "margin" else _quality_sentence(f)[0]
+        while len(out) >= int(cfg["summary"]["max_sentences"]):
+            drop = next((i for i in range(len(out) - 1, -1, -1) if not req_ids & set(out[i]["findings"])), None)
+            if drop is None:
+                break
+            out.pop(drop)
+        out.append({"text": text, "findings": [f["id"]]})
+        added += 1
+    return out, added
+
+
 def check_sentence(sentence: Any, by_id: Mapping[str, Mapping[str, Any]], banned: Sequence[re.Pattern[str]],
                    codes: Sequence[str] = ()) -> str | None:
     """Reason the sentence is invalid, or None when it passes."""
@@ -140,6 +237,9 @@ def check_sentence(sentence: Any, by_id: Mapping[str, Mapping[str, Any]], banned
     for pattern in banned:
         if pattern.search(text):
             return f"banned wording /{pattern.pattern}/"
+    semantic = semantic_problem(text, [by_id[f] for f in cited])
+    if semantic:
+        return semantic
     codes = list(codes) + [str(by_id[f]["data"]["label"]) for f in cited
                            if isinstance(by_id[f].get("data"), Mapping) and by_id[f]["data"].get("label")]
     odd = unknown_tokens(text, codes)
@@ -354,7 +454,14 @@ SYSTEM_PROMPT = (
     "cases, quality, cells or margins).\n"
     "5. Never state a diagnosis as fact: say 'suggested', 'associated with', 'cannot be excluded'. Never claim a "
     "feature causes anything. Concepts are 'features associated with invasive carcinoma', never a Nottingham grade.\n"
-    "6. Surgical cases are simulated frozen sections; margins are simulated.\n"
+    "6. Concept findings: 'level' compares this case with training cases (above_typical = prominent, typical, "
+    "below_typical = scarce); 'contribution' > 0 pushes toward invasive carcinoma and < 0 away from it. Call a feature "
+    "prominent only when its level is above_typical and scarce only when below_typical: a scarce benign feature can "
+    "still push toward invasive carcinoma, so say e.g. 'scarce normal lobules favour invasive carcinoma'.\n"
+    "7. Surgical cases are simulated frozen sections; margins are simulated. State the margin finding's "
+    "suggested_call exactly: tumor_at_margin names every involved margin; clear says margins clear; defer says defer "
+    "to permanent sections because the read is unreliable. If a quality finding has reliability_flag true, say the "
+    "read was flagged as unreliable.\n"
     'Answer with JSON only: {{"sentences": [{{"text": "...", "findings": ["F1"]}}]}}'
 )
 
@@ -432,5 +539,7 @@ def generate(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any], *, c
         return template_summary(findings, cfg), {**info, "generator": "template", "path": "template",
                                                  "reason": f"only {len(kept)} valid sentences"}
     kept = [{**k, "text": strip_inline_ids(k["text"])} for k in kept]
-    generator = f"lumen:{reply['model']}"
+    kept, added = ensure_required(kept, findings, cfg)
+    info["template_sentences"] = added
+    generator = f"lumen:{reply['model']}" + ("+template" if added else "")
     return {"generator": generator, "sentences": kept}, {**info, "generator": generator, "path": "llm", "reason": ""}

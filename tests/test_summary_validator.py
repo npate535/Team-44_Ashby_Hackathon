@@ -283,3 +283,52 @@ def test_cache_hit_reuses_text_and_changed_findings_fall_back_to_template(tmp_pa
     out, info = S.generate(changed, CFG, client=client_for(server, tmp_path, max_calls=0))
     assert out["generator"] == "template" and "BudgetExceeded" in info["reason"]
     assert S.findings_hash(changed) != S.findings_hash(FINDINGS)
+
+
+# ---- semantic consistency + required facts (2026-10-18) ------------------------------------------------------------
+from backend import summary as _S  # noqa: E402
+
+_MARGIN_DEFER = {"id": "F7", "kind": "margin", "data": {"suggested_call": "defer", "involved": []}}
+_MARGIN_TUMOR = {"id": "F7", "kind": "margin", "data": {"suggested_call": "tumor_at_margin", "involved": ["superior", "medial"]}}
+_FLAGGED = {"id": "F6", "kind": "quality", "data": {"reliability_flag": True, "qc_tiles_kept": 12, "min_tiles_kept": 3}}
+_LYMPH_LOW = {"id": "F3", "kind": "concept", "data": {"concept": "lymphocytes", "label": "Dense lymphocytic infiltrate (TILs)",
+                                                      "contribution": 0.6, "tiles": [1], "level": "below_typical"}}
+_MIT_HIGH = {"id": "F2", "kind": "concept", "data": {"concept": "mitoses", "label": "Frequent mitotic figures",
+                                                     "contribution": 0.3, "tiles": [2], "level": "above_typical"}}
+_TUB_LOW = {"id": "F4", "kind": "concept", "data": {"concept": "tubules", "label": "Gland / tubule formation",
+                                                    "contribution": 0.2, "tiles": [3], "level": "below_typical"}}
+
+
+def test_defer_margin_never_reads_as_clear():
+    assert _S.semantic_problem("Margins are clear.", [_MARGIN_DEFER])
+    assert _S.semantic_problem("Defer to permanent sections; the read is unreliable.", [_MARGIN_DEFER]) is None
+
+
+def test_tumor_at_margin_names_every_involved_margin():
+    assert _S.semantic_problem("Tumor is suggested at the superior margin.", [_MARGIN_TUMOR])
+    assert _S.semantic_problem("Tumor is suggested at the superior and medial margins.", [_MARGIN_TUMOR]) is None
+
+
+def test_flagged_read_is_not_called_reliable():
+    assert _S.semantic_problem("The read has high reliability.", [_FLAGGED])
+    assert _S.semantic_problem("The read was flagged as unreliable.", [_FLAGGED]) is None
+
+
+def test_concept_presence_follows_its_level_not_its_push():
+    assert _S.semantic_problem("A dense lymphocytic infiltrate is present.", [_LYMPH_LOW])
+    assert _S.semantic_problem("Scarce lymphocytes favour invasive carcinoma.", [_LYMPH_LOW]) is None
+    # the label's own wording ("Frequent", "Dense") is a name, not a claim; mixed levels may share a sentence
+    assert _S.semantic_problem("Frequent mitotic figures and scarce gland or tubule formation are associated.",
+                               [_MIT_HIGH, _TUB_LOW]) is None
+
+
+def test_required_margin_and_quality_sentences_are_appended(cfg=None):
+    from core import config
+    cfg = config.load_settings()
+    findings = [{"id": "F1", "kind": "prediction", "data": {"top": "Invasive", "p": 0.95, "set": ["Invasive"]}},
+                _FLAGGED, _MARGIN_DEFER]
+    kept = [{"text": "Invasive carcinoma is suggested.", "findings": ["F1"]}]
+    out, added = _S.ensure_required(kept, findings, cfg)
+    assert added == 2 and {"F6", "F7"} <= {f for s in out for f in s["findings"]}
+    assert len(out) <= int(cfg["summary"]["max_sentences"])
+    assert all(_S.semantic_problem(s["text"], [f for f in findings if f["id"] in s["findings"]]) is None for s in out)
