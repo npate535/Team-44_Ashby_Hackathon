@@ -152,3 +152,40 @@ def test_clock_drops_to_after_arrivals_speed_once_every_biopsy_is_in(tmp_path):
     assert sim.sim_now() == pytest.approx(t + 10 * CFG["sim"]["after_arrivals_speed"])   # continuous, no jump
     sim.reset()
     assert sim.clock_sim.speed == replay
+
+
+def test_after_arrivals_speed_is_dated_to_the_last_arrival_not_to_the_next_poll(tmp_path):
+    # arrivals are checked lazily: a long gap between polls (backgrounded tab) must not run at the replay speed
+    base = fixture_case("demo_0001")
+    sim, fake, store = _sim(tmp_path, [variant(base, "b1", offset=30), variant(base, "b2", offset=60)])
+    replay, after = sim.clock_sim.speed, CFG["sim"]["after_arrivals_speed"]
+    assert replay > after
+    sim.start()
+    fake.advance(100)                                   # nobody polls; b2 came due 60 / replay wall s after Start
+    assert sim.tick() == ["b1", "b2"]
+    expected = 60 + (100 - 60 / replay) * after
+    assert sim.sim_now() == pytest.approx(expected)
+    assert store.row("b2")["arrived_wall"] == pytest.approx(1_800_000_000.0 + 60 / replay)
+    assert all(e["sim_time_s"] <= sim.sim_now() + 1e-9 for e in store.events())   # no event stamped in the future
+    fake.advance(5)
+    assert sim.sim_now() == pytest.approx(expected + 5 * after)
+
+
+def test_after_arrivals_speed_never_rewinds_before_start(tmp_path):
+    # restored workspace with every scheduled arrival already in: the slower speed applies from this Start only
+    base = fixture_case("demo_0001")
+    folder = write_cases(tmp_path / "c", [variant(base, "b1", offset=30)])
+    fake = FakeClock()
+    store = db.Store(tmp_path / "s.sqlite")
+    first = Simulator(store, NO_SETTLE, lambda: db.load_case_dir(folder), fake.clock())
+    first.start()
+    fake.advance(2)
+    first.pause()
+    paused_at = first.sim_now()
+    assert paused_at == pytest.approx(2 * first.clock_sim.speed) and paused_at > 30
+    sim = Simulator(store, CFG, lambda: db.load_case_dir(folder), fake.clock())     # restart: restored, paused
+    assert sim.sim_now() == pytest.approx(paused_at)
+    sim.start()
+    fake.advance(10)
+    sim.tick()
+    assert sim.sim_now() == pytest.approx(paused_at + 10 * CFG["sim"]["after_arrivals_speed"])
