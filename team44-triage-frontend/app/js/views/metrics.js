@@ -4,6 +4,7 @@
 // the numbers it draws. Missing files or fields render "Not available in this run"; a broken section never takes the
 // page down. Wording: suggested / associated with / simulated; nothing here is clinically validated.
 // Ground truth only appears as test-split aggregates (no case-level labels).
+import { interpretPanel } from './interpret.js';
 import { classLabel, esc, humanize } from '../adapter.js';
 import * as C from '../charts.js';
 
@@ -1506,6 +1507,7 @@ export function render(ST, ctx) {
     h += '<div class="mock" data-testid="metrics-synthetic"><b>Synthetic data.</b> These numbers come from generated inputs and say nothing about model performance.</div>';
   if ((m.errors || []).length) h += `<div class="flag" role="alert">Unreadable eval files: ${m.errors.map((e) => esc(e.file)).join(', ')}</div>`;
   h += nav();
+  h += `<div class="mx-interp">${interpretPanel(ST, '__results', 'results')}</div>`;
   h += section('summary', 'Summary', 'The headline numbers, each with its uncertainty. The two workflow tiles come from a simulation, not measured clinical use.', safe(() => summaryTiles(ST, ev), 'metrics', 'Summary'));
   h += section('classification', 'Classification', 'Does the model separate invasive carcinoma from everything else, and where does it go wrong?',
     S(figRoc, 'analytics', 'ROC') + `<div class="mx-stack">${S(figConfusion, 'metrics', 'Confusion matrix') + S(figPr, 'analytics', 'Precision-recall')}</div>` + S(figOvr, 'analytics', 'One-vs-rest ROC') + S(figModels, 'metrics', 'Model comparison') + S(figSelection, 'model_choice', 'Model selection') + S(figThunder, 'thunder', 'Benchmark'));

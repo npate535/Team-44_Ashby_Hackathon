@@ -12,9 +12,9 @@ export class ApiError extends Error {
 const TIMEOUT_MS = 4000;
 
 export function createApi({base = ''} = {}) {
-  async function req(method, path, body) {
+  async function req(method, path, body, timeoutMs = TIMEOUT_MS) {
     const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
+    const timer = setTimeout(() => ctl.abort(), timeoutMs);
     try {
       const res = await fetch(base + path, {
         method, signal: ctl.signal,
@@ -63,6 +63,9 @@ export function createApi({base = ''} = {}) {
     metrics: () => req('GET', '/api/metrics'),
     spotcheckItems: () => req('GET', '/api/spotcheck/items'),
     spotcheck: body => req('POST', '/api/spotcheck', body),
+    // LLM interpretation: GET = cached or {status: 'none'}; POST generates (a model call can take a minute or two)
+    interpretation: key => req('GET', key === '__results' ? '/api/interpretation/results' : `/api/cases/${q(key)}/interpretation`),
+    interpret: (key, force = false) => req('POST', (key === '__results' ? '/api/interpretation/results' : `/api/cases/${q(key)}/interpretation`) + (force ? '?force=true' : ''), undefined, 420000),
     assetUrl: p => base + '/' + String(p || '').replace(/^\/+/, ''),
   };
 }

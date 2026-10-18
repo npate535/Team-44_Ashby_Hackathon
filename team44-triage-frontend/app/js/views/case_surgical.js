@@ -2,6 +2,7 @@
 // on a specimen diagram and on the image (per-segment strips), per-margin scores against the threshold on a log-odds
 // axis, a reliability indicator that explains a "defer" suggestion, and the three calls with confirmation.
 // The pathologist makes the call; it goes to the surgeon screen and stops the timer. Everything here is simulated.
+import { interpretPanel } from './interpret.js';
 import { CALL_TEXT, classLabel, esc, MARGINS, num, ordinalPct, toView } from '../adapter.js';
 import { agentPanel } from './agent.js';
 import { activity, header } from './case_biopsy.js';
@@ -128,6 +129,7 @@ export function render(ST, ctx) {
     `<div class="lg-keys ms-keys"><span class="lg-key"><i class="sw-seg hot" aria-hidden="true"></i>Segment above threshold</span><span class="lg-key"><i class="sw-seg warm" aria-hidden="true"></i>Just below threshold</span><span class="lg-key"><i class="sw-seg cool" aria-hidden="true"></i>Below threshold</span></div>` +
     `<p class="sub" data-testid="margin-2d-note">${esc(ST.cfg.margin.note)}</p></div>`;
   h += `<div class="card" data-testid="summary"><div class="card-h"><h2>Summary</h2></div>${summary(v)}</div>`;
+  h += interpretPanel(ST, v.id, 'case');
   const nEv = (ST.events[v.id] || []).length;
   h += `<details class="card activity-card" data-testid="case-events" data-keep="activity"${keepOpen('activity')}><summary>Activity <span>${nEv} event${nEv === 1 ? '' : 's'}</span></summary>${activity(ST.events[v.id])}</details>`;
   h += '</div><div class="decision-column cv-side">';

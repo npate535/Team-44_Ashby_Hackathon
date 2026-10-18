@@ -1,0 +1,83 @@
+/* Evidence in plain language (js/views/interpret.js). Colors come from the shared tokens in styles.css. */
+.ai-card { position: relative; overflow: hidden; }
+.ai-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: linear-gradient(90deg, var(--hema), var(--eos)); }
+.ai-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.ai-h h2 { display: flex; align-items: center; gap: 8px; }
+.ai-mark { width: 18px; height: 18px; border-radius: 6px; background: conic-gradient(from 210deg, var(--hema), var(--eos), var(--hema)); box-shadow: 0 0 0 3px var(--bl); }
+.ai-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+.ai-chip { font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 5px 8px; border-radius: 999px; background: var(--bl); color: var(--hema); }
+.ai-verify { font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 999px; }
+.ai-verify.ok { background: var(--grnl); color: var(--grn); }
+.ai-verify.warn { background: var(--ambl); color: var(--amb); }
+.ai-tabpanel { margin-top: 14px; max-width: 980px; }
+.mx-interp { margin: 0 0 18px; }
+
+/* rendered markdown */
+.ai-md { font-size: 14.5px; line-height: 1.62; color: var(--ink); margin-top: 6px; }
+.ai-md p { margin: 0 0 10px; }
+.ai-md h3 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--hema); margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+.ai-md h3::after { content: ""; flex: 1; height: 1px; background: var(--ln); }
+.ai-md h4 { font-size: 14px; margin: 12px 0 6px; }
+.ai-sec { padding: 14px 0 6px; }
+.ai-sec + .ai-sec { border-top: 1px dashed var(--ln); }
+.ai-lead { background: var(--bl); border-left: 4px solid var(--hema); border-radius: 10px; padding: 14px 16px 6px; font-size: 15.5px; margin-bottom: 6px; }
+.ai-lead + .ai-sec { border-top: 0; }
+.ai-sec-trust-check, .ai-sec-how-far-to-trust-these-explanations { background: var(--ambl); border-left: 4px solid var(--amb); border-radius: 10px; padding: 14px 16px 6px; margin: 8px 0; }
+.ai-sec-trust-check h3, .ai-sec-how-far-to-trust-these-explanations h3, .ai-sec-does-the-interpretability-hold-up h3 { color: var(--amb); }
+.ai-sec-trust-check + .ai-sec, .ai-sec-how-far-to-trust-these-explanations + .ai-sec { border-top: 0; }
+.ai-sec-limits { font-size: 13px; color: var(--mut); }
+.ai-md ul, .ai-md ol { margin: 0 0 10px; padding-left: 22px; }
+.ai-md li { margin: 4px 0; }
+.ai-md li::marker { color: var(--hema); font-weight: 700; }
+.ai-md strong { font-weight: 650; }
+.ai-md code { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bl); padding: 1px 5px; border-radius: 4px; }
+.ai-md pre { background: var(--bl); padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
+.ai-md blockquote { margin: 0 0 10px; padding: 4px 12px; border-left: 3px solid var(--ln); color: var(--mut); }
+.ai-md hr { border: 0; border-top: 1px solid var(--ln); margin: 12px 0; }
+.ai-table { overflow-x: auto; margin: 6px 0 12px; border: 1px solid var(--ln); border-radius: 10px; }
+.ai-table table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.ai-table th { text-align: left; background: var(--bl); color: var(--ink); font-weight: 600; padding: 8px 10px; white-space: nowrap; }
+.ai-table td { padding: 7px 10px; border-top: 1px solid var(--ln); vertical-align: top; }
+.ai-table tbody tr:hover td { background: color-mix(in srgb, var(--bl) 50%, transparent); }
+.ai-cite { font: 600 10.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--hema); background: var(--sf); border: 1px solid var(--hema); border-radius: 999px; padding: 2px 6px; margin: 0 2px; cursor: pointer; vertical-align: 1px; }
+.ai-cite:hover, .ai-cite:focus-visible { background: var(--hema); color: var(--sf); }
+
+/* states */
+.ai-empty { padding: 8px 0 4px; }
+.ai-empty p { margin: 0 0 10px; max-width: 70ch; }
+.ai-empty.err b { color: var(--eos); }
+.ai-points { list-style: none; padding: 0; margin: 4px 0 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+.ai-points li { background: var(--bl); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--mut); }
+.ai-points b { display: block; color: var(--ink); margin-bottom: 2px; }
+.ai-loading { display: flex; gap: 14px; align-items: center; padding: 10px 0 14px; }
+.ai-loading .sub { display: block; margin-top: 2px; }
+.ai-pulse { display: flex; gap: 4px; }
+.ai-pulse i { width: 8px; height: 8px; border-radius: 50%; background: var(--hema); animation: ai-bounce 1.2s infinite ease-in-out; }
+.ai-pulse i:nth-child(2) { animation-delay: .15s; background: color-mix(in srgb, var(--hema) 50%, var(--eos)); }
+.ai-pulse i:nth-child(3) { animation-delay: .3s; background: var(--eos); }
+@keyframes ai-bounce { 0%, 80%, 100% { transform: scale(.5); opacity: .4; } 40% { transform: scale(1); opacity: 1; } }
+.ai-skel { display: grid; gap: 9px; padding: 4px 0 10px; }
+.ai-skel i { display: block; height: 11px; border-radius: 6px; background: linear-gradient(90deg, var(--bl) 0%, var(--ln) 50%, var(--bl) 100%); background-size: 200% 100%; animation: ai-shimmer 1.4s infinite linear; }
+@keyframes ai-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.ai-unverified { font-size: 12.5px; background: var(--ambl); color: var(--ink); border-radius: 8px; padding: 8px 10px; margin: 6px 0 0; }
+.ai-foot { font-size: 12px; color: var(--mut); border-top: 1px solid var(--ln); margin: 12px 0 0; padding-top: 10px; line-height: 1.5; }
+.ai-foot a { color: var(--hema); }
+.ai-dot { background: var(--grnl) !important; color: var(--grn) !important; }
+@media (prefers-reduced-motion: reduce) { .ai-pulse i, .ai-skel i { animation: none; } }
+@media (max-width: 640px) { .ai-md { font-size: 14px; } .ai-lead { padding: 12px; } }
+
+/* v3 compact format: the bottom line is a single verdict line; feature bullets are dot-separated fields */
+.ai-lead p:first-of-type { font-size: 16.5px; margin-bottom: 6px; }
+.ai-lead p + p { color: var(--mut); font-size: 14px; }
+.ai-sec-tissue-evidence li, .ai-sec-check-on-the-slide li { padding: 3px 0; }
+.ai-sec-could-be-wrong-if { color: var(--ink); }
+.ai-sec-could-be-wrong-if h3 { color: var(--eos); }
+.ai-sec-check-on-the-slide ol { counter-reset: none; }
+.ai-tag { display: inline-block; font-size: 11px; font-weight: 650; padding: 1px 7px; border-radius: 999px; margin-left: 2px; vertical-align: 1px; }
+.ai-tag.ok { background: var(--grnl); color: var(--grn); }
+.ai-tag.weak { background: var(--ambl); color: var(--amb); }
+.ai-tag.bad { background: var(--eosl); color: var(--eos); }
+.ai-tag.meas { background: var(--bl); color: var(--hema); }
+.ai-dir { font-weight: 650; }
+.ai-dir.up { color: var(--eos); }
+.ai-dir.down { color: var(--grn); }

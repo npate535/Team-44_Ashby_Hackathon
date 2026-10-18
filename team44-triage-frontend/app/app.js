@@ -13,6 +13,7 @@ import * as surgeon from './js/views/surgeon.js';
 import * as oncologist from './js/views/oncologist.js';
 import * as metrics from './js/views/metrics.js';
 import * as spotcheck from './js/views/spotcheck.js';
+import { animateScene, syncGlass } from './js/glass.js';
 
 const params = new URLSearchParams(location.search);
 const ST = {
@@ -55,7 +56,9 @@ const ST = {
   callsSeen: new Set(load('pq.or.seen', [])),
   freshCalls: new Set(),
   routedPrimed: false,
-  justDone: null
+  justDone: null,
+  interp: {}, // AI interpretation per case id ('__results' = evaluation page): {status, data, error, startedAt}
+  interpRev: 0
 };
 window.__PQ_ST__ = ST; // debugging + e2e introspection (no secrets or ground truth live here)
 let api = null;
@@ -126,14 +129,15 @@ function onRoute() {
     if (active) b.setAttribute('aria-current', 'page');
     else b.removeAttribute('aria-current');
   });
-  // phones: the sidebar is a horizontally scrolling tab strip; keep the current page's tab in view
-  const strip = document.querySelector('.sidebar nav');
+  // Keep every destination reachable in the top pill on narrow screens.
+  const strip = document.querySelector('.glass-nav');
   const cur = strip && strip.querySelector('[aria-current=page]');
   if (cur && strip.scrollWidth > strip.clientWidth) {
     const s = strip.getBoundingClientRect(),
       c = cur.getBoundingClientRect();
     if (c.left < s.left || c.right > s.right) strip.scrollLeft += c.left - s.left - 16;
   }
+  syncGlass();
   lastFp = null;
   if (!api || !ST.cfg) return;
   draw();
@@ -160,6 +164,7 @@ async function refresh(force, seq) {
   ]);
   let detail = null,
     events = null,
+    interpretation = null,
     missing = false,
     evaluation = null,
     spot = null;
@@ -169,7 +174,15 @@ async function refresh(force, seq) {
   if (route === 'case' && caseId && skipMissing) missing = true;
   else if (route === 'case' && caseId) {
     try {
-      [detail, events] = await Promise.all([api.getCase(caseId), api.events(caseId)]);
+      // Read saved prose alongside the evidence so the initial case screen is complete and stable.
+      // This is a cache lookup only; an unavailable explanation never blocks the case evidence.
+      [detail, events, interpretation] = await Promise.all([
+        api.getCase(caseId),
+        api.events(caseId),
+        ST.interp[caseId] ? null : api.interpretation(caseId)
+          .then((data) => ({ status: data?.status === 'ok' ? 'ok' : 'none', data }))
+          .catch((err) => ({ status: 'error', error: err.message }))
+      ]);
       // optional context (held-out coverage line): a failing /api/metrics must not mark the case missing or offline
       if (!ST.metrics) evaluation = await api.metrics().catch(() => null);
     } catch (err) {
@@ -195,6 +208,10 @@ async function refresh(force, seq) {
     if (detail) {
       ST.cases[caseId] = detail;
       ST.events[caseId] = events;
+      if (interpretation && !ST.interp[caseId]) {
+        ST.interp[caseId] = interpretation;
+        ST.interpRev++;
+      }
     }
   }
   noticeRouted(toSurgeon || [], toOncologist || []);
@@ -274,7 +291,7 @@ function view() {
 function currentFp() {
   // Pages that do not read the queue redraw only for their own data: a running replay must not re-render the
   // dashboard (charts lose focus and tooltips) or the evidence review (images reload under the reviewer).
-  if (ST.route === 'metrics') return ['metrics', ST.metricsRev || 0, !!ST.metrics].join('|');
+  if (ST.route === 'metrics') return ['metrics', ST.metricsRev || 0, ST.interpRev, !!ST.metrics].join('|');
   if (ST.route === 'spotcheck')
     return [
       'spotcheck',
@@ -295,6 +312,7 @@ function currentFp() {
   const sim = ST.sim || {};
   const parts = [
     ST.metricsRev || 0,
+    ST.interpRev,
     ST.route,
     ST.caseId,
     ST.order,
@@ -418,6 +436,7 @@ function draw(forceRender = false) {
     html = `<div class="card" data-testid="state-render-error"><h2>This page could not be drawn</h2><p>${esc(err && err.message ? err.message : err)}. The data keeps refreshing in the background; other pages still work.</p></div>`;
   }
   $('#app').innerHTML = html;
+  animateScene(`${ST.route}/${ST.caseId || ''}/${ST.tab}`);
   if (searchFocused && $('#case-search')) {
     $('#case-search').focus({ preventScroll: true });
     $('#case-search').setSelectionRange(caret, caret);
@@ -446,6 +465,7 @@ function draw(forceRender = false) {
     ST.flashTarget = null;
   }
   tick();
+  wantInterp();
 }
 
 const PAGE = {
@@ -520,12 +540,16 @@ function updateShell() {
   $('#connection').title = offline ? 'The local service is not answering' : 'Local PathQueue service';
   $('#connection').dataset.state = offline ? 'offline' : h ? 'online' : 'pending';
   updateReplay();
+  syncGlass();
 }
 
 function updateReplay() {
   const sim = ST.sim;
   const h = ST.health;
   const box = $('.replay');
+  // A replay command can reorder the queue. Keep its old rows from opening while the new order loads.
+  $('#app').dataset.replayBusy = String(!!ST.simBusy);
+  $('#app').setAttribute('aria-busy', String(!!ST.simBusy));
   const start = $('[data-testid=sim-start]');
   const pp = $('#pp');
   // offline: the commands would fail, and the replay state on screen is stale
@@ -774,10 +798,52 @@ function clearReplayState() {
   }
 }
 
+// ---- AI interpretation (js/views/interpret.js) -----------------------------------------------------------------------------
+function setInterp(key, patch) {
+  ST.interp[key] = { ...(ST.interp[key] || {}), ...patch };
+  ST.interpRev++;
+  draw(true);
+}
+async function loadInterp(key) {
+  if (ST.interp[key]) return;
+  ST.interp[key] = { status: 'loading' };
+  try {
+    const data = await api.interpretation(key);
+    setInterp(key, data && data.status === 'ok' ? { status: 'ok', data } : { status: 'none', data });
+  } catch (err) {
+    setInterp(key, { status: 'error', error: err.message });
+  }
+}
+async function generateInterp(key, force) {
+  if ((ST.interp[key] || {}).status === 'generating') return;
+  setInterp(key, { status: 'generating', startedAt: Date.now(), error: null });
+  const ticker = setInterval(() => {
+    const el = document.querySelector(`[data-ai-elapsed="${ST.interp[key] && ST.interp[key].startedAt}"]`);
+    if (el) el.textContent = Math.round((Date.now() - ST.interp[key].startedAt) / 1000);
+  }, 1000);
+  try {
+    const data = await api.interpret(key, force);
+    setInterp(key, { status: 'ok', data });
+    toast(key === '__results' ? 'Results interpretation ready' : `Interpretation ready for ${key}`, { tone: 'ok' });
+  } catch (err) {
+    setInterp(key, { status: 'error', error: err.message });
+  } finally {
+    clearInterval(ticker);
+  }
+}
+// Fetch the cached text when a view that shows the panel is on screen (never generates on its own).
+function wantInterp() {
+  if (ST.route === 'metrics') loadInterp('__results');
+  else if (ST.route === 'case' && ST.caseId && ST.cases[ST.caseId]) {
+    loadInterp(ST.caseId);
+  }
+}
+
 function findingClick(fid) {
   const c = ST.cases[ST.caseId];
   const f = c && (c.findings || []).find((x) => x.id === fid);
   if (!f) return;
+  if (ST.tab === 'interp') ST.tab = 'evidence'; // a citation in the interpretation opens the evidence it names
   if (f.kind === 'concept') {
     if ((c.tiles || []).some((t) => t.concepts && f.data.concept in t.concepts)) ST.hm.sel = f.data.concept;
     ST.hm.hl = f.data.tiles || [];
@@ -897,6 +963,16 @@ document.addEventListener('click', async (e) => {
     draw(true);
     return;
   }
+  if (d.flagQuick) {
+    ST.flagFilter = ST.flagFilter === d.flagQuick ? 'all' : d.flagQuick;
+    ST.tierFilter = null;
+    ST.status = 'open';
+    ST.search = '';
+    ST.ordersOnly = false;
+    ST.page = 0;
+    draw(true);
+    return;
+  }
   if (d.clearSearch !== undefined) {
     ST.search = '';
     ST.status = 'all';
@@ -921,12 +997,17 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (t.matches('tr.row')) {
+    if (ST.simBusy) return;
     go('#/case/' + encodeURIComponent(t.dataset.caseId));
     return;
   }
   if (d.tab) {
     ST.tab = d.tab;
     draw(true);
+    return;
+  }
+  if (d.interp) {
+    generateInterp(d.interpKey, d.interp === 'regenerate');
     return;
   }
   if (d.f) {
@@ -1021,6 +1102,7 @@ document.addEventListener('keydown', (e) => {
   const r = e.target.closest && e.target.closest('tr.row');
   if (r && (e.key === 'Enter' || e.key === ' ')) {
     e.preventDefault();
+    if (ST.simBusy) return;
     go('#/case/' + encodeURIComponent(r.dataset.caseId));
     return;
   }
@@ -1121,11 +1203,10 @@ window.addEventListener('hashchange', onRoute);
 
 // Sticky offsets follow the real header height (it wraps onto two rows on narrow screens).
 function syncStick() {
-  const top = $('#topbar');
-  const sticky = getComputedStyle(top).position === 'sticky';
-  document.documentElement.style.setProperty('--stick', (sticky ? top.offsetHeight : 0) + 'px');
+  const top = $('.masthead');
+  document.documentElement.style.setProperty('--stick', top.offsetHeight + 'px');
 }
-if ('ResizeObserver' in window) new ResizeObserver(syncStick).observe($('#topbar'));
+if ('ResizeObserver' in window) new ResizeObserver(syncStick).observe($('.masthead'));
 window.addEventListener('resize', syncStick);
 
 // ---- boot -------------------------------------------------------------------------------------------------------------------

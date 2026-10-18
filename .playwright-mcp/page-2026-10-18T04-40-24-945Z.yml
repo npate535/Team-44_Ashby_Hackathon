@@ -1,0 +1,1381 @@
+- generic [active] [ref=e1]:
+  - link "Skip to workspace" [ref=e2] [cursor=pointer]:
+    - /url: "#app"
+  - complementary [ref=e3]:
+    - link "PathQueue home" [ref=e4] [cursor=pointer]:
+      - /url: "#/worklist"
+      - generic [ref=e5]:
+        - text: PathQueue
+        - generic [ref=e6]: INTELLIGENT PATHOLOGY
+    - generic [ref=e7]:
+      - generic [ref=e8]: "44"
+      - generic [ref=e9]:
+        - text: Team 44
+        - generic [ref=e10]: Breast pathology · BACH
+    - generic [ref=e11]: WORKSPACE
+    - navigation "Workspace" [ref=e12]:
+      - button "Worklist 99" [ref=e112] [cursor=pointer]:
+        - text: Worklist
+        - generic [ref=e16]: "99"
+      - button "Operating rooms" [ref=e17] [cursor=pointer]
+      - button "Oncology inbox" [ref=e20] [cursor=pointer]
+      - generic [ref=e23]: RESEARCH
+      - button "Model evaluation" [ref=e24] [cursor=pointer]
+      - button "Evidence review" [ref=e27] [cursor=pointer]
+    - generic [ref=e30]:
+      - generic [ref=e31]:
+        - generic [ref=e33]: Pipeline artifacts loaded
+        - generic [ref=e34]: 328 cases loaded · local workspace
+      - generic [ref=e35]:
+        - text: ASHBY PRIZE HACKATHON
+        - generic [ref=e36]: NCSA · 2026
+  - generic [ref=e37]:
+    - generic [ref=e38]:
+      - generic [ref=e39]: Workspace / Model evaluation
+      - generic [ref=e40]:
+        - status [ref=e41]: Local service connected
+        - generic "Team 44 research workspace" [ref=e42]: "44"
+    - generic [ref=e43]:
+      - note [ref=e44]: Research prototype — not for clinical use
+      - banner [ref=e45]:
+        - generic [ref=e46]:
+          - generic [ref=e47]: MODEL EVALUATION
+          - heading "Evidence behind the worklist." [level=1] [ref=e117]
+          - paragraph [ref=e49]: Inspect measured performance, uncertainty, and the limits of this research.
+        - generic [ref=e50]:
+          - text: Breast pathology
+          - generic [ref=e52]: Public, de-identified BACH data
+      - region "Arrival replay controls" [ref=e53]:
+        - generic [ref=e57]:
+          - text: Arrival replay
+          - generic [ref=e58]: simulator +13:57:34 · ×161.3 · paused
+        - generic [ref=e59]:
+          - group "Simulator" [ref=e60]:
+            - button "Start replay" [ref=e61] [cursor=pointer]
+            - button "Resume replay" [pressed] [ref=e114] [cursor=pointer]
+            - button "Reset" [ref=e63] [cursor=pointer]
+          - group "Inject a simulated frozen section" [ref=e64]:
+            - generic [ref=e65]: "Simulated:"
+            - button "+ Frozen" [ref=e66] [cursor=pointer]
+            - button "+ Degraded" [ref=e67] [cursor=pointer]
+            - button "+ Composite" [ref=e68] [cursor=pointer]
+      - main [ref=e69]:
+        - generic [ref=e118]:
+          - generic [ref=e119]:
+            - generic [ref=e120]:
+              - text: Every number traces to a file in
+              - code [ref=e121]: artifacts/eval/
+              - text: . Intervals are 95% cluster-bootstrap CIs over patient / pseudo-patient groups unless the row says otherwise. Headline case performance uses the clean test split. Each section identifies its own evaluation population; model selection uses grouped training folds. Degraded and composite variants never enter headline numbers.
+            - button "Refresh" [ref=e122] [cursor=pointer]
+          - generic [ref=e123]:
+            - 'heading "Headline: does triage separate invasive cases?" [level=2] [ref=e124]'
+            - heading "Invasive-vs-rest AUROC" [level=3] [ref=e125]
+            - img "AUROC" [ref=e126]:
+              - generic [ref=e127]: "0.50"
+              - generic [ref=e128]: "0.63"
+              - generic [ref=e129]: "0.75"
+              - generic [ref=e130]: "0.88"
+              - generic [ref=e131]: "1.00"
+              - generic [ref=e132]: Production · Invasive vs rest auroc
+              - 'generic "Production · Invasive vs rest auroc: 1.00 (95% CI 1.00–1.00, n=132, 24 groups)" [ref=e133]'
+              - generic [ref=e136]: "1.00"
+              - generic [ref=e137]: Production · Macro auroc
+              - 'generic "Production · Macro auroc: 0.95 (95% CI 0.86–0.99, n=132, 24 groups)" [ref=e138]'
+              - generic [ref=e141]: "0.95"
+              - generic [ref=e142]: Per model · Abmil · Invasive vs rest auroc
+              - 'generic "Per model · Abmil · Invasive vs rest auroc: 1.00 (95% CI 1.00–1.00, n=132, 24 groups)" [ref=e143]'
+              - generic [ref=e146]: "1.00"
+              - generic [ref=e147]: Per model · Abmil · Macro auroc
+              - 'generic "Per model · Abmil · Macro auroc: 0.95 (95% CI 0.89–1.00, n=132, 24 groups)" [ref=e148]'
+              - generic [ref=e151]: "0.95"
+              - generic [ref=e152]: Per model · Cb cells · Invasive vs rest auroc
+              - 'generic "Per model · Cb cells · Invasive vs rest auroc: 0.58 (95% CI 0.39–0.83, n=132, 24 groups)" [ref=e153]'
+              - generic [ref=e156]: "0.58"
+              - generic [ref=e157]: Per model · Cb cells · Macro auroc
+              - 'generic "Per model · Cb cells · Macro auroc: 0.56 (95% CI 0.50–0.62, n=132, 24 groups)" [ref=e158]'
+              - generic [ref=e161]: "0.56"
+            - table [ref=e163]:
+              - rowgroup [ref=e164]:
+                - row [ref=e165]:
+                  - columnheader "Quantity" [ref=e166]
+                  - columnheader "Value (interval)" [ref=e167]
+              - rowgroup [ref=e168]:
+                - row [ref=e169]:
+                  - cell "N" [ref=e170]
+                  - cell "132 (no CI)" [ref=e171]
+                - row [ref=e172]:
+                  - cell "N groups" [ref=e173]
+                  - cell "24.0 (no CI)" [ref=e174]
+                - row [ref=e175]:
+                  - cell "Variants excluded" [ref=e176]
+                  - cell "2,248 (no CI)" [ref=e177]
+                - row [ref=e178]:
+                  - cell "Bootstrap · N boot" [ref=e179]
+                  - cell "2,000 (no CI)" [ref=e180]
+                - row [ref=e181]:
+                  - cell "Bootstrap · Ci" [ref=e182]
+                  - cell "0.95 (no CI)" [ref=e183]
+                - row [ref=e184]:
+                  - cell "Bootstrap · Seed" [ref=e185]
+                  - cell "44.0 (no CI)" [ref=e186]
+                - row [ref=e187]:
+                  - cell "Production · Invasive vs rest auroc" [ref=e188]
+                  - cell "1.00 (95% CI 1.00–1.00, n=132, 24 groups)" [ref=e189]
+                - row [ref=e190]:
+                  - cell "Production · Macro auroc" [ref=e191]
+                  - cell "0.95 (95% CI 0.86–0.99, n=132, 24 groups)" [ref=e192]
+                - row [ref=e193]:
+                  - cell "Production · Macro f1" [ref=e194]
+                  - cell "0.82 (95% CI 0.60–0.92, n=132, 24 groups)" [ref=e195]
+                - row [ref=e196]:
+                  - cell "Production · Balanced accuracy" [ref=e197]
+                  - cell "0.82 (95% CI 0.60–0.94, n=132, 24 groups)" [ref=e198]
+                - row [ref=e199]:
+                  - cell "Production · Accuracy" [ref=e200]
+                  - cell "0.83 (95% CI 0.69–0.94, n=132, 24 groups)" [ref=e201]
+                - row [ref=e202]:
+                  - cell "Production · Invasive sensitivity" [ref=e203]
+                  - cell "1.00 (95% CI 1.00–1.00, n=132, 24 groups)" [ref=e204]
+                - row [ref=e205]:
+                  - cell "Production · Invasive specificity" [ref=e206]
+                  - cell "0.96 (95% CI 0.92–1.00, n=132, 24 groups)" [ref=e207]
+                - row [ref=e208]:
+                  - cell "Production · Confusion · Insitu invasive · Insitu called invasive" [ref=e209]
+                  - cell "4.00 (no CI)" [ref=e210]
+                - row [ref=e211]:
+                  - cell "Production · Confusion · Insitu invasive · Invasive called insitu" [ref=e212]
+                  - cell "0.00 (no CI)" [ref=e213]
+                - row [ref=e214]:
+                  - cell "Production · Confusion · Insitu invasive · N insitu" [ref=e215]
+                  - cell "30.0 (no CI)" [ref=e216]
+                - row [ref=e217]:
+                  - cell "Production · Confusion · Insitu invasive · N invasive" [ref=e218]
+                  - cell "31.0 (no CI)" [ref=e219]
+                - row [ref=e220]:
+                  - cell "Per model · Abmil · Invasive vs rest auroc" [ref=e221]
+                  - cell "1.00 (95% CI 1.00–1.00, n=132, 24 groups)" [ref=e222]
+                - row [ref=e223]:
+                  - cell "Per model · Abmil · Macro auroc" [ref=e224]
+                  - cell "0.95 (95% CI 0.89–1.00, n=132, 24 groups)" [ref=e225]
+                - row [ref=e226]:
+                  - cell "Per model · Abmil · Macro f1" [ref=e227]
+                  - cell "0.78 (95% CI 0.57–0.88, n=132, 24 groups)" [ref=e228]
+                - row [ref=e229]:
+                  - cell "Per model · Abmil · Balanced accuracy" [ref=e230]
+                  - cell "0.78 (95% CI 0.58–0.89, n=132, 24 groups)" [ref=e231]
+                - row [ref=e232]:
+                  - cell "Per model · Abmil · Accuracy" [ref=e233]
+                  - cell "0.80 (95% CI 0.68–0.90, n=132, 24 groups)" [ref=e234]
+                - row [ref=e235]:
+                  - cell "Per model · Abmil · Invasive sensitivity" [ref=e236]
+                  - cell "1.00 (95% CI 1.00–1.00, n=132, 24 groups)" [ref=e237]
+                - row [ref=e238]:
+                  - cell "Per model · Abmil · Invasive specificity" [ref=e239]
+                  - cell "0.91 (95% CI 0.85–0.99, n=132, 24 groups)" [ref=e240]
+            - group [ref=e241]:
+              - generic "59 more" [ref=e242] [cursor=pointer]
+            - group [ref=e243]:
+              - generic "Assumptions and notes" [ref=e244] [cursor=pointer]
+            - group [ref=e245]:
+              - generic "raw JSON" [ref=e246] [cursor=pointer]
+            - generic [ref=e247]: "source: eval/metrics.json · 2026-10-18T04:36:00Z"
+          - generic [ref=e248]:
+            - heading "Is the confidence honest? Calibration" [level=2] [ref=e249]
+            - generic [ref=e250]:
+              - generic [ref=e251]: After
+              - generic [ref=e253]: Before
+            - img "Reliability diagram" [ref=e255]:
+              - generic [ref=e256]: "0.00"
+              - generic [ref=e257]: "0.25"
+              - generic [ref=e258]: "0.50"
+              - generic [ref=e259]: "0.75"
+              - generic [ref=e260]: "1.00"
+              - generic [ref=e261]: "0.47"
+              - generic [ref=e262]: "0.60"
+              - generic [ref=e263]: "0.73"
+              - generic [ref=e264]: "0.87"
+              - generic [ref=e265]: "1.00"
+              - generic [ref=e267]: perfect calibration
+              - 'generic "After · mean predicted probability 0.55: 0.71, n=14" [ref=e269]'
+              - 'generic "After · mean predicted probability 0.70: 0.64, n=14" [ref=e272]'
+              - 'generic "After · mean predicted probability 0.80: 0.85, n=13" [ref=e275]'
+              - 'generic "After · mean predicted probability 0.86: 0.69, n=13" [ref=e278]'
+              - 'generic "After · mean predicted probability 0.90: 0.77, n=13" [ref=e281]'
+              - 'generic "After · mean predicted probability 0.93: 0.92, n=13" [ref=e284]'
+              - 'generic "After · mean predicted probability 0.96: 0.92, n=13" [ref=e287]'
+              - 'generic "After · mean predicted probability 0.98: 0.85, n=13" [ref=e290]'
+              - 'generic "After · mean predicted probability 0.99: 1.00, n=13" [ref=e293]'
+              - 'generic "After · mean predicted probability 1.00: 1.00, n=13" [ref=e296]'
+              - generic [ref=e299]: After
+              - 'generic "Before · mean predicted probability 0.47: 0.64, n=14" [ref=e301]'
+              - 'generic "Before · mean predicted probability 0.58: 0.71, n=14" [ref=e304]'
+              - 'generic "Before · mean predicted probability 0.65: 0.77, n=13" [ref=e307]'
+              - 'generic "Before · mean predicted probability 0.71: 1.00, n=13" [ref=e310]'
+              - 'generic "Before · mean predicted probability 0.76: 0.77, n=13" [ref=e313]'
+              - 'generic "Before · mean predicted probability 0.80: 0.62, n=13" [ref=e316]'
+              - 'generic "Before · mean predicted probability 0.86: 1.00, n=13" [ref=e319]'
+              - 'generic "Before · mean predicted probability 0.91: 0.85, n=13" [ref=e322]'
+              - 'generic "Before · mean predicted probability 0.94: 1.00, n=13" [ref=e325]'
+              - 'generic "Before · mean predicted probability 0.98: 1.00, n=13" [ref=e328]'
+              - generic [ref=e331]: Before
+              - generic [ref=e332]: mean predicted probability
+              - generic [ref=e333]: observed frequency
+            - table [ref=e335]:
+              - rowgroup [ref=e336]:
+                - row [ref=e337]:
+                  - columnheader "Quantity" [ref=e338]
+                  - columnheader "Value (interval)" [ref=e339]
+              - rowgroup [ref=e340]:
+                - row [ref=e341]:
+                  - cell "N" [ref=e342]
+                  - cell "132 (no CI)" [ref=e343]
+                - row [ref=e344]:
+                  - cell "N groups" [ref=e345]
+                  - cell "24.0 (no CI)" [ref=e346]
+                - row [ref=e347]:
+                  - cell "Temperature" [ref=e348]
+                  - cell "0.62 (no CI)" [ref=e349]
+                - row [ref=e350]:
+                  - cell "Ece bins" [ref=e351]
+                  - cell "10.0 (no CI)" [ref=e352]
+                - row [ref=e353]:
+                  - cell "After · Ece" [ref=e354]
+                  - cell "0.08 (95% CI 0.05–0.22, n=132, 24 groups)" [ref=e355]
+                - row [ref=e356]:
+                  - cell "After · Brier" [ref=e357]
+                  - cell "0.28 (95% CI 0.13–0.52, n=132, 24 groups)" [ref=e358]
+                - row [ref=e359]:
+                  - cell "After · Nll" [ref=e360]
+                  - cell "0.57 (95% CI 0.24–1.19, n=132, 24 groups)" [ref=e361]
+                - row [ref=e362]:
+                  - cell "After · Reliability diagram · Ece" [ref=e363]
+                  - cell "0.08 (no CI)" [ref=e364]
+                - row [ref=e365]:
+                  - cell "After · Reliability diagram · N" [ref=e366]
+                  - cell "132 (no CI)" [ref=e367]
+                - row [ref=e368]:
+                  - cell "Before · Ece" [ref=e369]
+                  - cell "0.12 (95% CI 0.09–0.22, n=132, 24 groups)" [ref=e370]
+                - row [ref=e371]:
+                  - cell "Before · Brier" [ref=e372]
+                  - cell "0.29 (95% CI 0.15–0.47, n=132, 24 groups)" [ref=e373]
+                - row [ref=e374]:
+                  - cell "Before · Nll" [ref=e375]
+                  - cell "0.55 (95% CI 0.30–0.93, n=132, 24 groups)" [ref=e376]
+                - row [ref=e377]:
+                  - cell "Before · Reliability diagram · Ece" [ref=e378]
+                  - cell "0.12 (no CI)" [ref=e379]
+                - row [ref=e380]:
+                  - cell "Before · Reliability diagram · N" [ref=e381]
+                  - cell "132 (no CI)" [ref=e382]
+            - group [ref=e383]:
+              - generic "Assumptions and notes" [ref=e384] [cursor=pointer]
+            - group [ref=e385]:
+              - generic "raw JSON" [ref=e386] [cursor=pointer]
+            - generic [ref=e387]: "source: eval/calibration.json · 2026-10-18T04:36:00Z"
+          - generic [ref=e388]:
+            - heading "Conformal coverage and set size" [level=2] [ref=e389]
+            - heading "Empirical coverage (target 90%)" [level=3] [ref=e390]
+            - img "Conformal coverage" [ref=e391]:
+              - generic [ref=e392]: "0.00"
+              - generic [ref=e393]: "0.25"
+              - generic [ref=e394]: "0.50"
+              - generic [ref=e395]: "0.75"
+              - generic [ref=e396]: "1.00"
+              - generic [ref=e397]: target
+              - generic [ref=e398]: Methods · Lac marginal · Coverage
+              - 'generic "Methods · Lac marginal · Coverage: 0.67 (95% CI 0.57–0.79, n=132, 24 groups)" [ref=e399]'
+              - generic [ref=e402]: "0.67"
+              - generic [ref=e403]: Methods · Aps · Coverage
+              - 'generic "Methods · Aps · Coverage: 0.86 (95% CI 0.71–0.94, n=132, 24 groups)" [ref=e404]'
+              - generic [ref=e407]: "0.86"
+              - generic [ref=e408]: Methods · Mondrian · Coverage
+              - 'generic "Methods · Mondrian · Coverage: 0.48 (95% CI 0.33–0.75, n=132, 24 groups)" [ref=e409]'
+              - generic [ref=e412]: "0.48"
+            - table [ref=e414]:
+              - rowgroup [ref=e415]:
+                - row [ref=e416]:
+                  - columnheader "Quantity" [ref=e417]
+                  - columnheader "Value (interval)" [ref=e418]
+              - rowgroup [ref=e419]:
+                - row [ref=e420]:
+                  - cell "N" [ref=e421]
+                  - cell "132 (no CI)" [ref=e422]
+                - row [ref=e423]:
+                  - cell "N groups" [ref=e424]
+                  - cell "24.0 (no CI)" [ref=e425]
+                - row [ref=e426]:
+                  - cell "Alpha" [ref=e427]
+                  - cell "0.10 (no CI)" [ref=e428]
+                - row [ref=e429]:
+                  - cell "Target coverage" [ref=e430]
+                  - cell "0.90 (no CI)" [ref=e431]
+                - row [ref=e432]:
+                  - cell "Finite sample · N calibration" [ref=e433]
+                  - cell "50.0 (no CI)" [ref=e434]
+                - row [ref=e435]:
+                  - cell "Finite sample · K" [ref=e436]
+                  - cell "46.0 (no CI)" [ref=e437]
+                - row [ref=e438]:
+                  - cell "Finite sample · Mean" [ref=e439]
+                  - cell "0.90 (no CI)" [ref=e440]
+                - row [ref=e441]:
+                  - cell "Finite sample · Sd" [ref=e442]
+                  - cell "0.04 (no CI)" [ref=e443]
+                - row [ref=e444]:
+                  - cell "Methods · Lac marginal · Coverage" [ref=e445]
+                  - cell "0.67 (95% CI 0.57–0.79, n=132, 24 groups)" [ref=e446]
+                - row [ref=e447]:
+                  - cell "Methods · Lac marginal · Mean set size" [ref=e448]
+                  - cell "0.77 (95% CI 0.72–0.85, n=132, 24 groups)" [ref=e449]
+                - row [ref=e450]:
+                  - cell "Methods · Lac marginal · Empty set rate" [ref=e451]
+                  - cell "0.23 (no CI)" [ref=e452]
+                - row [ref=e453]:
+                  - cell "Methods · Lac marginal · Per class · Normal" [ref=e454]
+                  - cell "0.52 (95% CI 0.24–0.78, n=23, 6 groups)" [ref=e455]
+                - row [ref=e456]:
+                  - cell "Methods · Lac marginal · Per class · Benign" [ref=e457]
+                  - cell "0.67 (95% CI 0.43–0.85, n=48, 6 groups)" [ref=e458]
+                - row [ref=e459]:
+                  - cell "Methods · Lac marginal · Per class · InSitu" [ref=e460]
+                  - cell "0.53 (95% CI 0.17–0.63, n=30, 6 groups)" [ref=e461]
+                - row [ref=e462]:
+                  - cell "Methods · Lac marginal · Per class · Invasive" [ref=e463]
+                  - cell "0.94 (95% CI 0.83–1.00, n=31, 17 groups)" [ref=e464]
+                - row [ref=e465]:
+                  - cell "Methods · Aps · Coverage" [ref=e466]
+                  - cell "0.86 (95% CI 0.71–0.94, n=132, 24 groups)" [ref=e467]
+                - row [ref=e468]:
+                  - cell "Methods · Aps · Mean set size" [ref=e469]
+                  - cell "1.28 (95% CI 1.14–1.36, n=132, 24 groups)" [ref=e470]
+                - row [ref=e471]:
+                  - cell "Methods · Aps · Empty set rate" [ref=e472]
+                  - cell "0.02 (no CI)" [ref=e473]
+                - row [ref=e474]:
+                  - cell "Methods · Aps · Per class · Normal" [ref=e475]
+                  - cell "0.74 (95% CI 0.44–0.93, n=23, 6 groups)" [ref=e476]
+                - row [ref=e477]:
+                  - cell "Methods · Aps · Per class · Benign" [ref=e478]
+                  - cell "0.83 (95% CI 0.50–0.97, n=48, 6 groups)" [ref=e479]
+                - row [ref=e480]:
+                  - cell "Methods · Aps · Per class · InSitu" [ref=e481]
+                  - cell "0.90 (95% CI 0.67–0.95, n=30, 6 groups)" [ref=e482]
+                - row [ref=e483]:
+                  - cell "Methods · Aps · Per class · Invasive" [ref=e484]
+                  - cell "0.94 (95% CI 0.86–1.00, n=31, 17 groups)" [ref=e485]
+                - row [ref=e486]:
+                  - cell "Methods · Mondrian · Coverage" [ref=e487]
+                  - cell "0.48 (95% CI 0.33–0.75, n=132, 24 groups)" [ref=e488]
+                - row [ref=e489]:
+                  - cell "Methods · Mondrian · Mean set size" [ref=e490]
+                  - cell "0.55 (95% CI 0.41–0.80, n=132, 24 groups)" [ref=e491]
+            - group [ref=e492]:
+              - generic "5 more" [ref=e493] [cursor=pointer]
+            - group [ref=e494]:
+              - generic "Assumptions and notes" [ref=e495] [cursor=pointer]
+            - group [ref=e496]:
+              - generic "raw JSON" [ref=e497] [cursor=pointer]
+            - generic [ref=e498]: "source: eval/conformal.json · 2026-10-18T04:36:01Z"
+          - generic [ref=e499]:
+            - heading "Concept sanity check (NCT-CRC-HE-100K, cross-organ)" [level=2] [ref=e500]
+            - table [ref=e502]:
+              - rowgroup [ref=e503]:
+                - row [ref=e504]:
+                  - columnheader "Quantity" [ref=e505]
+                  - columnheader "Value (interval)" [ref=e506]
+              - rowgroup [ref=e507]:
+                - row [ref=e508]:
+                  - cell "Cav · Min auroc" [ref=e509]
+                  - cell "0.75 (no CI)" [ref=e510]
+                - row [ref=e511]:
+                  - cell "Cav · Concepts · Tubules · N pos" [ref=e512]
+                  - cell "236 (no CI)" [ref=e513]
+                - row [ref=e514]:
+                  - cell "Cav · Concepts · Tubules · N neg" [ref=e515]
+                  - cell "144 (no CI)" [ref=e516]
+                - row [ref=e517]:
+                  - cell "Cav · Concepts · Tubules · N groups" [ref=e518]
+                  - cell "163 (no CI)" [ref=e519]
+                - row [ref=e520]:
+                  - cell "Cav · Concepts · Tubules · Heldout auroc" [ref=e521]
+                  - cell "0.73 (95% CI 0.63–0.82, n=380, 163 groups)" [ref=e522]
+                - row [ref=e523]:
+                  - cell "Cav · Concepts · Tubules · N folds" [ref=e524]
+                  - cell "5.00 (no CI)" [ref=e525]
+                - row [ref=e526]:
+                  - cell "Cav · Concepts · Pleomorphism · N pos" [ref=e527]
+                  - cell "405 (no CI)" [ref=e528]
+                - row [ref=e529]:
+                  - cell "Cav · Concepts · Pleomorphism · N neg" [ref=e530]
+                  - cell "201 (no CI)" [ref=e531]
+                - row [ref=e532]:
+                  - cell "Cav · Concepts · Pleomorphism · N groups" [ref=e533]
+                  - cell "273 (no CI)" [ref=e534]
+                - row [ref=e535]:
+                  - cell "Cav · Concepts · Pleomorphism · Heldout auroc" [ref=e536]
+                  - cell "0.75 (95% CI 0.69–0.81, n=606, 273 groups)" [ref=e537]
+                - row [ref=e538]:
+                  - cell "Cav · Concepts · Pleomorphism · N folds" [ref=e539]
+                  - cell "5.00 (no CI)" [ref=e540]
+                - row [ref=e541]:
+                  - cell "Cav · Concepts · Mitoses · N pos" [ref=e542]
+                  - cell "405 (no CI)" [ref=e543]
+                - row [ref=e544]:
+                  - cell "Cav · Concepts · Mitoses · N neg" [ref=e545]
+                  - cell "294 (no CI)" [ref=e546]
+                - row [ref=e547]:
+                  - cell "Cav · Concepts · Mitoses · N groups" [ref=e548]
+                  - cell "313 (no CI)" [ref=e549]
+                - row [ref=e550]:
+                  - cell "Cav · Concepts · Mitoses · Heldout auroc" [ref=e551]
+                  - cell "0.78 (95% CI 0.72–0.83, n=699, 313 groups)" [ref=e552]
+                - row [ref=e553]:
+                  - cell "Cav · Concepts · Mitoses · N folds" [ref=e554]
+                  - cell "5.00 (no CI)" [ref=e555]
+                - row [ref=e556]:
+                  - cell "Cav · Concepts · Invasion · N pos" [ref=e557]
+                  - cell "405 (no CI)" [ref=e558]
+                - row [ref=e559]:
+                  - cell "Cav · Concepts · Invasion · N neg" [ref=e560]
+                  - cell "405 (no CI)" [ref=e561]
+                - row [ref=e562]:
+                  - cell "Cav · Concepts · Invasion · N groups" [ref=e563]
+                  - cell "420 (no CI)" [ref=e564]
+                - row [ref=e565]:
+                  - cell "Cav · Concepts · Invasion · Heldout auroc" [ref=e566]
+                  - cell "0.78 (95% CI 0.74–0.82, n=810, 420 groups)" [ref=e567]
+                - row [ref=e568]:
+                  - cell "Cav · Concepts · Invasion · N folds" [ref=e569]
+                  - cell "5.00 (no CI)" [ref=e570]
+                - row [ref=e571]:
+                  - cell "Cav · Concepts · Invasion · Wsi check · N" [ref=e572]
+                  - cell "1,950 (no CI)" [ref=e573]
+                - row [ref=e574]:
+                  - cell "Cav · Concepts · Invasion · Wsi check · N pos" [ref=e575]
+                  - cell "1,494 (no CI)" [ref=e576]
+                - row [ref=e577]:
+                  - cell "Cav · Concepts · Invasion · Wsi check · N groups" [ref=e578]
+                  - cell "10.0 (no CI)" [ref=e579]
+            - group [ref=e580]:
+              - generic "102 more" [ref=e581] [cursor=pointer]
+            - group [ref=e582]:
+              - generic "raw JSON" [ref=e583] [cursor=pointer]
+            - generic [ref=e584]: "source: eval/concepts.json · 2026-10-18T04:24:05Z"
+          - generic [ref=e585]:
+            - 'heading "Concepts on BACH: per-class means" [level=2] [ref=e586]'
+            - table [ref=e588]:
+              - rowgroup [ref=e589]:
+                - row [ref=e590]:
+                  - columnheader "Quantity" [ref=e591]
+                  - columnheader "Value (interval)" [ref=e592]
+              - rowgroup [ref=e593]:
+                - row [ref=e594]:
+                  - cell "N cases" [ref=e595]
+                  - cell "132 (no CI)" [ref=e596]
+                - row [ref=e597]:
+                  - cell "N groups" [ref=e598]
+                  - cell "24.0 (no CI)" [ref=e599]
+                - row [ref=e600]:
+                  - cell "Per class n · Normal" [ref=e601]
+                  - cell "23.0 (no CI)" [ref=e602]
+                - row [ref=e603]:
+                  - cell "Per class n · Benign" [ref=e604]
+                  - cell "48.0 (no CI)" [ref=e605]
+                - row [ref=e606]:
+                  - cell "Per class n · InSitu" [ref=e607]
+                  - cell "30.0 (no CI)" [ref=e608]
+                - row [ref=e609]:
+                  - cell "Per class n · Invasive" [ref=e610]
+                  - cell "31.0 (no CI)" [ref=e611]
+                - row [ref=e612]:
+                  - cell "Concepts · Tubules · Class means · Normal" [ref=e613]
+                  - cell "1.06 (95% CI 0.85–1.30, n=23, 6 groups)" [ref=e614]
+                - row [ref=e615]:
+                  - cell "Concepts · Tubules · Class means · Benign" [ref=e616]
+                  - cell "1.10 (95% CI 0.96–1.34, n=48, 6 groups)" [ref=e617]
+                - row [ref=e618]:
+                  - cell "Concepts · Tubules · Class means · InSitu" [ref=e619]
+                  - cell "0.07 (95% CI -0.78–0.59, n=30, 6 groups)" [ref=e620]
+                - row [ref=e621]:
+                  - cell "Concepts · Tubules · Class means · Invasive" [ref=e622]
+                  - cell "-0.67 (95% CI -1.03–-0.27, n=31, 17 groups)" [ref=e623]
+                - row [ref=e624]:
+                  - cell "Concepts · Tubules · Auroc Invasive vs rest" [ref=e625]
+                  - cell "0.11 (95% CI 0.02–0.21, n=132, 24 groups)" [ref=e626]
+                - row [ref=e627]:
+                  - cell "Concepts · Pleomorphism · Class means · Normal" [ref=e628]
+                  - cell "0.34 (95% CI 0.17–0.45, n=23, 6 groups)" [ref=e629]
+                - row [ref=e630]:
+                  - cell "Concepts · Pleomorphism · Class means · Benign" [ref=e631]
+                  - cell "-0.02 (95% CI -0.30–0.38, n=48, 6 groups)" [ref=e632]
+                - row [ref=e633]:
+                  - cell "Concepts · Pleomorphism · Class means · InSitu" [ref=e634]
+                  - cell "0.39 (95% CI -0.11–1.34, n=30, 6 groups)" [ref=e635]
+                - row [ref=e636]:
+                  - cell "Concepts · Pleomorphism · Class means · Invasive" [ref=e637]
+                  - cell "1.61 (95% CI 1.29–1.92, n=31, 17 groups)" [ref=e638]
+                - row [ref=e639]:
+                  - cell "Concepts · Pleomorphism · Auroc Invasive vs rest" [ref=e640]
+                  - cell "0.93 (95% CI 0.87–0.97, n=132, 24 groups)" [ref=e641]
+                - row [ref=e642]:
+                  - cell "Concepts · Mitoses · Class means · Normal" [ref=e643]
+                  - cell "0.33 (95% CI 0.05–0.53, n=23, 6 groups)" [ref=e644]
+                - row [ref=e645]:
+                  - cell "Concepts · Mitoses · Class means · Benign" [ref=e646]
+                  - cell "0.23 (95% CI -0.16–0.53, n=48, 6 groups)" [ref=e647]
+                - row [ref=e648]:
+                  - cell "Concepts · Mitoses · Class means · InSitu" [ref=e649]
+                  - cell "1.07 (95% CI 0.68–1.52, n=30, 6 groups)" [ref=e650]
+                - row [ref=e651]:
+                  - cell "Concepts · Mitoses · Class means · Invasive" [ref=e652]
+                  - cell "1.49 (95% CI 1.18–1.77, n=31, 17 groups)" [ref=e653]
+                - row [ref=e654]:
+                  - cell "Concepts · Mitoses · Auroc Invasive vs rest" [ref=e655]
+                  - cell "0.83 (95% CI 0.73–0.95, n=132, 24 groups)" [ref=e656]
+                - row [ref=e657]:
+                  - cell "Concepts · Invasion · Class means · Normal" [ref=e658]
+                  - cell "0.34 (95% CI -0.10–0.63, n=23, 6 groups)" [ref=e659]
+                - row [ref=e660]:
+                  - cell "Concepts · Invasion · Class means · Benign" [ref=e661]
+                  - cell "0.10 (95% CI -0.31–0.59, n=48, 6 groups)" [ref=e662]
+                - row [ref=e663]:
+                  - cell "Concepts · Invasion · Class means · InSitu" [ref=e664]
+                  - cell "0.32 (95% CI 0.07–0.54, n=30, 6 groups)" [ref=e665]
+            - group [ref=e666]:
+              - generic "27 more" [ref=e667] [cursor=pointer]
+            - group [ref=e668]:
+              - generic "Assumptions and notes" [ref=e669] [cursor=pointer]
+            - group [ref=e670]:
+              - generic "raw JSON" [ref=e671] [cursor=pointer]
+            - generic [ref=e672]: "source: eval/concepts_bach.json · 2026-10-18T04:24:07Z"
+          - generic [ref=e673]:
+            - heading "Reliability flag vs simulated frozen-section artifacts" [level=2] [ref=e674]
+            - heading "Accuracy vs simulated artifact severity (0 = clean)" [level=3] [ref=e675]
+            - generic [ref=e676]:
+              - generic [ref=e677]:
+                - generic [ref=e678]: Blur
+                - img "Blur accuracy vs severity" [ref=e679]:
+                  - generic [ref=e680]: "0.40"
+                  - generic [ref=e681]: "0.55"
+                  - generic [ref=e682]: "0.70"
+                  - generic [ref=e683]: "0.85"
+                  - generic [ref=e684]: "1.00"
+                  - generic [ref=e685]: "0.00"
+                  - generic [ref=e686]: "1.00"
+                  - generic [ref=e687]: "2.00"
+                  - generic [ref=e688]: "3.00"
+                  - 'generic "Blur · severity 0.00: 0.82 (CI 0.66–0.92), n=132" [ref=e691]'
+                  - 'generic "Blur · severity 1.00: 0.70 (CI 0.57–0.86), n=132" [ref=e694]'
+                  - 'generic "Blur · severity 2.00: 0.73 (CI 0.60–0.86), n=132" [ref=e697]'
+                  - 'generic "Blur · severity 3.00: 0.65 (CI 0.53–0.80), n=132" [ref=e700]'
+                  - generic [ref=e703]: severity
+                  - generic [ref=e704]: accuracy
+              - generic [ref=e705]:
+                - generic [ref=e706]: Jpeg
+                - img "Jpeg accuracy vs severity" [ref=e707]:
+                  - generic [ref=e708]: "0.40"
+                  - generic [ref=e709]: "0.55"
+                  - generic [ref=e710]: "0.70"
+                  - generic [ref=e711]: "0.85"
+                  - generic [ref=e712]: "1.00"
+                  - generic [ref=e713]: "0.00"
+                  - generic [ref=e714]: "1.00"
+                  - generic [ref=e715]: "2.00"
+                  - generic [ref=e716]: "3.00"
+                  - 'generic "Jpeg · severity 0.00: 0.82 (CI 0.66–0.92), n=132" [ref=e719]'
+                  - 'generic "Jpeg · severity 1.00: 0.67 (CI 0.52–0.85), n=132" [ref=e722]'
+                  - 'generic "Jpeg · severity 2.00: 0.65 (CI 0.50–0.84), n=132" [ref=e725]'
+                  - 'generic "Jpeg · severity 3.00: 0.66 (CI 0.56–0.79), n=132" [ref=e728]'
+                  - generic [ref=e731]: severity
+                  - generic [ref=e732]: accuracy
+              - generic [ref=e733]:
+                - generic [ref=e734]: Stain
+                - img "Stain accuracy vs severity" [ref=e735]:
+                  - generic [ref=e736]: "0.40"
+                  - generic [ref=e737]: "0.55"
+                  - generic [ref=e738]: "0.70"
+                  - generic [ref=e739]: "0.85"
+                  - generic [ref=e740]: "1.00"
+                  - generic [ref=e741]: "0.00"
+                  - generic [ref=e742]: "1.00"
+                  - generic [ref=e743]: "2.00"
+                  - generic [ref=e744]: "3.00"
+                  - 'generic "Stain · severity 0.00: 0.82 (CI 0.66–0.92), n=132" [ref=e747]'
+                  - 'generic "Stain · severity 1.00: 0.70 (CI 0.57–0.84), n=132" [ref=e750]'
+                  - 'generic "Stain · severity 2.00: 0.70 (CI 0.56–0.83), n=132" [ref=e753]'
+                  - 'generic "Stain · severity 3.00: 0.70 (CI 0.57–0.84), n=132" [ref=e756]'
+                  - generic [ref=e759]: severity
+                  - generic [ref=e760]: accuracy
+              - generic [ref=e761]:
+                - generic [ref=e762]: Resample
+                - img "Resample accuracy vs severity" [ref=e763]:
+                  - generic [ref=e764]: "0.40"
+                  - generic [ref=e765]: "0.55"
+                  - generic [ref=e766]: "0.70"
+                  - generic [ref=e767]: "0.85"
+                  - generic [ref=e768]: "1.00"
+                  - generic [ref=e769]: "0.00"
+                  - generic [ref=e770]: "1.00"
+                  - generic [ref=e771]: "2.00"
+                  - generic [ref=e772]: "3.00"
+                  - 'generic "Resample · severity 0.00: 0.82 (CI 0.66–0.92), n=132" [ref=e775]'
+                  - 'generic "Resample · severity 1.00: 0.73 (CI 0.59–0.86), n=132" [ref=e778]'
+                  - 'generic "Resample · severity 2.00: 0.71 (CI 0.59–0.86), n=132" [ref=e781]'
+                  - 'generic "Resample · severity 3.00: 0.64 (CI 0.53–0.78), n=132" [ref=e784]'
+                  - generic [ref=e787]: severity
+                  - generic [ref=e788]: accuracy
+            - table [ref=e790]:
+              - rowgroup [ref=e791]:
+                - row [ref=e792]:
+                  - columnheader "Quantity" [ref=e793]
+                  - columnheader "Value (interval)" [ref=e794]
+              - rowgroup [ref=e795]:
+                - row [ref=e796]:
+                  - cell "Accuracy vs degradation · Curve · Blur · 0" [ref=e797]
+                  - cell "0.82 (95% CI 0.66–0.92, n=132, 24 groups)" [ref=e798]
+                - row [ref=e799]:
+                  - cell "Accuracy vs degradation · Curve · Blur · 1" [ref=e800]
+                  - cell "0.70 (95% CI 0.57–0.86, n=132, 24 groups)" [ref=e801]
+                - row [ref=e802]:
+                  - cell "Accuracy vs degradation · Curve · Blur · 2" [ref=e803]
+                  - cell "0.73 (95% CI 0.60–0.86, n=132, 24 groups)" [ref=e804]
+                - row [ref=e805]:
+                  - cell "Accuracy vs degradation · Curve · Blur · 3" [ref=e806]
+                  - cell "0.65 (95% CI 0.53–0.80, n=132, 24 groups)" [ref=e807]
+                - row [ref=e808]:
+                  - cell "Accuracy vs degradation · Curve · Jpeg · 0" [ref=e809]
+                  - cell "0.82 (95% CI 0.66–0.92, n=132, 24 groups)" [ref=e810]
+                - row [ref=e811]:
+                  - cell "Accuracy vs degradation · Curve · Jpeg · 1" [ref=e812]
+                  - cell "0.67 (95% CI 0.52–0.85, n=132, 24 groups)" [ref=e813]
+                - row [ref=e814]:
+                  - cell "Accuracy vs degradation · Curve · Jpeg · 2" [ref=e815]
+                  - cell "0.65 (95% CI 0.50–0.84, n=132, 24 groups)" [ref=e816]
+                - row [ref=e817]:
+                  - cell "Accuracy vs degradation · Curve · Jpeg · 3" [ref=e818]
+                  - cell "0.66 (95% CI 0.56–0.79, n=132, 24 groups)" [ref=e819]
+                - row [ref=e820]:
+                  - cell "Accuracy vs degradation · Curve · Stain · 0" [ref=e821]
+                  - cell "0.82 (95% CI 0.66–0.92, n=132, 24 groups)" [ref=e822]
+                - row [ref=e823]:
+                  - cell "Accuracy vs degradation · Curve · Stain · 1" [ref=e824]
+                  - cell "0.70 (95% CI 0.57–0.84, n=132, 24 groups)" [ref=e825]
+                - row [ref=e826]:
+                  - cell "Accuracy vs degradation · Curve · Stain · 2" [ref=e827]
+                  - cell "0.70 (95% CI 0.56–0.83, n=132, 24 groups)" [ref=e828]
+                - row [ref=e829]:
+                  - cell "Accuracy vs degradation · Curve · Stain · 3" [ref=e830]
+                  - cell "0.70 (95% CI 0.57–0.84, n=132, 24 groups)" [ref=e831]
+                - row [ref=e832]:
+                  - cell "Accuracy vs degradation · Curve · Resample · 0" [ref=e833]
+                  - cell "0.82 (95% CI 0.66–0.92, n=132, 24 groups)" [ref=e834]
+                - row [ref=e835]:
+                  - cell "Accuracy vs degradation · Curve · Resample · 1" [ref=e836]
+                  - cell "0.73 (95% CI 0.59–0.86, n=132, 24 groups)" [ref=e837]
+                - row [ref=e838]:
+                  - cell "Accuracy vs degradation · Curve · Resample · 2" [ref=e839]
+                  - cell "0.71 (95% CI 0.59–0.86, n=132, 24 groups)" [ref=e840]
+                - row [ref=e841]:
+                  - cell "Accuracy vs degradation · Curve · Resample · 3" [ref=e842]
+                  - cell "0.64 (95% CI 0.53–0.78, n=132, 24 groups)" [ref=e843]
+                - row [ref=e844]:
+                  - cell "Error auroc test" [ref=e845]
+                  - cell "0.67 (95% CI 0.54–0.81, n=1716, 24 groups)" [ref=e846]
+                - row [ref=e847]:
+                  - cell "Feature auroc test · Ood percentile" [ref=e848]
+                  - cell "0.53 (95% CI 0.44–0.61, n=1716, 24 groups)" [ref=e849]
+                - row [ref=e850]:
+                  - cell "Feature auroc test · Set size" [ref=e851]
+                  - cell "0.42 (95% CI 0.36–0.45, n=1716, 24 groups)" [ref=e852]
+                - row [ref=e853]:
+                  - cell "Feature auroc test · Conch musk disagree" [ref=e854]
+                  - cell "0.62 (95% CI 0.51–0.76, n=1716, 24 groups)" [ref=e855]
+                - row [ref=e856]:
+                  - cell "Error recall test" [ref=e857]
+                  - cell "0.52 (95% CI 0.32–0.70, n=1716, 24 groups)" [ref=e858]
+                - row [ref=e859]:
+                  - cell "Flag rate test · Clean" [ref=e860]
+                  - cell "0.20 (no CI)" [ref=e861]
+                - row [ref=e862]:
+                  - cell "Flag rate test · Degraded" [ref=e863]
+                  - cell "0.34 (no CI)" [ref=e864]
+                - row [ref=e865]:
+                  - cell "Error recall calibration" [ref=e866]
+                  - cell "0.80 (no CI)" [ref=e867]
+            - group [ref=e868]:
+              - generic "8 more" [ref=e869] [cursor=pointer]
+            - group [ref=e870]:
+              - generic "raw JSON" [ref=e871] [cursor=pointer]
+            - generic [ref=e872]: "source: eval/reliability.json · 2026-10-18T04:25:44Z"
+          - generic [ref=e873]:
+            - heading "Similar-case retrieval (precision@5)" [level=2] [ref=e874]
+            - table [ref=e876]:
+              - rowgroup [ref=e877]:
+                - row [ref=e878]:
+                  - columnheader "Quantity" [ref=e879]
+                  - columnheader "Value (interval)" [ref=e880]
+              - rowgroup [ref=e881]:
+                - row [ref=e882]:
+                  - cell "K" [ref=e883]
+                  - cell "5.00 (no CI)" [ref=e884]
+                - row [ref=e885]:
+                  - cell "Precision at k test" [ref=e886]
+                  - cell "0.65 (95% CI 0.56–0.82, n=132, 24 groups)" [ref=e887]
+                - row [ref=e888]:
+                  - cell "Mean neighbor agreement with prediction test" [ref=e889]
+                  - cell "0.67 (no CI)" [ref=e890]
+                - row [ref=e891]:
+                  - cell "Per class precision at k test · Normal" [ref=e892]
+                  - cell "0.90 (no CI)" [ref=e893]
+                - row [ref=e894]:
+                  - cell "Per class precision at k test · Benign" [ref=e895]
+                  - cell "0.45 (no CI)" [ref=e896]
+                - row [ref=e897]:
+                  - cell "Per class precision at k test · InSitu" [ref=e898]
+                  - cell "0.48 (no CI)" [ref=e899]
+                - row [ref=e900]:
+                  - cell "Per class precision at k test · Invasive" [ref=e901]
+                  - cell "0.91 (no CI)" [ref=e902]
+            - group [ref=e903]:
+              - generic "Assumptions and notes" [ref=e904] [cursor=pointer]
+            - group [ref=e905]:
+              - generic "raw JSON" [ref=e906] [cursor=pointer]
+            - generic [ref=e907]: "source: eval/retrieval.json · 2026-10-18T04:25:46Z"
+          - generic [ref=e908]:
+            - 'heading "Workflow: queue simulation" [level=2] [ref=e909]'
+            - table [ref=e911]:
+              - rowgroup [ref=e912]:
+                - row [ref=e913]:
+                  - columnheader "Quantity" [ref=e914]
+                  - columnheader "Value (interval)" [ref=e915]
+              - rowgroup [ref=e916]:
+                - row [ref=e917]:
+                  - cell "N cases" [ref=e918]
+                  - cell "132 (no CI)" [ref=e919]
+                - row [ref=e920]:
+                  - cell "Reps" [ref=e921]
+                  - cell "1,000 (no CI)" [ref=e922]
+                - row [ref=e923]:
+                  - cell "Test case truth · Normal" [ref=e924]
+                  - cell "23.0 (no CI)" [ref=e925]
+                - row [ref=e926]:
+                  - cell "Test case truth · Benign" [ref=e927]
+                  - cell "48.0 (no CI)" [ref=e928]
+                - row [ref=e929]:
+                  - cell "Test case truth · InSitu" [ref=e930]
+                  - cell "30.0 (no CI)" [ref=e931]
+                - row [ref=e932]:
+                  - cell "Test case truth · Invasive" [ref=e933]
+                  - cell "31.0 (no CI)" [ref=e934]
+                - row [ref=e935]:
+                  - cell "False negatives in pool" [ref=e936]
+                  - cell "0.00 (no CI)" [ref=e937]
+                - row [ref=e938]:
+                  - cell "Results · Fifo · Aggressive mean" [ref=e939]
+                  - cell "20.2 (95% CI 3.52–60.1)" [ref=e940]
+                - row [ref=e941]:
+                  - cell "Results · Fifo · Aggressive median" [ref=e942]
+                  - cell "19.0 (95% CI 0.03–64.6)" [ref=e943]
+                - row [ref=e944]:
+                  - cell "Results · Fifo · Aggressive p90" [ref=e945]
+                  - cell "37.7 (95% CI 8.14–101)" [ref=e946]
+                - row [ref=e947]:
+                  - cell "Results · Fifo · Non flagged mean" [ref=e948]
+                  - cell "20.0 (95% CI 4.13–58.3)" [ref=e949]
+                - row [ref=e950]:
+                  - cell "Results · Fifo · False negative mean · N reps" [ref=e951]
+                  - cell "0.00 (no CI)" [ref=e952]
+                - row [ref=e953]:
+                  - cell "Results · Fifo · Surgical mean" [ref=e954]
+                  - cell "20.1 (95% CI 3.63–60.4)" [ref=e955]
+                - row [ref=e956]:
+                  - cell "Results · Fifo · All mean" [ref=e957]
+                  - cell "20.1 (95% CI 4.73–59.3)" [ref=e958]
+                - row [ref=e959]:
+                  - cell "Results · Fifo · Max wait" [ref=e960]
+                  - cell "51.9 (95% CI 18.4–118)" [ref=e961]
+                - row [ref=e962]:
+                  - cell "Results · Fifo · Overtime" [ref=e963]
+                  - cell "29.3 (95% CI 0.00–104)" [ref=e964]
+                - row [ref=e965]:
+                  - cell "Results · Fifo · N arrivals" [ref=e966]
+                  - cell "47.4 (95% CI 34.0–62.0)" [ref=e967]
+                - row [ref=e968]:
+                  - cell "Results · Fifo · Promoted fraction" [ref=e969]
+                  - cell "0.00 (95% CI 0.00–0.00)" [ref=e970]
+                - row [ref=e971]:
+                  - cell "Results · Fifo · Class Normal mean" [ref=e972]
+                  - cell "20.2 (95% CI 2.82–59.5)" [ref=e973]
+                - row [ref=e974]:
+                  - cell "Results · Fifo · Class Benign mean" [ref=e975]
+                  - cell "19.9 (95% CI 3.97–58.3)" [ref=e976]
+                - row [ref=e977]:
+                  - cell "Results · Fifo · Class InSitu mean" [ref=e978]
+                  - cell "20.3 (95% CI 3.47–61.0)" [ref=e979]
+                - row [ref=e980]:
+                  - cell "Results · Fifo · Class Invasive mean" [ref=e981]
+                  - cell "20.2 (95% CI 3.52–60.1)" [ref=e982]
+                - row [ref=e983]:
+                  - cell "Results · Fifo · Tier 1 mean" [ref=e984]
+                  - cell "20.1 (95% CI 3.63–60.4)" [ref=e985]
+                - row [ref=e986]:
+                  - cell "Results · Fifo · Tier 2 mean" [ref=e987]
+                  - cell "20.3 (95% CI 2.87–61.0)" [ref=e988]
+            - group [ref=e989]:
+              - generic "79 more" [ref=e990] [cursor=pointer]
+            - group [ref=e991]:
+              - generic "Assumptions and notes" [ref=e992] [cursor=pointer]
+            - group [ref=e993]:
+              - generic "raw JSON" [ref=e994] [cursor=pointer]
+            - generic [ref=e995]: "source: eval/queue_sim.json · 2026-10-18T04:26:03Z"
+          - generic [ref=e996]:
+            - 'heading "Margin read: localizes or echoes?" [level=2] [ref=e997]'
+            - table [ref=e999]:
+              - rowgroup [ref=e1000]:
+                - row [ref=e1001]:
+                  - columnheader "Quantity" [ref=e1002]
+                  - columnheader "Value (interval)" [ref=e1003]
+              - rowgroup [ref=e1004]:
+                - row [ref=e1005]:
+                  - cell "Threshold" [ref=e1006]
+                  - cell "1.00 (no CI)" [ref=e1007]
+                - row [ref=e1008]:
+                  - cell "Threshold ci · Lo" [ref=e1009]
+                  - cell "0.88 (no CI)" [ref=e1010]
+                - row [ref=e1011]:
+                  - cell "Threshold ci · Hi" [ref=e1012]
+                  - cell "1.00 (no CI)" [ref=e1013]
+                - row [ref=e1014]:
+                  - cell "Threshold ci · Ci" [ref=e1015]
+                  - cell "0.95 (no CI)" [ref=e1016]
+                - row [ref=e1017]:
+                  - cell "Threshold ci · N boot" [ref=e1018]
+                  - cell "2,000 (no CI)" [ref=e1019]
+                - row [ref=e1020]:
+                  - cell "Threshold ci · N valid" [ref=e1021]
+                  - cell "2,000 (no CI)" [ref=e1022]
+                - row [ref=e1023]:
+                  - cell "Threshold ci · N" [ref=e1024]
+                  - cell "30.0 (no CI)" [ref=e1025]
+                - row [ref=e1026]:
+                  - cell "Threshold ci · N groups" [ref=e1027]
+                  - cell "6.00 (no CI)" [ref=e1028]
+                - row [ref=e1029]:
+                  - cell "N benign cal images" [ref=e1030]
+                  - cell "30.0 (no CI)" [ref=e1031]
+                - row [ref=e1032]:
+                  - cell "Strip px" [ref=e1033]
+                  - cell "256 (no CI)" [ref=e1034]
+                - row [ref=e1035]:
+                  - cell "Max fpr" [ref=e1036]
+                  - cell "0.05 (no CI)" [ref=e1037]
+                - row [ref=e1038]:
+                  - cell "Benign fpr · N benign test" [ref=e1039]
+                  - cell "71.0 (no CI)" [ref=e1040]
+                - row [ref=e1041]:
+                  - cell "Benign fpr · N scored" [ref=e1042]
+                  - cell "71.0 (no CI)" [ref=e1043]
+                - row [ref=e1044]:
+                  - cell "Benign fpr · Target max fpr" [ref=e1045]
+                  - cell "0.05 (no CI)" [ref=e1046]
+                - row [ref=e1047]:
+                  - cell "Benign fpr · Per margin · Superior" [ref=e1048]
+                  - cell "0.00 (95% CI 0.00–0.00, n=71, 7 groups)" [ref=e1049]
+                - row [ref=e1050]:
+                  - cell "Benign fpr · Per margin · Inferior" [ref=e1051]
+                  - cell "0.00 (95% CI 0.00–0.00, n=71, 7 groups)" [ref=e1052]
+                - row [ref=e1053]:
+                  - cell "Benign fpr · Per margin · Medial" [ref=e1054]
+                  - cell "0.00 (95% CI 0.00–0.00, n=71, 7 groups)" [ref=e1055]
+                - row [ref=e1056]:
+                  - cell "Benign fpr · Per margin · Lateral" [ref=e1057]
+                  - cell "0.00 (95% CI 0.00–0.00, n=71, 7 groups)" [ref=e1058]
+                - row [ref=e1059]:
+                  - cell "Benign fpr · Pooled per margin" [ref=e1060]
+                  - cell "0.00 (95% CI 0.00–0.00, n=284, 7 groups)" [ref=e1061]
+                - row [ref=e1062]:
+                  - cell "Benign fpr · Any margin" [ref=e1063]
+                  - cell "0.00 (95% CI 0.00–0.00, n=71, 7 groups)" [ref=e1064]
+                - row [ref=e1065]:
+                  - cell "Echo · N carcinoma test" [ref=e1066]
+                  - cell "61.0 (no CI)" [ref=e1067]
+                - row [ref=e1068]:
+                  - cell "Echo · N scored" [ref=e1069]
+                  - cell "61.0 (no CI)" [ref=e1070]
+                - row [ref=e1071]:
+                  - cell "Echo · P at least one clear margin" [ref=e1072]
+                  - cell "0.48 (95% CI 0.22–0.62, n=61, 19 groups)" [ref=e1073]
+                - row [ref=e1074]:
+                  - cell "Echo · Mean involved margins" [ref=e1075]
+                  - cell "2.87 (95% CI 2.44–3.56, n=61, 19 groups)" [ref=e1076]
+            - group [ref=e1077]:
+              - generic "24 more" [ref=e1078] [cursor=pointer]
+            - group [ref=e1079]:
+              - generic "Assumptions and notes" [ref=e1080] [cursor=pointer]
+            - group [ref=e1081]:
+              - generic "raw JSON" [ref=e1082] [cursor=pointer]
+            - generic [ref=e1083]: "source: eval/margin.json · 2026-10-18T04:26:05Z"
+          - generic [ref=e1084]:
+            - 'heading "Explanation faithfulness: deletion test" [level=2] [ref=e1085]'
+            - table [ref=e1087]:
+              - rowgroup [ref=e1088]:
+                - row [ref=e1089]:
+                  - columnheader "Quantity" [ref=e1090]
+                  - columnheader "Value (interval)" [ref=e1091]
+              - rowgroup [ref=e1092]:
+                - row [ref=e1093]:
+                  - cell "Models · Uni2h lr · N eligible" [ref=e1094]
+                  - cell "130 (no CI)" [ref=e1095]
+                - row [ref=e1096]:
+                  - cell "Models · Uni2h lr · Predicted aggressive · N" [ref=e1097]
+                  - cell "34.0 (no CI)" [ref=e1098]
+                - row [ref=e1099]:
+                  - cell "Models · Uni2h lr · Predicted aggressive · N groups" [ref=e1100]
+                  - cell "17.0 (no CI)" [ref=e1101]
+                - row [ref=e1102]:
+                  - cell "Models · Uni2h lr · Predicted aggressive · Mean drop random" [ref=e1103]
+                  - cell "0.00 (95% CI -0.00–0.00, n=34, 17 groups)" [ref=e1104]
+                - row [ref=e1105]:
+                  - cell "Models · Uni2h lr · Predicted aggressive · Mean drop risk" [ref=e1106]
+                  - cell "0.02 (95% CI 0.00–0.04, n=29, 15 groups)" [ref=e1107]
+                - row [ref=e1108]:
+                  - cell "Models · Uni2h lr · Predicted aggressive · Mean drop concept" [ref=e1109]
+                  - cell "0.02 (95% CI -0.00–0.04, n=32, 16 groups)" [ref=e1110]
+                - row [ref=e1111]:
+                  - cell "Models · Uni2h lr · Predicted aggressive · N concept" [ref=e1112]
+                  - cell "32.0 (no CI)" [ref=e1113]
+                - row [ref=e1114]:
+                  - cell "Models · Uni2h lr · Predicted aggressive · Concept minus random" [ref=e1115]
+                  - cell "0.02 (95% CI -0.00–0.04, n=32, 16 groups)" [ref=e1116]
+                - row [ref=e1117]:
+                  - cell "Models · Uni2h lr · Predicted aggressive · N risk" [ref=e1118]
+                  - cell "29.0 (no CI)" [ref=e1119]
+                - row [ref=e1120]:
+                  - cell "Models · Uni2h lr · Predicted aggressive · Risk minus random" [ref=e1121]
+                  - cell "0.02 (95% CI -0.00–0.04, n=29, 15 groups)" [ref=e1122]
+                - row [ref=e1123]:
+                  - cell "Models · Uni2h lr · All eligible · N" [ref=e1124]
+                  - cell "130 (no CI)" [ref=e1125]
+                - row [ref=e1126]:
+                  - cell "Models · Uni2h lr · All eligible · N groups" [ref=e1127]
+                  - cell "24.0 (no CI)" [ref=e1128]
+                - row [ref=e1129]:
+                  - cell "Models · Uni2h lr · All eligible · Mean drop random" [ref=e1130]
+                  - cell "-0.00 (95% CI -0.00–0.00, n=130, 24 groups)" [ref=e1131]
+                - row [ref=e1132]:
+                  - cell "Models · Uni2h lr · All eligible · Mean drop risk" [ref=e1133]
+                  - cell "0.01 (95% CI 0.00–0.01, n=125, 23 groups)" [ref=e1134]
+                - row [ref=e1135]:
+                  - cell "Models · Uni2h lr · All eligible · Mean drop concept" [ref=e1136]
+                  - cell "0.00 (95% CI -0.00–0.00, n=128, 24 groups)" [ref=e1137]
+                - row [ref=e1138]:
+                  - cell "Models · Uni2h lr · All eligible · N concept" [ref=e1139]
+                  - cell "128 (no CI)" [ref=e1140]
+                - row [ref=e1141]:
+                  - cell "Models · Uni2h lr · All eligible · Concept minus random" [ref=e1142]
+                  - cell "0.00 (95% CI -0.00–0.00, n=128, 24 groups)" [ref=e1143]
+                - row [ref=e1144]:
+                  - cell "Models · Uni2h lr · All eligible · N risk" [ref=e1145]
+                  - cell "125 (no CI)" [ref=e1146]
+                - row [ref=e1147]:
+                  - cell "Models · Uni2h lr · All eligible · Risk minus random" [ref=e1148]
+                  - cell "0.01 (95% CI 0.00–0.02, n=125, 23 groups)" [ref=e1149]
+                - row [ref=e1150]:
+                  - cell "Models · Uni2h lr · Top concept counts · Lymphocytes" [ref=e1151]
+                  - cell "31.0 (no CI)" [ref=e1152]
+                - row [ref=e1153]:
+                  - cell "Models · Uni2h lr · Top concept counts · Invasion" [ref=e1154]
+                  - cell "29.0 (no CI)" [ref=e1155]
+                - row [ref=e1156]:
+                  - cell "Models · Uni2h lr · Top concept counts · Duct confined" [ref=e1157]
+                  - cell "28.0 (no CI)" [ref=e1158]
+                - row [ref=e1159]:
+                  - cell "Models · Uni2h lr · Top concept counts · Normal lobules" [ref=e1160]
+                  - cell "17.0 (no CI)" [ref=e1161]
+                - row [ref=e1162]:
+                  - cell "Models · Uni2h lr · Top concept counts · Mitoses" [ref=e1163]
+                  - cell "13.0 (no CI)" [ref=e1164]
+            - group [ref=e1165]:
+              - generic "7 more" [ref=e1166] [cursor=pointer]
+            - group [ref=e1167]:
+              - generic "raw JSON" [ref=e1168] [cursor=pointer]
+            - generic [ref=e1169]: "source: eval/deletion.json · 2026-10-18T04:26:01Z"
+          - generic [ref=e1170]:
+            - 'heading "Cell measurements: validation" [level=2] [ref=e1171]'
+            - table [ref=e1173]:
+              - rowgroup [ref=e1174]:
+                - row [ref=e1175]:
+                  - columnheader "Quantity" [ref=e1176]
+                  - columnheader "Value (interval)" [ref=e1177]
+              - rowgroup [ref=e1178]:
+                - row [ref=e1179]:
+                  - cell "N test cases" [ref=e1180]
+                  - cell "129 (no CI)" [ref=e1181]
+                - row [ref=e1182]:
+                  - cell "N test groups" [ref=e1183]
+                  - cell "24.0 (no CI)" [ref=e1184]
+                - row [ref=e1185]:
+                  - cell "Bootstrap · N" [ref=e1186]
+                  - cell "2,000 (no CI)" [ref=e1187]
+                - row [ref=e1188]:
+                  - cell "Bootstrap · Ci" [ref=e1189]
+                  - cell "0.95 (no CI)" [ref=e1190]
+                - row [ref=e1191]:
+                  - cell "Review sheet · N items" [ref=e1192]
+                  - cell "20.0 (no CI)" [ref=e1193]
+                - row [ref=e1194]:
+                  - cell "Review sheet · Per class target" [ref=e1195]
+                  - cell "5.00 (no CI)" [ref=e1196]
+                - row [ref=e1197]:
+                  - cell "Direction checks · Features · Neo fraction · N cases" [ref=e1198]
+                  - cell "114 (no CI)" [ref=e1199]
+                - row [ref=e1200]:
+                  - cell "Direction checks · Features · Neo fraction · Class means · Normal" [ref=e1201]
+                  - cell "0.17 (95% CI 0.12–0.23, n=17, 6 groups)" [ref=e1202]
+                - row [ref=e1203]:
+                  - cell "Direction checks · Features · Neo fraction · Class means · Benign" [ref=e1204]
+                  - cell "0.46 (95% CI 0.15–0.68, n=40, 6 groups)" [ref=e1205]
+                - row [ref=e1206]:
+                  - cell "Direction checks · Features · Neo fraction · Class means · InSitu" [ref=e1207]
+                  - cell "0.74 (95% CI 0.66–0.79, n=29, 5 groups)" [ref=e1208]
+                - row [ref=e1209]:
+                  - cell "Direction checks · Features · Neo fraction · Class means · Invasive" [ref=e1210]
+                  - cell "0.44 (95% CI 0.34–0.53, n=28, 16 groups)" [ref=e1211]
+                - row [ref=e1212]:
+                  - cell "Direction checks · Features · Neo fraction · Difference" [ref=e1213]
+                  - cell "0.06 (95% CI -0.15–0.29, n=85, 21 groups)" [ref=e1214]
+                - row [ref=e1215]:
+                  - cell "Direction checks · Features · Neo density · N cases" [ref=e1216]
+                  - cell "114 (no CI)" [ref=e1217]
+                - row [ref=e1218]:
+                  - cell "Direction checks · Features · Neo density · Class means · Normal" [ref=e1219]
+                  - cell "636 (95% CI 180–1,376, n=17, 6 groups)" [ref=e1220]
+                - row [ref=e1221]:
+                  - cell "Direction checks · Features · Neo density · Class means · Benign" [ref=e1222]
+                  - cell "1,769 (95% CI 294–2,785, n=40, 6 groups)" [ref=e1223]
+                - row [ref=e1224]:
+                  - cell "Direction checks · Features · Neo density · Class means · InSitu" [ref=e1225]
+                  - cell "3,989 (95% CI 3,304–6,055, n=29, 5 groups)" [ref=e1226]
+                - row [ref=e1227]:
+                  - cell "Direction checks · Features · Neo density · Class means · Invasive" [ref=e1228]
+                  - cell "1,808 (95% CI 1,339–2,439, n=28, 16 groups)" [ref=e1229]
+                - row [ref=e1230]:
+                  - cell "Direction checks · Features · Neo density · Difference" [ref=e1231]
+                  - cell "377 (95% CI -823–1,821, n=85, 21 groups)" [ref=e1232]
+                - row [ref=e1233]:
+                  - cell "Direction checks · Features · Nuc area mean · N cases" [ref=e1234]
+                  - cell "92.0 (no CI)" [ref=e1235]
+                - row [ref=e1236]:
+                  - cell "Direction checks · Features · Nuc area mean · Class means · Normal" [ref=e1237]
+                  - cell "49.6 (95% CI 45.1–54.1, n=8, 6 groups)" [ref=e1238]
+                - row [ref=e1239]:
+                  - cell "Direction checks · Features · Nuc area mean · Class means · Benign" [ref=e1240]
+                  - cell "53.3 (95% CI 49.5–57.9, n=28, 6 groups)" [ref=e1241]
+                - row [ref=e1242]:
+                  - cell "Direction checks · Features · Nuc area mean · Class means · InSitu" [ref=e1243]
+                  - cell "48.6 (95% CI 43.4–56.4, n=29, 5 groups)" [ref=e1244]
+                - row [ref=e1245]:
+                  - cell "Direction checks · Features · Nuc area mean · Class means · Invasive" [ref=e1246]
+                  - cell "54.7 (95% CI 48.5–61.1, n=27, 16 groups)" [ref=e1247]
+                - row [ref=e1248]:
+                  - cell "Direction checks · Features · Nuc area mean · Difference" [ref=e1249]
+                  - cell "2.29 (95% CI -4.54–9.56, n=63, 21 groups)" [ref=e1250]
+            - group [ref=e1251]:
+              - generic "43 more" [ref=e1252] [cursor=pointer]
+            - group [ref=e1253]:
+              - generic "raw JSON" [ref=e1254] [cursor=pointer]
+            - generic [ref=e1255]: "source: eval/cells.json · 2026-10-18T04:26:06Z"
+          - generic [ref=e1256]:
+            - heading "Model choice (patient-grouped CV inside train, one-SE rule)" [level=2] [ref=e1257]
+            - table [ref=e1259]:
+              - rowgroup [ref=e1260]:
+                - row [ref=e1261]:
+                  - columnheader "Quantity" [ref=e1262]
+                  - columnheader "Value (interval)" [ref=e1263]
+              - rowgroup [ref=e1264]:
+                - row [ref=e1265]:
+                  - cell "Protocol · Folds" [ref=e1266]
+                  - cell "5.00 (no CI)" [ref=e1267]
+                - row [ref=e1268]:
+                  - cell "Protocol · Repeats" [ref=e1269]
+                  - cell "3.00 (no CI)" [ref=e1270]
+                - row [ref=e1271]:
+                  - cell "Protocol · Fold seed base" [ref=e1272]
+                  - cell "44.0 (no CI)" [ref=e1273]
+                - row [ref=e1274]:
+                  - cell "Protocol · N train" [ref=e1275]
+                  - cell "218 (no CI)" [ref=e1276]
+                - row [ref=e1277]:
+                  - cell "Protocol · N train groups" [ref=e1278]
+                  - cell "49.0 (no CI)" [ref=e1279]
+                - row [ref=e1280]:
+                  - cell "Cv metrics · Conch probe lr · Log loss" [ref=e1281]
+                  - cell "0.32 (95% CI 0.24–0.41, n=218, 49 groups)" [ref=e1282]
+                - row [ref=e1283]:
+                  - cell "Cv metrics · Conch probe lr · Auroc invasive" [ref=e1284]
+                  - cell "0.99 (95% CI 0.98–1.00, n=218, 49 groups)" [ref=e1285]
+                - row [ref=e1286]:
+                  - cell "Cv metrics · Conch probe lr · Balanced accuracy" [ref=e1287]
+                  - cell "0.90 (95% CI 0.86–0.94, n=218, 49 groups)" [ref=e1288]
+                - row [ref=e1289]:
+                  - cell "Cv metrics · Conch probe lr · Macro f1" [ref=e1290]
+                  - cell "0.90 (95% CI 0.85–0.94, n=218, 49 groups)" [ref=e1291]
+                - row [ref=e1292]:
+                  - cell "Cv metrics · Conch probe lr · Macro auroc" [ref=e1293]
+                  - cell "0.98 (95% CI 0.97–0.99, n=218, 49 groups)" [ref=e1294]
+                - row [ref=e1295]:
+                  - cell "Cv metrics · Uni2h lr · Log loss" [ref=e1296]
+                  - cell "0.31 (95% CI 0.23–0.41, n=218, 49 groups)" [ref=e1297]
+                - row [ref=e1298]:
+                  - cell "Cv metrics · Uni2h lr · Auroc invasive" [ref=e1299]
+                  - cell "1.00 (95% CI 1.00–1.00, n=218, 49 groups)" [ref=e1300]
+                - row [ref=e1301]:
+                  - cell "Cv metrics · Uni2h lr · Balanced accuracy" [ref=e1302]
+                  - cell "0.93 (95% CI 0.89–0.97, n=218, 49 groups)" [ref=e1303]
+                - row [ref=e1304]:
+                  - cell "Cv metrics · Uni2h lr · Macro f1" [ref=e1305]
+                  - cell "0.93 (95% CI 0.89–0.97, n=218, 49 groups)" [ref=e1306]
+                - row [ref=e1307]:
+                  - cell "Cv metrics · Uni2h lr · Macro auroc" [ref=e1308]
+                  - cell "0.99 (95% CI 0.97–1.00, n=218, 49 groups)" [ref=e1309]
+                - row [ref=e1310]:
+                  - cell "Cv metrics · Hoptimus0 lr · Log loss" [ref=e1311]
+                  - cell "0.36 (95% CI 0.28–0.45, n=218, 49 groups)" [ref=e1312]
+                - row [ref=e1313]:
+                  - cell "Cv metrics · Hoptimus0 lr · Auroc invasive" [ref=e1314]
+                  - cell "1.00 (95% CI 0.99–1.00, n=218, 49 groups)" [ref=e1315]
+                - row [ref=e1316]:
+                  - cell "Cv metrics · Hoptimus0 lr · Balanced accuracy" [ref=e1317]
+                  - cell "0.90 (95% CI 0.85–0.94, n=218, 49 groups)" [ref=e1318]
+                - row [ref=e1319]:
+                  - cell "Cv metrics · Hoptimus0 lr · Macro f1" [ref=e1320]
+                  - cell "0.90 (95% CI 0.84–0.94, n=218, 49 groups)" [ref=e1321]
+                - row [ref=e1322]:
+                  - cell "Cv metrics · Hoptimus0 lr · Macro auroc" [ref=e1323]
+                  - cell "0.98 (95% CI 0.97–1.00, n=218, 49 groups)" [ref=e1324]
+                - row [ref=e1325]:
+                  - cell "Cv metrics · Musk lr · Log loss" [ref=e1326]
+                  - cell "0.35 (95% CI 0.26–0.46, n=218, 49 groups)" [ref=e1327]
+                - row [ref=e1328]:
+                  - cell "Cv metrics · Musk lr · Auroc invasive" [ref=e1329]
+                  - cell "0.98 (95% CI 0.95–1.00, n=218, 49 groups)" [ref=e1330]
+                - row [ref=e1331]:
+                  - cell "Cv metrics · Musk lr · Balanced accuracy" [ref=e1332]
+                  - cell "0.88 (95% CI 0.83–0.93, n=218, 49 groups)" [ref=e1333]
+                - row [ref=e1334]:
+                  - cell "Cv metrics · Musk lr · Macro f1" [ref=e1335]
+                  - cell "0.89 (95% CI 0.83–0.93, n=218, 49 groups)" [ref=e1336]
+            - group [ref=e1337]:
+              - generic "117 more" [ref=e1338] [cursor=pointer]
+            - group [ref=e1339]:
+              - generic "raw JSON" [ref=e1340] [cursor=pointer]
+            - generic [ref=e1341]: "source: eval/model_choice.json · 2026-10-18T04:25:39Z"
+          - generic [ref=e1342]:
+            - heading "THUNDER benchmark (same split, different protocol)" [level=2] [ref=e1343]
+            - table [ref=e1345]:
+              - rowgroup [ref=e1346]:
+                - row [ref=e1347]:
+                  - columnheader "Quantity" [ref=e1348]
+                  - columnheader "Value (interval)" [ref=e1349]
+              - rowgroup [ref=e1350]:
+                - row [ref=e1351]:
+                  - cell "N" [ref=e1352]
+                  - cell "132 (no CI)" [ref=e1353]
+                - row [ref=e1354]:
+                  - cell "N groups" [ref=e1355]
+                  - cell "24.0 (no CI)" [ref=e1356]
+                - row [ref=e1357]:
+                  - cell "Published · Linear probe · Conch" [ref=e1358]
+                  - cell "84.4 (no CI)" [ref=e1359]
+                - row [ref=e1360]:
+                  - cell "Published · Linear probe · Uni2h" [ref=e1361]
+                  - cell "84.7 (no CI)" [ref=e1362]
+                - row [ref=e1363]:
+                  - cell "Published · Linear probe · Musk" [ref=e1364]
+                  - cell "69.9 (no CI)" [ref=e1365]
+                - row [ref=e1366]:
+                  - cell "Published · Zero shot · Conch" [ref=e1367]
+                  - cell "56.1 (no CI)" [ref=e1368]
+                - row [ref=e1369]:
+                  - cell "Published · Zero shot · Musk" [ref=e1370]
+                  - cell "62.5 (no CI)" [ref=e1371]
+                - row [ref=e1372]:
+                  - cell "Ours · Uni2h lr · Macro f1" [ref=e1373]
+                  - cell "81.9 (95% CI 59.5–92.1, n=132, 24 groups)" [ref=e1374]
+                - row [ref=e1375]:
+                  - cell "Ours · Uni2h lr · Balanced accuracy" [ref=e1376]
+                  - cell "82.1 (95% CI 59.7–93.7, n=132, 24 groups)" [ref=e1377]
+                - row [ref=e1378]:
+                  - cell "Ours · Abmil · Macro f1" [ref=e1379]
+                  - cell "78.1 (95% CI 57.3–87.6, n=132, 24 groups)" [ref=e1380]
+                - row [ref=e1381]:
+                  - cell "Ours · Abmil · Balanced accuracy" [ref=e1382]
+                  - cell "78.2 (95% CI 58.3–88.9, n=132, 24 groups)" [ref=e1383]
+                - row [ref=e1384]:
+                  - cell "Ours · Cb cells · Macro f1" [ref=e1385]
+                  - cell "24.4 (95% CI 15.7–33.4, n=132, 24 groups)" [ref=e1386]
+                - row [ref=e1387]:
+                  - cell "Ours · Cb cells · Balanced accuracy" [ref=e1388]
+                  - cell "34.1 (95% CI 24.0–40.7, n=132, 24 groups)" [ref=e1389]
+                - row [ref=e1390]:
+                  - cell "Ours · Cb text · Macro f1" [ref=e1391]
+                  - cell "69.4 (95% CI 47.7–78.9, n=132, 24 groups)" [ref=e1392]
+                - row [ref=e1393]:
+                  - cell "Ours · Cb text · Balanced accuracy" [ref=e1394]
+                  - cell "74.2 (95% CI 51.4–82.0, n=132, 24 groups)" [ref=e1395]
+                - row [ref=e1396]:
+                  - cell "Ours · Cb text cells · Macro f1" [ref=e1397]
+                  - cell "63.1 (95% CI 43.6–71.6, n=132, 24 groups)" [ref=e1398]
+                - row [ref=e1399]:
+                  - cell "Ours · Cb text cells · Balanced accuracy" [ref=e1400]
+                  - cell "71.1 (95% CI 49.5–76.9, n=132, 24 groups)" [ref=e1401]
+                - row [ref=e1402]:
+                  - cell "Ours · Conch probe lr · Macro f1" [ref=e1403]
+                  - cell "73.6 (95% CI 57.7–82.4, n=132, 24 groups)" [ref=e1404]
+                - row [ref=e1405]:
+                  - cell "Ours · Conch probe lr · Balanced accuracy" [ref=e1406]
+                  - cell "77.5 (95% CI 59.7–84.8, n=132, 24 groups)" [ref=e1407]
+                - row [ref=e1408]:
+                  - cell "Ours · Fusion top3 · Macro f1" [ref=e1409]
+                  - cell "78.8 (95% CI 54.7–89.8, n=132, 24 groups)" [ref=e1410]
+                - row [ref=e1411]:
+                  - cell "Ours · Fusion top3 · Balanced accuracy" [ref=e1412]
+                  - cell "79.4 (95% CI 57.3–90.4, n=132, 24 groups)" [ref=e1413]
+                - row [ref=e1414]:
+                  - cell "Ours · Hoptimus0 lr · Macro f1" [ref=e1415]
+                  - cell "76.1 (95% CI 54.3–86.0, n=132, 24 groups)" [ref=e1416]
+                - row [ref=e1417]:
+                  - cell "Ours · Hoptimus0 lr · Balanced accuracy" [ref=e1418]
+                  - cell "76.4 (95% CI 55.2–87.2, n=132, 24 groups)" [ref=e1419]
+                - row [ref=e1420]:
+                  - cell "Ours · Musk lr · Macro f1" [ref=e1421]
+                  - cell "66.2 (95% CI 51.2–78.9, n=132, 24 groups)" [ref=e1422]
+            - group [ref=e1423]:
+              - generic "6 more" [ref=e1424] [cursor=pointer]
+            - group [ref=e1425]:
+              - generic "Assumptions and notes" [ref=e1426] [cursor=pointer]
+            - group [ref=e1427]:
+              - generic "raw JSON" [ref=e1428] [cursor=pointer]
+            - generic [ref=e1429]: "source: eval/thunder.json · 2026-10-18T04:26:10Z"
+          - generic [ref=e1430]:
+            - heading "Zero-shot baselines" [level=2] [ref=e1431]
+            - table [ref=e1433]:
+              - rowgroup [ref=e1434]:
+                - row [ref=e1435]:
+                  - columnheader "Quantity" [ref=e1436]
+                  - columnheader "Value (interval)" [ref=e1437]
+              - rowgroup [ref=e1438]:
+                - row [ref=e1439]:
+                  - cell "Encoders · Conch · N cases" [ref=e1440]
+                  - cell "132 (no CI)" [ref=e1441]
+                - row [ref=e1442]:
+                  - cell "Encoders · Conch · N groups" [ref=e1443]
+                  - cell "24.0 (no CI)" [ref=e1444]
+                - row [ref=e1445]:
+                  - cell "Encoders · Conch · Macro f1" [ref=e1446]
+                  - cell "0.48 (95% CI 0.35–0.56, n=132, 24 groups)" [ref=e1447]
+                - row [ref=e1448]:
+                  - cell "Encoders · Conch · Balanced accuracy" [ref=e1449]
+                  - cell "0.54 (95% CI 0.46–0.60, n=132, 24 groups)" [ref=e1450]
+                - row [ref=e1451]:
+                  - cell "Encoders · Conch · Accuracy" [ref=e1452]
+                  - cell "0.63 (95% CI 0.44–0.77, n=132, 24 groups)" [ref=e1453]
+                - row [ref=e1454]:
+                  - cell "Encoders · Musk · N cases" [ref=e1455]
+                  - cell "132 (no CI)" [ref=e1456]
+                - row [ref=e1457]:
+                  - cell "Encoders · Musk · N groups" [ref=e1458]
+                  - cell "24.0 (no CI)" [ref=e1459]
+                - row [ref=e1460]:
+                  - cell "Encoders · Musk · Macro f1" [ref=e1461]
+                  - cell "0.50 (95% CI 0.40–0.61, n=132, 24 groups)" [ref=e1462]
+                - row [ref=e1463]:
+                  - cell "Encoders · Musk · Balanced accuracy" [ref=e1464]
+                  - cell "0.55 (95% CI 0.51–0.67, n=132, 24 groups)" [ref=e1465]
+                - row [ref=e1466]:
+                  - cell "Encoders · Musk · Accuracy" [ref=e1467]
+                  - cell "0.64 (95% CI 0.48–0.77, n=132, 24 groups)" [ref=e1468]
+                - row [ref=e1469]:
+                  - cell "Encoders · Pathgenclip · N cases" [ref=e1470]
+                  - cell "132 (no CI)" [ref=e1471]
+                - row [ref=e1472]:
+                  - cell "Encoders · Pathgenclip · N groups" [ref=e1473]
+                  - cell "24.0 (no CI)" [ref=e1474]
+                - row [ref=e1475]:
+                  - cell "Encoders · Pathgenclip · Macro f1" [ref=e1476]
+                  - cell "0.54 (95% CI 0.44–0.67, n=132, 24 groups)" [ref=e1477]
+                - row [ref=e1478]:
+                  - cell "Encoders · Pathgenclip · Balanced accuracy" [ref=e1479]
+                  - cell "0.56 (95% CI 0.51–0.70, n=132, 24 groups)" [ref=e1480]
+                - row [ref=e1481]:
+                  - cell "Encoders · Pathgenclip · Accuracy" [ref=e1482]
+                  - cell "0.64 (95% CI 0.49–0.76, n=132, 24 groups)" [ref=e1483]
+            - group [ref=e1484]:
+              - generic "raw JSON" [ref=e1485] [cursor=pointer]
+            - generic [ref=e1486]: "source: eval/zeroshot.json · 2026-10-18T04:24:07Z"
+          - generic [ref=e1487]:
+            - heading "Spot-check (qualitative)" [level=2] [ref=e1488]
+            - table [ref=e1490]:
+              - rowgroup [ref=e1491]:
+                - row [ref=e1492]:
+                  - columnheader "Quantity" [ref=e1493]
+                  - columnheader "Value (interval)" [ref=e1494]
+              - rowgroup [ref=e1495]:
+                - row [ref=e1496]:
+                  - cell "Summary · Cells · N" [ref=e1497]
+                  - cell "1.00 (no CI)" [ref=e1498]
+                - row [ref=e1499]:
+                  - cell "Summary · Cells · Acceptable" [ref=e1500]
+                  - cell "0.00 (no CI)" [ref=e1501]
+                - row [ref=e1502]:
+                  - cell "Summary · Orphaned" [ref=e1503]
+                  - cell "0.00 (no CI)" [ref=e1504]
+            - group [ref=e1505]:
+              - generic "raw JSON" [ref=e1506] [cursor=pointer]
+            - generic [ref=e1507]: "source: eval/spotcheck.json · 2026-10-18T04:35:54Z"
+          - generic [ref=e1508]:
+            - heading "Figures" [level=2] [ref=e1509]
+            - generic [ref=e1510]:
+              - figure "eval/ab_roc.png" [ref=e1511]:
+                - img "ab_roc.png"
+              - figure "eval/calibration.png" [ref=e1513]:
+                - img "calibration.png"
+              - figure "eval/cells.png" [ref=e1515]:
+                - img "cells.png"
+              - figure "eval/cells_direction.png" [ref=e1517]:
+                - img "cells_direction.png"
+              - figure "eval/concepts.png" [ref=e1519]:
+                - img "concepts.png"
+              - figure "eval/concepts_bach.png" [ref=e1521]:
+                - img "concepts_bach.png"
+              - figure "eval/conformal.png" [ref=e1523]:
+                - img "conformal.png"
+              - figure "eval/deletion.png" [ref=e1525]:
+                - img "deletion.png"
+              - figure "eval/margin.png" [ref=e1527]:
+                - img "margin.png"
+              - figure "eval/model_choice.png" [ref=e1529]:
+                - img "model_choice.png"
+              - figure "eval/queue_sim.png" [ref=e1531]:
+                - img "queue_sim.png"
+              - figure "eval/reliability.png" [ref=e1533]:
+                - img "reliability.png"
+              - figure "eval/retrieval.png" [ref=e1535]:
+                - img "retrieval.png"
+              - figure "eval/thunder.png" [ref=e1537]:
+                - img "thunder.png"
+              - figure "eval/zeroshot.png" [ref=e1539]:
+                - img "zeroshot.png"
+          - generic [ref=e1541]:
+            - heading "Limitations" [level=2] [ref=e1542]
+            - list [ref=e1543]:
+              - listitem [ref=e1544]: "The surgical lane is simulated: image borders stand in for inked margins and frozen-section artifacts are synthetic degradations. No frozen-section data was available."
+              - listitem [ref=e1545]: BACH is small (400 microscopy images; test split 132, with few identified patients), so intervals are wide. Conformal coverage requires exchangeability; compare the observed held-out coverage above with the nominal target. The target is not a per-case guarantee.
+              - listitem [ref=e1546]: BACH labels are diagnostic categories, not Nottingham grades; concepts are features associated with invasive carcinoma, not causes.
+              - listitem [ref=e1547]: Follow-up order rules are illustrative and require clinical review. Spot-checks may be AI-reviewed; each result says which.
+              - listitem [ref=e1548]: Research prototype — not for clinical use.
+      - contentinfo [ref=e108]:
+        - generic [ref=e109]: PQ
+        - paragraph [ref=e110]: Research prototype on public, de-identified BACH data. Not clinically validated.AI suggestions support pathologist review. Frozen sections are simulated.
+        - generic [ref=e111]: TEAM 44 · 2026

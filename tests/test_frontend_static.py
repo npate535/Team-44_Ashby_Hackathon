@@ -154,3 +154,21 @@ def test_coverage_display_requires_matching_model_and_valid_aggregate():
     """
     res = subprocess.run(['node', '--input-type=module', '-e', script], capture_output=True, text=True, timeout=30)
     assert res.returncode == 0, res.stderr
+
+
+@pytest.mark.skipif(shutil.which('node') is None, reason='node not installed')
+def test_full_confidence_set_is_visible_and_uncertainty_includes_empty_sets():
+    script = rf"""
+    import {{setChips, filterViews}} from {json.dumps((APP / 'js/views/worklist.js').as_uri())};
+    const classes = ['Normal', 'Benign', 'InSitu', 'Invasive'];
+    const html = setChips({{risk: 25, setSize: 4, set: classes, probs: classes.map(cls => ({{cls, p: .25}}))}});
+    const labels = [...html.matchAll(/>([^<]+)<\/span>/g)].map(m => m[1]);
+    if (JSON.stringify(labels) !== JSON.stringify(['Normal', 'Benign', 'In situ', 'Invasive']))
+      throw Error('A confidence category was hidden');
+    const views = [0, 1, 2, 4].map(setSize => ({{setSize, agent: {{}}}}));
+    const filtered = filterViews({{status: 'all', flagFilter: 'uncertain'}}, views);
+    if (JSON.stringify(filtered.map(v => v.setSize)) !== '[0,2,4]')
+      throw Error('Uncertainty filter must include ambiguous and empty sets');
+    """
+    res = subprocess.run(['node', '--input-type=module', '-e', script], capture_output=True, text=True, timeout=30)
+    assert res.returncode == 0, res.stderr

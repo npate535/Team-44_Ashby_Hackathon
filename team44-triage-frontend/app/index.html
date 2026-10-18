@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#1B1A2E" />
+    <meta name="theme-color" content="#f2f5f1" />
     <meta
       name="description"
       content="PathQueue — an AI-prioritized breast pathology worklist. Team 44 research prototype, not for clinical use."
@@ -18,17 +18,25 @@
     <link rel="stylesheet" href="flow.css" />
     <link rel="stylesheet" href="case.css" />
     <link rel="stylesheet" href="metrics.css" />
+    <link rel="stylesheet" href="interpret.css" />
+    <link rel="stylesheet" href="theme.css" />
+    <script>
+      try {
+        const theme = localStorage.getItem('pq.theme');
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+      } catch (_) {}
+    </script>
   </head>
   <body>
     <a class="skip" href="#app">Skip to workspace</a>
-    <aside class="sidebar">
+    <header class="masthead">
       <a class="brand" href="#/worklist" aria-label="PathQueue worklist"
         ><img src="mark.svg" alt="" width="30" height="30" /><span
           >PathQueue<span class="brand-sub">Breast · Team 44</span></span
         ></a
       >
-      <nav aria-label="Workspace">
-        <div class="nav-label">Review</div>
+      <nav class="glass-nav" aria-label="Workspace">
+        <span class="nav-lens" aria-hidden="true"></span>
         <button
           data-nav="worklist"
           data-testid="nav-worklist"
@@ -60,7 +68,6 @@
             >0</span
           >
         </button>
-        <div class="nav-label">Research</div>
         <button data-nav="metrics" data-testid="nav-metrics">
           <svg aria-hidden="true"><use href="icons.svg#chart" /></svg>Model evaluation
         </button>
@@ -68,7 +75,15 @@
           <svg aria-hidden="true"><use href="icons.svg#scan" /></svg>Evidence review
         </button>
       </nav>
-      <div class="sidebar-bottom">
+      <div class="masthead-tools">
+        <span class="workspace-tag">Research workspace</span>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Switch to dark theme" title="Switch theme">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 9 9 0 0 1-9-9Z" /></svg>
+        </button>
+      </div>
+    </header>
+    <div class="workspace">
+      <div class="workspace-status">
         <div class="data-status" data-testid="data-status">
           <span class="status-dot"></span><b id="data-title">Connecting</b
           ><span id="data-detail">Checking case artifacts…</span>
@@ -78,8 +93,6 @@
           <kbd>N</kbd> next case · <kbd>/</kbd> search
         </p>
       </div>
-    </aside>
-    <div class="workspace">
       <header class="topbar" id="topbar">
         <div class="tb-title">
           <h1 id="page-title"><span id="breadcrumb">Worklist</span></h1>

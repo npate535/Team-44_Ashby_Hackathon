@@ -420,6 +420,9 @@ export async function createMockApi() {
       }
       return { available: items.length > 0, synthetic: true, created_utc: null, items };
     },
+    // no model calls in fixture mode: the panel shows its empty state and an explanatory error on generate
+    interpretation: async () => ({ status: 'none', model: null }),
+    interpret: async () => { throw new ApiError(503, 'Interpretation is not available in fixture mode (?mock=1).'); },
     spotcheck: async (body) => ({
       recorded: body.reviews.length,
       total: body.reviews.length,

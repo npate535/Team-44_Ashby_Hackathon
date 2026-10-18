@@ -1,0 +1,535 @@
+"""Reviewer-facing interpretation of a case's evidence by an LLM reached through the Cursor agent CLI (headless).
+
+The judge's feedback (Oct 17): classification alone is not the contribution; the reviewer needs calibrated confidence,
+an honest account of uncertainty, and the tissue evidence that links input to output. This module turns the public
+case JSON (never `eval_only`) into a plain-language summary of that measured evidence.
+
+What it is NOT: new evidence about why the classifier decided. A fluent paragraph is not proof of what the model used.
+So (1) the prompt carries the project's own explanation-validation results (deletion test, concept direction checks,
+spot check, calibration, conformal coverage) and must say which explanation types passed and which did not, and
+(2) every number in the generated text is checked against the evidence it was given (`verify_numbers`); unsupported
+numbers are reported in the UI, never hidden.
+
+Generation is on demand and cached on disk under <artifacts>/interpretations/, keyed by the evidence hash, model and
+prompt version, so a demo replays cached text with no network call. The CLI runs in an empty scratch directory in
+read-only "ask" mode: the model sees only the prompt, never the repository or the data folders.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import tempfile
+import time
+from pathlib import Path
+from typing import Any, Mapping
+
+PROMPT_VERSION = "interp-v3"
+CLAIMS_VERSION = "claims-v2"   # bump to re-check cached texts after the rules change
+DEFAULT_MODEL = "gemini-4-argon-high"
+TIMEOUT_S = 360
+ENV_KEY = "CURSOR_API_KEY"
+ENV_KEY_BACKUP = "CURSOR_API_KEY_BACKUP"   # tried once when a call with the primary key fails
+ENV_MODEL = "PATHQUEUE_INTERPRET_MODEL"
+ENV_CLI = "PATHQUEUE_CURSOR_CLI"
+
+# Fields the model does not need: display paths, per-request runtime state, replay bookkeeping.
+_DROP = {"runtime", "timer", "arrived_offset_s", "source_case_ids", "eval_only", "_fetched_ms", "server_time",
+         "server_time_iso"}
+
+CASE_INSTRUCTIONS = """\
+You are explaining the output of PathQueue, a research prototype for breast pathology triage, to a pathologist who is
+reviewing one H&E image (BACH dataset, 2048x1536 px, split into numbered 512 px regions). Everything you may rely on is
+in the CASE EVIDENCE JSON below. Do not use outside facts about this patient, and never invent a number, region,
+cell count or finding that is not in the JSON.
+
+How to read the JSON:
+- prediction.probs are calibrated class probabilities for prediction.classes (BACH categories: Normal, Benign,
+  InSitu, Invasive). These are diagnostic categories, NOT Nottingham grade; "aggressiveness" here can only mean the
+  probability of invasive carcinoma (risk_score) and the tissue features associated with it.
+- prediction.conformal_set is a split-conformal prediction set at error rate conformal_alpha: the set is built so
+  that, over exchangeable cases, the true class falls inside it about (1 - alpha) of the time. A set with more than
+  one class means the model cannot separate those classes at that guarantee. It is a dataset-level guarantee, not a
+  per-case probability.
+- quality.reliability (0-1) and quality.ood_percentile describe how typical the image looks versus training data;
+  reliability_flag=true means the input itself is suspect (blur, stain, out of distribution).
+- agreement.conch_musk_same_top: whether two independent foundation models (CONCH, MUSK) agree on the top class;
+  neighbor_agreement: fraction of the most similar reference images whose label matches the suggestion.
+- concepts: pathology concepts scored from image embeddings (text-prompt / concept-activation vectors).
+  contribution > 0 pushes toward invasive carcinoma, < 0 pushes away, direction "context" means descriptive only.
+  top_tiles are the region numbers where the concept is strongest. These are model-derived scores, not measurements.
+- cells: HoVer-Net nuclei segmentation on a few regions. ref_percentile places the value within the reference set
+  (0.9 = higher than 90% of reference images). These ARE measurements, but on a sample of regions only.
+- findings (F1, F2, ...) are the evidence items the app already cites; cite them as [F1] etc. when you use them.
+- flag/tier: the worklist priority and reasons. agent.orders are drafted follow-up orders with rule-based rationale.
+
+The VALIDATION JSON (after the case) holds the project's dataset-level tests of its own explanations. Use it to decide
+how much weight each kind of explanation deserves, and say so:
+- deletion: removing the regions the heatmap ranks as highest-risk vs removing random regions. If the CI of
+  risk_minus_random excludes 0, the region heatmap is faithful to the classifier; if concept_minus_random's CI
+  includes 0, the concept explanation has NOT been shown to reflect what the classifier used.
+- concept_checks: per concept, whether its class direction matches pathology expectations, whether it is weak, and
+  an AI spot check of its top regions (acceptable/n; an AI reviewer, not a pathologist). A concept with a poor spot
+  check (e.g. 0/20) must be described as unreliable wherever you mention it.
+- calibration (ECE), conformal coverage and reliability error AUROC are dataset-level, on a small test set.
+You are writing a plain-language summary of evidence the app already measured. You add no new evidence; never imply
+that your text proves why the model decided.
+
+Write GitHub-flavored Markdown that a busy pathologist can scan in 30 seconds. HARD LIMIT: 300 words in total,
+tables included. Use exactly these ## sections, in this order, and nothing else:
+
+## Bottom line
+One line, formatted exactly as: **Suggests <class> (<p>%)** · <Confident | Ambiguous: <class> vs <class> | Unreliable
+input> · <Read in turn | Careful review | Defer to expert>
+Then at most one short sentence on why.
+
+## Confidence
+A table with exactly these 5 rows, columns | Signal | Value | Reading | (Reading: 2-6 words):
+Top probabilities · Conformal set · Reliability / OOD · CONCH–MUSK agreement · Similar cases.
+
+## Tissue evidence
+3 to 5 bullets, strongest first, each formatted exactly as:
+- **<Feature>** (regions a, b) · <↑ invasive | ↓ invasive | context> · <≤12 words of meaning> · <Validated | Weak | Unreliable>
+Label each with its trust from the VALIDATION JSON (spot check ≥ 15/20 Validated, 8-14/20 Weak, < 8/20 or weak=true
+Unreliable; cell features: Measured). Put a cell-measurement bullet in only if it matters.
+
+## Trust check
+Exactly 2 bullets: **Heatmap**: deletion-test result in one line. **Concepts**: deletion-test result in one line,
+naming any Unreliable concept this case leans on.
+
+## Could be wrong if
+1 or 2 bullets, ≤ 20 words each.
+
+## Check on the slide
+2 or 3 numbered items, each ≤ 18 words, starting with the region numbers in bold.
+
+Rules: bullets and table cells, not paragraphs; no sentence over 20 words; no hedging filler ("it is worth noting",
+"overall"); no limits/disclaimer section (the app shows one); cite findings as [F1] at most once each; percentages
+as whole numbers; no emojis. Output only the Markdown, with no preamble.
+"""
+
+RESULTS_INSTRUCTIONS = """\
+You are interpreting the evaluation results of PathQueue, a research prototype for confidence-aware breast pathology
+triage built during a hackathon on the public BACH dataset with pathology foundation models (CONCH, MUSK, UNI2-h and
+others). The judges asked for three things beyond classification accuracy: calibrated confidence, honest uncertainty
+(knowing when to defer), and interpretability that links tissue structures to the output. The RESULTS document below
+is all you may rely on. Never invent a metric or a number that is not in it, and keep every caveat it states
+(post-hoc choices, small test sets, simulated components).
+
+Write GitHub-flavored Markdown with these ## sections:
+
+## What the results show
+Three to five bullets with the headline numbers and what they mean in practice.
+
+## Is the confidence trustworthy?
+Calibration, conformal coverage and set sizes, reliability/abstention: what holds, what does not, at what sample size.
+
+## Does the interpretability hold up?
+Separate explanation types that passed a test (e.g. the region heatmap in the deletion test) from those that did not
+or were not tested (e.g. concept attributions, concepts with poor spot checks, cell features with wrong-direction
+checks). A fluent explanation is not evidence of what the model used; say which claims are tested and which are not.
+
+## Weaknesses a reviewer will raise
+The strongest honest criticisms, each with what would address it.
+
+## Next experiments
+Three concrete, feasible experiments ranked by expected value.
+
+HARD LIMIT: 450 words in total. Use bullets and compact tables, not paragraphs; each bullet starts with a bold label and is at most 25 words; no sentence over 20 words; no filler; no emojis. Output only the Markdown.
+"""
+
+
+def _ci(m: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(m, Mapping) or m.get("estimate") is None:
+        return None
+    return {k: (round(float(m[k]), 4) if isinstance(m.get(k), (int, float)) else m.get(k))
+            for k in ("estimate", "lo", "hi", "n") if k in m}
+
+
+def _read(eval_dir: Path, name: str) -> dict[str, Any]:
+    try:
+        return json.loads((eval_dir / f"{name}.json").read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def validation_context(eval_dir: Path) -> dict[str, Any]:
+    """Dataset-level tests of the explanations and confidence, compacted for the prompt (missing files are omitted)."""
+    out: dict[str, Any] = {}
+    dele = _read(eval_dir, "deletion")
+    for model, m in (dele.get("models") or {}).items():
+        sub = m.get("all_eligible") or {}
+        out["deletion"] = {
+            "model": model, "regions_removed": (dele.get("settings") or {}).get("n_tiles"),
+            "risk_minus_random": _ci(sub.get("risk_minus_random")),
+            "concept_minus_random": _ci(sub.get("concept_minus_random")),
+            "note": "drop in P(invasive) when removing top-ranked regions minus removing random regions; 95% CI"}
+        break
+    bach = (_read(eval_dir, "concepts_bach").get("concepts") or {})
+    spot = ((_read(eval_dir, "spotcheck").get("summary") or {}).get("concept") or {})
+    checks = {}
+    for cid, c in bach.items():
+        sc = spot.get(cid) or {}
+        checks[cid] = {"label": c.get("label"), "direction_consistent": c.get("direction_consistent"),
+                       "weak": c.get("weak"),
+                       "spotcheck_acceptable": f"{sc['acceptable']}/{sc['n']}" if "n" in sc else None}
+    if checks:
+        out["concept_checks"] = checks
+        out["spotcheck_reviewer"] = "AI reviewer, not a pathologist"
+    cal = _read(eval_dir, "calibration")
+    if cal:
+        out["calibration"] = {"ece_after": _ci((cal.get("after") or {}).get("ece")), "n_test": cal.get("n"),
+                              "n_patient_groups": cal.get("n_groups")}
+    conf = _read(eval_dir, "conformal")
+    m = ((conf.get("methods") or {}).get(conf.get("drives_tiers") or "") or {})
+    if m:
+        out["conformal"] = {"alpha": conf.get("alpha"), "coverage": _ci(m.get("coverage")),
+                            "mean_set_size": _ci(m.get("mean_set_size"))}
+    rel = _read(eval_dir, "reliability")
+    if rel.get("error_auroc_test"):
+        out["reliability"] = {"error_auroc": _ci(rel["error_auroc_test"]),
+                              "note": "how well the reliability score ranks misclassified simulated frozen sections"}
+    cells = _read(eval_dir, "cells")
+    if cells.get("direction_checks"):
+        out["cells"] = {"wrong_direction_features": cells["direction_checks"].get("wrong_way"),
+                        "spotcheck_acceptable": f"{spot_c['acceptable']}/{spot_c['n']}" if (spot_c := (
+                            (_read(eval_dir, "spotcheck").get("summary") or {}).get("cells") or {})).get("n") else None}
+    return out
+
+
+def _strings(obj: Any) -> list[str]:
+    if isinstance(obj, str):
+        return [obj]
+    if isinstance(obj, Mapping):
+        return [t for v in obj.values() for t in _strings(v)]
+    if isinstance(obj, (list, tuple)):
+        return [t for v in obj for t in _strings(v)]
+    return []
+
+
+def verify_numbers(markdown: str, *sources: Any) -> dict[str, Any]:
+    """Every number in the text must match a number in the sources (rounding and percent forms allowed, the rules of
+    backend.summary.number_supported). Integers up to 12 are region numbers or small counts and are not checked."""
+    from backend.summary import finding_numbers, number_supported, numbers_in_text
+    allowed = [x for src in sources for x in finding_numbers(src)]
+    allowed += [(v, False) for src in sources for t in _strings(src) for v, _d, _p in numbers_in_text(t)]
+    allowed += [(100.0 * x, False) for x, is_count in allowed if not is_count and x <= 1.0]   # 0.882 -> 88th
+    text = re.sub(r"\bBACH_\w+|\b[A-Z]{2,}\d*\b|\[F\d+(?:\s*,\s*F\d+)*\]", " ", markdown)
+    checked, bad = 0, []
+    for value, decimals, pct in numbers_in_text(text):
+        if not pct and decimals == 0 and value <= 12:
+            continue
+        checked += 1
+        if not number_supported(value, decimals, pct, allowed):
+            bad.append(f"{value:g}{'%' if pct else ''}")
+    return {"checked": checked, "unsupported": bad}
+
+
+# ---- claim check: categorical statements vs rules computed from the JSON ------------------------------------------
+# The number check only proves each number exists in the evidence. This catches misreadings that a number check cannot:
+# the verdict line, per-feature direction and trust tags, and the reading of the OOD percentile.
+OOD_HIGH, OOD_LOW = 0.9, 0.5
+_TAGS = ("Validated", "Weak", "Unreliable", "Measured")
+
+
+def _norm(text: str) -> str:
+    return re.sub(r"[^a-z]", "", text.lower())
+
+
+def concept_trust(concept: Mapping[str, Any], validation: Mapping[str, Any]) -> str:
+    """Spot check >= 15/20 Validated, 8-14 Weak, below 8 or weak=true Unreliable; a failed caption-consistency check
+    (text-prompt-only score) drops one level."""
+    chk = (validation.get("concept_checks") or {}).get(concept.get("id"), {})
+    spot = chk.get("spotcheck_acceptable")
+    level = 1
+    if spot and "/" in spot:
+        ok, n = (int(x) for x in spot.split("/"))
+        frac = ok / n if n else 0.0
+        level = 2 if frac >= 0.75 else 1 if frac >= 0.4 else 0
+    if chk.get("weak"):
+        level = 0
+    if concept.get("caption_consistent") is False:
+        level = max(0, level - 1)
+    return ("Unreliable", "Weak", "Validated")[level]
+
+
+def _section(markdown: str, title: str) -> str:
+    m = re.search(rf"^##\s*{re.escape(title)}\s*$(.*?)(?=^##\s|\Z)", markdown, re.M | re.S | re.I)
+    return m.group(1) if m else ""
+
+
+def check_claims(markdown: str, case: Mapping[str, Any], validation: Mapping[str, Any]) -> list[str]:
+    problems: list[str] = []
+    pred = case.get("prediction") or {}
+    classes, probs = pred.get("classes") or [], pred.get("probs") or []
+    quality = case.get("quality") or {}
+    if classes and probs:
+        top = max(range(len(probs)), key=lambda i: probs[i])
+        bottom = _section(markdown, "Bottom line").strip().splitlines()
+        head = bottom[0] if bottom else ""
+        m = re.search(r"Suggests\s+([^(*]+?)\s*\((<?\d+)%\)", head)
+        if not m:
+            problems.append("Bottom line does not start with '**Suggests <class> (<p>%)**'.")
+        else:
+            if _norm(m.group(1)) != _norm(classes[top]):
+                problems.append(f"Bottom line names {m.group(1).strip()}, but the top class is {classes[top]}.")
+            if m.group(2).lstrip("<") != str(round(100 * probs[top])):
+                problems.append(f"Bottom line gives {m.group(2)}%, but P({classes[top]}) rounds to "
+                                f"{round(100 * probs[top])}%.")
+        cset = pred.get("conformal_set") or []
+        if quality.get("reliability_flag"):
+            want = "Unreliable input"
+        elif len(cset) == 1:
+            want = "Confident"
+        else:
+            want = "Ambiguous"
+        if want not in head:
+            why = ("the reliability flag is set" if want == "Unreliable input" else
+                   f"the conformal set is {{{', '.join(cset)}}}")
+            problems.append(f"Bottom line verdict should be '{want}' because {why}.")
+        flagged = (case.get("flag") or {}).get("flagged")
+        if flagged and "Read in turn" in head:
+            problems.append("Bottom line says 'Read in turn', but the case is flagged for review "
+                            f"(tier {(case.get('flag') or {}).get('tier')}).")
+    concepts = case.get("concepts") or []
+    for line in _section(markdown, "Tissue evidence").splitlines():
+        b = re.match(r"\s*[-*]\s+\*\*(.+?)\*\*(.*)$", line)
+        if not b:
+            continue
+        label, rest = b.group(1), b.group(2)
+        concept = next((c for c in concepts if _norm(c.get("label", "")) in _norm(label)
+                        or _norm(label) in _norm(c.get("label", "")) or _norm(c.get("id", "")) == _norm(label)), None)
+        tags = [t for t in _TAGS if re.search(rf"\b{t}\b", rest)]
+        if concept is None:
+            continue                                            # cell measurements or a free-form bullet
+        name = concept.get("label")
+        want = concept_trust(concept, validation)
+        if tags and tags[-1] != want:
+            problems.append(f"'{name}' is tagged {tags[-1]} but should be {want} (spot check "
+                            f"{((validation.get('concept_checks') or {}).get(concept.get('id')) or {}).get('spotcheck_acceptable')}"
+                            f"{', caption check failed' if concept.get('caption_consistent') is False else ''}).")
+        contrib = concept.get("contribution")
+        if concept.get("direction") == "context":
+            if "invasive" in rest and ("↑" in rest or "↓" in rest):
+                problems.append(f"'{name}' is context-only; mark it 'context', not with an arrow.")
+        elif isinstance(contrib, (int, float)) and contrib != 0:
+            arrow = "↑" if contrib > 0 else "↓"
+            if ("↑" in rest or "↓" in rest) and arrow not in rest:
+                problems.append(f"'{name}' has contribution {contrib:+.2f}, so its arrow must be '{arrow} invasive'.")
+    agree_row = next((l for l in markdown.splitlines() if l.lstrip().startswith("|") and "MUSK" in l), "")
+    named = [c for c in classes if re.search(rf"\b{re.escape(c)}\b", agree_row.split("|", 2)[-1], re.I)]
+    if named:
+        problems.append(f"The CONCH–MUSK row names {', '.join(named)}, but agreement.conch_musk_same_top only says the "
+                        "two models agree with each other; the JSON does not say which class they chose.")
+    ood = quality.get("ood_percentile")
+    if isinstance(ood, (int, float)):
+        row = next((l for l in markdown.splitlines() if l.lstrip().startswith("|") and "OOD" in l), "")
+        reading = row.strip().strip("|").split("|")[-1].lower() if row else ""
+        atypical = re.search(r"atypical|unusual|outlier|out of distribution|far from|less typical", reading)
+        if ood >= OOD_HIGH and re.search(r"\btypical\b", reading) and not atypical:
+            problems.append(f"OOD percentile {ood:g} means this image is farther from the calibration images than "
+                            f"{round(100 * ood)}% of them (atypical), not 'typical'.")
+        if ood <= OOD_LOW and atypical:
+            problems.append(f"OOD percentile {ood:g} is not high: the image is not atypical.")
+    return problems
+
+
+REPAIR_NOTE = """Corrections to how to read the JSON (these override anything above):
+- quality.ood_percentile is the percentile of this image's distance from the clean calibration images: 1.0 = farther
+  than all of them (most atypical), 0.5 = median. On this project's test set, OOD percentile alone did not predict
+  errors (reliability.feature_auroc ~0.49); quality.reliability and reliability_flag are the input-quality verdict.
+- Tissue arrows show the sign of THIS case's contribution (+ = ↑ invasive, - = ↓ invasive); concept.direction is only
+  the pathology-expected direction. Concepts with direction "context" get "context".
+- agreement.conch_musk_same_top says only whether CONCH and MUSK agree with each other; never name their class.
+- Trust tags: spot check >= 15/20 Validated, 8-14/20 Weak, < 8/20 or weak=true Unreliable; caption_consistent=false
+  drops one level. Cell features are Measured.
+"""
+
+
+class InterpretError(RuntimeError):
+    """Interpretation unavailable: missing key/CLI, model failure or timeout. The message is safe to show."""
+
+
+def _clean(obj: Any) -> Any:
+    if isinstance(obj, dict):
+        return {k: _clean(v) for k, v in obj.items() if k not in _DROP and not _is_media(k, v)}
+    if isinstance(obj, list):
+        return [_clean(v) for v in obj]
+    return obj
+
+
+def _is_media(key: str, value: Any) -> bool:
+    return isinstance(value, str) and key in ("image", "display", "overlay")
+
+
+def case_evidence(case: Mapping[str, Any]) -> dict[str, Any]:
+    """The public case without display paths and runtime state: what the model is allowed to see."""
+    return _clean(dict(case))
+
+
+def _cache_key(kind: str, payload: str, model: str) -> str:
+    h = hashlib.sha256(f"{PROMPT_VERSION}\n{kind}\n{model}\n{payload}".encode()).hexdigest()
+    return h[:16]
+
+
+def load_dotenv(path: Path) -> None:
+    """KEY=VALUE lines from the git-ignored repo .env; values already in the environment win."""
+    if not path.is_file():
+        return
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        value = value.strip().strip("'\"")
+        if key.strip() and value:
+            os.environ.setdefault(key.strip(), value)
+
+
+def _model() -> str:
+    return (os.environ.get(ENV_MODEL) or "").strip() or DEFAULT_MODEL
+
+
+def _cli() -> str:
+    cli = (os.environ.get(ENV_CLI) or "").strip() or shutil.which("cursor-agent") or shutil.which("agent")
+    if not cli:
+        raise InterpretError("cursor-agent CLI not found: install the Cursor CLI or set PATHQUEUE_CURSOR_CLI")
+    return cli
+
+
+def _run(prompt: str, model: str) -> tuple[str, dict[str, Any]]:
+    keys = [k for k in ((os.environ.get(ENV_KEY) or "").strip(), (os.environ.get(ENV_KEY_BACKUP) or "").strip()) if k]
+    if not keys:
+        raise InterpretError(f"{ENV_KEY} is not set: add it to .env (git-ignored)")
+    for i, key in enumerate(keys):
+        try:
+            text, meta = _run_once(prompt, model, key)
+            return text, {**meta, "key": "backup" if i else "primary"}
+        except InterpretError:
+            if i == len(keys) - 1:
+                raise
+    raise AssertionError("unreachable")
+
+
+def _run_once(prompt: str, model: str, key: str) -> tuple[str, dict[str, Any]]:
+    cmd = [_cli(), "-p", "--mode", "ask", "--trust", "--model", model, "--output-format", "json", prompt]
+    env = {**os.environ, ENV_KEY: key}
+    env.pop(ENV_KEY_BACKUP, None)
+    with tempfile.TemporaryDirectory(prefix="pq-interp-") as scratch:   # empty workspace: nothing to read
+        try:
+            proc = subprocess.run(cmd, cwd=scratch, capture_output=True, text=True, timeout=TIMEOUT_S,
+                                  stdin=subprocess.DEVNULL, env=env)
+        except subprocess.TimeoutExpired as exc:
+            raise InterpretError(f"model did not answer within {TIMEOUT_S} s") from exc
+    out = (proc.stdout or "").strip()
+    try:
+        data = json.loads(out.splitlines()[-1]) if out else {}
+    except json.JSONDecodeError:
+        data = {}
+    text = str(data.get("result") or "").strip()
+    if proc.returncode != 0 or data.get("is_error") or not text:
+        detail = (proc.stderr or out or "no output").strip().splitlines()[-1:] or ["no output"]
+        raise InterpretError(f"model call failed (exit {proc.returncode}): {detail[0][:300]}")
+    return text, {"usage": data.get("usage"), "duration_ms": data.get("duration_ms")}
+
+
+def _strip_fence(text: str) -> str:
+    t = text.strip()
+    if t.startswith("```"):
+        t = t.split("\n", 1)[1] if "\n" in t else ""
+        if t.rstrip().endswith("```"):
+            t = t.rstrip()[:-3]
+    return t.strip()
+
+
+def _numbers_of(text: str) -> list[float]:
+    """Numbers stated in a source document, as plain values (percent signs dropped) for verify_numbers."""
+    from backend.summary import numbers_in_text
+    return [v / 100.0 if pct else v for v, _d, pct in numbers_in_text(text)] + [v for v, _d, _p in numbers_in_text(text)]
+
+
+class Interpreter:
+    def __init__(self, cache_dir: Path, dotenv: Path | None = None, eval_dir: Path | None = None) -> None:
+        self.cache_dir = Path(cache_dir)
+        self.eval_dir = Path(eval_dir) if eval_dir is not None else None
+        if dotenv is not None:
+            load_dotenv(dotenv)
+
+    def _path(self, kind: str, name: str, key: str) -> Path:
+        safe = "".join(ch if ch.isalnum() or ch in "-_." else "_" for ch in name)
+        return self.cache_dir / kind / f"{safe}.{key}.json"
+
+    def _get(self, kind: str, name: str, instructions: str, header: str, payload: str,
+             generate: bool, force: bool, sources: tuple[Any, ...] = ()) -> dict[str, Any]:
+        model = _model()
+        key = _cache_key(kind, payload, model)
+        path = self._path(kind, name, key)
+        if path.is_file() and not force:
+            return {**json.loads(path.read_text()), "cached": True}
+        if not generate:
+            return {"status": "none", "model": model}
+        started = time.time()
+        text, meta = _run(f"{instructions}\n\n{header}\n{payload}\n", model)
+        markdown = _strip_fence(text)
+        record = {"status": "ok", "kind": kind, "name": name, "model": model, "provider": "cursor",
+                  "prompt_version": PROMPT_VERSION, "evidence_hash": key, "markdown": markdown,
+                  "verification": verify_numbers(markdown, *sources) if sources else None,
+                  "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "elapsed_s": round(time.time() - started, 1),
+                  **meta}
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(record, indent=1))
+        tmp.replace(path)
+        return {**record, "cached": False}
+
+    def case(self, case: Mapping[str, Any], *, generate: bool = False, force: bool = False) -> dict[str, Any]:
+        evidence = case_evidence(case)
+        validation = validation_context(self.eval_dir) if self.eval_dir is not None else {}
+        payload = (json.dumps(evidence, indent=1, sort_keys=True, ensure_ascii=False) + "\n\nVALIDATION JSON:\n"
+                   + json.dumps(validation, indent=1, sort_keys=True, ensure_ascii=False))
+        return self._get("case", str(case.get("case_id", "case")), CASE_INSTRUCTIONS, "CASE EVIDENCE JSON:",
+                         payload, generate, force, sources=(evidence, validation))
+
+    def repair(self, case: Mapping[str, Any]) -> dict[str, Any]:
+        """Check a cached case interpretation's categorical claims; when any fail, ask the model to fix exactly those
+        (once) and re-check. Result stored in the same cache file under "claims"; never generates from scratch."""
+        evidence = case_evidence(case)
+        validation = validation_context(self.eval_dir) if self.eval_dir is not None else {}
+        model = _model()
+        payload = (json.dumps(evidence, indent=1, sort_keys=True, ensure_ascii=False) + "\n\nVALIDATION JSON:\n"
+                   + json.dumps(validation, indent=1, sort_keys=True, ensure_ascii=False))
+        path = self._path("case", str(case.get("case_id", "case")), _cache_key("case", payload, model))
+        if not path.is_file():
+            return {"status": "none"}
+        record = json.loads(path.read_text())
+        if (record.get("claims") or {}).get("checked_version") == CLAIMS_VERSION:
+            return record
+        before = check_claims(record["markdown"], evidence, validation)
+        claims: dict[str, Any] = {"checked_version": CLAIMS_VERSION, "found": before, "repaired": False,
+                                  "remaining": before}
+        if before:
+            fix = ("\n".join(f"- {p}" for p in before))
+            prompt = (f"{CASE_INSTRUCTIONS}\n{REPAIR_NOTE}\nCASE EVIDENCE JSON:\n{payload}\n\nDRAFT:\n{record['markdown']}\n\n"
+                      f"A deterministic check against the JSON found these errors in the DRAFT:\n{fix}\n\n"
+                      "Return the corrected Markdown in exactly the same format. Change only what is needed to fix "
+                      "these errors and anything that depends on them. Output only the Markdown.")
+            text, _meta = _run(prompt, model)
+            fixed = _strip_fence(text)
+            after = check_claims(fixed, evidence, validation)
+            if len(after) < len(before):
+                record["markdown_original"] = record["markdown"]
+                record["markdown"] = fixed
+                record["verification"] = verify_numbers(fixed, evidence, validation)
+                claims.update(repaired=True, remaining=after)
+        record["claims"] = claims
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(record, indent=1))
+        tmp.replace(path)
+        return record
+
+    def results(self, results_md: str, *, generate: bool = False, force: bool = False) -> dict[str, Any]:
+        return self._get("results", "RESULTS", RESULTS_INSTRUCTIONS, "RESULTS DOCUMENT (Markdown):",
+                         results_md, generate, force, sources=(_numbers_of(results_md),))

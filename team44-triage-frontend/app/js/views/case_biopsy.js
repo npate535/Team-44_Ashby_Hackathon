@@ -6,6 +6,7 @@ import { agentPanel } from './agent.js';
 import { keepOpen, setRenderer } from './case_ui.js';
 import { cellsTab } from './cells.js';
 import { heatmap, heatmapControls, heatmapLegend } from './heatmap.js';
+import { evidenceBrief, interpretPanel } from './interpret.js';
 import { aggProb, compared, fmtPct, howSure, summary, why } from './why.js';
 import { reasonBadges } from './worklist.js';
 
@@ -72,17 +73,22 @@ export function render(ST, ctx) {
   let h =
     `<section class="cv cv-biopsy" data-testid="case-view" data-lane="biopsy" data-case-id="${esc(v.id)}">` +
     header(v, ST.cfg) +
-    `<div class="tabs" role="tablist" aria-label="Case sections"><button role="tab" data-tab="evidence" data-testid="tab-evidence" aria-selected="${ST.tab !== 'cells'}"${ST.tab === 'cells' ? ' tabindex="-1"' : ''}>Evidence</button>` +
-    `<button role="tab" data-tab="cells" data-testid="tab-cells" aria-selected="${ST.tab === 'cells'}"${ST.tab === 'cells' ? '' : ' tabindex="-1"'}>Cells${v.cells.status === 'ok' ? ` <span class="tab-n">${(v.cells.tiles || []).length}</span>` : ''}</button></div></div>`;
+    `<div class="tabs" role="tablist" aria-label="Case sections"><button role="tab" id="tab-evidence" aria-controls="case-panel" data-tab="evidence" data-testid="tab-evidence" aria-selected="${ST.tab !== 'cells' && ST.tab !== 'interp'}"${ST.tab === 'cells' || ST.tab === 'interp' ? ' tabindex="-1"' : ''}>Image & findings</button>` +
+    `<button role="tab" id="tab-cells" aria-controls="case-panel" data-tab="cells" data-testid="tab-cells" aria-selected="${ST.tab === 'cells'}"${ST.tab === 'cells' ? '' : ' tabindex="-1"'}>Cell evidence${v.cells.status === 'ok' ? ` <span class="tab-n">${(v.cells.tiles || []).length}</span>` : ''}</button>` +
+    `<button role="tab" id="tab-interp" aria-controls="case-panel" data-tab="interp" data-testid="tab-interp" aria-selected="${ST.tab === 'interp'}"${ST.tab === 'interp' ? '' : ' tabindex="-1"'}>AI explanation${(ST.interp[v.id] || {}).status === 'ok' ? ' <span class="tab-n ai-dot" title="Ready">✓</span>' : ''}</button></div></div>`;
   if (ST.tab === 'cells') {
-    return h + `<div class="cv-tabpanel" role="tabpanel">${cellsTab(v, ST, ctx.assetUrl)}</div></section>`;
+    return h + `<div id="case-panel" class="cv-tabpanel" role="tabpanel" aria-labelledby="tab-cells">${cellsTab(v, ST, ctx.assetUrl)}</div></section>`;
+  }
+  if (ST.tab === 'interp') {
+    return h + `<div id="case-panel" class="cv-tabpanel ai-tabpanel" role="tabpanel" aria-labelledby="tab-interp">${interpretPanel(ST, v.id, 'case')}</div></section>`;
   }
   const hm = ST.hm;
+  h += '<div id="case-panel" role="tabpanel" aria-labelledby="tab-evidence">' + evidenceBrief(ST, v);
   h += '<div class="grid case-layout cv-grid"><div class="cv-main">';
+  h += `<div class="card" data-testid="summary"><div class="card-h"><h2>Grounded summary</h2><span class="sub">Citations open the supporting evidence</span></div>${summary(v)}</div>`;
   h +=
     `<div class="card cv-image"><div class="card-h"><h2>Image evidence</h2><span class="sub">${esc(v.image ? `${v.image.grid[0]} × ${v.image.grid[1]} regions of ${v.image.tile} px` : '')}</span></div>` +
     `<figure data-testid="heatmap" class="cv-fig">${heatmapControls(v, hm)}${heatmap(v, hm, ctx.assetUrl)}<figcaption>${v.image ? heatmapLegend(v, hm) : ''}</figcaption></figure></div>`;
-  h += `<div class="card" data-testid="summary"><div class="card-h"><h2>Grounded summary</h2></div>${summary(v)}</div>`;
   h += `<div class="card cv-why" data-testid="why"><div class="card-h"><h2>Why: features associated with invasive carcinoma</h2></div>${why(v, hm, ST.cfg, ST.metrics)}</div>`;
   h += `<div class="card" data-testid="compared"><div class="card-h"><h2>Reference comparison</h2></div>${compared(v, ST.cfg, ctx.assetUrl)}</div>`;
   const n = (ST.events[v.id] || []).length;
@@ -91,6 +97,6 @@ export function render(ST, ctx) {
   h += agentPanel(v, ST);
   h += `<div class="card" data-testid="how-sure"><div class="card-h"><h2>Prediction and confidence</h2></div>${howSure(v, ST.cfg, ST.metrics)}</div>`;
   if (v.tier === 4) h += '<p class="note">Unflagged means read in turn. It does not mean cleared.</p>';
-  return h + '</div></div></section>';
+  return h + '</div></div></div></section>';
 }
 

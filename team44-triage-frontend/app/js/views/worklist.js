@@ -34,6 +34,7 @@ const FLAG_TAG = {
   aging_promoted: { text: 'Aged', tone: 'eos', title: 'Moved up one tier after waiting ≥75% of its target' }
 };
 export const FLAG_FILTERS = [
+  ['uncertain', 'Multiple or no categories'],
   ['safety', 'Invasive in set (not top)'],
   ['set_size_gt_1', 'Ambiguous set'],
   ['empty_set', 'Empty set'],
@@ -61,6 +62,7 @@ function flagTags(v) {
 
 function matchesFlag(v, flag) {
   if (!flag || flag === 'all') return true;
+  if (flag === 'uncertain') return v.setSize !== 1;
   const c = codes(v);
   if (flag === 'safety') return c.includes('aggressive_in_conformal_set') && !c.includes('aggressive_top');
   if (flag === 'any') return c.some((code) => FLAG_TAG[code]);
@@ -76,13 +78,7 @@ export function setChips(v) {
     `<span class="chip${cls === 'Invasive' ? ' inv' : ''}" data-testid="set-chip" title="${esc(suggestedLabel(cls))}">${esc(shortClass(cls))}</span>`;
   const order = (v.probs || []).map((p) => p.cls);
   const set = [...v.set].sort((a, b) => order.indexOf(a) - order.indexOf(b));
-  if (set.length <= 2) return set.map(chip).join('');
-  // 3+ classes: two named chips, then "+N". Invasive is always one of the named chips (safety rule); the other is
-  // the most severe remaining class. Named chips keep class order; the hidden ones are listed in the tooltip.
-  const keep = new Set(set.includes('Invasive') ? ['Invasive', set.filter((c) => c !== 'Invasive').pop()] : set.slice(-2));
-  const shown = set.filter((c) => keep.has(c));
-  const rest = set.filter((c) => !keep.has(c));
-  return `${shown.map(chip).join('')}<span class="chip more" title="Also in the set: ${esc(rest.map(suggestedLabel).join(', '))}">+${rest.length}</span>`;
+  return set.map(chip).join('');
 }
 
 export function reasonBadges(v, { skipSurgical = true } = {}) {
@@ -222,6 +218,19 @@ function head(ST) {
   );
 }
 
+function aiOverview(views, ST) {
+  const open = views.filter((v) => !v.done);
+  const uncertain = open.filter((v) => v.setSize !== 1).length;
+  const unreliable = open.filter((v) => v.reliability.flag).length;
+  const button = (flag, value, title, note) =>
+    `<button class="ai-signal" data-flag-quick="${flag}" aria-pressed="${ST.flagFilter === flag}" data-testid="ai-signal-${flag}"><span class="signal-value">${value}<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></svg></span><b>${title}</b><span>${note}</span></button>`;
+  return `<div class="review-intro"><div><p class="eyebrow">THE PATHOLOGY WORKSPACE</p><h2>Your review, in focus.</h2><p>Follow the evidence. See the uncertainty. Make the next call.</p></div><a class="evaluation-link" href="#/metrics">Explore model evaluation <span aria-hidden="true">↗</span></a></div>` +
+    `<section class="ai-overview" aria-label="AI transparency" data-testid="ai-overview"><div class="ai-overview-copy"><span class="section-kicker"><i class="ai-orbit" aria-hidden="true"></i> AI, with the evidence attached</span><h3>Understand what moves a case forward.</h3><p>Frozen → invasive in the confidence set → uncertain → unflagged. Waiting can raise priority. Open a case to inspect the explanation and supporting regions.</p><span class="ai-source">Cached model evidence · every decision stays with you</span></div>` +
+    button('any', open.filter((v) => matchesFlag(v, 'any')).length, 'Cases with flags', 'See the reasons for a closer look') +
+    button('uncertain', uncertain, 'Uncertain predictions', 'Multiple or no plausible categories') +
+    button('low_reliability', unreliable, 'Reliability flags', 'Review quality and model agreement') + '</section>';
+}
+
 export function filterViews(ST, allViews) {
   const query = (ST.search || '').trim().toLowerCase();
   return allViews.filter(
@@ -256,7 +265,7 @@ export function render(ST, ctx) {
   // "Open next case" follows what is on screen: the first open row of the current filters and order.
   const firstOpen = views.find((v) => !v.done);
   const next = firstOpen ? ST.items.find((c) => c.case_id === firstOpen.id) : nextCase(ST.items, null);
-  let h = `<section class="wl" data-testid="worklist-view">` + compositionBlock(comp, ST, next);
+  let h = `<section class="wl" data-testid="worklist-view">` + aiOverview(allViews, ST) + compositionBlock(comp, ST, next);
   h += heldHint(ST.sim);
   h += toolbar(ST, allViews);
   if (!views.length) {

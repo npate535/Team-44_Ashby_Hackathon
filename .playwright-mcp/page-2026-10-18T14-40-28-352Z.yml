@@ -1,0 +1,1814 @@
+- generic [ref=e1]:
+  - link "Skip to workspace" [ref=e2] [cursor=pointer]:
+    - /url: "#app"
+  - complementary [ref=e3]:
+    - link "PathQueue worklist" [ref=e4] [cursor=pointer]:
+      - /url: "#/worklist"
+      - generic [ref=e5]:
+        - text: PathQueue
+        - generic [ref=e6]: Breast · Team 44
+    - navigation "Workspace" [ref=e7]:
+      - generic [ref=e8]: Review
+      - button "Worklist 99" [ref=e70] [cursor=pointer]:
+        - text: Worklist
+        - generic "Open cases" [ref=e12]: "99"
+      - button "Operating rooms" [ref=e13] [cursor=pointer]
+      - button "Oncology inbox" [ref=e16] [cursor=pointer]
+      - generic [ref=e19]: Research
+      - button "Model evaluation" [ref=e20] [cursor=pointer]
+      - button "Evidence review" [ref=e23] [cursor=pointer]
+    - generic [ref=e26]:
+      - generic [ref=e27]:
+        - generic [ref=e29]: Pipeline artifacts loaded
+        - generic [ref=e30]: 328 cases · local workspace
+      - paragraph [ref=e31]:
+        - generic [ref=e32]: J
+        - generic [ref=e33]: K
+        - text: move ·
+        - generic [ref=e34]: Enter
+        - text: open ·
+        - generic [ref=e35]: "N"
+        - text: next case ·
+        - generic [ref=e36]: /
+        - text: search
+  - generic [ref=e37]:
+    - banner [ref=e38]:
+      - generic [ref=e39]:
+        - heading "Model evaluation" [level=1] [ref=e292]
+        - generic "Held-out test split · 95% CIs" [ref=e293]
+      - region "Arrival replay controls" [ref=e42]:
+        - generic [ref=e43]:
+          - generic [ref=e295]: Replay running
+          - generic [ref=e296]: +4:05:17
+          - generic [ref=e297]: ×1
+          - generic [ref=e298]: · simulator running
+        - group "Replay" [ref=e44]:
+          - button "Pause replay" [ref=e76] [cursor=pointer]
+          - button "Reset" [ref=e48] [cursor=pointer]
+        - group "Send a simulated frozen section from the operating room" [ref=e49]:
+          - button "Send a simulated frozen section" [ref=e50] [cursor=pointer]:
+            - text: + Standard
+            - generic [ref=e77]: "33"
+          - button "Send a degraded simulated frozen section" [ref=e51] [cursor=pointer]:
+            - text: + Degraded
+            - generic [ref=e78]: "132"
+          - button "Send a composite simulated frozen section" [ref=e52] [cursor=pointer]:
+            - text: + Composite
+            - generic [ref=e79]: "64"
+      - generic [ref=e53]:
+        - time [ref=e54]: 09:40:28 AM
+        - status "Local PathQueue service" [ref=e55]: Connected
+    - complementary "Research prototype notice" [ref=e56]:
+      - generic [ref=e57]: Research prototype — not for clinical use
+      - text: ·
+    - generic [ref=e59]:
+      - main [active] [ref=e64]:
+        - generic [ref=e299]:
+          - generic [ref=e300]:
+            - paragraph [ref=e301]: "132 held-out test images from 24 patient or pseudo-patient groups; 2248 simulated degraded / composite variants kept out of headline numbers; intervals are 95% cluster-bootstrap CIs over those groups; production read: UNI2-h linear probe."
+            - button "Reload results" [ref=e302] [cursor=pointer]
+          - navigation "Evaluation sections" [ref=e303]:
+            - generic [ref=e304]:
+              - button "Summary" [ref=e305] [cursor=pointer]
+              - button "Classification" [ref=e306] [cursor=pointer]
+              - button "Confidence" [ref=e307] [cursor=pointer]
+              - button "Explanations" [ref=e308] [cursor=pointer]
+              - button "Frozen-section reliability" [ref=e309] [cursor=pointer]
+              - button "Workflow" [ref=e310] [cursor=pointer]
+              - button "Cell measurements" [ref=e311] [cursor=pointer]
+              - button "Similar cases" [ref=e312] [cursor=pointer]
+              - button "Limitations & data" [ref=e313] [cursor=pointer]
+          - generic [ref=e315]:
+            - heading "Evidence in plain language" [level=2] [ref=e317]
+            - paragraph [ref=e322]:
+              - text: "What this is: a plain-language summary of evidence the app already measured, written by a language model. It adds no new evidence about why the classifier decided; a fluent explanation is not proof of what the model used. The tested evidence is the deletion test, calibration and conformal coverage on the"
+              - link "evaluation page" [ref=e323] [cursor=pointer]:
+                - /url: "#/metrics"
+              - text: . Research prototype, not clinically validated.
+          - region [ref=e324]:
+            - generic [ref=e325]:
+              - heading "Summary" [level=2] [ref=e326]
+              - paragraph [ref=e327]: The headline numbers, each with its uncertainty. The two workflow tiles come from a simulation, not measured clinical use.
+            - generic [ref=e328]:
+              - generic [ref=e329]:
+                - heading "In brief" [level=3] [ref=e330]
+                - list [ref=e331]:
+                  - listitem [ref=e332]:
+                    - generic [ref=e334]: "Holds up:"
+                    - text: Invasive carcinoma is separated from everything else almost perfectly on held-out images (AUROC 0.998, CI 0.994–1.000).
+                  - listitem [ref=e335]:
+                    - generic [ref=e337]: "Holds up:"
+                    - text: Temperature scaling reduced calibration error (ECE 0.10 → 0.05).
+                  - listitem [ref=e338]:
+                    - generic [ref=e340]: "Be careful:"
+                    - text: The four-class call is less certain (macro-F1 0.83, CI 0.61–0.93); 3 of 30 in situ images were called invasive.
+                  - listitem [ref=e341]:
+                    - generic [ref=e343]: "Be careful:"
+                    - text: Suggested-set coverage is 90.2% against a 90% target only for a set chosen after viewing test results; the pre-registered LAC (marginal) covered 72.7%.
+                  - listitem [ref=e344]:
+                    - generic [ref=e346]: "Be careful:"
+                    - text: An AI spot check (not a pathologist) found that the top regions for frequent mitotic figures, normal lobules with two-layered epithelium, tumor necrosis rarely show those features; explanations citing them should be discounted.
+                  - listitem [ref=e347]:
+                    - generic [ref=e349]: "Be careful:"
+                    - text: The reliability flag caught 46% of wrong reads on test data (it was tuned to catch 80% on calibration data).
+                  - listitem [ref=e350]:
+                    - generic [ref=e352]: "Be careful:"
+                    - text: In simulation, invasive cases are seen 14.2 min sooner on average, paid for by 25.0 min longer waits for unflagged cases.
+              - generic [ref=e353]:
+                - article [ref=e354]:
+                  - heading "Separates invasive from other cases" [level=3] [ref=e355]
+                  - paragraph [ref=e356]: AUROC 0.998
+                  - paragraph [ref=e357]: 95% CI 0.994–1.000
+                  - img "AUROC 0.998 on a 0.5 to 1 scale" [ref=e358]
+                  - paragraph [ref=e361]: "Chance is 0.50 and 1.00 is perfect ranking: the share of invasive / non-invasive pairs in which the invasive case gets the higher score."
+                  - paragraph [ref=e362]:
+                    - code [ref=e363]: eval/metrics.json
+                - article [ref=e364]:
+                  - heading "Invasive cases called invasive" [level=3] [ref=e365]
+                  - paragraph [ref=e366]: 100%
+                  - paragraph [ref=e367]: 95% CI 100%–100%
+                  - img "Sensitivity 100%" [ref=e368]
+                  - paragraph [ref=e371]: 31 of 31 invasive test images had Invasive as the top suggestion (sensitivity).
+                  - paragraph [ref=e372]:
+                    - code [ref=e373]: eval/metrics.json
+                - article [ref=e374]:
+                  - heading "Other cases not called invasive" [level=3] [ref=e375]
+                  - paragraph [ref=e376]: 97%
+                  - paragraph [ref=e377]: 95% CI 94%–100%
+                  - img "Specificity 97%" [ref=e378]
+                  - paragraph [ref=e381]: 3 of 101 non-invasive images were called invasive; 3 of them in situ carcinoma, the clinically important confusion.
+                  - paragraph [ref=e382]:
+                    - code [ref=e383]: eval/metrics.json
+                - article [ref=e384]:
+                  - heading "All four classes (macro-F1)" [level=3] [ref=e385]
+                  - paragraph [ref=e386]: "0.83"
+                  - paragraph [ref=e387]: 95% CI 0.61–0.93
+                  - img "Macro-F1 0.83" [ref=e388]
+                  - paragraph [ref=e391]: "Normal, benign, in situ and invasive weighted equally; balanced accuracy 0.84. Most errors: Normal ↔ Benign (12 of 21)."
+                  - paragraph [ref=e392]:
+                    - code [ref=e393]: eval/metrics.json
+                - article [ref=e394]:
+                  - heading "Calibration error after temperature" [level=3] [ref=e395]
+                  - paragraph [ref=e396]: ECE 0.05
+                  - paragraph [ref=e397]: 95% CI 0.04–0.22
+                  - img "ECE 0.05; tick marks the value before temperature" [ref=e398]
+                  - paragraph [ref=e401]: Was 0.10 before temperature scaling (tick). Lower is better; 10-bin ECE is biased upward at n = 132.
+                  - paragraph [ref=e402]:
+                    - code [ref=e403]: eval/calibration.json
+                - article [ref=e404]:
+                  - heading "Conformal coverage (APS, never empty)" [level=3] [ref=e405]
+                  - paragraph [ref=e406]: 90.2%
+                  - paragraph [ref=e407]: 95% CI 75.7%–98.1%
+                  - img "Coverage 90.2% against a 90% target" [ref=e408]
+                  - paragraph [ref=e411]:
+                    - generic [ref=e412]: At target, chosen after test results
+                  - paragraph [ref=e413]: "This set drives the tiers but was chosen after viewing test results, so its coverage is optimistic. Pre-registered LAC (marginal): 72.7%."
+                  - paragraph [ref=e414]:
+                    - code [ref=e415]: eval/conformal.json
+                - article [ref=e416]:
+                  - heading "Invasive cases seen sooner (simulated)" [level=3] [ref=e417]
+                  - paragraph [ref=e418]: 14.2 min sooner
+                  - paragraph [ref=e419]: "95% of simulated days: 0.0 to 51.3 min sooner"
+                  - paragraph [ref=e420]: Mean time to first look 20.2 min in arrival order vs 6.0 min with PathQueue tiers, in a simulated reading day.
+                  - paragraph [ref=e421]:
+                    - code [ref=e422]: eval/queue_sim.json
+                - article [ref=e423]:
+                  - heading "Delay added to unflagged cases (simulated)" [level=3] [ref=e424]
+                  - paragraph [ref=e425]: +25.0 min
+                  - paragraph [ref=e426]: "95% of simulated days: 0.7–93.2 min"
+                  - paragraph [ref=e427]:
+                    - generic [ref=e428]: Cost of prioritizing
+                  - paragraph [ref=e429]: Unflagged (tier 4) cases wait 20.0 → 45.0 min on average. Prioritizing flagged cases is paid for by the rest of the queue.
+                  - paragraph [ref=e430]:
+                    - code [ref=e431]: eval/queue_sim.json
+          - region [ref=e432]:
+            - generic [ref=e433]:
+              - heading "Classification" [level=2] [ref=e434]
+              - paragraph [ref=e435]: Does the model separate invasive carcinoma from everything else, and where does it go wrong?
+            - generic [ref=e436]:
+              - figure [ref=e437]:
+                - generic [ref=e438]:
+                  - heading "How well does the risk score separate invasive cases?" [level=3] [ref=e439]
+                  - paragraph [ref=e440]: What this shows The production read reaches AUROC 0.998 (95% CI 0.994–1.000); the explainable concept-bottleneck model B reaches 1.000. The paired difference A − B is −0.002 (95% CI −0.006 to 0.000), so no difference is detectable on this test set. A curve hugging the top-left corner flags invasive cases without flagging others.
+                - generic [ref=e441]:
+                  - list [ref=e442]:
+                    - listitem [ref=e443]: Production read (UNI2-h linear probe, calibrated)
+                    - listitem [ref=e445]: "Model B: Concept bottleneck (text concepts)"
+                  - img "ROC curves, invasive versus rest. Production AUROC 1.00, model B 1.00." [ref=e447]:
+                    - generic [ref=e448]: 0%
+                    - generic [ref=e449]: 20%
+                    - generic [ref=e450]: 40%
+                    - generic [ref=e451]: 60%
+                    - generic [ref=e452]: 80%
+                    - generic [ref=e453]: 100%
+                    - generic [ref=e454]: Sensitivity (invasive cases flagged)
+                    - generic [ref=e455]: 0%
+                    - generic [ref=e456]: 20%
+                    - generic [ref=e457]: 40%
+                    - generic [ref=e458]: 60%
+                    - generic [ref=e459]: 80%
+                    - generic [ref=e460]: 100%
+                    - generic [ref=e461]: False-positive rate (non-invasive cases flagged)
+                    - generic [ref=e463]: chance
+                - paragraph [ref=e476]:
+                  - generic [ref=e477]: "Population: held-out test split, 31 invasive vs 101 other images"
+                  - generic [ref=e478]:
+                    - text: "Source:"
+                    - code [ref=e479]: eval/analytics.json
+                    - text: ","
+                    - code [ref=e480]: eval/metrics.json
+                - group [ref=e481]:
+                  - generic "Source numbers" [ref=e482] [cursor=pointer]
+              - generic [ref=e483]:
+                - figure [ref=e484]:
+                  - generic [ref=e485]:
+                    - heading "Where do the errors fall?" [level=3] [ref=e486]
+                    - paragraph [ref=e487]: What this shows Normal 16/23, Benign 39/48, In situ 25/30, Invasive 31/31 correct. 3 of 30 in situ images were called invasive and 0 of 31 invasive images were called in situ. The most frequent error is Normal → Benign (6).
+                  - generic [ref=e488]:
+                    - 'img "Confusion matrix, rows true class, columns suggested class. Normal: 16 of 23 correct; Benign: 39 of 48 correct; InSitu: 25 of 30 correct; Invasive: 31 of 31 correct." [ref=e489]':
+                      - generic [ref=e490]: Suggested class (top of the calibrated read)
+                      - generic [ref=e491]: Normal
+                      - generic [ref=e492]: Benign
+                      - generic [ref=e493]: In situ
+                      - generic [ref=e494]: Invasive
+                      - generic [ref=e495]: Normal
+                      - generic [ref=e496]: Benign
+                      - generic [ref=e497]: In situ
+                      - generic [ref=e498]: Invasive
+                      - generic [ref=e499]: "16"
+                      - generic [ref=e502]: "6"
+                      - generic [ref=e505]: "1"
+                      - generic [ref=e508]: "0"
+                      - generic [ref=e511]: "6"
+                      - generic [ref=e514]: "39"
+                      - generic [ref=e517]: "3"
+                      - generic [ref=e520]: "0"
+                      - generic [ref=e523]: "2"
+                      - generic [ref=e526]: "0"
+                      - generic [ref=e529]: "25"
+                      - generic [ref=e532]: "3"
+                      - generic [ref=e535]: "0"
+                      - generic [ref=e538]: "0"
+                      - generic [ref=e541]: "0"
+                      - generic [ref=e544]: "31"
+                    - generic [ref=e547]:
+                      - generic [ref=e548]: Shade = share of the row
+                      - generic [ref=e549]: 0%
+                      - generic [ref=e551]: 100%
+                  - paragraph [ref=e552]:
+                    - generic [ref=e553]: "Population: held-out test split, 132 images (rows = true class)"
+                    - generic [ref=e554]:
+                      - text: "Source:"
+                      - code [ref=e555]: eval/analytics.json
+                  - group [ref=e556]:
+                    - generic "Source numbers" [ref=e557] [cursor=pointer]
+                - figure [ref=e558]:
+                  - generic [ref=e559]:
+                    - heading "When every invasive case is flagged, how many flags are right?" [level=3] [ref=e560]
+                    - paragraph [ref=e561]: "What this shows Average precision 0.994 (model B 1.000). Flagging all 31 invasive images, 91% of the flagged images are invasive at best. The dashed line is the 23% share of invasive images: a useless score would sit on it."
+                  - generic [ref=e562]:
+                    - list [ref=e563]:
+                      - listitem [ref=e564]: Production read (calibrated)
+                      - listitem [ref=e566]: "Model B: Concept bottleneck (text concepts)"
+                    - img "Precision-recall curve for Invasive, average precision 0.994" [ref=e568]:
+                      - generic [ref=e569]: 0%
+                      - generic [ref=e570]: 20%
+                      - generic [ref=e571]: 40%
+                      - generic [ref=e572]: 60%
+                      - generic [ref=e573]: 80%
+                      - generic [ref=e574]: 100%
+                      - generic [ref=e575]: Precision (interpolated)
+                      - generic [ref=e576]: 0%
+                      - generic [ref=e577]: 20%
+                      - generic [ref=e578]: 40%
+                      - generic [ref=e579]: 60%
+                      - generic [ref=e580]: 80%
+                      - generic [ref=e581]: 100%
+                      - generic [ref=e582]: Recall (share of invasive cases flagged)
+                      - generic [ref=e583]: prevalence 23%
+                  - list [ref=e649]:
+                    - listitem [ref=e650]: The curve shows the best precision reachable at each recall; average precision is computed from the raw curve (scikit-learn).
+                  - paragraph [ref=e651]:
+                    - generic [ref=e652]: "Population: held-out test split, 31 invasive of 132 images"
+                    - generic [ref=e653]:
+                      - text: "Source:"
+                      - code [ref=e654]: eval/analytics.json
+                  - group [ref=e655]:
+                    - generic "Source numbers" [ref=e656] [cursor=pointer]
+              - figure [ref=e657]:
+                - generic [ref=e658]:
+                  - heading "Is each class separable on its own?" [level=3] [ref=e659]
+                  - paragraph [ref=e660]: What this shows One-vs-rest AUROC is highest for Invasive (1.00) and lowest for Benign (0.90); their average, the macro AUROC, is 0.95 (95% CI 0.85–0.99).
+                - generic [ref=e662]:
+                  - generic [ref=e663]:
+                    - generic [ref=e664]: "Normal: AUROC 0.92"
+                    - img "Normal versus rest ROC, AUROC 0.92" [ref=e665]:
+                      - generic [ref=e666]: 0%
+                      - generic [ref=e667]: 50%
+                      - generic [ref=e668]: 100%
+                      - generic [ref=e669]: Sensitivity
+                      - generic [ref=e670]: 0%
+                      - generic [ref=e671]: 50%
+                      - generic [ref=e672]: 100%
+                      - generic [ref=e673]: False-positiverate
+                  - generic [ref=e700]:
+                    - generic [ref=e701]: "Benign: AUROC 0.90"
+                    - img "Benign versus rest ROC, AUROC 0.90" [ref=e702]:
+                      - generic [ref=e703]: 0%
+                      - generic [ref=e704]: 50%
+                      - generic [ref=e705]: 100%
+                      - generic [ref=e706]: Sensitivity
+                      - generic [ref=e707]: 0%
+                      - generic [ref=e708]: 50%
+                      - generic [ref=e709]: 100%
+                      - generic [ref=e710]: False-positiverate
+                  - generic [ref=e743]:
+                    - generic [ref=e744]: "In situ: AUROC 0.97"
+                    - img "InSitu versus rest ROC, AUROC 0.97" [ref=e745]:
+                      - generic [ref=e746]: 0%
+                      - generic [ref=e747]: 50%
+                      - generic [ref=e748]: 100%
+                      - generic [ref=e749]: Sensitivity
+                      - generic [ref=e750]: 0%
+                      - generic [ref=e751]: 50%
+                      - generic [ref=e752]: 100%
+                      - generic [ref=e753]: False-positiverate
+                  - generic [ref=e776]:
+                    - generic [ref=e777]: "Invasive: AUROC 1.00"
+                    - img "Invasive versus rest ROC, AUROC 1.00" [ref=e778]:
+                      - generic [ref=e779]: 0%
+                      - generic [ref=e780]: 50%
+                      - generic [ref=e781]: 100%
+                      - generic [ref=e782]: Sensitivity
+                      - generic [ref=e783]: 0%
+                      - generic [ref=e784]: 50%
+                      - generic [ref=e785]: 100%
+                      - generic [ref=e786]: False-positiverate
+                - paragraph [ref=e795]:
+                  - generic [ref=e796]: "Population: held-out test split, production calibrated probabilities"
+                  - generic [ref=e797]:
+                    - text: "Source:"
+                    - code [ref=e798]: eval/analytics.json
+                    - text: ","
+                    - code [ref=e799]: eval/metrics.json
+                - group [ref=e800]:
+                  - generic "Source numbers" [ref=e801] [cursor=pointer]
+              - figure [ref=e802]:
+                - generic [ref=e803]:
+                  - heading "How do the candidate models compare?" [level=3] [ref=e804]
+                  - paragraph [ref=e805]: "What this shows UNI2-h linear probe has macro-F1 0.83 (95% CI 0.61–0.92). 7 of 8 other models have intervals that overlap it, so the test split alone cannot rank them; the choice was made by cross-validation inside train (A-vs-B rule (CV out-of-fold): A drives; B shown as associated features)."
+                - generic [ref=e806]:
+                  - generic [ref=e808]:
+                    - generic [ref=e809]:
+                      - generic [ref=e810]: Four-class macro-F1
+                      - img "Macro-F1 by model with 95% confidence intervals" [ref=e811]:
+                        - generic [ref=e812]: "0.0"
+                        - generic [ref=e813]: "0.2"
+                        - generic [ref=e814]: "0.4"
+                        - generic [ref=e815]: "0.6"
+                        - generic [ref=e816]: "0.8"
+                        - generic [ref=e817]: "1.0"
+                        - generic [ref=e818]: Macro-F1, four classes (higher is better)
+                        - generic [ref=e819]: UNI2-h linear probe
+                        - generic [ref=e820]: production (model A)
+                        - generic [ref=e821]: 0.83 [0.61–0.92]
+                        - generic [ref=e822]: Attention MIL (ABMIL)
+                        - generic [ref=e823]: 0.81 [0.63–0.90]
+                        - generic [ref=e824]: Fusion of top-3 encoders
+                        - generic [ref=e825]: 0.81 [0.63–0.89]
+                        - generic [ref=e826]: CONCH linear probe
+                        - generic [ref=e827]: 0.78 [0.63–0.88]
+                        - generic [ref=e828]: H-optimus-0 linear probe
+                        - generic [ref=e829]: 0.78 [0.60–0.87]
+                        - generic [ref=e830]: Concept bottleneck (text concepts)
+                        - generic [ref=e831]: model B, explainable
+                        - generic [ref=e832]: 0.71 [0.53–0.82]
+                        - generic [ref=e833]: MUSK linear probe
+                        - generic [ref=e834]: 0.69 [0.56–0.82]
+                        - generic [ref=e835]: Concept bottleneck (concepts +cells)
+                        - generic [ref=e836]: 0.67 [0.57–0.76]
+                        - generic [ref=e837]: Cell measurements only
+                        - generic [ref=e838]: 0.24 [0.16–0.33]
+                    - generic [ref=e857]:
+                      - generic [ref=e858]: Invasive vs rest AUROC
+                      - img "Invasive-vs-rest AUROC by model with 95% confidence intervals" [ref=e859]:
+                        - generic [ref=e860]: "0.5"
+                        - generic [ref=e861]: "0.6"
+                        - generic [ref=e862]: "0.7"
+                        - generic [ref=e863]: "0.8"
+                        - generic [ref=e864]: "0.9"
+                        - generic [ref=e865]: "1.0"
+                        - generic [ref=e866]: AUROC, invasive vs rest
+                        - generic [ref=e867]: UNI2-h linear probe
+                        - generic [ref=e868]: production (model A)
+                        - generic [ref=e869]: 0.998 [0.994–1.000]
+                        - generic [ref=e870]: Attention MIL (ABMIL)
+                        - generic [ref=e871]: 0.999 [0.997–1.000]
+                        - generic [ref=e872]: Fusion of top-3 encoders
+                        - generic [ref=e873]: 0.999 [0.995–1.000]
+                        - generic [ref=e874]: CONCH linear probe
+                        - generic [ref=e875]: 1.000 [1.000–1.000]
+                        - generic [ref=e876]: H-optimus-0 linear probe
+                        - generic [ref=e877]: 0.993 [0.982–1.000]
+                        - generic [ref=e878]: Concept bottleneck (text concepts)
+                        - generic [ref=e879]: model B, explainable
+                        - generic [ref=e880]: 1.000 [1.000–1.000]
+                        - generic [ref=e881]: MUSK linear probe
+                        - generic [ref=e882]: 0.992 [0.981–1.000]
+                        - generic [ref=e883]: Concept bottleneck (concepts +cells)
+                        - generic [ref=e884]: 0.994 [0.983–1.000]
+                        - generic [ref=e885]: Cell measurements only
+                        - generic [ref=e886]: 0.58 [0.38–0.83]
+                  - list [ref=e905]:
+                    - listitem [ref=e906]: Production model (A)
+                    - listitem [ref=e908]: Explainable model B
+                    - listitem [ref=e910]: Other evaluated models
+                - paragraph [ref=e912]:
+                  - generic [ref=e913]: "Population: n = 132 images, 24 patient / pseudo-patient groups"
+                  - generic [ref=e914]:
+                    - text: "Source:"
+                    - code [ref=e915]: eval/metrics.json
+                - group [ref=e916]:
+                  - generic "Source numbers" [ref=e917] [cursor=pointer]
+              - figure [ref=e918]:
+                - generic [ref=e919]:
+                  - heading "Why this model? Selection inside the training split" [level=3] [ref=e920]
+                  - paragraph [ref=e921]: What this shows The lowest cross-validated log-loss was UNI2-h linear probe (0.189); the one-SE rule picks the simplest candidate within one standard error (limit 0.236), which is UNI2-h linear probe. The test split was not used (recorded).
+                - img "Cross-validated log-loss per candidate, with one standard error" [ref=e923]:
+                  - generic [ref=e924]: "0.0"
+                  - generic [ref=e925]: "0.5"
+                  - generic [ref=e926]: "1.0"
+                  - generic [ref=e927]: Cross-validated log-loss inside train (lower is better)
+                  - generic [ref=e928]: one-SE limit
+                  - generic [ref=e929]: UNI2-h linear probe
+                  - generic [ref=e930]: 0.189 ± 0.047
+                  - generic [ref=e931]: Attention MIL (ABMIL)
+                  - generic [ref=e932]: 0.210 ± 0.042
+                  - generic [ref=e933]: Fusion of top-3 encoders
+                  - generic [ref=e934]: 0.221 ± 0.054
+                  - generic [ref=e935]: H-optimus-0 linear probe
+                  - generic [ref=e936]: 0.243 ± 0.052
+                  - generic [ref=e937]: CONCH linear probe
+                  - generic [ref=e938]: 0.279 ± 0.049
+                  - generic [ref=e939]: MUSK linear probe
+                  - generic [ref=e940]: 0.332 ± 0.057
+                  - generic [ref=e941]: Concept bottleneck (text concepts)
+                  - generic [ref=e942]: concept bottleneck
+                  - generic [ref=e943]: 0.453 ± 0.043
+                  - generic [ref=e944]: Concept bottleneck (concepts +cells)
+                  - generic [ref=e945]: concept bottleneck
+                  - generic [ref=e946]: 0.570 ± 0.057
+                  - generic [ref=e947]: Cell measurements only
+                  - generic [ref=e948]: concept bottleneck
+                  - generic [ref=e949]: 1.330 ± 0.020
+                - paragraph [ref=e968]:
+                  - generic [ref=e969]: "Population: 218 training images, 49 groups, 5-fold grouped CV × 3 repeats"
+                  - generic [ref=e970]:
+                    - text: "Source:"
+                    - code [ref=e971]: eval/model_choice.json
+                - group [ref=e972]:
+                  - generic "Source numbers" [ref=e973] [cursor=pointer]
+              - figure [ref=e974]:
+                - generic [ref=e975]:
+                  - heading "How does this compare with published benchmarks?" [level=3] [ref=e976]
+                  - paragraph [ref=e977]: What this shows Our production macro-F1 is 83.0% (95% CI 60.9–92.7%); the best published linear probe (UNI2-h) is 84.7%, which lies inside our interval. Published zero-shot text matching scores 7.4–28.3 points below the linear probe of the same encoder; every zero-shot read of ours is also below the production probe.
+                - note [ref=e978]: "Same split, different protocol: published: whole-image resize; ours: tiles + TTA. Not compared with the ICIAR 2018 challenge, which used a hidden test set."
+                - img "Macro-F1 percent, published THUNDER results versus this project" [ref=e980]:
+                  - generic [ref=e981]: "0"
+                  - generic [ref=e982]: "20"
+                  - generic [ref=e983]: "40"
+                  - generic [ref=e984]: "60"
+                  - generic [ref=e985]: "80"
+                  - generic [ref=e986]: "100"
+                  - generic [ref=e987]: Macro-F1 (%)
+                  - generic [ref=e989]: Published THUNDER results (no interval reported)
+                  - generic [ref=e990]: CONCH, linear probe
+                  - generic [ref=e991]: "84.4"
+                  - generic [ref=e992]: UNI2-h, linear probe
+                  - generic [ref=e993]: "84.7"
+                  - generic [ref=e994]: MUSK, linear probe
+                  - generic [ref=e995]: "69.9"
+                  - generic [ref=e996]: CONCH, zero-shot
+                  - generic [ref=e997]: "56.1"
+                  - generic [ref=e998]: MUSK, zero-shot
+                  - generic [ref=e999]: "62.5"
+                  - generic [ref=e1001]: This project, same 132 test images
+                  - generic [ref=e1002]: UNI2-h linear probe (production,calibrated)
+                  - generic [ref=e1003]: 83.0 [60.9–92.7]
+                  - generic [ref=e1004]: CONCH, zero-shot
+                  - generic [ref=e1005]: 46.3 [35.3–55.2]
+                  - generic [ref=e1006]: MUSK, zero-shot
+                  - generic [ref=e1007]: 47.9 [37.8–60.6]
+                  - generic [ref=e1008]: PathGen-CLIP, zero-shot
+                  - generic [ref=e1009]: 54.5 [44.1–67.1]
+                - list [ref=e1028]:
+                  - listitem [ref=e1029]: "Published values: THUNDER official leaderboards, BACH F1 scores; verified 2026-10-17 at https://mics-lab.github.io/thunder/leaderboards/."
+                - paragraph [ref=e1030]:
+                  - generic [ref=e1031]: "Population: 132 test images, 24 groups (ours); published values carry no CI"
+                  - generic [ref=e1032]:
+                    - text: "Source:"
+                    - code [ref=e1033]: eval/thunder.json
+                - group [ref=e1034]:
+                  - generic "Source numbers" [ref=e1035] [cursor=pointer]
+          - region [ref=e1036]:
+            - generic [ref=e1037]:
+              - heading "Confidence" [level=2] [ref=e1038]
+              - paragraph [ref=e1039]: Do probabilities mean what they say, and how often does the suggested set contain the right answer?
+            - generic [ref=e1040]:
+              - figure [ref=e1041]:
+                - generic [ref=e1042]:
+                  - heading "Is the confidence honest?" [level=3] [ref=e1043]
+                  - paragraph [ref=e1044]: What this shows Temperature scaling (T = 0.50, fit on out-of-fold training logits) moved ECE from 0.10 to 0.05 and Brier score from 0.28 to 0.27, while log-loss rose slightly (0.56 → 0.66). Points above the diagonal are under-confident; each point is an equal-count bin of about 13 images, so single bins are noisy.
+                - generic [ref=e1045]:
+                  - list [ref=e1046]:
+                    - listitem [ref=e1047]: Before temperature
+                    - listitem [ref=e1049]: After temperature (T = 0.50)
+                    - listitem [ref=e1051]: "Diagonal: perfect calibration"
+                  - generic [ref=e1053]:
+                    - generic [ref=e1054]:
+                      - generic [ref=e1055]: Top-class confidence
+                      - img "Reliability diagram of top-class confidence before and after temperature scaling" [ref=e1056]:
+                        - generic [ref=e1057]: 40%
+                        - generic [ref=e1058]: 60%
+                        - generic [ref=e1059]: 80%
+                        - generic [ref=e1060]: 100%
+                        - generic [ref=e1061]: Observed accuracy
+                        - generic [ref=e1062]: 40%
+                        - generic [ref=e1063]: 60%
+                        - generic [ref=e1064]: 80%
+                        - generic [ref=e1065]: 100%
+                        - generic [ref=e1066]: Mean confidence in the bin
+                    - generic [ref=e1110]:
+                      - generic [ref=e1111]: "Risk score: P(Invasive)"
+                      - img "Reliability diagram of the invasive risk score" [ref=e1112]:
+                        - generic [ref=e1113]: 0%
+                        - generic [ref=e1114]: 20%
+                        - generic [ref=e1115]: 40%
+                        - generic [ref=e1116]: 60%
+                        - generic [ref=e1117]: 80%
+                        - generic [ref=e1118]: 100%
+                        - generic [ref=e1119]: Observed invasive share
+                        - generic [ref=e1120]: 0%
+                        - generic [ref=e1121]: 20%
+                        - generic [ref=e1122]: 40%
+                        - generic [ref=e1123]: 60%
+                        - generic [ref=e1124]: 80%
+                        - generic [ref=e1125]: 100%
+                        - generic [ref=e1126]: Mean P(Invasive) in the bin
+                - list [ref=e1170]:
+                  - listitem [ref=e1171]: ECE 0.10 [0.07–0.19] before, 0.05 [0.04–0.22] after; Brier 0.28 [0.14–0.47] → 0.27 [0.11–0.53]; NLL 0.56 [0.29–1.00] → 0.66 [0.20–1.56] (95% CIs).
+                - paragraph [ref=e1172]:
+                  - generic [ref=e1173]: "Population: held-out test split, n = 132 images, 24 groups; 10-bin equal-mass binning"
+                  - generic [ref=e1174]:
+                    - text: "Source:"
+                    - code [ref=e1175]: eval/calibration.json
+                    - text: ","
+                    - code [ref=e1176]: eval/analytics.json
+                - group [ref=e1177]:
+                  - generic "Source numbers" [ref=e1178] [cursor=pointer]
+              - figure [ref=e1179]:
+                - generic [ref=e1180]:
+                  - heading "How is the risk score P(Invasive) distributed in each true class?" [level=3] [ref=e1181]
+                  - paragraph [ref=e1182]: What this shows All normal images scored below 0.1; all benign images scored below 0.1; 3 of 30 in situ images scored 0.5 or more; 29 of 31 invasive images scored 0.9 or more. In situ carcinoma is where scores spread out, which is why the worklist flags any case with Invasive in its set.
+                - generic [ref=e1184]:
+                  - generic [ref=e1185]:
+                    - generic [ref=e1186]: Normal breast tissue (n = 23)
+                    - 'img "Normal: histogram of the calibrated invasive risk score" [ref=e1187]':
+                      - generic [ref=e1188]: "0"
+                      - generic [ref=e1189]: "20"
+                      - generic [ref=e1190]: "40"
+                      - generic [ref=e1191]: Images
+                      - generic [ref=e1192]: "0.0"
+                      - generic [ref=e1193]: "0.2"
+                      - generic [ref=e1194]: "0.4"
+                      - generic [ref=e1195]: "0.6"
+                      - generic [ref=e1196]: "0.8"
+                      - generic [ref=e1197]: P(Invasive), calibrated
+                      - generic [ref=e1200]: "23"
+                  - generic [ref=e1210]:
+                    - generic [ref=e1211]: Benign lesion (n = 48)
+                    - 'img "Benign: histogram of the calibrated invasive risk score" [ref=e1212]':
+                      - generic [ref=e1213]: "0"
+                      - generic [ref=e1214]: "20"
+                      - generic [ref=e1215]: "40"
+                      - generic [ref=e1216]: Images
+                      - generic [ref=e1217]: "0.0"
+                      - generic [ref=e1218]: "0.2"
+                      - generic [ref=e1219]: "0.4"
+                      - generic [ref=e1220]: "0.6"
+                      - generic [ref=e1221]: "0.8"
+                      - generic [ref=e1222]: P(Invasive), calibrated
+                      - generic [ref=e1225]: "48"
+                  - generic [ref=e1235]:
+                    - generic [ref=e1236]: In situ carcinoma (n = 30)
+                    - 'img "InSitu: histogram of the calibrated invasive risk score" [ref=e1237]':
+                      - generic [ref=e1238]: "0"
+                      - generic [ref=e1239]: "20"
+                      - generic [ref=e1240]: "40"
+                      - generic [ref=e1241]: Images
+                      - generic [ref=e1242]: "0.0"
+                      - generic [ref=e1243]: "0.2"
+                      - generic [ref=e1244]: "0.4"
+                      - generic [ref=e1245]: "0.6"
+                      - generic [ref=e1246]: "0.8"
+                      - generic [ref=e1247]: P(Invasive), calibrated
+                      - generic [ref=e1250]: "19"
+                      - generic [ref=e1253]: "6"
+                      - generic [ref=e1257]: "1"
+                      - generic [ref=e1260]: "1"
+                      - generic [ref=e1264]: "2"
+                      - generic [ref=e1267]: "1"
+                  - generic [ref=e1270]:
+                    - generic [ref=e1271]: Invasive carcinoma (n = 31)
+                    - 'img "Invasive: histogram of the calibrated invasive risk score" [ref=e1272]':
+                      - generic [ref=e1273]: "0"
+                      - generic [ref=e1274]: "20"
+                      - generic [ref=e1275]: "40"
+                      - generic [ref=e1276]: Images
+                      - generic [ref=e1277]: "0.0"
+                      - generic [ref=e1278]: "0.2"
+                      - generic [ref=e1279]: "0.4"
+                      - generic [ref=e1280]: "0.6"
+                      - generic [ref=e1281]: "0.8"
+                      - generic [ref=e1282]: P(Invasive), calibrated
+                      - generic [ref=e1290]: "1"
+                      - generic [ref=e1293]: "1"
+                      - generic [ref=e1298]: "29"
+                - paragraph [ref=e1299]:
+                  - generic [ref=e1300]: "Population: held-out test split, calibrated probabilities, grouped by true class"
+                  - generic [ref=e1301]:
+                    - text: "Source:"
+                    - code [ref=e1302]: eval/analytics.json
+                - group [ref=e1303]:
+                  - generic "Source numbers" [ref=e1304] [cursor=pointer]
+              - figure [ref=e1305]:
+                - generic [ref=e1306]:
+                  - heading "Does the suggested set contain the true class 90% of the time?" [level=3] [ref=e1307]
+                  - paragraph [ref=e1308]: What this shows APS, never empty covered 90.2% of test images against a 90% target. Coverage was lowest for normal (83%). The pre-registered LAC (marginal) covered 72.7%.
+                - img "Conformal coverage by class and method against a 90% target" [ref=e1310]:
+                  - generic [ref=e1311]: 0%
+                  - generic [ref=e1312]: 20%
+                  - generic [ref=e1313]: 40%
+                  - generic [ref=e1314]: 60%
+                  - generic [ref=e1315]: 80%
+                  - generic [ref=e1316]: 100%
+                  - generic [ref=e1317]: "Coverage: true class inside the set"
+                  - generic [ref=e1318]: 90% target
+                  - generic [ref=e1320]: "APS, never empty: drives the tiers, chosen after viewing test results"
+                  - generic [ref=e1321]: All test images
+                  - generic [ref=e1322]: 90% [76%–98%]
+                  - generic [ref=e1323]: Normal breast tissue
+                  - generic [ref=e1324]: 83% [61%–100%]
+                  - generic [ref=e1325]: Benign lesion
+                  - generic [ref=e1326]: 88% [53%–100%]
+                  - generic [ref=e1327]: In situ carcinoma
+                  - generic [ref=e1328]: 90% [67%–95%]
+                  - generic [ref=e1329]: Invasive carcinoma
+                  - generic [ref=e1330]: 100% [100%–100%]
+                  - generic [ref=e1332]: "LAC (marginal): pre-registered"
+                  - generic [ref=e1333]: All test images
+                  - generic [ref=e1334]: 73% [61%–84%]
+                  - generic [ref=e1335]: Normal breast tissue
+                  - generic [ref=e1336]: 57% [26%–80%]
+                  - generic [ref=e1337]: Benign lesion
+                  - generic [ref=e1338]: 71% [44%–88%]
+                  - generic [ref=e1339]: In situ carcinoma
+                  - generic [ref=e1340]: 67% [33%–79%]
+                  - generic [ref=e1341]: Invasive carcinoma
+                  - generic [ref=e1342]: 94% [83%–100%]
+                  - generic [ref=e1344]: "APS: reported alongside, never drives tiers"
+                  - generic [ref=e1345]: All test images
+                  - generic [ref=e1346]: 88% [74%–96%]
+                  - generic [ref=e1348]: "Mondrian (class-wise LAC): reported alongside, never drives tiers"
+                  - generic [ref=e1349]: All test images
+                  - generic [ref=e1350]: 53% [39%–74%]
+                - list [ref=e1375]:
+                  - listitem [ref=e1376]: With 50 calibration images, coverage for a random calibration draw varies (Beta(46, 5), SD 4.1%); the guarantee is an average over calibration draws, not a promise for this test set.
+                  - listitem [ref=e1377]: APS, never empty replaced the pre-registered LAC (marginal) after the test results were seen, so its test coverage is optimistic.
+                - paragraph [ref=e1378]:
+                  - generic [ref=e1379]: "Population: held-out test split, n = 132 images, 24 groups; alpha = 0.1"
+                  - generic [ref=e1380]:
+                    - text: "Source:"
+                    - code [ref=e1381]: eval/conformal.json
+                - group [ref=e1382]:
+                  - generic "Source numbers" [ref=e1383] [cursor=pointer]
+              - generic [ref=e1384]:
+                - figure [ref=e1385]:
+                  - generic [ref=e1386]:
+                    - heading "How many classes does each method suggest?" [level=3] [ref=e1387]
+                    - paragraph [ref=e1388]: What this shows LAC (marginal) returned an empty set for 25 of 132 images (19%) and a multi-class set for 0; APS, never empty returned 37 multi-class sets and 0 empty ones. An empty set means no class reached the threshold; the worklist treats it as low confidence (tier 3).
+                  - generic [ref=e1389]:
+                    - list [ref=e1390]:
+                      - listitem [ref=e1391]: Empty set
+                      - listitem [ref=e1393]: 1 class
+                      - listitem [ref=e1395]: 2 classes
+                      - listitem [ref=e1397]: 3 classes
+                      - listitem [ref=e1399]: 4 classes
+                    - img "Share of test images by conformal set size, per method" [ref=e1401]:
+                      - generic [ref=e1402]: 0%
+                      - generic [ref=e1403]: 25%
+                      - generic [ref=e1404]: 50%
+                      - generic [ref=e1405]: 75%
+                      - generic [ref=e1406]: 100%
+                      - generic [ref=e1407]: APS, never empty
+                      - generic [ref=e1408]: LAC (marginal)
+                      - generic [ref=e1409]: APS
+                      - generic [ref=e1410]: Mondrian (class-wise LAC)
+                      - generic [ref=e1411]: "95"
+                      - generic [ref=e1414]: "33"
+                      - generic [ref=e1419]: "25"
+                      - generic [ref=e1422]: "107"
+                      - generic [ref=e1427]: "92"
+                      - generic [ref=e1430]: "33"
+                      - generic [ref=e1435]: "52"
+                      - generic [ref=e1438]: "80"
+                  - paragraph [ref=e1441]:
+                    - generic [ref=e1442]: "Population: held-out test split, n = 132 images"
+                    - generic [ref=e1443]:
+                      - text: "Source:"
+                      - code [ref=e1444]: eval/conformal.json
+                  - group [ref=e1445]:
+                    - generic "Source numbers" [ref=e1446] [cursor=pointer]
+                - figure [ref=e1447]:
+                  - generic [ref=e1448]:
+                    - heading "Which differentials does the tier-driving set produce?" [level=3] [ref=e1449]
+                    - paragraph [ref=e1450]: "What this shows APS, never empty put both in situ and invasive carcinoma in the set for 12 images: the ambiguity that drafts p63 / calponin. For comparison: LAC (marginal) 0, APS 12, Mondrian (class-wise LAC) 0."
+                  - img "Conformal set composition for APS, never empty" [ref=e1452]:
+                    - generic [ref=e1453]: "{Benign}"
+                    - generic [ref=e1454]: "{Invasive}"
+                    - generic [ref=e1455]: "{Normal}"
+                    - generic [ref=e1456]: "{In situ}"
+                    - generic [ref=e1457]: "{In situ, Invasive}"
+                    - generic [ref=e1458]: "{Normal, Benign}"
+                    - generic [ref=e1459]: "{Benign, In situ}"
+                    - generic [ref=e1460]: "{Normal, In situ}"
+                    - generic [ref=e1461]: "{Normal, Benign, In situ}"
+                    - generic [ref=e1462]: "{Benign, In situ, Invasive}"
+                    - generic [ref=e1463]: "{Normal, In situ, Invasive}"
+                    - generic [ref=e1465]: 34 (26%)
+                    - generic [ref=e1468]: 32 (24%)
+                    - generic [ref=e1471]: 16 (12%)
+                    - generic [ref=e1474]: 13 (10%)
+                    - generic [ref=e1477]: 10 (8%)
+                    - generic [ref=e1480]: 10 (8%)
+                    - generic [ref=e1483]: 9 (7%)
+                    - generic [ref=e1486]: 4 (3%)
+                    - generic [ref=e1489]: 2 (2%)
+                    - generic [ref=e1492]: 1 (1%)
+                    - generic [ref=e1495]: 1 (1%)
+                  - paragraph [ref=e1497]:
+                    - generic [ref=e1498]: "Population: held-out test split, n = 132 images (predictions.csv set_tier)"
+                    - generic [ref=e1499]:
+                      - text: "Source:"
+                      - code [ref=e1500]: eval/analytics.json
+                  - group [ref=e1501]:
+                    - generic "Source numbers" [ref=e1502] [cursor=pointer]
+          - region [ref=e1503]:
+            - generic [ref=e1504]:
+              - heading "Explanations" [level=2] [ref=e1505]
+              - paragraph [ref=e1506]: Named histologic features are associated with the classes. These checks test whether they behave like the criteria they are named after.
+            - generic [ref=e1507]:
+              - figure [ref=e1508]:
+                - generic [ref=e1509]:
+                  - heading "Which named features are associated with each class?" [level=3] [ref=e1510]
+                  - paragraph [ref=e1511]: What this shows 8 of 8 directional concepts move the expected way between invasive and other images; none contradicts its expected direction. 4 of 4 concepts with an expected "highest class" peak there (e.g. Tumor infiltrating stroma highest in Invasive). These are associations, not causes, and not Nottingham grades.
+                - generic [ref=e1512]:
+                  - img "Mean concept score (z) per true class, test split" [ref=e1513]:
+                    - generic [ref=e1514]: Normal
+                    - generic [ref=e1515]: Benign
+                    - generic [ref=e1516]: In situ
+                    - generic [ref=e1517]: Invasive
+                    - generic [ref=e1518]: Gland / tubule formation
+                    - generic [ref=e1520]: Marked nuclear pleomorphism
+                    - generic [ref=e1522]: Frequent mitotic figures †
+                    - generic [ref=e1524]: Tumor infiltrating stroma
+                    - generic [ref=e1526]: Atypical cells confined withinducts
+                    - generic [ref=e1528]: Normal lobules with two-layeredepithelium †
+                    - generic [ref=e1530]: Benign fibrous stroma or fat
+                    - generic [ref=e1532]: Dense lymphocytic infiltrate(TILs)
+                    - generic [ref=e1533]: Tumor necrosis †
+                    - generic [ref=e1535]: "+1.1"
+                    - generic [ref=e1538]: "+1.1"
+                    - generic [ref=e1541]: "+0.4"
+                    - generic [ref=e1544]: −0.5
+                    - generic [ref=e1547]: "+0.3"
+                    - generic [ref=e1550]: "0.0"
+                    - generic [ref=e1553]: "+0.3"
+                    - generic [ref=e1556]: "+1.5"
+                    - generic [ref=e1559]: "+0.2"
+                    - generic [ref=e1562]: "+0.1"
+                    - generic [ref=e1565]: "+0.9"
+                    - generic [ref=e1568]: "+1.3"
+                    - generic [ref=e1571]: "+0.4"
+                    - generic [ref=e1574]: "+0.2"
+                    - generic [ref=e1577]: "+0.4"
+                    - generic [ref=e1580]: "+1.3"
+                    - generic [ref=e1583]: −0.2
+                    - generic [ref=e1586]: "+0.3"
+                    - generic [ref=e1589]: "+1.1"
+                    - generic [ref=e1592]: "+0.1"
+                    - generic [ref=e1595]: "+1.5"
+                    - generic [ref=e1598]: "+0.9"
+                    - generic [ref=e1601]: "+0.6"
+                    - generic [ref=e1604]: "+0.1"
+                    - generic [ref=e1607]: "+1.2"
+                    - generic [ref=e1610]: "+0.8"
+                    - generic [ref=e1613]: "+0.6"
+                    - generic [ref=e1616]: −0.1
+                    - generic [ref=e1619]: "+0.7"
+                    - generic [ref=e1622]: "+0.6"
+                    - generic [ref=e1625]: "+0.7"
+                    - generic [ref=e1628]: "+0.5"
+                    - generic [ref=e1631]: −0.3
+                    - generic [ref=e1634]: "+0.4"
+                    - generic [ref=e1637]: "+1.4"
+                    - generic [ref=e1640]: "+1.2"
+                  - generic [ref=e1643]:
+                    - generic [ref=e1644]: "Numbers: mean z-score. Shade: below or above that concept's average across classes"
+                    - generic [ref=e1645]: lower
+                    - generic [ref=e1647]: higher
+                  - paragraph [ref=e1648]: as expected contradicts context, no direction
+                - list [ref=e1652]:
+                  - listitem [ref=e1653]: "† Discount these rows: an AI spot check judged 25% or fewer of their top-scoring regions to show the feature (Frequent mitotic figures, Normal lobules with two-layered epithelium, Tumor necrosis). See \"Are the top-scoring regions what the feature names?\" below."
+                - paragraph [ref=e1654]:
+                  - generic [ref=e1655]: "Population: held-out test split, 132 images, 24 groups; feature: mean of the 3 highest-scoring tiles"
+                  - generic [ref=e1656]:
+                    - text: "Source:"
+                    - code [ref=e1657]: eval/concepts_bach.json
+                    - text: ","
+                    - code [ref=e1658]: eval/spotcheck.json
+                - group [ref=e1659]:
+                  - generic "Source numbers" [ref=e1660] [cursor=pointer]
+              - figure [ref=e1661]:
+                - generic [ref=e1662]:
+                  - heading "Do the concepts point the way pathology expects?" [level=3] [ref=e1663]
+                  - paragraph [ref=e1664]: What this shows Above 0.5 means the concept scores higher in invasive images, below 0.5 lower. 4 of 4 concepts expected higher in invasive carcinoma sit above 0.5 (4 with the whole interval above 0.5); 4 of 4 concepts expected lower in invasive carcinoma sit below 0.5 (3 with the whole interval below 0.5). The strongest association is Tumor infiltrating stroma (0.96 [0.90–0.99]).
+                - generic [ref=e1665]:
+                  - img "Concept score AUROC for invasive versus rest, with expected direction" [ref=e1666]:
+                    - generic [ref=e1667]: "0.0"
+                    - generic [ref=e1668]: "0.2"
+                    - generic [ref=e1669]: "0.4"
+                    - generic [ref=e1670]: "0.6"
+                    - generic [ref=e1671]: "0.8"
+                    - generic [ref=e1672]: "1.0"
+                    - generic [ref=e1673]: AUROC of the concept score, invasive vs rest
+                    - generic [ref=e1674]: no association
+                    - generic [ref=e1675]: Gland / tubule formation
+                    - generic [ref=e1676]: expected lower in invasive
+                    - generic [ref=e1677]: 0.08 [0.01–0.20]
+                    - generic [ref=e1678]: Marked nuclear pleomorphism
+                    - generic [ref=e1679]: expected higher in invasive
+                    - generic [ref=e1680]: 0.95 [0.90–0.98]
+                    - generic [ref=e1681]: Frequent mitotic figures †
+                    - generic [ref=e1682]: expected higher in invasive (weak attile scale); low spot-check plausibility
+                    - generic [ref=e1683]: 0.85 [0.75–0.96]
+                    - generic [ref=e1684]: Tumor infiltrating stroma
+                    - generic [ref=e1685]: expected higher in invasive
+                    - generic [ref=e1686]: 0.96 [0.90–0.99]
+                    - generic [ref=e1687]: Atypical cells confined withinducts
+                    - generic [ref=e1688]: expected lower in invasive
+                    - generic [ref=e1689]: 0.37 [0.14–0.68]
+                    - generic [ref=e1690]: Normal lobules with two-layeredepithelium †
+                    - generic [ref=e1691]: expected lower in invasive; lowspot-check plausibility
+                    - generic [ref=e1692]: 0.14 [0.02–0.23]
+                    - generic [ref=e1693]: Benign fibrous stroma or fat
+                    - generic [ref=e1694]: expected lower in invasive
+                    - generic [ref=e1695]: 0.15 [0.03–0.26]
+                    - generic [ref=e1696]: Dense lymphocytic infiltrate (TILs)
+                    - generic [ref=e1697]: context, no expected direction
+                    - generic [ref=e1698]: 0.44 [0.27–0.62]
+                    - generic [ref=e1699]: Tumor necrosis †
+                    - generic [ref=e1700]: expected higher in invasive; lowspot-check plausibility
+                    - generic [ref=e1701]: 0.79 [0.62–0.96]
+                  - list [ref=e1720]:
+                    - listitem [ref=e1721]: As expected
+                    - listitem [ref=e1723]: Contradicts expected direction
+                    - listitem [ref=e1725]: Context only
+                - paragraph [ref=e1727]:
+                  - generic [ref=e1728]: "Population: held-out test split, 132 images, 24 groups"
+                  - generic [ref=e1729]:
+                    - text: "Source:"
+                    - code [ref=e1730]: eval/concepts_bach.json
+                - group [ref=e1731]:
+                  - generic "Source numbers" [ref=e1732] [cursor=pointer]
+              - figure [ref=e1733]:
+                - generic [ref=e1734]:
+                  - generic [ref=e1735]:
+                    - heading "Are the top-scoring regions what the feature names?" [level=3] [ref=e1736]
+                    - paragraph [ref=e1737]: "What this shows Benign fibrous stroma or fat, Tumor infiltrating stroma, Gland / tubule formation, Marked nuclear pleomorphism: at least 85% of top regions looked right. Tumor necrosis (3/20), Frequent mitotic figures (0/20), Normal lobules with two-layered epithelium (0/20) rarely did, so explanations that cite these concepts should be discounted."
+                  - note [ref=e1738]: "AI-reviewed (not a pathologist): a plausibility check of each concept's 20 highest-scoring regions, not pathologist validation. Reviewers: Codex UI verification (AI, no clinical assessment); Claude Opus 5.5 (AI, not a pathologist)."
+                  - list [ref=e1739]:
+                    - listitem [ref=e1740]: "Marked † in the concept charts above: 25% or fewer of the top regions judged to show the feature."
+                  - paragraph [ref=e1741]:
+                    - generic [ref=e1742]: "Population: 20 top-scoring regions per concept from the test split; 21 cell overlays"
+                    - generic [ref=e1743]:
+                      - text: "Source:"
+                      - code [ref=e1744]: eval/spotcheck.json
+                  - group [ref=e1745]:
+                    - generic "Source numbers" [ref=e1746] [cursor=pointer]
+                - generic [ref=e1747]:
+                  - list [ref=e1748]:
+                    - listitem [ref=e1749]: Shows the feature
+                    - listitem [ref=e1751]: Unsure
+                    - listitem [ref=e1753]: Does not show it
+                  - img "Spot check of the top-scoring regions per concept" [ref=e1755]:
+                    - generic [ref=e1756]: 0%
+                    - generic [ref=e1757]: 25%
+                    - generic [ref=e1758]: 50%
+                    - generic [ref=e1759]: 75%
+                    - generic [ref=e1760]: 100%
+                    - generic [ref=e1761]: Benign fibrous stroma or fat
+                    - generic [ref=e1762]: Tumor infiltrating stroma
+                    - generic [ref=e1763]: Gland / tubule formation
+                    - generic [ref=e1764]: Marked nuclear pleomorphism
+                    - generic [ref=e1765]: Atypical cells confined withinducts
+                    - generic [ref=e1766]: Dense lymphocytic infiltrate(TILs)
+                    - generic [ref=e1767]: Tumor necrosis
+                    - generic [ref=e1768]: Frequent mitotic figures
+                    - generic [ref=e1769]: Normal lobules with two-layeredepithelium
+                    - generic [ref=e1770]: Cell-segmentation overlays
+                    - generic [ref=e1771]: "20"
+                    - generic [ref=e1774]: "19"
+                    - generic [ref=e1777]: "1"
+                    - generic [ref=e1780]: "18"
+                    - generic [ref=e1783]: "1"
+                    - generic [ref=e1786]: "1"
+                    - generic [ref=e1789]: "18"
+                    - generic [ref=e1792]: "1"
+                    - generic [ref=e1795]: "1"
+                    - generic [ref=e1798]: "12"
+                    - generic [ref=e1801]: "7"
+                    - generic [ref=e1804]: "1"
+                    - generic [ref=e1807]: "8"
+                    - generic [ref=e1810]: "4"
+                    - generic [ref=e1813]: "8"
+                    - generic [ref=e1816]: "3"
+                    - generic [ref=e1819]: "12"
+                    - generic [ref=e1822]: "5"
+                    - generic [ref=e1825]: "20"
+                    - generic [ref=e1828]: "20"
+                    - generic [ref=e1831]: "15"
+                    - generic [ref=e1834]: "5"
+                    - generic [ref=e1837]: "1"
+              - figure [ref=e1840]:
+                - generic [ref=e1841]:
+                  - heading "Do the concept scores behave sensibly on another organ?" [level=3] [ref=e1842]
+                  - paragraph [ref=e1843]: "What this shows Text-prompt scores reach AUROC ≥ 0.80 for 3 of 4 concepts; reversed (below chance): Dense lymphocytic infiltrate (TILs) (caption-trained concept vector, 0.32). Pleomorphism is weak here, plausibly because colorectal tumour is not breast carcinoma."
+                - note [ref=e1844]: "Cross-organ sanity check on colorectal tiles (NCT-CRC-HE-100K): evidence that tissue-level concepts transfer, not breast validation."
+                - generic [ref=e1845]:
+                  - img "Cross-organ concept sanity AUROCs on NCT-CRC-HE-100K" [ref=e1846]:
+                    - generic [ref=e1847]: "0.0"
+                    - generic [ref=e1848]: "0.2"
+                    - generic [ref=e1849]: "0.4"
+                    - generic [ref=e1850]: "0.6"
+                    - generic [ref=e1851]: "0.8"
+                    - generic [ref=e1852]: "1.0"
+                    - generic [ref=e1853]: AUROC for the matching colorectal tissue class
+                    - generic [ref=e1854]: chance
+                    - generic [ref=e1856]: Dense lymphocytic infiltrate (TILs) → colorectal LYM
+                    - generic [ref=e1857]: Text prompt score
+                    - generic [ref=e1858]: 1.00 [1.00–1.00]
+                    - generic [ref=e1859]: Caption-trained concept vector
+                    - generic [ref=e1860]: 0.32 [0.29–0.35]
+                    - generic [ref=e1862]: Tumor necrosis → colorectal DEB
+                    - generic [ref=e1863]: Text prompt score
+                    - generic [ref=e1864]: 0.94 [0.93–0.95]
+                    - generic [ref=e1865]: Caption-trained concept vector
+                    - generic [ref=e1866]: 0.95 [0.94–0.96]
+                    - generic [ref=e1868]: Marked nuclear pleomorphism → colorectal TUM
+                    - generic [ref=e1869]: Text prompt score
+                    - generic [ref=e1870]: 0.59 [0.56–0.62]
+                    - generic [ref=e1871]: Caption-trained concept vector
+                    - generic [ref=e1872]: 0.61 [0.58–0.65]
+                    - generic [ref=e1874]: Benign fibrous stroma or fat → colorectal STR + ADI
+                    - generic [ref=e1875]: Text prompt score
+                    - generic [ref=e1876]: 0.87 [0.85–0.88]
+                    - generic [ref=e1877]: Caption-trained concept vector
+                    - generic [ref=e1878]: 0.80 [0.78–0.82]
+                  - list [ref=e1895]:
+                    - listitem [ref=e1896]: Text prompt score
+                    - listitem [ref=e1898]: Caption-trained concept vector
+                - paragraph [ref=e1900]:
+                  - generic [ref=e1901]: "Population: 2700 colorectal tiles (9 tissue classes), encoder conch"
+                  - generic [ref=e1902]:
+                    - text: "Source:"
+                    - code [ref=e1903]: eval/concepts.json
+                - group [ref=e1904]:
+                  - generic "Source numbers" [ref=e1905] [cursor=pointer]
+              - figure [ref=e1906]:
+                - generic [ref=e1907]:
+                  - heading "Are the learned concept vectors consistent with captions?" [level=3] [ref=e1908]
+                  - paragraph [ref=e1909]: What this shows 8 of 9 concept vectors clear the 0.75 held-out AUROC bar; Gland / tubule formation did not, so its text prompt is used instead. Captions mention a feature; they do not prove it is in the image.
+                - note [ref=e1910]: "caption-consistent: held-out agreement with caption co-mentions (grouped by video/slide); not tissue truth, not validation"
+                - img "Caption-consistency of concept vectors" [ref=e1912]:
+                  - generic [ref=e1913]: "0.5"
+                  - generic [ref=e1914]: "0.6"
+                  - generic [ref=e1915]: "0.7"
+                  - generic [ref=e1916]: "0.8"
+                  - generic [ref=e1917]: "0.9"
+                  - generic [ref=e1918]: "1.0"
+                  - generic [ref=e1919]: Held-out AUROC against caption co-mentions
+                  - generic [ref=e1920]: consistency bar
+                  - generic [ref=e1921]: Gland / tubule formation
+                  - generic [ref=e1922]: "below the bar: text prompt used"
+                  - generic [ref=e1923]: 0.73 [0.63–0.82]
+                  - generic [ref=e1924]: Marked nuclear pleomorphism
+                  - generic [ref=e1925]: caption-consistent
+                  - generic [ref=e1926]: 0.75 [0.69–0.81]
+                  - generic [ref=e1927]: Frequent mitotic figures
+                  - generic [ref=e1928]: caption-consistent
+                  - generic [ref=e1929]: 0.78 [0.72–0.83]
+                  - generic [ref=e1930]: Tumor infiltrating stroma
+                  - generic [ref=e1931]: caption-consistent
+                  - generic [ref=e1932]: 0.78 [0.74–0.82]
+                  - generic [ref=e1933]: Atypical cells confined withinducts
+                  - generic [ref=e1934]: caption-consistent
+                  - generic [ref=e1935]: 0.79 [0.75–0.83]
+                  - generic [ref=e1936]: Normal lobules with two-layeredepithelium
+                  - generic [ref=e1937]: caption-consistent
+                  - generic [ref=e1938]: 0.77 [0.67–0.85]
+                  - generic [ref=e1939]: Benign fibrous stroma or fat
+                  - generic [ref=e1940]: caption-consistent
+                  - generic [ref=e1941]: 0.84 [0.79–0.89]
+                  - generic [ref=e1942]: Dense lymphocytic infiltrate (TILs)
+                  - generic [ref=e1943]: caption-consistent
+                  - generic [ref=e1944]: 0.79 [0.73–0.85]
+                  - generic [ref=e1945]: Tumor necrosis
+                  - generic [ref=e1946]: caption-consistent
+                  - generic [ref=e1947]: 0.87 [0.81–0.91]
+                - paragraph [ref=e1966]:
+                  - generic [ref=e1967]: "Population: held-out caption folds (quilt, pathgen), grouped by video / slide; encoder conch"
+                  - generic [ref=e1968]:
+                    - text: "Source:"
+                    - code [ref=e1969]: eval/concepts.json
+                - group [ref=e1970]:
+                  - generic "Source numbers" [ref=e1971] [cursor=pointer]
+              - figure [ref=e1972]:
+                - generic [ref=e1973]:
+                  - heading "Do the highlighted regions matter to the prediction?" [level=3] [ref=e1974]
+                  - paragraph [ref=e1975]: "What this shows In images the model calls invasive, removing the 3 highest-risk tiles lowers P(Invasive) by 0.022 on average versus 0.000 for 3 random tiles: a paired difference of 0.023 [0.003–0.046] (interval excludes zero). Removing the top concept's 3 tiles changes it by −0.003; versus random −0.003 [−0.024 to 0.013] (interval includes zero, inconclusive). Effects are small because a mean-pooled score is spread over many tiles: weak evidence of faithfulness, not proof."
+                - generic [ref=e1976]:
+                  - generic [ref=e1977]:
+                    - generic [ref=e1978]:
+                      - generic [ref=e1979]: Images the model calls invasive (n = 34, 17 groups)
+                      - img "Deletion test, Images the model calls invasive" [ref=e1980]:
+                        - generic [ref=e1981]: −0.02
+                        - generic [ref=e1982]: "0.00"
+                        - generic [ref=e1983]: "0.02"
+                        - generic [ref=e1984]: "0.04"
+                        - generic [ref=e1985]: Drop in P(Invasive) after removing tiles
+                        - generic [ref=e1986]: no effect
+                        - generic [ref=e1987]: Top-3 risk tiles removed
+                        - generic [ref=e1988]: mean drop
+                        - generic [ref=e1989]: 0.022 [0.004–0.044]
+                        - generic [ref=e1990]: Top-3 tiles of the top conceptremoved
+                        - generic [ref=e1991]: mean drop
+                        - generic [ref=e1992]: −0.003 [−0.024 to 0.013]
+                        - generic [ref=e1993]: 3 random tiles removed
+                        - generic [ref=e1994]: mean drop
+                        - generic [ref=e1995]: 0.000 [−0.003 to 0.003]
+                        - generic [ref=e1996]: Risk tiles minus random
+                        - generic [ref=e1997]: paired difference
+                        - generic [ref=e1998]: 0.023 [0.003–0.046]
+                        - generic [ref=e1999]: Concept tiles minus random
+                        - generic [ref=e2000]: paired difference
+                        - generic [ref=e2001]: −0.003 [−0.024 to 0.013]
+                    - generic [ref=e2012]:
+                      - generic [ref=e2013]: All eligible test images (n = 132, 24 groups)
+                      - img "Deletion test, All eligible test images" [ref=e2014]:
+                        - generic [ref=e2015]: −0.02
+                        - generic [ref=e2016]: "0.00"
+                        - generic [ref=e2017]: "0.02"
+                        - generic [ref=e2018]: "0.04"
+                        - generic [ref=e2019]: Drop in P(Invasive) after removing tiles
+                        - generic [ref=e2020]: no effect
+                        - generic [ref=e2021]: Top-3 risk tiles removed
+                        - generic [ref=e2022]: mean drop
+                        - generic [ref=e2023]: 0.011 [0.002–0.019]
+                        - generic [ref=e2024]: Top-3 tiles of the top conceptremoved
+                        - generic [ref=e2025]: mean drop
+                        - generic [ref=e2026]: 0.000 [−0.009 to 0.006]
+                        - generic [ref=e2027]: 3 random tiles removed
+                        - generic [ref=e2028]: mean drop
+                        - generic [ref=e2029]: 0.000 [−0.001 to 0.001]
+                        - generic [ref=e2030]: Risk tiles minus random
+                        - generic [ref=e2031]: paired difference
+                        - generic [ref=e2032]: 0.011 [0.002–0.020]
+                        - generic [ref=e2033]: Concept tiles minus random
+                        - generic [ref=e2034]: paired difference
+                        - generic [ref=e2035]: 0.001 [−0.009 to 0.006]
+                  - list [ref=e2046]:
+                    - listitem [ref=e2047]: Mean drop
+                    - listitem [ref=e2049]: Difference vs random, interval excludes 0
+                    - listitem [ref=e2051]: Difference vs random, inconclusive
+                - paragraph [ref=e2053]:
+                  - generic [ref=e2054]: "Population: held-out test split, UNI2-h linear probe; 20 random 3-tile draws per image"
+                  - generic [ref=e2055]:
+                    - text: "Source:"
+                    - code [ref=e2056]: eval/deletion.json
+                - group [ref=e2057]:
+                  - generic "Source numbers" [ref=e2058] [cursor=pointer]
+          - region [ref=e2059]:
+            - generic [ref=e2060]:
+              - heading "Frozen-section reliability (simulated)" [level=2] [ref=e2061]
+              - paragraph [ref=e2062]: Frozen sections were simulated by degrading microscopy images and by building half-tumour composite fields.
+            - generic [ref=e2063]:
+              - figure [ref=e2064]:
+                - generic [ref=e2065]:
+                  - heading "How does accuracy hold up on simulated frozen-section artifacts?" [level=3] [ref=e2066]
+                  - paragraph [ref=e2067]: What this shows Four-class accuracy falls from 84% on clean single-view reads to 69% (blur), 67% (JPEG compression), 70% (stain / colour shift), 73% (down-up sampling) at the highest severity; JPEG compression hurts most. This drop is why degraded reads carry a reliability flag and can be deferred to permanent sections.
+                - note [ref=e2068]: Simulated degradations of microscopy images (no frozen-section data was available). Shaded bands are 95% cluster-bootstrap intervals.
+                - generic [ref=e2070]:
+                  - generic [ref=e2071]:
+                    - generic [ref=e2072]: "Blur: 84% → 69%"
+                    - img "Accuracy versus blur severity" [ref=e2073]:
+                      - generic [ref=e2074]: 50%
+                      - generic [ref=e2075]: 60%
+                      - generic [ref=e2076]: 70%
+                      - generic [ref=e2077]: 80%
+                      - generic [ref=e2078]: 90%
+                      - generic [ref=e2079]: 100%
+                      - generic [ref=e2080]: Accuracy
+                      - generic [ref=e2081]: "0"
+                      - generic [ref=e2082]: "1"
+                      - generic [ref=e2083]: "2"
+                      - generic [ref=e2084]: "3"
+                      - generic [ref=e2085]: Severity (0 = clean)
+                  - generic [ref=e2096]:
+                    - generic [ref=e2097]: "JPEG compression: 84% → 67%"
+                    - img "Accuracy versus jpeg severity" [ref=e2098]:
+                      - generic [ref=e2099]: 50%
+                      - generic [ref=e2100]: 60%
+                      - generic [ref=e2101]: 70%
+                      - generic [ref=e2102]: 80%
+                      - generic [ref=e2103]: 90%
+                      - generic [ref=e2104]: 100%
+                      - generic [ref=e2105]: Accuracy
+                      - generic [ref=e2106]: "0"
+                      - generic [ref=e2107]: "1"
+                      - generic [ref=e2108]: "2"
+                      - generic [ref=e2109]: "3"
+                      - generic [ref=e2110]: Severity (0 = clean)
+                  - generic [ref=e2121]:
+                    - generic [ref=e2122]: "Stain / colour shift: 84% → 70%"
+                    - img "Accuracy versus stain severity" [ref=e2123]:
+                      - generic [ref=e2124]: 50%
+                      - generic [ref=e2125]: 60%
+                      - generic [ref=e2126]: 70%
+                      - generic [ref=e2127]: 80%
+                      - generic [ref=e2128]: 90%
+                      - generic [ref=e2129]: 100%
+                      - generic [ref=e2130]: Accuracy
+                      - generic [ref=e2131]: "0"
+                      - generic [ref=e2132]: "1"
+                      - generic [ref=e2133]: "2"
+                      - generic [ref=e2134]: "3"
+                      - generic [ref=e2135]: Severity (0 = clean)
+                  - generic [ref=e2146]:
+                    - generic [ref=e2147]: "Down-up sampling: 84% → 73%"
+                    - img "Accuracy versus resample severity" [ref=e2148]:
+                      - generic [ref=e2149]: 50%
+                      - generic [ref=e2150]: 60%
+                      - generic [ref=e2151]: 70%
+                      - generic [ref=e2152]: 80%
+                      - generic [ref=e2153]: 90%
+                      - generic [ref=e2154]: 100%
+                      - generic [ref=e2155]: Accuracy
+                      - generic [ref=e2156]: "0"
+                      - generic [ref=e2157]: "1"
+                      - generic [ref=e2158]: "2"
+                      - generic [ref=e2159]: "3"
+                      - generic [ref=e2160]: Severity (0 = clean)
+                - paragraph [ref=e2171]:
+                  - generic [ref=e2172]: "Population: held-out test split, UNI2-h linear probe; clean = view0 reads"
+                  - generic [ref=e2173]:
+                    - text: "Source:"
+                    - code [ref=e2174]: eval/reliability.json
+                - group [ref=e2175]:
+                  - generic "Source numbers" [ref=e2176] [cursor=pointer]
+              - figure [ref=e2177]:
+                - generic [ref=e2178]:
+                  - heading "Does the reliability flag catch wrong reads?" [level=3] [ref=e2179]
+                  - paragraph [ref=e2180]: "What this shows The combined score ranks wrong reads above correct ones with AUROC 0.70 (95% CI 0.59–0.86). At the threshold chosen on calibration (target: catch 80% of errors; 80% there) it caught 46% (95% CI 29%–61%) of test-read errors — weaker on held-out data. It flags 19% of clean and 33% of simulated degraded reads."
+                - generic [ref=e2181]:
+                  - img "Reliability score error-detection AUROC" [ref=e2182]:
+                    - generic [ref=e2183]: "0.0"
+                    - generic [ref=e2184]: "0.2"
+                    - generic [ref=e2185]: "0.4"
+                    - generic [ref=e2186]: "0.6"
+                    - generic [ref=e2187]: "0.8"
+                    - generic [ref=e2188]: "1.0"
+                    - generic [ref=e2189]: AUROC for ranking wrong reads above right ones
+                    - generic [ref=e2190]: chance
+                    - generic [ref=e2191]: Combined reliability score
+                    - generic [ref=e2192]: 0.70 [0.59–0.86]
+                    - generic [ref=e2193]: Distance from training images (OOD)
+                    - generic [ref=e2194]: single signal
+                    - generic [ref=e2195]: 0.49 [0.40–0.58]
+                    - generic [ref=e2196]: Conformal set size
+                    - generic [ref=e2197]: single signal
+                    - generic [ref=e2198]: 0.70 [0.64–0.79]
+                    - generic [ref=e2199]: CONCH vs MUSK disagreement
+                    - generic [ref=e2200]: single signal
+                    - generic [ref=e2201]: 0.61 [0.51–0.75]
+                  - generic [ref=e2210]: Share of reads flagged
+                  - 'img "Reliability flag rate: clean 19%, degraded 33%" [ref=e2211]':
+                    - generic [ref=e2212]: 0%
+                    - generic [ref=e2213]: 50%
+                    - generic [ref=e2214]: 100%
+                    - generic [ref=e2215]: Share flagged
+                    - generic [ref=e2216]: Clean reads
+                    - generic [ref=e2217]: Simulated degradedreads
+                    - generic [ref=e2220]: 19%
+                    - generic [ref=e2223]: 33%
+                - paragraph [ref=e2224]:
+                  - generic [ref=e2225]: "Population: 1716 test reads (clean + simulated degraded), 24 groups"
+                  - generic [ref=e2226]:
+                    - text: "Source:"
+                    - code [ref=e2227]: eval/reliability.json
+                - group [ref=e2228]:
+                  - generic "Source numbers" [ref=e2229] [cursor=pointer]
+              - figure [ref=e2230]:
+                - generic [ref=e2231]:
+                  - heading "Does the simulated margin read localize tumour?" [level=3] [ref=e2232]
+                  - paragraph [ref=e2233]: What this shows On composite fields the read kept 100% of tumour-free margins clear and called the tumour-side margin involved 70% of the time; on annotated slide windows sensitivity was 45% at 98% specificity. The threshold is conservative (few false alarms on benign images, 0%) and misses many involved margins, so the surgeon-facing call stays with the pathologist.
+                - note [ref=e2234]: "Simulation: image borders stand in for inked margins (top superior, bottom inferior, left medial, right lateral). Composite fields are synthetic constructions from test images."
+                - img "Simulated margin read evaluation" [ref=e2236]:
+                  - generic [ref=e2237]: 0%
+                  - generic [ref=e2238]: 20%
+                  - generic [ref=e2239]: 40%
+                  - generic [ref=e2240]: 60%
+                  - generic [ref=e2241]: 80%
+                  - generic [ref=e2242]: 100%
+                  - generic [ref=e2243]: Rate
+                  - generic [ref=e2245]: "Benign test images: false alarms (lower is better)"
+                  - generic [ref=e2246]: Margin wrongly called involved
+                  - generic [ref=e2247]: n = 284, 7 groups
+                  - generic [ref=e2248]: 0% [0%–0%]
+                  - generic [ref=e2249]: Any of 4 margins wrongly called
+                  - generic [ref=e2250]: n = 71, 7 groups
+                  - generic [ref=e2251]: 0% [0%–0%]
+                  - generic [ref=e2253]: "Composite fields: half tumour, half benign (simulated)"
+                  - generic [ref=e2254]: Tumour-free margin called clear
+                  - generic [ref=e2255]: n = 64, 41 groups
+                  - generic [ref=e2256]: 100% [100%–100%]
+                  - generic [ref=e2257]: Benign-half segments belowthreshold
+                  - generic [ref=e2258]: n = 768, 41 groups
+                  - generic [ref=e2259]: 100% [100%–100%]
+                  - generic [ref=e2260]: Tumour-side margin called involved
+                  - generic [ref=e2261]: n = 64, 41 groups
+                  - generic [ref=e2262]: 70% [58%–82%]
+                  - generic [ref=e2263]: Carcinoma-half segments abovethreshold
+                  - generic [ref=e2264]: n = 768, 41 groups
+                  - generic [ref=e2265]: 40% [31%–51%]
+                  - generic [ref=e2267]: Annotated whole-slide windows
+                  - generic [ref=e2268]: Sensitivity (involved marginsfound)
+                  - generic [ref=e2269]: n = 141, 10 groups
+                  - generic [ref=e2270]: 45% [25%–65%]
+                  - generic [ref=e2271]: Specificity (clear margins keptclear)
+                  - generic [ref=e2272]: n = 195, 10 groups
+                  - generic [ref=e2273]: 98% [97%–100%]
+                  - generic [ref=e2275]: "Carcinoma test images: does it just echo the diagnosis?"
+                  - generic [ref=e2276]: At least one margin called clear
+                  - generic [ref=e2277]: n = 61, 19 groups
+                  - generic [ref=e2278]: 48% [25%–65%]
+                - paragraph [ref=e2297]:
+                  - generic [ref=e2298]: "Population: test images (71 benign, 61 carcinoma), 64 composites, 84 WSI windows from 10 patients; threshold 0.99982 (log-odds +8.6) from benign calibration images"
+                  - generic [ref=e2299]:
+                    - text: "Source:"
+                    - code [ref=e2300]: eval/margin.json
+                - group [ref=e2301]:
+                  - generic "Source numbers" [ref=e2302] [cursor=pointer]
+          - region [ref=e2303]:
+            - generic [ref=e2304]:
+              - heading "Workflow" [level=2] [ref=e2305]
+              - paragraph [ref=e2306]: Where cases land in the worklist, and what prioritizing them costs the rest of the queue in a simulated reading day.
+            - generic [ref=e2307]:
+              - figure [ref=e2308]:
+                - generic [ref=e2309]:
+                  - heading "Where do truly invasive cases land in the worklist?" [level=3] [ref=e2310]
+                  - paragraph [ref=e2311]: What this shows 31 of 31 invasive test images land in tier 1 or 2 (10 through the simulated surgical lane); 0 would wait in tiers 3–4. 9 non-invasive images were sent to tier 2, the price of the safety rule.
+                - generic [ref=e2312]:
+                  - img "Worklist tier by true class on the test split" [ref=e2313]:
+                    - generic [ref=e2314]: Worklist tier assigned by the read
+                    - generic [ref=e2315]: 1. Surgical frozensection (simulated)
+                    - generic [ref=e2316]: 2. Likely invasive
+                    - generic [ref=e2317]: 3. Low confidence
+                    - generic [ref=e2318]: 4. Unflagged
+                    - generic [ref=e2319]: Normal (n = 23)
+                    - generic [ref=e2320]: Benign (n = 48)
+                    - generic [ref=e2321]: In situ (n = 30)
+                    - generic [ref=e2322]: Invasive (n = 31)
+                    - generic [ref=e2323]: "6"
+                    - generic [ref=e2326]: "0"
+                    - generic [ref=e2329]: "6"
+                    - generic [ref=e2332]: "11"
+                    - generic [ref=e2335]: "10"
+                    - generic [ref=e2338]: "0"
+                    - generic [ref=e2341]: "14"
+                    - generic [ref=e2344]: "24"
+                    - generic [ref=e2347]: "7"
+                    - generic [ref=e2350]: "9"
+                    - generic [ref=e2353]: "7"
+                    - generic [ref=e2356]: "7"
+                    - generic [ref=e2359]: "10"
+                    - generic [ref=e2362]: "21"
+                    - generic [ref=e2365]: "0"
+                    - generic [ref=e2368]: "0"
+                  - generic [ref=e2371]:
+                    - generic [ref=e2372]: Shade = share of the row
+                    - generic [ref=e2373]: 0%
+                    - generic [ref=e2375]: 100%
+                - paragraph [ref=e2376]:
+                  - generic [ref=e2377]: "Population: held-out test split, 132 images; static tiers (no aging)"
+                  - generic [ref=e2378]:
+                    - text: "Source:"
+                    - code [ref=e2379]: eval/analytics.json
+                - group [ref=e2380]:
+                  - generic "Source numbers" [ref=e2381] [cursor=pointer]
+              - figure [ref=e2382]:
+                - generic [ref=e2383]:
+                  - heading "Why were cases flagged?" [level=3] [ref=e2384]
+                  - paragraph [ref=e2385]: "What this shows 13 in situ images had Invasive in the suggested set, which the safety rule sends to tier 2 (tier 1 if they arrive in the simulated surgical lane). Normal: most often \"more than one class in the confidence set\" (8 of 23); Benign: most often \"more than one class in the confidence set\" (13 of 48). One case can carry several reasons."
+                - generic [ref=e2386]:
+                  - img "Flag reasons by true class, test split" [ref=e2387]:
+                    - generic [ref=e2388]: True class
+                    - generic [ref=e2389]: Normal
+                    - generic [ref=e2390]: Benign
+                    - generic [ref=e2391]: In situ
+                    - generic [ref=e2392]: Invasive
+                    - generic [ref=e2393]: Invasive carcinoma suggested
+                    - generic [ref=e2394]: Invasive in the confidence set
+                    - generic [ref=e2395]: More than one class in theconfidence set
+                    - generic [ref=e2396]: Low reliability
+                    - generic [ref=e2397]: Simulated frozen section
+                    - generic [ref=e2398]: "0"
+                    - generic [ref=e2401]: "0"
+                    - generic [ref=e2404]: "3"
+                    - generic [ref=e2407]: "31"
+                    - generic [ref=e2410]: "0"
+                    - generic [ref=e2413]: "0"
+                    - generic [ref=e2416]: "13"
+                    - generic [ref=e2419]: "31"
+                    - generic [ref=e2422]: "8"
+                    - generic [ref=e2425]: "13"
+                    - generic [ref=e2428]: "15"
+                    - generic [ref=e2431]: "1"
+                    - generic [ref=e2434]: "3"
+                    - generic [ref=e2437]: "11"
+                    - generic [ref=e2440]: "10"
+                    - generic [ref=e2443]: "1"
+                    - generic [ref=e2446]: "6"
+                    - generic [ref=e2449]: "10"
+                    - generic [ref=e2452]: "7"
+                    - generic [ref=e2455]: "10"
+                  - generic [ref=e2458]:
+                    - generic [ref=e2459]: Shade = share of the class
+                    - generic [ref=e2460]: 0%
+                    - generic [ref=e2462]: 100%
+                - paragraph [ref=e2463]:
+                  - generic [ref=e2464]: "Population: held-out test split, 132 images; reasons from core.tiers"
+                  - generic [ref=e2465]:
+                    - text: "Source:"
+                    - code [ref=e2466]: eval/analytics.json
+                - group [ref=e2467]:
+                  - generic "Source numbers" [ref=e2468] [cursor=pointer]
+              - figure [ref=e2469]:
+                - generic [ref=e2470]:
+                  - heading "What does prioritizing change for the reading day?" [level=3] [ref=e2471]
+                  - paragraph [ref=e2472]: What this shows In 1000 simulated reading days, PathQueue tiers cut the mean time to first look for invasive cases from 20.2 to 6.0 min (sooner on 96% of days), while unflagged cases waited 20.0 → 45.0 min (longer on 99% of days). The configured aging guard never promoted a case within an 8-hour day, so it has no measured effect here.
+                - note [ref=e2473]: A simulation with stated assumptions, not a measured workflow outcome. Boxes span the middle 50% of simulated days; whiskers 95% of days; the line is the median and the diamond the mean.
+                - generic [ref=e2476]:
+                  - generic [ref=e2477]:
+                    - generic [ref=e2478]: "Invasive cases: mean time to first look per day"
+                    - img "Time to first look for invasive cases by policy" [ref=e2479]:
+                      - generic [ref=e2480]: "0"
+                      - generic [ref=e2481]: "20"
+                      - generic [ref=e2482]: "40"
+                      - generic [ref=e2483]: "60"
+                      - generic [ref=e2484]: Minutes
+                      - generic [ref=e2485]: FIFO (arrival order)
+                      - generic [ref=e2486]: PathQueue tiers
+                      - generic [ref=e2487]: PathQueue tiers + aging guard(configured targets)
+                      - generic [ref=e2488]: "Sensitivity: tiers + aging,day-scale targets"
+                  - generic [ref=e2501]:
+                    - generic [ref=e2502]: "Unflagged (tier 4) cases: mean wait per day"
+                    - img "Wait for unflagged cases by policy" [ref=e2503]:
+                      - generic [ref=e2504]: "0"
+                      - generic [ref=e2505]: "50"
+                      - generic [ref=e2506]: "100"
+                      - generic [ref=e2507]: "150"
+                      - generic [ref=e2508]: Minutes
+                      - generic [ref=e2509]: FIFO (arrival order)
+                      - generic [ref=e2510]: PathQueue tiers
+                      - generic [ref=e2511]: PathQueue tiers + aging guard(configured targets)
+                      - generic [ref=e2512]: "Sensitivity: tiers + aging,day-scale targets"
+                - list [ref=e2525]:
+                  - listitem [ref=e2526]: "Assumption: Poisson, 6 per hour for 8 h; cases drawn uniformly with replacement from the clean test split."
+                  - listitem [ref=e2527]: "Assumption: one reader, fixed 9 min per case, non-preemptive, works overtime until empty."
+                  - listitem [ref=e2528]: "Assumption: reader utilization 90%."
+                  - listitem [ref=e2529]: "Assumption: core.tiers (surgical 1; Invasive top or in the APS, never empty conformal set 2; set size != 1, reliability flag or insufficient tissue 3; else 4)."
+                  - listitem [ref=e2530]: "Assumption: 2.5-97.5 percentiles over simulated days (simulation uncertainty only)."
+                  - listitem [ref=e2531]: "Assumption: true labels only score the waits; they never drive the queue."
+                - paragraph [ref=e2532]:
+                  - generic [ref=e2533]: "Population: 132 clean test cases drawn with replacement; 1000 simulated days (distributions replayed and checked against queue_sim.json)"
+                  - generic [ref=e2534]:
+                    - text: "Source:"
+                    - code [ref=e2535]: eval/queue_sim.json
+                    - text: ","
+                    - code [ref=e2536]: eval/analytics.json
+                - group [ref=e2537]:
+                  - generic "Source numbers" [ref=e2538] [cursor=pointer]
+          - region [ref=e2539]:
+            - generic [ref=e2540]:
+              - heading "Cell measurements" [level=2] [ref=e2541]
+              - paragraph [ref=e2542]: Automated nuclei measurements by class, checked against the direction pathology expects.
+            - figure [ref=e2544]:
+              - generic [ref=e2545]:
+                - heading "Do measured cell features differ between classes?" [level=3] [ref=e2546]
+                - paragraph [ref=e2547]: "What this shows Of 7 features with an expected direction (contrast: Invasive - (Normal + Benign)), 1 differs as expected (variation in nuclear size), 2 go the wrong way (dead cell fraction, benign epithelial fraction) and 4 are inconclusive. Measurements support, but do not drive, the production read."
+              - note [ref=e2548]: Automated nuclei segmentation and typing (HoVer-Net, PanNuke classes). Not pathologist-validated; cell types are model outputs.
+              - generic [ref=e2549]:
+                - generic [ref=e2550]:
+                  - generic [ref=e2551]:
+                    - generic [ref=e2552]:
+                      - text: Tumor cell fraction
+                      - generic [ref=e2553]: inconclusive
+                    - 'img "Tumor cell fraction: class means with 95% CI" [ref=e2554]':
+                      - generic [ref=e2555]: "0.2"
+                      - generic [ref=e2556]: "0.4"
+                      - generic [ref=e2557]: "0.6"
+                      - generic [ref=e2558]: "0.8"
+                      - generic [ref=e2559]: Normal
+                      - generic [ref=e2560]: 0.17 [0.12–0.23]
+                      - generic [ref=e2561]: Benign
+                      - generic [ref=e2562]: 0.46 [0.15–0.68]
+                      - generic [ref=e2563]: In situ
+                      - generic [ref=e2564]: 0.74 [0.66–0.79]
+                      - generic [ref=e2565]: Invasive
+                      - generic [ref=e2566]: 0.44 [0.34–0.53]
+                  - generic [ref=e2575]:
+                    - generic [ref=e2576]:
+                      - text: Tumor cell density (per mm²)
+                      - generic [ref=e2577]: inconclusive
+                    - 'img "Tumor cell density: class means with 95% CI" [ref=e2578]':
+                      - generic [ref=e2579]: "0"
+                      - generic [ref=e2580]: 1,000
+                      - generic [ref=e2581]: 2,000
+                      - generic [ref=e2582]: 3,000
+                      - generic [ref=e2583]: Normal
+                      - generic [ref=e2584]: 418 [155–825]
+                      - generic [ref=e2585]: Benign
+                      - generic [ref=e2586]: 1,387 [253–2,174]
+                      - generic [ref=e2587]: In situ
+                      - generic [ref=e2588]: 2,998 [2,443–3,648]
+                      - generic [ref=e2589]: Invasive
+                      - generic [ref=e2590]: 1,235 [952–1,597]
+                  - generic [ref=e2599]:
+                    - generic [ref=e2600]:
+                      - text: Nuclear size (µm²)
+                      - generic [ref=e2601]: inconclusive
+                    - 'img "Nuclear size: class means with 95% CI" [ref=e2602]':
+                      - generic [ref=e2603]: "45"
+                      - generic [ref=e2604]: "50"
+                      - generic [ref=e2605]: "55"
+                      - generic [ref=e2606]: "60"
+                      - generic [ref=e2607]: Normal
+                      - generic [ref=e2608]: 49.6 [45.1–54.1]
+                      - generic [ref=e2609]: Benign
+                      - generic [ref=e2610]: 53.3 [49.5–57.9]
+                      - generic [ref=e2611]: In situ
+                      - generic [ref=e2612]: 48.6 [43.4–56.4]
+                      - generic [ref=e2613]: Invasive
+                      - generic [ref=e2614]: 54.7 [48.5–61.1]
+                  - generic [ref=e2623]:
+                    - generic [ref=e2624]:
+                      - text: Variation in nuclear size
+                      - generic [ref=e2625]: as expected
+                    - 'img "Variation in nuclear size: class means with 95% CI" [ref=e2626]':
+                      - generic [ref=e2627]: "0.4"
+                      - generic [ref=e2628]: "0.5"
+                      - generic [ref=e2629]: "0.6"
+                      - generic [ref=e2630]: Normal
+                      - generic [ref=e2631]: 0.50 [0.45–0.55]
+                      - generic [ref=e2632]: Benign
+                      - generic [ref=e2633]: 0.50 [0.42–0.52]
+                      - generic [ref=e2634]: In situ
+                      - generic [ref=e2635]: 0.56 [0.48–0.64]
+                      - generic [ref=e2636]: Invasive
+                      - generic [ref=e2637]: 0.61 [0.57–0.64]
+                  - generic [ref=e2646]:
+                    - generic [ref=e2647]:
+                      - text: Variation in nuclear shape
+                      - generic [ref=e2648]: inconclusive
+                    - 'img "Variation in nuclear shape: class means with 95% CI" [ref=e2649]':
+                      - generic [ref=e2650]: "0.13"
+                      - generic [ref=e2651]: "0.14"
+                      - generic [ref=e2652]: "0.15"
+                      - generic [ref=e2653]: Normal
+                      - generic [ref=e2654]: 0.13 [0.13–0.14]
+                      - generic [ref=e2655]: Benign
+                      - generic [ref=e2656]: 0.14 [0.14–0.15]
+                      - generic [ref=e2657]: In situ
+                      - generic [ref=e2658]: 0.14 [0.13–0.15]
+                      - generic [ref=e2659]: Invasive
+                      - generic [ref=e2660]: 0.13 [0.13–0.14]
+                  - generic [ref=e2669]:
+                    - generic [ref=e2670]:
+                      - text: Immune cell fraction
+                      - generic [ref=e2671]: context
+                    - 'img "Immune cell fraction: class means with 95% CI" [ref=e2672]':
+                      - generic [ref=e2673]: "0.00"
+                      - generic [ref=e2674]: "0.05"
+                      - generic [ref=e2675]: "0.10"
+                      - generic [ref=e2676]: Normal
+                      - generic [ref=e2677]: 0.05 [0.03–0.06]
+                      - generic [ref=e2678]: Benign
+                      - generic [ref=e2679]: 0.05 [0.01–0.11]
+                      - generic [ref=e2680]: In situ
+                      - generic [ref=e2681]: 0.02 [0.01–0.03]
+                      - generic [ref=e2682]: Invasive
+                      - generic [ref=e2683]: 0.01 [0.01–0.02]
+                  - generic [ref=e2692]:
+                    - generic [ref=e2693]:
+                      - text: Immune cells near tumor
+                      - generic [ref=e2694]: context
+                    - 'img "Immune cells near tumor: class means with 95% CI" [ref=e2695]':
+                      - generic [ref=e2696]: "0.4"
+                      - generic [ref=e2697]: "0.6"
+                      - generic [ref=e2698]: "0.8"
+                      - generic [ref=e2699]: Normal
+                      - generic [ref=e2700]: 0.47 [0.37–0.59]
+                      - generic [ref=e2701]: Benign
+                      - generic [ref=e2702]: 0.59 [0.35–0.77]
+                      - generic [ref=e2703]: In situ
+                      - generic [ref=e2704]: 0.73 [0.67–0.91]
+                      - generic [ref=e2705]: Invasive
+                      - generic [ref=e2706]: 0.73 [0.54–0.88]
+                  - generic [ref=e2715]:
+                    - generic [ref=e2716]:
+                      - text: Dead cell fraction
+                      - generic [ref=e2717]: wrong way
+                    - 'img "Dead cell fraction: class means with 95% CI" [ref=e2718]':
+                      - generic [ref=e2719]: "0.00"
+                      - generic [ref=e2720]: "0.02"
+                      - generic [ref=e2721]: "0.04"
+                      - generic [ref=e2722]: Normal
+                      - generic [ref=e2723]: 0.02 [0.01–0.04]
+                      - generic [ref=e2724]: Benign
+                      - generic [ref=e2725]: 0.02 [0.01–0.04]
+                      - generic [ref=e2726]: In situ
+                      - generic [ref=e2727]: 0.01 [0.00–0.02]
+                      - generic [ref=e2728]: Invasive
+                      - generic [ref=e2729]: 0.01 [0.00–0.01]
+                  - generic [ref=e2738]:
+                    - generic [ref=e2739]:
+                      - text: Benign epithelial fraction
+                      - generic [ref=e2740]: wrong way
+                    - 'img "Benign epithelial fraction: class means with 95% CI" [ref=e2741]':
+                      - generic [ref=e2742]: "0.0"
+                      - generic [ref=e2743]: "0.2"
+                      - generic [ref=e2744]: "0.4"
+                      - generic [ref=e2745]: "0.6"
+                      - generic [ref=e2746]: Normal
+                      - generic [ref=e2747]: 0.23 [0.10–0.43]
+                      - generic [ref=e2748]: Benign
+                      - generic [ref=e2749]: 0.16 [0.11–0.35]
+                      - generic [ref=e2750]: In situ
+                      - generic [ref=e2751]: 0.13 [0.03–0.30]
+                      - generic [ref=e2752]: Invasive
+                      - generic [ref=e2753]: 0.45 [0.32–0.56]
+                - list [ref=e2762]:
+                  - listitem [ref=e2763]: Invasive
+                  - listitem [ref=e2765]: Other classes
+              - paragraph [ref=e2767]:
+                - generic [ref=e2768]: "Population: held-out test split, 129 images with cell outputs, 24 groups; counts per class shown in the tooltips"
+                - generic [ref=e2769]:
+                  - text: "Source:"
+                  - code [ref=e2770]: eval/cells.json
+              - group [ref=e2771]:
+                - generic "Source numbers" [ref=e2772] [cursor=pointer]
+          - region [ref=e2773]:
+            - generic [ref=e2774]:
+              - heading "Similar cases" [level=2] [ref=e2775]
+              - paragraph [ref=e2776]: The reference cases shown beside each case come from nearest neighbours in the training library.
+            - figure [ref=e2778]:
+              - generic [ref=e2779]:
+                - generic [ref=e2780]:
+                  - heading "Are the similar reference cases actually similar?" [level=3] [ref=e2781]
+                  - paragraph [ref=e2782]: What this shows On average 67% of each test image's 5 nearest training images share its label (95% CI 58%–83%). Best for normal (92%) and invasive (91%); weakest for in situ (55%) and benign (47%), so reference cases are context for the reader, not a vote.
+                - paragraph [ref=e2783]:
+                  - generic [ref=e2784]: "Population: held-out test split queries against a library of 218 train cases; encoder conch"
+                  - generic [ref=e2785]:
+                    - text: "Source:"
+                    - code [ref=e2786]: eval/retrieval.json
+                - group [ref=e2787]:
+                  - generic "Source numbers" [ref=e2788] [cursor=pointer]
+              - img "Retrieval precision at k" [ref=e2790]:
+                - generic [ref=e2791]: 0%
+                - generic [ref=e2792]: 20%
+                - generic [ref=e2793]: 40%
+                - generic [ref=e2794]: 60%
+                - generic [ref=e2795]: 80%
+                - generic [ref=e2796]: 100%
+                - generic [ref=e2797]: Share of the 5 nearest training images with the same label
+                - generic [ref=e2798]: All test images
+                - generic [ref=e2799]: 67% [58%–83%]
+                - generic [ref=e2800]: Normal breast tissue
+                - generic [ref=e2801]: no interval
+                - generic [ref=e2802]: 92%
+                - generic [ref=e2803]: Benign lesion
+                - generic [ref=e2804]: no interval
+                - generic [ref=e2805]: 47%
+                - generic [ref=e2806]: In situ carcinoma
+                - generic [ref=e2807]: no interval
+                - generic [ref=e2808]: 55%
+                - generic [ref=e2809]: Invasive carcinoma
+                - generic [ref=e2810]: no interval
+                - generic [ref=e2811]: 91%
+          - region [ref=e2822]:
+            - generic [ref=e2823]:
+              - heading "Limitations and data" [level=2] [ref=e2824]
+              - paragraph [ref=e2825]: What these results do not show, where they come from, and whom to credit.
+            - generic [ref=e2826]:
+              - figure [ref=e2827]:
+                - heading "Limitations" [level=3] [ref=e2829]
+                - list [ref=e2830]:
+                  - listitem [ref=e2831]: Research prototype on a small public dataset (BACH, CC BY-NC-ND 4.0); not a clinical device and not for clinical use.
+                  - listitem [ref=e2832]: BACH labels are diagnostic categories, not Nottingham grades; "likely aggressive" means "likely invasive carcinoma".
+                  - listitem [ref=e2833]: "Small test set (THUNDER split, 132 images) with partial patient IDs: pseudo-patient groups and wide intervals."
+                  - listitem [ref=e2834]: "The surgical lane is simulated: image borders stand in for inked margins and frozen-section artifacts are simulated degradations; composite fields are synthetic constructions from test images."
+                  - listitem [ref=e2835]: Concept scores are features associated with the classes, not causes and not validated grade components; caption consistency measures caption co-mention, not tissue truth.
+                  - listitem [ref=e2836]: Conformal coverage assumes exchangeable data; it is not a per-case guarantee and does not carry over to degraded or composite inputs.
+                  - listitem [ref=e2837]: Follow-up order rules are illustrative and require clinical review; the agent only drafts orders. Spot checks say whether a human or an AI reviewed them.
+                  - listitem [ref=e2838]: The queue simulation is a model with stated assumptions, not a measured workflow outcome.
+              - figure [ref=e2839]:
+                - generic [ref=e2840]:
+                  - 'heading "Data quality: how much tissue passed QC?" [level=3] [ref=e2841]'
+                  - paragraph [ref=e2842]: What this shows A tissue-mask fix raised the tile QC pass rate 74% → 98% (g256), 75% → 99% (g512) and reduced images flagged "insufficient tissue" from 51 to 0; 32 of the 51 were invasive, so the bug mostly hid real tumour tissue.
+                - generic [ref=e2843]:
+                  - list [ref=e2844]:
+                    - listitem [ref=e2845]: Before the fix
+                    - listitem [ref=e2847]: After the fix
+                  - img "Images with insufficient tissue before and after the QC fix" [ref=e2849]:
+                    - generic [ref=e2850]: "0"
+                    - generic [ref=e2851]: "10"
+                    - generic [ref=e2852]: "20"
+                    - generic [ref=e2853]: "30"
+                    - generic [ref=e2854]: Images
+                    - generic [ref=e2855]: Normal
+                    - generic [ref=e2856]: Benign
+                    - generic [ref=e2857]: In situ
+                    - generic [ref=e2858]: Invasive
+                    - generic [ref=e2861]: "8"
+                    - generic [ref=e2863]: "0"
+                    - generic [ref=e2866]: "3"
+                    - generic [ref=e2868]: "0"
+                    - generic [ref=e2871]: "8"
+                    - generic [ref=e2873]: "0"
+                    - generic [ref=e2876]: "32"
+                    - generic [ref=e2878]: "0"
+                - list [ref=e2879]:
+                  - listitem [ref=e2880]: "Check: the old rule recomputed on display images matches the full-resolution tissue fractions (Pearson r 0.998)."
+                - paragraph [ref=e2881]:
+                  - generic [ref=e2882]: "Population: all 400 BACH images (every split), 24000 tiles; tile-level QC, not a model result"
+                  - generic [ref=e2883]:
+                    - text: "Source:"
+                    - code [ref=e2884]: eval/qc.json
+                - group [ref=e2885]:
+                  - generic "Source numbers" [ref=e2886] [cursor=pointer]
+              - figure [ref=e2887]:
+                - heading "Datasets, models and methods" [level=3] [ref=e2889]
+                - generic [ref=e2890]:
+                  - term [ref=e2891]: BACH dataset
+                  - definition [ref=e2892]: "Aresta G, et al. BACH: Grand challenge on breast cancer histology images. Medical Image Analysis, 2019."
+                  - term [ref=e2893]: CONCH
+                  - definition [ref=e2894]: Lu MY, et al. A visual-language foundation model for computational pathology. Nature Medicine, 2024.
+                  - term [ref=e2895]: MUSK
+                  - definition [ref=e2896]: Xiang J, et al. A vision–language foundation model for precision oncology. Nature, 2025.
+                  - term [ref=e2897]: UNI / UNI2-h
+                  - definition [ref=e2898]: Chen RJ, et al. Towards a general-purpose foundation model for computational pathology. Nature Medicine, 2024 (UNI2-h model release, Mahmood Lab).
+                  - term [ref=e2899]: H-optimus-0
+                  - definition [ref=e2900]: Bioptimus, H-optimus-0 model release, 2024.
+                  - term [ref=e2901]: PathGen-CLIP
+                  - definition [ref=e2902]: "Sun Y, et al. PathGen-1.6M: pathology image–text pairs via multi-agent collaboration, 2024."
+                  - term [ref=e2903]: THUNDER benchmark
+                  - definition [ref=e2904]: Marza P, et al. THUNDER tile-level histopathology benchmark; leaderboard at mics-lab.github.io/thunder.
+                  - term [ref=e2905]: NCT-CRC-HE-100K
+                  - definition [ref=e2906]: Kather JN, et al. Predicting survival from colorectal cancer histology slides using deep learning. PLoS Medicine, 2019.
+                  - term [ref=e2907]: Quilt-1M
+                  - definition [ref=e2908]: "Ikezogwo WO, et al. Quilt-1M: one million image–text pairs for histopathology. NeurIPS Datasets and Benchmarks, 2023."
+                  - term [ref=e2909]: HoVer-Net, TIAToolbox
+                  - definition [ref=e2910]: Graham S, et al. Medical Image Analysis, 2019; Pocock J, et al. Communications Medicine, 2022; PanNuke classes (Gamper J, et al.).
+                  - term [ref=e2911]: Calibration and conformal
+                  - definition [ref=e2912]: Guo C, et al. (temperature scaling), ICML 2017; Sadinle M, et al. (LAC), JASA 2019; Romano Y, et al. (APS), NeurIPS 2020.
+                  - term [ref=e2913]: ABMIL
+                  - definition [ref=e2914]: Ilse M, Tomczak J, Welling M. Attention-based deep multiple instance learning. ICML 2018.
+                  - term [ref=e2915]: Triage cost
+                  - definition [ref=e2916]: Annarumma M, et al. Automated triaging of adult chest radiographs. Radiology, 2019.
+                  - term [ref=e2917]: Compute and tooling
+                  - definition [ref=e2918]: NCSA Delta; ncsa/ashby-hackathon-2026 tooling (MIT); Lumen for grounded summaries.
+              - figure [ref=e2919]:
+                - generic [ref=e2920]:
+                  - heading "Data provenance" [level=3] [ref=e2921]
+                  - paragraph [ref=e2922]: "Every number on this page is read from these files at page load; re-running the pipeline updates the page. Not produced in this run: finetune.json."
+                - region "Source numbers table (scrolls sideways)" [ref=e2923]:
+                  - table [ref=e2924]:
+                    - rowgroup [ref=e2925]:
+                      - row [ref=e2926]:
+                        - columnheader "File" [ref=e2927]
+                        - columnheader "Created (UTC)" [ref=e2928]
+                        - columnheader "Git commit" [ref=e2929]
+                        - columnheader "Kind" [ref=e2930]
+                    - rowgroup [ref=e2931]:
+                      - row [ref=e2932]:
+                        - cell "eval/analytics.json" [ref=e2933]
+                        - cell "2026-10-18T13:54:01Z" [ref=e2934]
+                        - cell "7ab2ffc" [ref=e2935]
+                        - cell "pipeline output" [ref=e2936]
+                      - row [ref=e2937]:
+                        - cell "eval/calibration.json" [ref=e2938]
+                        - cell "2026-10-18T13:53:44Z" [ref=e2939]
+                        - cell "7ab2ffc" [ref=e2940]
+                        - cell "pipeline output" [ref=e2941]
+                      - row [ref=e2942]:
+                        - cell "eval/cells.json" [ref=e2943]
+                        - cell "2026-10-18T13:53:52Z" [ref=e2944]
+                        - cell "7ab2ffc" [ref=e2945]
+                        - cell "pipeline output" [ref=e2946]
+                      - row [ref=e2947]:
+                        - cell "eval/concepts.json" [ref=e2948]
+                        - cell "2026-10-18T04:50:07Z" [ref=e2949]
+                        - cell "700a3b6" [ref=e2950]
+                        - cell "pipeline output" [ref=e2951]
+                      - row [ref=e2952]:
+                        - cell "eval/concepts_bach.json" [ref=e2953]
+                        - cell "2026-10-18T04:50:08Z" [ref=e2954]
+                        - cell "700a3b6" [ref=e2955]
+                        - cell "pipeline output" [ref=e2956]
+                      - row [ref=e2957]:
+                        - cell "eval/conformal.json" [ref=e2958]
+                        - cell "2026-10-18T13:53:45Z" [ref=e2959]
+                        - cell "7ab2ffc" [ref=e2960]
+                        - cell "pipeline output" [ref=e2961]
+                      - row [ref=e2962]:
+                        - cell "eval/deletion.json" [ref=e2963]
+                        - cell "2026-10-18T13:53:47Z" [ref=e2964]
+                        - cell "7ab2ffc" [ref=e2965]
+                        - cell "pipeline output" [ref=e2966]
+                      - row [ref=e2967]:
+                        - cell "eval/margin.json" [ref=e2968]
+                        - cell "2026-10-18T13:53:51Z" [ref=e2969]
+                        - cell "7ab2ffc" [ref=e2970]
+                        - cell "pipeline output" [ref=e2971]
+                      - row [ref=e2972]:
+                        - cell "eval/metrics.json" [ref=e2973]
+                        - cell "2026-10-18T13:53:43Z" [ref=e2974]
+                        - cell "7ab2ffc" [ref=e2975]
+                        - cell "pipeline output" [ref=e2976]
+                      - row [ref=e2977]:
+                        - cell "eval/model_choice.json" [ref=e2978]
+                        - cell "2026-10-18T13:45:59Z" [ref=e2979]
+                        - cell "4154f76" [ref=e2980]
+                        - cell "pipeline output" [ref=e2981]
+                      - row [ref=e2982]:
+                        - cell "eval/qc.json" [ref=e2983]
+                        - cell "2026-10-18T04:57:32Z" [ref=e2984]
+                        - cell "—" [ref=e2985]
+                        - cell "pipeline output" [ref=e2986]
+                      - row [ref=e2987]:
+                        - cell "eval/queue_sim.json" [ref=e2988]
+                        - cell "2026-10-18T13:53:49Z" [ref=e2989]
+                        - cell "7ab2ffc" [ref=e2990]
+                        - cell "pipeline output" [ref=e2991]
+                      - row [ref=e2992]:
+                        - cell "eval/reliability.json" [ref=e2993]
+                        - cell "2026-10-18T13:46:03Z" [ref=e2994]
+                        - cell "4154f76" [ref=e2995]
+                        - cell "pipeline output" [ref=e2996]
+                      - row [ref=e2997]:
+                        - cell "eval/retrieval.json" [ref=e2998]
+                        - cell "2026-10-18T13:46:05Z" [ref=e2999]
+                        - cell "4154f76" [ref=e3000]
+                        - cell "pipeline output" [ref=e3001]
+                      - row [ref=e3002]:
+                        - cell "eval/spotcheck.json" [ref=e3003]
+                        - cell "2026-10-18T05:22:06Z" [ref=e3004]
+                        - cell "19b1555" [ref=e3005]
+                        - cell "pipeline output" [ref=e3006]
+                      - row [ref=e3007]:
+                        - cell "eval/thunder.json" [ref=e3008]
+                        - cell "2026-10-18T13:53:56Z" [ref=e3009]
+                        - cell "7ab2ffc" [ref=e3010]
+                        - cell "pipeline output" [ref=e3011]
+                      - row [ref=e3012]:
+                        - cell "eval/zeroshot.json" [ref=e3013]
+                        - cell "2026-10-18T04:50:08Z" [ref=e3014]
+                        - cell "700a3b6" [ref=e3015]
+                        - cell "pipeline output" [ref=e3016]
+                - group [ref=e3017]:
+                  - generic "Static PNG figures (15)" [ref=e3018] [cursor=pointer]
+      - contentinfo [ref=e67]:
+        - paragraph [ref=e68]: PathQueue research prototype on public, de-identified BACH data (Aresta et al., 2019). Not clinically validated. Frozen sections, operating rooms and arrivals are simulated.
+        - generic [ref=e69]: Team 44 · Ashby Prize 2026
+    - status

@@ -37,6 +37,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend import db
+from backend.interpret import InterpretError, Interpreter
 from backend.simulator import VARIANTS, Clock, Simulator
 from core import config, contract, io, schemas, tiers
 
@@ -263,6 +264,13 @@ class Backend:
             runtime["orders"] = [{"seq": o["seq"], "rule_id": o["rule_id"], "type": o["type"], "status": o["status"],
                                   "drafted_items": o["drafted_items"], "items": o["items"]} for o in order_rows]
             return {**public, "runtime": runtime, "server_time": wall, "server_time_iso": iso(wall)}
+
+    def static_case(self, case_id: str) -> dict[str, Any]:
+        """The arrived case's public evidence as built by the pipeline (drafted orders, no runtime state): stable across
+        decisions, so cached interpretations stay valid after the pathologist acts."""
+        with self.store.lock:
+            row = self.store.arrived_row(case_id)
+            return contract.CasePublic.model_validate(json.loads(row["public_json"])).model_dump(mode="json")
 
     def events(self, case_id: str) -> list[dict[str, Any]]:
         with self.store.lock:
@@ -596,6 +604,13 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
         response.headers["Cache-Control"] = "no-store"
         return response
 
+    interpreter = Interpreter(art / "interpretations", dotenv=config.REPO_ROOT / ".env", eval_dir=art / "eval")
+    results_md = config.REPO_ROOT / "docs" / "RESULTS.md"
+
+    @app.exception_handler(InterpretError)
+    async def interpret_error(_request: Request, exc: InterpretError) -> JSONResponse:
+        return JSONResponse(status_code=503, content={"detail": str(exc)})
+
     @app.exception_handler(db.StoreError)
     async def store_error(_request: Request, exc: db.StoreError) -> JSONResponse:
         return JSONResponse(status_code=exc.status, content={"detail": str(exc)})
@@ -654,6 +669,28 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
     @app.post("/api/spotcheck")
     def spotcheck(body: SpotcheckIn) -> dict[str, Any]:
         return backend.record_spotcheck(body)
+
+    # LLM interpretation (backend/interpret.py): GET returns the cached text or {"status": "none"}; POST generates.
+    @app.get("/api/cases/{case_id}/interpretation")
+    def case_interpretation(case_id: str) -> dict[str, Any]:
+        return interpreter.case(backend.static_case(case_id))
+
+    @app.post("/api/cases/{case_id}/interpretation")
+    def interpret_case(case_id: str, force: bool = False) -> dict[str, Any]:
+        return interpreter.case(backend.static_case(case_id), generate=True, force=force)
+
+    def _results_text() -> str:
+        if not results_md.is_file():
+            raise db.NotFoundError("docs/RESULTS.md not found: run the evaluation first")
+        return results_md.read_text()
+
+    @app.get("/api/interpretation/results")
+    def results_interpretation() -> dict[str, Any]:
+        return interpreter.results(_results_text())
+
+    @app.post("/api/interpretation/results")
+    def interpret_results(force: bool = False) -> dict[str, Any]:
+        return interpreter.results(_results_text(), generate=True, force=force)
 
     def media(kind: str):
         def serve(name: str, w: Optional[int] = Query(None, ge=THUMB_MIN_PX, le=THUMB_MAX_PX)) -> Any:
