@@ -1086,9 +1086,19 @@ tr.row.new {
 .c-flags {
   font-size: 0;
 }
+/* flags wrap instead of being cut off: a hidden "Low reliability" tag is a safety problem, a taller row is not */
+.wl-table tr.row td.c-flags {
+  white-space: normal;
+  text-overflow: clip;
+  line-height: 0;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
 .ftag {
   display: inline-block;
-  margin-right: 4px;
+  margin: 2px 4px 2px 0;
+  line-height: 1.45;
+  white-space: nowrap;
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 11.5px;
@@ -1421,6 +1431,10 @@ tr.row.new {
   .wl-table td.c-flags {
     grid-area: flags;
     text-align: right;
+  }
+  .wl-table tr.row td.c-flags {
+    padding: 0;
+    line-height: normal;
   }
   .wl-table td.c-wait {
     grid-area: wait;
