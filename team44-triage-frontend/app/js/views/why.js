@@ -235,7 +235,7 @@ function probChart(v, cfg) {
       );
     })
     .join('');
-  return `<div class="pchart" role="table" aria-label="Calibrated class probabilities; classes in the conformal set are marked">${rows}</div>`;
+  return `<div class="pchart" role="group" aria-label="Calibrated class probabilities; classes in the conformal set are marked">${rows}</div>`;
 }
 
 function check(state, label, value, good, extra = '') {
