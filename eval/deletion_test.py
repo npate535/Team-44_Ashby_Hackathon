@@ -6,13 +6,17 @@ For the production model and Model A (eval/model_choice.json), on clean TEST cas
   * concept-ranked: remove the case's top-3 QC tiles for its top concept (the concept with the largest positive
     summed contribution in contributions.csv, ranked by that concept's tile z in concepts_tile.npz);
   * risk-ranked: remove its top-3 tiles by the production heatmap (tile_risk.csv);
+  * contribution-ranked (mean-pooled linear models only): remove its top-3 regions by exact contribution
+    (pipeline/05d_tile_contrib.py: the region's additive term of the model's centered calibrated logit);
   * random: remove 3 random QC tiles, deletion.n_random times (seeded), averaged.
 Every removal is re-aggregated IN DISTRIBUTION through the model's own feature path (pipeline.riskmodels): pooled
 embeddings are recomputed from the remaining tiles (a removed 512-px tile removes its four 256-px sub-tiles for
 224-native encoders), ABMIL bags lose those tiles, concept features c__top<k> / c__frac are recomputed from the
 remaining tiles' z. Risk = calibrated P(aggressive class) with the model's temperature; drop = full - removed (the full
-read uses the same recomputation path). Paired per-case cluster bootstrap (patient / pseudo-patient groups) of the
-concept-vs-random and risk-vs-random drop differences. Headline subset: cases the model calls Invasive; all eligible
+read uses the same recomputation path). Every drop is also reported in logit units: the drop in the centered calibrated
+logit (logit_aggressive - mean_k logit_k) / T, computed from the re-pooled logits (never from log of a probability, so
+it stays finite when P is ~1). Paired per-case cluster bootstrap (patient / pseudo-patient groups) of the concept-,
+risk- and contribution-vs-random drop differences in both units. Headline subset: cases the model calls Invasive; all eligible
 test cases are reported too. When a concept bottleneck is tested, the concept-ranked removal partly defines its own
 top-k features (BUILD_PLAN: "not on B") — this is stated next to its numbers.
 Cells version (cells enabled and a cell-feature model is production or B): set the case's top cell feature to the
@@ -29,10 +33,15 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+import importlib
+
 from core import calibration, cli, io, schemas, stats
 from pipeline import riskmodels as rm
 
+tc = importlib.import_module("pipeline.05d_tile_contrib")
+
 NAME = "deletion"
+ARMS = ("concept", "risk", "contribution")
 
 
 class Reader:
@@ -125,7 +134,19 @@ class Reader:
         return (r // 2) * self.g512["cols"] + (c // 2)
 
     def risk(self, cid: str, removed: set[int]) -> float:
-        return float(calibration.softmax(self.logits(cid, removed)[None, :], self.temperature)[0, self.agg])
+        return self.read(cid, removed)[0]
+
+    def read(self, cid: str, removed: set[int]) -> tuple[float, float]:
+        """(calibrated P(aggressive), centered calibrated logit (logit_agg - mean_k logit_k) / T) from one logit read."""
+        lg = self.logits(cid, removed)
+        risk = float(calibration.softmax(lg[None, :], self.temperature)[0, self.agg])
+        return risk, float((lg[self.agg] - lg.mean()) / self.temperature)
+
+    def contribution_ranking(self, cid: str) -> list[int]:
+        """g512 regions by exact contribution (largest first, ties by index); mean-pooled linear models only."""
+        t, x = self.tiles[cid]
+        terms, _ = tc.read_contributions(self.model, x, self._to512(t), self.temperature, self.agg)
+        return sorted((int(i) for i in terms.index), key=lambda i: (-terms[i], i))
 
     def logits(self, cid: str, removed: set[int]) -> np.ndarray:
         """Uncalibrated logits (fusion: log of the mean of the components' calibrated probabilities, as in 05)."""
@@ -187,16 +208,19 @@ def summarize(drops: pd.DataFrame, groups: Mapping[str, str], cfg: Mapping[str, 
         if ok.sum() >= 2:
             out[f"mean_{col}"] = stats.bootstrap_ci(lambda v: float(np.mean(v)), [drops[col].to_numpy()[ok]], g[ok],
                                                     None, int(boot["n"]), float(boot["ci"]), int(boot["seed"]))
-    for m in ("concept", "risk"):
-        col = f"drop_{m}"
-        if col not in drops:
-            continue
-        ok = drops[col].notna().to_numpy()
-        out[f"n_{m}"] = int(ok.sum())
-        if ok.sum() >= 2:
-            diff = (drops[col] - drops["drop_random"]).to_numpy()[ok]
-            out[f"{m}_minus_random"] = stats.bootstrap_ci(lambda v: float(np.mean(v)), [diff], g[ok], None,
-                                                          int(boot["n"]), float(boot["ci"]), int(boot["seed"]))
+    for m in ARMS:
+        for unit, suffix in (("", ""), ("logit_", "_logit")):
+            col = f"drop_{unit}{m}"
+            if col not in drops:
+                continue
+            ok = drops[col].notna().to_numpy()
+            if not unit:
+                out[f"n_{m}"] = int(ok.sum())
+            if ok.sum() >= 2:
+                diff = (drops[col] - drops[f"drop_{unit}random"]).to_numpy()[ok]
+                out[f"{m}_minus_random{suffix}"] = stats.bootstrap_ci(lambda v: float(np.mean(v)), [diff], g[ok], None,
+                                                                      int(boot["n"]), float(boot["ci"]),
+                                                                      int(boot["seed"]))
     return out
 
 
@@ -230,24 +254,33 @@ def run(ctx: cli.StepContext) -> dict[str, Any]:
             avail = reader.qc_tiles(cid)
             if len(avail) < n_del + int(dcfg["min_remaining"]):
                 continue
-            full = reader.risk(cid, set())
+            full, full_logit = reader.read(cid, set())
             row = {"case_id": cid, "risk_full": full,
                    "predicted_aggressive": int(np.argmax(reader.logits(cid, set())) == reader.agg)}
-            rand = [full - reader.risk(cid, set(rng.choice(avail, size=n_del, replace=False).tolist()))
-                    for _ in range(n_rand)]
-            row["drop_random"] = float(np.mean(rand))
+
+            def drop(arm: str, removed: set[int] | None) -> None:
+                if removed is None:
+                    row[f"drop_{arm}"] = row[f"drop_logit_{arm}"] = np.nan
+                    return
+                risk, logit = reader.read(cid, removed)
+                row[f"drop_{arm}"], row[f"drop_logit_{arm}"] = full - risk, full_logit - logit
+
+            rand = [reader.read(cid, set(rng.choice(avail, size=n_del, replace=False).tolist())) for _ in range(n_rand)]
+            row["drop_random"] = float(np.mean([full - r for r, _ in rand]))
+            row["drop_logit_random"] = float(np.mean([full_logit - lg for _, lg in rand]))
             if tile_risk is not None:
                 tr = tile_risk[(tile_risk.case_id == cid) & (tile_risk.grid == "g512") & tile_risk.tile_idx.isin(avail)]
                 top = tr.sort_values(["risk", "tile_idx"], ascending=[False, True]).tile_idx.head(n_del).astype(int)
-                row["drop_risk"] = full - reader.risk(cid, set(top.tolist())) if len(top) == n_del else np.nan
+                drop("risk", set(top.tolist()) if len(top) == n_del else None)
             concept = top_concept(contrib, cid) if contrib is not None and len(contrib) else None
             row["top_concept"] = concept
-            row["drop_concept"] = np.nan
+            ranked = None
             if concept is not None and schemas.concepts_tile_npz(root).is_file():
                 zt = _concept_tiles(root, cid, concept)
                 ranked = [t for t in zt if t in set(avail.tolist())][:n_del]
-                if len(ranked) == n_del:
-                    row["drop_concept"] = full - reader.risk(cid, set(ranked))
+            drop("concept", set(ranked) if ranked and len(ranked) == n_del else None)
+            if reader.kind == "lr_embedding":
+                drop("contribution", set(reader.contribution_ranking(cid)[:n_del]))
             rows.append(row)
         drops = pd.DataFrame(rows).set_index("case_id")
         res: dict[str, Any] = {"kind": reader.kind, "n_eligible": int(len(drops))}
@@ -256,6 +289,9 @@ def run(ctx: cli.StepContext) -> dict[str, Any]:
             res["predicted_aggressive"] = summarize(sub.drop(columns=["top_concept"]), groups, cfg)
             res["all_eligible"] = summarize(drops.drop(columns=["top_concept"]), groups, cfg)
             res["top_concept_counts"] = drops.top_concept.value_counts().to_dict()
+        if reader.kind != "lr_embedding":
+            res["contribution_arm"] = (f"not available: a {reader.kind} model has no exact additive decomposition over "
+                                       "regions")
         if reader.kind == "concept":
             res["caveat"] = ("concept bottleneck: the concept-ranked removal changes the very top-k features the model "
                              "reads, so its concept drop is partly circular (BUILD_PLAN Task 11)"

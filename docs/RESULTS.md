@@ -2,7 +2,7 @@
 
 > Research prototype — not for clinical use. Every number below is quoted from the eval file named beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.
 
-Generated 2026-10-18T17:45:53Z from 16 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 4d8e886cc9bb14ce47c967e9cd7fff187aef6e90, 700a3b61b0f999a12e7a1a7b54058d6495b93689).
+Generated 2026-10-18T19:38:29Z from 17 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 4d8e886cc9bb14ce47c967e9cd7fff187aef6e90, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 7045b84ab1fb8b386c44e0e9a60a98e9f974c330, 825532a57ec4ed0637472c7e0625ab707982b912).
 
 ## Tissue quality control (fixed in this run)
 
@@ -310,16 +310,27 @@ Source: `eval/margin.json` · threshold P = 0.99982 [0.84738, 0.99989] (n 30, 6 
 
 ### `eval/deletion.json`
 
-- models · uni2h512_lr · predicted_aggressive · mean_drop_random: 0.00 [0.00, 0.00] (n 34, 17 groups)
-- models · uni2h512_lr · predicted_aggressive · mean_drop_risk: 0.02 [0.00, 0.05] (n 34, 17 groups)
-- models · uni2h512_lr · predicted_aggressive · mean_drop_concept: 0.00 [-0.02, 0.02] (n 34, 17 groups)
-- models · uni2h512_lr · predicted_aggressive · concept_minus_random: 0.00 [-0.01, 0.02] (n 34, 17 groups)
-- models · uni2h512_lr · predicted_aggressive · risk_minus_random: 0.02 [0.00, 0.05] (n 34, 17 groups)
-- models · uni2h512_lr · all_eligible · mean_drop_random: 0.00 [0.00, 0.00] (n 132, 24 groups)
-- models · uni2h512_lr · all_eligible · mean_drop_risk: 0.01 [0.00, 0.02] (n 132, 24 groups)
-- models · uni2h512_lr · all_eligible · mean_drop_concept: 0.00 [-0.01, 0.01] (n 132, 24 groups)
-- models · uni2h512_lr · all_eligible · concept_minus_random: 0.00 [0.00, 0.01] (n 132, 24 groups)
-- models · uni2h512_lr · all_eligible · risk_minus_random: 0.01 [0.00, 0.02] (n 132, 24 groups)
+Source: `eval/deletion.json` · held-out test images · 20 random 3-region draws per image · drops are full read minus read with the regions removed and re-pooled; logit = centered calibrated logit (logit_target - mean over classes, divided by the temperature).
+
+Exact contributions (`eval/tile_contrib.json`): constant plus region contributions reproduce each read's centered logit with max error 5.1e-08 over 378 reads (tolerance 1e-06).
+
+`uni2h512_lr` · predicted aggressive (n 34, 17 groups)
+
+| Removed | Drop in P | Drop in logit | Minus random (P) | Minus random (logit) |
+|---|---|---|---|---|
+| 3 random regions | -0.001 [-0.004, 0.000] | -0.01 [-0.03, 0.01] |  |  |
+| Top 3 tile-probe regions | 0.024 [0.002, 0.049] | 0.21 [0.13, 0.31] | 0.025 [0.001, 0.052] | 0.22 [0.13, 0.33] |
+| Top 3 regions of the top concept | 0.002 [-0.016, 0.017] | -0.03 [-0.11, 0.03] | 0.003 [-0.012, 0.018] | -0.02 [-0.10, 0.04] |
+| Top 3 regions by exact contribution | 0.032 [0.004, 0.060] | 0.45 [0.38, 0.54] | 0.034 [0.003, 0.063] | 0.46 [0.38, 0.56] |
+
+`uni2h512_lr` · all eligible (n 132, 24 groups)
+
+| Removed | Drop in P | Drop in logit | Minus random (P) | Minus random (logit) |
+|---|---|---|---|---|
+| 3 random regions | -0.001 [-0.002, 0.000] | 0.00 [-0.01, 0.01] |  |  |
+| Top 3 tile-probe regions | 0.012 [0.001, 0.021] | 0.26 [0.18, 0.34] | 0.012 [0.002, 0.022] | 0.26 [0.18, 0.35] |
+| Top 3 regions of the top concept | 0.001 [-0.006, 0.007] | -0.03 [-0.08, 0.00] | 0.002 [-0.005, 0.007] | -0.03 [-0.08, 0.00] |
+| Top 3 regions by exact contribution | 0.017 [0.004, 0.028] | 0.54 [0.47, 0.60] | 0.017 [0.004, 0.029] | 0.54 [0.47, 0.60] |
 
 ### `eval/cells.json`
 

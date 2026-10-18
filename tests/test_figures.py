@@ -149,3 +149,28 @@ def test_results_md_finds_plain_marginal_aps_as_the_tier_set():
     c = {"alpha": 0.1, "target_coverage": 0.9, "drives_tiers": "aps_marginal", "finite_sample": {},
          "methods": {"lac_marginal": lac, "aps": aps}}
     assert "Per-class coverage of the tier set (aps_marginal): Invasive 97.0%" in "\n".join(R.section_conformal(c))
+
+
+def test_results_md_deletion_section_shows_four_arms_in_both_units():
+    from eval import results_md as R
+
+    def blk(e, n=34):
+        return {"estimate": e, "lo": e - 0.01, "hi": e + 0.01, "n": n, "n_groups": 17}
+
+    pop = {"n": 34, "n_groups": 17, "mean_drop_random": blk(-0.0012), "mean_drop_risk": blk(0.0237),
+           "mean_drop_concept": blk(0.0016), "mean_drop_contribution": blk(0.0324),
+           "mean_drop_logit_random": blk(-0.0127), "mean_drop_logit_risk": blk(0.2087),
+           "mean_drop_logit_concept": blk(-0.033), "mean_drop_logit_contribution": blk(0.4472),
+           "risk_minus_random": blk(0.0249), "concept_minus_random": blk(0.0029),
+           "contribution_minus_random": blk(0.0336), "risk_minus_random_logit": blk(0.2213),
+           "concept_minus_random_logit": blk(-0.0203), "contribution_minus_random_logit": blk(0.4599)}
+    d = {"settings": {"n_tiles": 3, "n_random": 20, "primary_subset": "predicted_aggressive"},
+         "models": {"m_lr": {"kind": "lr_embedding", "predicted_aggressive": pop, "all_eligible": pop}}}
+    tc = {"identity": {"max_abs_error": 5.1e-08, "n_reads_checked": 378, "tolerance": 1e-06}}
+    text = "\n".join(R.section_deletion(d, tc))
+    assert "Source: `eval/deletion.json`" in text and "`eval/tile_contrib.json`" in text
+    for arm in ("3 random regions", "Top 3 tile-probe regions", "Top 3 regions of the top concept",
+                "Top 3 regions by exact contribution"):
+        assert arm in text
+    assert "0.032 [0.022, 0.042]" in text and "0.45 [0.44, 0.46]" in text
+    assert "max error 5.1e-08 over 378 reads" in text

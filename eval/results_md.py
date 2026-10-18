@@ -6,8 +6,10 @@ Every number is printed with its 95% CI, n / n_groups and the eval file it came 
 beyond formatting. Sections appear only for eval files that exist (missing ones are listed). The document opens with
 a SYNTHETIC banner when any source file is synthetic, and always states the research-prototype framing, the
 limitations, and which checks were AI-reviewed vs human-reviewed (eval/spotcheck.json `reviewer_kind`).
-Eval files owned by Agents 1-3 (concepts, concepts_bach, zeroshot, model_choice, reliability, retrieval, deletion,
-cells, finetune) are rendered generically: every {estimate, lo, hi} block they contain, labelled by its key path.
+Eval files owned by Agents 1-3 (concepts, concepts_bach, zeroshot, model_choice, reliability, retrieval, cells,
+finetune) are rendered generically: every {estimate, lo, hi} block they contain, labelled by its key path. The
+deletion test has its own table (four removal arms in probability and logit units), with the exact-contribution
+identity check from tile_contrib.json beside it.
 """
 
 from __future__ import annotations
@@ -23,7 +25,7 @@ from eval.figures import ci_blocks
 STEP = "eval_results_md"
 OWN = ("qc", "metrics", "calibration", "conformal", "thunder", "queue_sim", "margin")
 FOREIGN = ("model_choice", "concepts", "concepts_bach", "zeroshot", "reliability", "retrieval", "deletion", "cells",
-           "finetune", "spotcheck")
+           "finetune", "spotcheck", "tile_contrib")
 
 
 def _num(value: float, digits: int, suffix: str = "") -> str:
@@ -217,6 +219,52 @@ def section_foreign(name: str, data: Mapping[str, Any]) -> list[str]:
     return out + [f"- {label}: {fmt(b)}" for label, b in blocks] + [""]           # every block, no truncation
 
 
+DELETION_ARMS = (("random", "{n} random regions"), ("risk", "Top {n} tile-probe regions"),
+                 ("concept", "Top {n} regions of the top concept"), ("contribution", "Top {n} regions by exact contribution"))
+
+
+def section_deletion(d: Mapping[str, Any], tile_contrib: Mapping[str, Any] | None) -> list[str]:
+    """Per model and population: drop in P(aggressive) and in the centered calibrated logit for each removal arm, and
+    each arm minus random (paired), with 95% patient-grouped bootstrap CIs."""
+    s = d.get("settings") or {}
+    n = s.get("n_tiles", "k")
+    out = ["### `eval/deletion.json`", "",
+           f"Source: `eval/deletion.json` · held-out test images · {s.get('n_random', '?')} random {n}-region draws per "
+           "image · drops are full read minus read with the regions removed and re-pooled; logit = centered "
+           "calibrated logit (logit_target - mean over classes, divided by the temperature)."]
+    ident = (tile_contrib or {}).get("identity") or {}
+    if ident.get("max_abs_error") is not None:
+        out += ["", f"Exact contributions (`eval/tile_contrib.json`): constant plus region contributions reproduce "
+                f"each read's centered logit with max error {ident['max_abs_error']:.2g} over "
+                f"{ident['n_reads_checked']} reads (tolerance {ident['tolerance']:g})."]
+    for model, m in (d.get("models") or {}).items():
+        if "skipped" in m:
+            out += ["", f"`{model}`: skipped ({m['skipped']})."]
+            continue
+        for pop in ("predicted_aggressive", "all_eligible"):
+            p = m.get(pop) or {}
+            if not p.get("n"):
+                continue
+            out += ["", f"`{model}` · {pop.replace('_', ' ')} (n {p['n']}, {p.get('n_groups', '?')} groups)", "",
+                    "| Removed | Drop in P | Drop in logit | Minus random (P) | Minus random (logit) |",
+                    "|---|---|---|---|---|"]
+            def cell(key: str, digits: int) -> str:     # n and groups are in the heading
+                block = p.get(key)
+                return fmt({k: block.get(k) for k in ("estimate", "lo", "hi")} if block else None, digits=digits)
+
+            for arm, label in DELETION_ARMS:
+                if f"mean_drop_{arm}" not in p:
+                    continue
+                diff = (cell(f"{arm}_minus_random", 3), cell(f"{arm}_minus_random_logit", 2)) if arm != "random" \
+                    else ("", "")
+                out.append(f"| {label.format(n=n)} | {cell(f'mean_drop_{arm}', 3)} | "
+                           f"{cell(f'mean_drop_logit_{arm}', 2)} | {diff[0]} | {diff[1]} |")
+        for note in ("contribution_arm", "caveat"):
+            if m.get(note):
+                out += ["", f"`{model}`: {m[note]}."]
+    return out + [""]
+
+
 def review_lines(art: Path) -> list[str]:
     path = schemas.eval_json(art, "spotcheck")
     lines = ["## Reviewed checks", ""]
@@ -284,11 +332,12 @@ def build(art: Path, cfg: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
     for name in OWN:
         if name in present:
             lines += renderers[name](present[name])
-    foreign = [n for n in FOREIGN if n in present and n != "spotcheck"]
+    foreign = [n for n in FOREIGN if n in present and n not in ("spotcheck", "tile_contrib")]
     if foreign:
         lines += ["## Other evaluations (concepts, reliability, retrieval, deletion, cells)", ""]
         for name in foreign:
-            lines += section_foreign(name, present[name])
+            lines += (section_deletion(present[name], present.get("tile_contrib")) if name == "deletion"
+                      else section_foreign(name, present[name]))
     lines += review_lines(art)
     lines += ["## Limitations", ""] + [f"- {x}" for x in LIMITATIONS] + [""]
     missing = [n for n in OWN + FOREIGN if n not in present]

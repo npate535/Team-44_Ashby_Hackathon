@@ -109,3 +109,80 @@ def test_embedding_reader_matches_production_when_all_tiles_fail_qc(monkeypatch,
         np.testing.assert_allclose(reader.tiles[cid][1].mean(0), pooled.loc[cid].to_numpy())
     assert reader.qc_tiles("A").tolist() == [0, 1]
     assert reader.qc_tiles("B").tolist() == [0]
+
+
+@pytest.fixture(scope="module")
+def run_del_linear(tmp_path_factory):
+    """The synthetic run with a mean-pooled 256-px linear model as production (as on real data)."""
+    root0, art0, cfg_path = after_05()
+    work = tmp_path_factory.mktemp("del_linear")
+    root, art = work / "data", work / "art"
+    clone_root(root0, root)
+    shutil.copytree(art0, art)
+    path = schemas.eval_json(art, "model_choice")
+    choice = json.loads(path.read_text())
+    path.write_text(json.dumps({**choice, "production": "uni2h_lr"}))
+    assert deletion.main(["--data-root", str(root), "--artifacts-root", str(art), "--config", str(cfg_path)]) == 0
+    return root, art, cfg_path
+
+
+def test_contribution_arm_present(run_del_linear):
+    """Exact-contribution arm and logit-space twins sit beside the existing arms, same populations and blocks."""
+    _, art, _ = run_del_linear
+    doc = json.loads(schemas.eval_json(art, "deletion").read_text())
+    linear = {name: m for name, m in doc["models"].items() if m.get("kind") == "lr_embedding"}
+    assert linear, "the synthetic run needs at least one mean-pooled linear model"
+    for m in linear.values():
+        for pop in ("predicted_aggressive", "all_eligible"):
+            s = m[pop]
+            if s["n"] < 2:
+                continue
+            for key in ("mean_drop_contribution", "contribution_minus_random", "mean_drop_logit_random",
+                        "mean_drop_logit_risk", "mean_drop_logit_contribution", "contribution_minus_random_logit",
+                        "risk_minus_random_logit"):
+                assert s[key]["lo"] <= s[key]["estimate"] <= s[key]["hi"], key
+            for arm in ("random", "risk", "concept", "contribution"):     # every drop has its logit twin
+                assert (f"mean_drop_{arm}" in s) == (f"mean_drop_logit_{arm}" in s)
+            assert s["n_contribution"] == s["n"]
+    for m in doc["models"].values():
+        if m.get("kind") not in (None, "lr_embedding"):
+            assert "exact additive" in m["contribution_arm"]
+
+
+def test_contribution_ranking_is_the_exact_decomposition():
+    """The arm removes the regions with the largest exact terms, and removing them lowers the logit the most."""
+    rng = np.random.default_rng(7)
+    reader = _toy_reader(rng.normal(size=(12, 6)), intercept_invasive=0.0)
+    ranked = reader.contribution_ranking("A")
+    terms, _ = deletion.tc.read_contributions(reader.model, reader.tiles["A"][1], reader.tiles["A"][0],
+                                              reader.temperature, reader.agg)
+    assert ranked == sorted(terms.index, key=lambda t: (-terms[t], t))
+    full = reader.read("A", set())[1]
+    top = full - reader.read("A", set(ranked[:3]))[1]
+    others = [full - reader.read("A", set(ranked[i:i + 3]))[1] for i in range(3, 10)]
+    assert top > max(others)
+
+
+def test_logit_delta_finite_when_saturated():
+    rng = np.random.default_rng(8)
+    reader = _toy_reader(rng.normal(size=(12, 6)), intercept_invasive=40.0)
+    risk, logit = reader.read("A", set())
+    assert 1 - risk < 1e-12                                  # P(Invasive) ~ 1 - 1e-12 or closer
+    risk2, logit2 = reader.read("A", {0, 1, 2})
+    assert np.isfinite(logit - logit2) and logit - logit2 != 0.0
+    lg = reader.model.logits(reader.tiles["A"][1][3:].mean(0, keepdims=True))[0]
+    assert logit2 == pytest.approx((lg[reader.agg] - lg.mean()) / reader.temperature, abs=1e-9)
+
+
+def _toy_reader(x, intercept_invasive):
+    m = deletion.rm.LinearModel(CLASSES, 1.0, 1, None)
+    d = x.shape[1]
+    m.median, m.mean, m.scale = np.zeros(d), np.zeros(d), np.ones(d)
+    m.coef = np.random.default_rng(9).normal(size=(len(CLASSES), d))
+    m.intercept = np.zeros(len(CLASSES))
+    agg = CLASSES.index(CFG["aggressive_class"])
+    m.intercept[agg] = intercept_invasive
+    reader = deletion.Reader.__new__(deletion.Reader)
+    reader.kind, reader.model, reader.temperature, reader.agg, reader.grid = "lr_embedding", m, 0.5, agg, "g512"
+    reader.tiles = {"A": (np.arange(len(x)), x)}
+    return reader

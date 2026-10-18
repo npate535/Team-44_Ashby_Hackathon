@@ -1068,48 +1068,76 @@ function figDeletion(ST, ev, L) {
   const m = models[name];
   const primary = get(D, 'settings.primary_subset') || 'predicted_aggressive';
   const n = get(D, 'settings.n_tiles') ?? 3;
+  const agg = ST.cfg.aggressive_class;
   const subsets = [[primary, primary === 'predicted_aggressive' ? 'Images the model calls invasive' : humanize(primary)], ['all_eligible', 'All eligible test images']].filter(([k], i, a) => m[k] && a.findIndex((x) => x[0] === k) === i);
-  const label = { mean_drop_risk: `Top-${n} risk tiles removed`, mean_drop_concept: `Top-${n} tiles of the top concept removed`, mean_drop_random: `${n} random tiles removed`, risk_minus_random: 'Risk tiles minus random', concept_minus_random: 'Concept tiles minus random' };
-  const f3 = (v) => minus(C.fmtNum(v, 3));
-  const show = (c) => `${f3(c.est)} [${range(c.lo, c.hi, (v) => C.fmtNum(v, 3))}]`;
-  const excludes0 = (c) => c && isNum(c.lo) && (c.lo > 0 || c.hi < 0);
-  const all = subsets.flatMap(([k]) => Object.keys(label).map((q) => ci(m[k][q])).filter(Boolean)).flatMap((c) => [c.lo, c.hi, c.est]).filter(isNum);
-  const pad = 0.004;
-  const xr = { min: Math.min(0, ...all) - pad, max: Math.max(...all) + pad, label: `Drop in P(${ST.cfg.aggressive_class}) after removing tiles`, format: (v) => minus(C.fmtNum(v, 2)), valueFormat: (v) => C.fmtNum(v, 3) };
+  // four removal arms; each has a mean drop and (except random) a paired difference vs random, in two units
+  const arms = [['random', `${n} random regions`], ['risk', `Top ${n} tile-probe regions`], ['concept', `Top ${n} regions of the top concept`], ['contribution', `Top ${n} regions by exact contribution`]];
+  const units = [['', `Drop in P(${agg})`, 3], ['logit_', 'Drop in the centered logit', 2]];
+  const keyOf = (arm, unit, diff) => (diff ? `${arm}_minus_random${unit ? '_logit' : ''}` : `mean_drop_${unit}${arm}`);
+  const excludes0 = (c) => c && isNum(c.lo) && isNum(c.hi) && (c.lo > 0 || c.hi < 0);
+  const fmtU = (d) => (v) => minus(C.fmtNum(v, d));
+  const show = (c, d) => (isNum(c.lo) && isNum(c.hi) ? `${fmtU(d)(c.est)} [${range(c.lo, c.hi, (v) => C.fmtNum(v, d))}]` : fmtU(d)(c.est));
+  const panelRows = (pop, unit, d) => {
+    const rows = [];
+    for (const diff of [false, true]) {
+      for (const [arm, label] of arms) {
+        if (diff && arm === 'random') continue;
+        const c = ci(pop[keyOf(arm, unit, diff)]);
+        if (!c) continue;
+        const exact = arm === 'contribution';
+        rows.push({ label: diff ? `${label} minus random` : label, sub: diff ? 'paired difference' : 'mean drop', est: c.est, lo: c.lo, hi: c.hi,
+          color: diff ? (excludes0(c) ? C.COLOR[1] : C.COLOR.muted) : exact ? C.COLOR[1] : C.COLOR[3], hollow: !diff, value: show(c, d),
+          tip: [show(c, d), `${label}${diff ? ' minus random' : ''}: ${excludes0(c) ? 'interval excludes zero' : 'interval includes zero'} (n = ${c.n ?? '—'}, ${c.ng ?? '—'} groups)`] });
+      }
+    }
+    return rows;
+  };
   const cols = L.two ? 2 : 1;
   const pw = cols === 2 ? L.panel(L.full, 2) : L.full;
-  const panels = subsets.map(([key, title]) => {
-    const rows = [];
-    for (const q of ['mean_drop_risk', 'mean_drop_concept', 'mean_drop_random', 'risk_minus_random', 'concept_minus_random']) {
-      const c = ci(m[key][q]);
-      if (!c) continue;
-      const diff = q.includes('minus');
-      rows.push({ label: label[q], sub: diff ? 'paired difference' : 'mean drop', est: c.est, lo: c.lo, hi: c.hi, color: diff ? (excludes0(c) ? C.COLOR[1] : C.COLOR.muted) : C.COLOR[3], hollow: !diff, value: show(c), tip: [show(c), `${label[q]}: ${excludes0(c) ? 'interval excludes zero' : 'interval includes zero'} (n = ${c.n}, ${c.ng} groups)`] });
+  const panels = [];
+  for (const [key, title] of subsets) {
+    for (const [unit, axis, d] of units) {
+      const rows = panelRows(m[key], unit, d);
+      if (!rows.length) continue;
+      const vals = rows.flatMap((r) => [r.lo, r.hi, r.est]).filter(isNum);
+      const pad = (Math.max(...vals) - Math.min(0, ...vals)) * 0.06 || 0.004;
+      const xr = { min: Math.min(0, ...vals) - pad, max: Math.max(0, ...vals) + pad, label: `${axis} after removing ${n} regions`, format: fmtU(d === 3 ? 2 : 1), valueFormat: (v) => C.fmtNum(v, d) };
+      panels.push({ title: `${title} · ${unit ? 'logit' : 'probability'} (n = ${m[key].n}, ${m[key].n_groups} groups)`, body: C.forest({ width: pw, rows, x: xr, refs: [{ value: 0, label: 'no effect' }], aria: `Deletion test, ${title}, ${axis}` }) });
     }
-    return { title: `${title} (n = ${m[key].n}, ${m[key].n_groups} groups)`, body: C.forest({ width: pw, rows, x: xr, refs: [{ value: 0, label: 'no effect' }], aria: `Deletion test, ${title}` }) };
-  });
+  }
   const p = m[primary] || {};
-  const dr = ci(p.mean_drop_risk),
-    dc = ci(p.mean_drop_concept),
-    dx = ci(p.mean_drop_random),
-    rr = ci(p.risk_minus_random),
-    cr = ci(p.concept_minus_random);
-  const verdict = (c) => (c && isNum(c.lo) ? (excludes0(c) ? 'interval excludes zero' : 'interval includes zero, inconclusive') : 'no interval');
-  const take = dr && dx && rr
-    ? `In images the model calls invasive, removing the ${n} highest-risk tiles lowers P(${ST.cfg.aggressive_class}) by ${f3(dr.est)} on average versus ${f3(dx.est)} for ${n} random tiles: a paired difference of ${show(rr)} (${verdict(rr)}).${dc && cr ? ` Removing the top concept's ${n} tiles changes it by ${f3(dc.est)}; versus random ${show(cr)} (${verdict(cr)}).` : ''} Effects are small because a mean-pooled score is spread over many tiles: weak evidence of faithfulness, not proof.`
-    : 'Deletion test results.';
+  const at = (arm, unit, diff = false) => ci(p[keyOf(arm, unit, diff)]);
+  const verdict = (c) => (c && isNum(c.lo) ? (excludes0(c) ? 'interval excludes zero' : 'interval includes zero') : 'no interval');
+  const where = primary === 'predicted_aggressive' ? 'In images the model calls invasive' : `In ${humanize(primary).toLowerCase()}`;
+  const ex = at('contribution', 'logit_'), exR = at('random', 'logit_'), exD = at('contribution', 'logit_', true);
+  const rk = at('risk', 'logit_'), cc = at('concept', 'logit_'), exP = at('contribution', '');
+  let take;
+  if (ex && exR && exD) {
+    take = `${where}, removing the ${n} regions with the largest exact contribution lowers the centered ${agg.toLowerCase()} logit by ${show(ex, 2)}, versus ${show(exR, 2)} for ${n} random regions: a paired difference of ${show(exD, 2)} (${verdict(exD)}).`
+      + (rk ? ` The drop is ${show(rk, 2)} for the ${n} highest tile-probe regions` : '')
+      + (rk && cc ? ` and ${show(cc, 2)} for the top concept's ${n} regions.` : rk ? '.' : '')
+      + (exP ? ` In probability units the same removal lowers P(${agg}) by ${show(exP, 3)}: the probability scale compresses changes near 0 and 1, the logit scale does not.` : '');
+  } else {
+    const dr = at('risk', ''), dx = at('random', ''), rr = at('risk', '', true);
+    take = dr && dx && rr
+      ? `${where}, removing the ${n} highest tile-probe regions lowers P(${agg}) by ${show(dr, 3)} versus ${show(dx, 3)} for ${n} random regions: a paired difference of ${show(rr, 3)} (${verdict(rr)}).`
+      : 'Deletion test results.';
+  }
+  const tableRows = subsets.flatMap(([key, t]) => units.flatMap(([unit, axis, d]) => [false, true].flatMap((diff) => arms.map(([arm, label]) => {
+    if (diff && arm === 'random') return null;
+    const c = ci(m[key][keyOf(arm, unit, diff)]);
+    return c ? [t, axis, diff ? `${label} minus random` : label, show(c, d + 1), String(c.n ?? '')] : null;
+  })))).filter(Boolean);
   return figure({
     id: 'deletion',
     wide: true,
     title: 'Deletion test of highlighted regions',
     takeaway: take,
-    chart: C.multiples(panels, { cols }) + C.legend([{ name: 'Mean drop', color: C.COLOR[3], kind: 'ring' }, { name: 'Difference vs random, interval excludes 0', color: C.COLOR[1], kind: 'dot' }, { name: 'Difference vs random, inconclusive', color: C.COLOR.muted, kind: 'dot' }]),
-    population: `held-out test split, ${modelName(name)}; ${get(D, 'settings.n_random') ?? '?'} random ${n}-tile draws per image`,
+    chart: C.multiples(panels, { cols }) + C.legend([{ name: 'Mean drop', color: C.COLOR[3], kind: 'ring' }, { name: 'Mean drop, exact contribution', color: C.COLOR[1], kind: 'ring' }, { name: 'Difference vs random, interval excludes 0', color: C.COLOR[1], kind: 'dot' }, { name: 'Difference vs random, interval includes 0', color: C.COLOR.muted, kind: 'dot' }]),
+    population: `held-out test split, ${modelName(name)}; ${get(D, 'settings.n_random') ?? '—'} random ${n}-region draws per image; centered logit = (logit of ${agg} minus the mean logit) / temperature`,
     source: 'eval/deletion.json',
-    table: { head: ['Subset', 'Quantity', 'Estimate [95% CI]', 'n'], rows: subsets.flatMap(([key, t]) => Object.keys(label).map((q) => {
-      const c = ci(m[key][q]);
-      return c ? [t, label[q], `${minus(C.fmtNum(c.est, 4))} [${range(c.lo, c.hi, (v) => C.fmtNum(v, 4))}]`, String(c.n ?? '')] : null;
-    }).filter(Boolean)) }
+    caveat: m.contribution_arm || null,
+    table: { head: ['Subset', 'Unit', 'Regions removed', 'Estimate [95% CI]', 'n'], rows: tableRows }
   });
 }
 
