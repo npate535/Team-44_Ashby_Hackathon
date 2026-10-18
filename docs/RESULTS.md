@@ -2,7 +2,7 @@
 
 > Research prototype — not for clinical use. Every number below is quoted from the eval file named beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.
 
-Generated 2026-10-18T17:45:53Z from 16 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 4d8e886cc9bb14ce47c967e9cd7fff187aef6e90, 700a3b61b0f999a12e7a1a7b54058d6495b93689).
+Generated 2026-10-18T19:20:52Z from 17 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 4d8e886cc9bb14ce47c967e9cd7fff187aef6e90, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 825532a57ec4ed0637472c7e0625ab707982b912).
 
 ## Tissue quality control (fixed in this run)
 
@@ -53,6 +53,25 @@ Per-class LAC coverage (pre-registered): Normal 69.6% [34.6%, 92.9%] (n 23, 6 gr
 **Post-hoc change, disclosed:** marginal LAC was the pre-registered tier set. On the held-out test split it returned empty sets for 21.2% of cases and no multi-class sets, so it gave the reader no differential; the 50-image calibration split is far easier than the test split, which likely violates the exchangeability the guarantee needs. Tiers now use the set named above (APS, Romano et al. 2020, with the argmax class added to empty sets). The switch was made after viewing test results, so its observed coverage is optimistic and is not an independent confirmation.
 
 Under exchangeability and continuous scores, coverage conditional on a random calibration set follows ~Beta(46, 5) (mean 0.902, SD 0.041); the 1 - alpha = 0.90 guarantee is marginal over calibration sets, not a guarantee for this test cohort. Compare the observed held-out coverage with the target.
+
+## Conformal coverage across 1,000 random re-splits
+
+Source: `eval/conformal_resplit.json` · pre-registered in `docs/VALIDATION_ROUND3.md` §1 · model uni2h512_lr · 182 held-out images (calibration + test), 34 patient groups kept whole · calibration part at least 50 images (50–85, median 53) · alpha 0.1 · seed 20261018.
+
+Coverage percentiles describe variation across calibration/test partitions of the same images, not a confidence interval for a new cohort. The original split is the THUNDER partition the app uses.
+
+| Method | Coverage mean | Median | 2.5th–97.5th pct | Re-splits ≥ target | Mean set size | Empty sets | Invasive in set (invasive) | Invasive in set (other) | Original split coverage |
+|---|---|---|---|---|---|---|---|---|---|
+| lac_marginal | 89.3% | 89.1% | 67.7%–99.2% | 45.2% | 1.16 | 3.3% | 99.4% | 7.3% | 72.0% |
+| aps | 90.0% | 89.2% | 76.9%–100.0% | 46.0% | 1.27 | 4.8% | 92.5% | 9.3% | 88.6% |
+| mondrian | 92.4% | 93.7% | 73.5%–100.0% | 72.9% | 1.90 | 0.5% | 93.9% | 27.2% | 53.8% |
+| aps_marginal_nonempty | 94.5% | 93.6% | 89.3%–100.0% | 96.1% | 1.31 | 0.0% | 100.0% | 9.3% | 91.7% |
+
+Mondrian had at least one class with too few calibration images for a finite threshold in 80.0% of re-splits; that class was then in every set.
+
+Original-split coverage equals `eval/conformal.json` for every method.
+
+aps_marginal_nonempty drives the worklist tiers and was chosen after viewing test coverage on the original split; this check was pre-registered afterwards and applies the same rules to every method.
 
 ## Benchmark anchor (THUNDER split)
 

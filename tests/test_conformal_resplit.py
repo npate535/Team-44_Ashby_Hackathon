@@ -138,3 +138,21 @@ def test_run_on_fixture_writes_valid_json_matching_conformal(tmp_path):
                   "invasive_in_set_given_not_invasive"):
             assert k in b
     assert doc["original_split_check"]["matches_conformal_json"] is True
+
+
+def test_results_md_section_is_built_from_the_json(tmp_path):
+    from eval import results_md
+
+    D.write_eval_root(tmp_path / "data", CFG)
+    M.run(D.make_ctx(CFG, tmp_path / "data", tmp_path / "art", step="eval_metrics"))
+    doc = io.read_json(R.run(D.make_ctx(CFG, tmp_path / "data", tmp_path / "art"), n_splits=25))
+    text = "\n".join(results_md.section_conformal_resplit(doc))
+    assert text.startswith("## Conformal coverage across 25 random re-splits")
+    assert "eval/conformal_resplit.json" in text and "docs/VALIDATION_ROUND3.md" in text
+    for m, b in doc["methods"].items():
+        assert f"| {m} |" in text
+        assert f"{100 * b['coverage']['p50']:.1f}%" in text
+        assert f"{100 * doc['original_split'][m]['coverage']:.1f}%" in text
+    assert "NaN" not in text and "| nan" not in text and "None" not in text
+    out = results_md.run(D.make_ctx(CFG, tmp_path / "data", tmp_path / "art"))
+    assert "## Conformal coverage across 25 random re-splits" in out.read_text(encoding="utf-8")

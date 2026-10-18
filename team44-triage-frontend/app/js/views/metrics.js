@@ -198,6 +198,12 @@ function tierMethod(ev) {
   if (!methods[key] && methods.lac_marginal) key = 'lac_marginal';
   return { key, block: methods[key], preRegistered: (A && A.pre_registered) || 'lac_marginal', methods, postHoc: key !== ((A && A.pre_registered) || 'lac_marginal') };
 }
+/** ' Mean across N random re-splits: X%.' for the tile's method, or '' without eval/conformal_resplit.json. */
+function resplitMeanText(ev, key) {
+  const RS = ev.conformal_resplit;
+  const mean = get(RS, ['methods', key === 'aps_marginal' && !get(RS, ['methods', key]) ? 'aps' : key, 'coverage', 'mean']);
+  return isNum(mean) && RS && isNum(RS.n_splits) ? ` Mean across ${RS.n_splits.toLocaleString('en-US')} random re-splits: ${pc(mean, 1)}.` : '';
+}
 function summaryTiles(ST, ev) {
   const M = ev.metrics,
     CAL = ev.calibration,
@@ -293,10 +299,10 @@ function summaryTiles(ST, ev) {
       strip: C.strip({ est: cov.est, lo: cov.lo, hi: cov.hi, target, width, tone: below ? 'warn' : 'ok', aria: `Coverage ${pc(cov.est, 1)} against a ${pc(target)} target` }),
       tone: below ? 'warn' : 'ok',
       status: below ? `${chip('Below target', 'warn')} ${esc(f1(short))} points short of ${esc(pc(target))}` : tm.postHoc ? `${chip('At target, chosen after test results', 'warn')}` : `${chip('Meets target', 'ok')} target ${esc(pc(target))}`,
-      sentence: tm.postHoc
+      sentence: (tm.postHoc
         ? `This set drives the tiers but was chosen after viewing test results, so its coverage is optimistic. Pre-registered ${methodName(tm.preRegistered)}: ${pre ? pc(pre.est, 1) : 'n/a'}.`
-        : 'Share of test images whose true class is inside the suggested set. The 90% guarantee needs exchangeable data and holds on average over calibration sets, not for this cohort.',
-      source: 'eval/conformal.json'
+        : 'Share of test images whose true class is inside the suggested set. The 90% guarantee needs exchangeable data and holds on average over calibration sets, not for this cohort.') + resplitMeanText(ev, tm.key),
+      source: ev.conformal_resplit ? 'eval/conformal.json, eval/conformal_resplit.json' : 'eval/conformal.json'
     }));
   }
   const tiersQ = get(Q, 'results.tiers'),
@@ -784,6 +790,71 @@ function figCoverage(ST, ev, L) {
       const b = c === 'all' ? ci(CF.methods[k].coverage) : ci(get(CF.methods[k], ['per_class', c]));
       return b ? [methodName(k), c === 'all' ? 'All' : cls(c, ST), ciShort(b, { pct: true }), String(b.n ?? ''), String(b.ng ?? '')] : null;
     }).filter(Boolean)) }
+  });
+}
+/** Re-split coverage (eval/conformal_resplit.json): how each method's coverage varies across calibration/test partitions. */
+function resplitKeys(RS, ev) {
+  const methods = (RS && RS.methods) || {};
+  const pre = get(ev, 'analytics.conformal.pre_registered') || 'lac_marginal';
+  let tier = RS && RS.drives_tiers;
+  if (!methods[tier] && tier === 'aps_marginal' && methods.aps) tier = 'aps';
+  if (!methods[tier]) tier = null;
+  const order = [tier, methods[pre] ? pre : null, ...Object.keys(methods)].filter((k, i, a) => k && methods[k] && a.indexOf(k) === i);
+  return { tier, pre, order };
+}
+const countText = (n) => (isNum(n) ? n.toLocaleString('en-US') : String(n));
+function figResplit(ST, ev, L) {
+  const RS = ev.conformal_resplit;
+  if (!RS || !RS.methods || !isNum(RS.n_splits)) return missing('conformal_resplit', 'Conformal coverage across random re-splits', 're-split coverage');
+  const { tier, pre, order } = resplitKeys(RS, ev);
+  const target = RS.target_coverage ?? 1 - ST.cfg.alpha;
+  const n = countText(RS.n_splits);
+  const orig = (k) => get(RS, ['original_split', k, 'coverage']);
+  const color = (k) => (k === tier ? C.COLOR[1] : k === pre ? C.COLOR[2] : C.COLOR.muted);
+  const tag = (k) => (k === tier ? (k === pre ? 'drives the tiers, pre-registered' : 'drives the tiers, chosen after viewing test results') : k === pre ? 'pre-registered' : 'reported alongside, never drives tiers');
+  const rows = [];
+  for (const k of order) {
+    const q = RS.methods[k].coverage || {};
+    if (!isNum(q.p50)) continue;
+    rows.push({ header: true, label: `${methodName(k)}: ${tag(k)}` });
+    rows.push({ label: `${n} re-splits`, sub: 'median, 2.5th–97.5th percentile', est: q.p50, lo: q.p2_5, hi: q.p97_5, color: color(k), emphasis: k === tier, value: `${pc(q.p50, 1)} [${pc(q.p2_5, 0)}–${pc(q.p97_5, 0)}]`, tip: [`median ${pc(q.p50, 1)}; 95% of re-splits ${pc(q.p2_5, 1)}–${pc(q.p97_5, 1)}`, `${methodName(k)}, test coverage across ${n} re-splits`] });
+    if (isNum(orig(k))) rows.push({ label: 'Original split', est: orig(k), color: color(k), hollow: true, value: pc(orig(k), 1), tip: [pc(orig(k), 1), `${methodName(k)}, original THUNDER calibration/test split`] });
+  }
+  if (!rows.length) return missing('conformal_resplit', 'Conformal coverage across random re-splits', 'coverage percentiles');
+  const chart = C.forest({ width: L.two ? L.half : L.full, rows, x: { min: 0, max: 1, label: 'Test coverage: true class inside the set', format: (v) => pc(v) }, refs: [{ value: target, label: `${pc(target)} target` }], aria: `Conformal coverage across ${n} random re-splits per method against a ${pc(target)} target` });
+  const sentence = (k, lead) => {
+    const m = RS.methods[k];
+    const q = m.coverage;
+    return `${lead} reached the ${pc(target)} target in ${pc(m.share_at_or_above_target)} of re-splits (median ${pc(q.p50, 1)}; 95% of re-splits between ${pc(q.p2_5, 1)} and ${pc(q.p97_5, 1)})${isNum(orig(k)) ? `; on the original split it covered ${pc(orig(k), 1)}` : ''}.`;
+  };
+  const parts = [];
+  if (tier) parts.push(sentence(tier, `The tier set (${methodName(tier)})`));
+  if (pre && pre !== tier && RS.methods[pre]) parts.push(sentence(pre, `The pre-registered ${methodName(pre)}`));
+  const notes = ['Each bar spans the 2.5th–97.5th percentile of test coverage across re-splits; the filled dot is the median and the hollow dot the original split. The spread describes how coverage depends on which images land in calibration, not a confidence interval for a new cohort.'];
+  if (tier && tier !== pre) notes.push(`The tier set (${methodName(tier)}) was chosen after viewing test coverage on the original split; this check was pre-registered afterwards and applies the same rules to every method.`);
+  const mond = RS.methods.mondrian;
+  if (mond && isNum(mond.unbounded_class_share)) notes.push(`Mondrian had at least one class with too few calibration images for a finite threshold in ${pc(mond.unbounded_class_share)} of re-splits; that class was then in every set.`);
+  const cs = get(RS, 'partition_sizes.n_cal');
+  if (cs && isNum(cs.min)) notes.push(`Calibration parts held ${cs.min}–${cs.max} images (median ${f1(cs.p50).replace(/\.0$/, '')}); whole patient groups were added until at least ${RS.n_cal_target} images.`);
+  const opt = (v, d = 1) => (isNum(v) ? pc(v, d) : 'n/a');
+  return figure({
+    id: 'resplit',
+    testid: 'metrics-conformal-resplit',
+    title: `Conformal coverage across ${n} random re-splits`,
+    takeaway: parts.join(' ') || `Test coverage across ${n} random calibration/test re-splits.`,
+    chart,
+    notes,
+    population: `${RS.n_images} held-out images (calibration + test), ${RS.n_groups} patient groups kept whole; alpha = ${RS.alpha}; ${modelName(RS.model)}; seed ${RS.seed}`,
+    source: 'eval/conformal_resplit.json',
+    table: {
+      head: ['Method', 'Mean', 'Median', '2.5th–97.5th percentile', 'Re-splits at or above target', 'Mean set size', 'Empty sets', 'Invasive in set, invasive images', 'Invasive in set, other images', 'Original split'],
+      rows: order.map((k) => {
+        const m = RS.methods[k];
+        const q = m.coverage || {};
+        return [methodName(k), opt(q.mean), opt(q.p50), `${opt(q.p2_5)}–${opt(q.p97_5)}`, opt(m.share_at_or_above_target, 0), isNum(m.mean_set_size) ? f2(m.mean_set_size) : 'n/a', opt(m.empty_share), opt(m.invasive_in_set_given_invasive), opt(m.invasive_in_set_given_not_invasive), opt(orig(k))];
+      }),
+      num: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    }
   });
 }
 function figSetSize(ST, ev, L) {
@@ -1515,7 +1586,7 @@ export function render(ST, ctx) {
   h += section('classification', 'Classification', 'Separation of invasive carcinoma from the other classes, error patterns, and model selection.',
     S(figRoc, 'analytics', 'ROC') + `<div class="mx-stack">${S(figConfusion, 'metrics', 'Confusion matrix') + S(figPr, 'analytics', 'Precision-recall')}</div>` + S(figOvr, 'analytics', 'One-vs-rest ROC') + S(figModels, 'metrics', 'Model comparison') + S(figSelection, 'model_choice', 'Model selection') + S(figThunder, 'thunder', 'Benchmark'));
   h += section('confidence', 'Confidence', 'Calibration of the probabilities and coverage of the conformal sets.',
-    S(figReliability, 'calibration', 'Calibration') + S(figRiskHist, 'analytics', 'Risk histogram') + S(figCoverage, 'conformal', 'Coverage') + `<div class="mx-stack">${S(figSetSize, 'conformal', 'Set size') + S(figComposition, 'analytics', 'Set composition')}</div>`);
+    S(figReliability, 'calibration', 'Calibration') + S(figRiskHist, 'analytics', 'Risk histogram') + S(figCoverage, 'conformal', 'Coverage') + S(figResplit, 'conformal_resplit', 'Re-split coverage') + `<div class="mx-stack">${S(figSetSize, 'conformal', 'Set size') + S(figComposition, 'analytics', 'Set composition')}</div>`);
   h += section('explanations', 'Explanations', 'Named histologic features are associated with the classes. These checks test whether they behave like the criteria they are named after.',
     S(figConceptHeat, 'concepts_bach', 'Concept heatmap') + S(figConceptDirection, 'concepts_bach', 'Concept direction') + S(figSpotcheck, 'spotcheck', 'Spot check') + S(figNct, 'concepts', 'Cross-organ check') + S(figCav, 'concepts', 'Caption consistency') + S(figDeletion, 'deletion', 'Deletion test'));
   h += section('reliability', 'Frozen-section reliability (simulated)', 'Frozen sections were simulated by degrading microscopy images and by building half-tumour composite fields.',
