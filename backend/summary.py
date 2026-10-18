@@ -145,13 +145,21 @@ def _without(text: str, phrases: Sequence[str]) -> str:
     return text
 
 
-def semantic_problem(text: str, cited: Sequence[Mapping[str, Any]]) -> str | None:
+_SUPPORT = re.compile(r"\b(associated with|support\w*|favou?r\w*|consistent with|point\w* (to|toward)|drive\w*|"
+                      r"contribut\w* to|in keeping with)\b", re.I)
+_CONTRAST = re.compile(r"\b(away|against|argu\w*|counter\w*|despite|although|but|less likely|lower\w*|while|whereas|"
+                       r"oppos\w*|reduc\w*|weigh\w* against|non-?invasive|benign|in situ)\b", re.I)
+_HEDGE = re.compile(r"\b(suggest\w*|simulated|read|call\w*|signal\w*|appear\w*)\b", re.I)
+
+
+def semantic_problem(text: str, cited: Sequence[Mapping[str, Any]], aggressive_top: bool | None = None) -> str | None:
     """Reason the sentence contradicts a cited finding's categorical facts, or None.
 
     margin: the stated call must be the suggested call (defer never reads as clear; clear never as involved; tumor at
-    margin names every involved margin). quality: a flagged read is never called reliable and vice versa. concept: with
+    margin names every involved margin; tumor-at-margin and clear are hedged as suggestions). quality: a flagged read is never called reliable and vice versa. concept: with
     every cited feature label removed, a feature is called present only when its `level` is above_typical and scarce
-    only when below_typical (a scarce benign feature can still push toward invasive carcinoma)."""
+    only when below_typical (a scarce benign feature can still push toward invasive carcinoma); features that all push
+    away from invasive carcinoma are never presented as support for it."""
     labels = [x for f in cited if isinstance(f.get("data"), Mapping)
               for x in (str(f["data"].get("label", "")), str(f["data"].get("concept", "")).replace("_", " "))]
     rest = _without(text, labels)              # feature names ("Dense lymphocytic infiltrate") are not claims
@@ -164,6 +172,8 @@ def semantic_problem(text: str, cited: Sequence[Mapping[str, Any]]) -> str | Non
                 return "margin call is defer: the sentence must defer, never call margins clear"
             if call == "clear" and (_INVOLVED.search(text) or not _CLEAR.search(text)):
                 return "margin call is clear: the sentence must say clear, never involved"
+            if call in ("tumor_at_margin", "clear") and not _HEDGE.search(text):
+                return "margin calls are simulated suggestions: say 'suggested', never state them as fact"
             if call == "tumor_at_margin":
                 involved = list(d.get("involved") or [])
                 every = set(involved) >= set(MARGIN_ORDER) and re.search(r"\ball (four |4 )?margins\b", text, re.I)
@@ -176,6 +186,11 @@ def semantic_problem(text: str, cited: Sequence[Mapping[str, Any]]) -> str | Non
                 return "reliability flag is raised: the sentence must not call the read reliable"
             if not flagged and _UNRELIABLE.search(text):
                 return "reliability flag is not raised: the sentence must not call the read unreliable"
+    pushes = [float(f["data"].get("contribution", 0)) for f in cited
+              if f.get("kind") == "concept" and isinstance(f.get("data"), Mapping)]
+    if pushes and all(p < 0 for p in pushes) and (aggressive_top or re.search(r"\binvasive\b", rest, re.I)) \
+            and _SUPPORT.search(rest) and not _CONTRAST.search(rest):
+        return "the cited features push away from invasive carcinoma: the sentence must not present them as support"
     levels = {f["data"].get("level") for f in cited if f.get("kind") == "concept" and isinstance(f.get("data"), Mapping)
               and f["data"].get("level")}
     names = ", ".join(str(f["data"].get("concept")) for f in cited if f.get("kind") == "concept")
@@ -221,7 +236,7 @@ def ensure_required(kept: list[dict[str, Any]], findings: Sequence[Mapping[str, 
 
 
 def check_sentence(sentence: Any, by_id: Mapping[str, Mapping[str, Any]], banned: Sequence[re.Pattern[str]],
-                   codes: Sequence[str] = ()) -> str | None:
+                   codes: Sequence[str] = (), aggressive_top: bool | None = None) -> str | None:
     """Reason the sentence is invalid, or None when it passes."""
     if not isinstance(sentence, Mapping) or not isinstance(sentence.get("text"), str) or not sentence["text"].strip():
         return "not a {text, findings} object"
@@ -237,7 +252,7 @@ def check_sentence(sentence: Any, by_id: Mapping[str, Mapping[str, Any]], banned
     for pattern in banned:
         if pattern.search(text):
             return f"banned wording /{pattern.pattern}/"
-    semantic = semantic_problem(text, [by_id[f] for f in cited])
+    semantic = semantic_problem(text, [by_id[f] for f in cited], aggressive_top)
     if semantic:
         return semantic
     codes = list(codes) + [str(by_id[f]["data"]["label"]) for f in cited
@@ -259,10 +274,12 @@ def validate(sentences: Any, findings: Sequence[Mapping[str, Any]], cfg: Mapping
     by_id = {f["id"]: f for f in findings}
     banned = _banned(cfg)
     codes = list(cfg["summary"]["allowed_codes"])
+    top = next((f["data"].get("top") for f in findings if f.get("kind") == "prediction"), None)
+    aggressive_top = top == cfg["aggressive_class"] if top is not None else None
     kept: list[dict[str, Any]] = []
     dropped: list[dict[str, Any]] = []
     for sentence in sentences if isinstance(sentences, list) else []:
-        reason = check_sentence(sentence, by_id, banned, codes)
+        reason = check_sentence(sentence, by_id, banned, codes, aggressive_top)
         if reason is not None:
             dropped.append({"text": str(sentence.get("text", "")) if isinstance(sentence, Mapping) else str(sentence),
                             "reason": reason})

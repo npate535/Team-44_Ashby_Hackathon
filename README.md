@@ -55,6 +55,13 @@ uv run python -m pipeline.export --unpack /absolute/path/export.tgz --dest data
 make analyze DATA=data ART=artifacts
 ```
 
+Tile QC on the laptop: `uv run python -m pipeline.01q_requalify_qc` recomputes tissue fractions from the display
+JPEGs with the corrected mask (the original value cut rejected pale tissue; see [docs/OVERNIGHT.md](docs/OVERNIGHT.md)).
+Worklist tiers use the APS conformal set with the argmax added to empty sets (`conformal.method`/`nonempty` in
+`config/settings.yaml`); pre-registered LAC is still reported, and the switch is disclosed as post-hoc. Grounded
+summaries are generated once with `08_build_case_json --max-llm-calls N` (Lumen, cached) and checked against the
+findings for citations, numbers and categorical facts (margin call, reliability flag, feature level).
+
 Analytics steps can report missing candidates, skip unavailable optional modules, or fail on required inputs. Read their logs and metadata before calling the experiment complete. Do not use `data_synthetic` to produce real-data results. Limit smoke runs with `--limit 5`; rerun complete steps with `--force` after inputs change.
 
 The app’s `/api/health` reports validated case counts, rejected files, prediction model IDs, and missing referenced media. A connected service alone does not establish model quality. The sidebar distinguishes empty, synthetic, incomplete, and populated artifact states.
@@ -72,6 +79,9 @@ make e2e                   # desktop/light and phone/dark workflow tests
 
 Browser tests start their own temporary backend using labeled synthetic cases. They verify the workflow and persistence boundaries, not model accuracy. Screenshots are generated in the ignored `docs/screenshots/` directory. The production artifact root is never reset by those tests. API contracts and endpoints are documented in [docs/API.md](docs/API.md).
 
+Results with confidence intervals: [docs/RESULTS.md](docs/RESULTS.md). What changed overnight on 2026-10-18 and the
+measured effect: [docs/OVERNIGHT.md](docs/OVERNIGHT.md).
+
 ## Credits and limits
 
 - BACH: Aresta et al., *BACH: Grand challenge on breast cancer histology images*, Medical Image Analysis (2019), ICIAR 2018 dataset; CC BY-NC-ND 4.0. Cite the original release in presentations.
@@ -81,6 +91,8 @@ Browser tests start their own temporary backend using labeled synthetic cases. T
 - NCT-CRC-HE-100K provides cross-organ concept sanity checks; it is not breast validation.
 - Quilt and PathGen provide caption-based concept candidates when their actual feature outputs are available. Caption consistency is not pathologist validation.
 - HoVer-Net / PanNuke and TIAToolbox support the optional cell module; model and weight licensing is recorded in configuration.
+- Summaries: `gemma-4-31b-it` via NCSA Lumen, generated offline from structured findings only and validated.
+- Conformal prediction: APS (Romano, Sesia & Candès, NeurIPS 2020) and LAC (Sadinle, Lei & Wasserman, JASA 2019).
 - NCSA Delta, Lumen, and the MIT-licensed `ncsa/ashby-hackathon-2026` tooling under `resources/official/`.
 - Original teammate worklist by adas286, extended with the API adapter, workflow views, and cohesive PathQueue workspace.
 

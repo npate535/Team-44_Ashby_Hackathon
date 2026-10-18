@@ -332,3 +332,19 @@ def test_required_margin_and_quality_sentences_are_appended(cfg=None):
     assert added == 2 and {"F6", "F7"} <= {f for s in out for f in s["findings"]}
     assert len(out) <= int(cfg["summary"]["max_sentences"])
     assert all(_S.semantic_problem(s["text"], [f for f in findings if f["id"] in s["findings"]]) is None for s in out)
+
+
+def test_features_pushing_away_are_not_presented_as_support():
+    away = {"id": "F4", "kind": "concept", "data": {"concept": "duct_confined", "label": "Atypical cells confined within ducts",
+                                                    "contribution": -0.23, "tiles": [2], "level": "above_typical"}}
+    assert _S.semantic_problem("Prominent atypical cells confined within ducts are associated with the finding.",
+                               [away], aggressive_top=True)
+    assert _S.semantic_problem("Prominent atypical cells confined within ducts weigh against invasion.",
+                               [away], aggressive_top=True) is None
+    assert _S.semantic_problem("Prominent atypical cells confined within ducts favour a non-invasive process.",
+                               [away], aggressive_top=True) is None
+
+
+def test_margin_calls_are_hedged():
+    assert _S.semantic_problem("Tumor is present at the superior and medial margins.", [_MARGIN_TUMOR])
+    assert _S.semantic_problem("Tumor is suggested at the superior and medial margins.", [_MARGIN_TUMOR]) is None
