@@ -642,10 +642,17 @@ def _concept_phrase(f: Mapping[str, Any]) -> str:
     return label
 
 
+def _with_regions(phrase: str, where: str) -> str:
+    """'tumor infiltrating stroma (regions 1 and 2)'; 'dense lymphocytic infiltrate (TILs; region 7)'."""
+    if not where:
+        return phrase
+    return f"{phrase[:-1]}; {where})" if phrase.endswith(")") else f"{phrase} ({where})"
+
+
 def _concept_up_sentence(fs: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]) -> str:
     aggressive = _class_label(cfg, cfg["aggressive_class"])
     where = _regions(fs[0]["data"]["tiles"])
-    text = f"Strongest push toward {aggressive} in this read: {_concept_phrase(fs[0])}{f' ({where})' if where else ''}"
+    text = f"Strongest push toward {aggressive} in this read: {_with_regions(_concept_phrase(fs[0]), where)}"
     if len(fs) > 1:
         text += ", then " + _join([_concept_phrase(f) for f in fs[1:]])
     return text + "."
@@ -655,8 +662,8 @@ def _concept_down_sentence(fs: Sequence[Mapping[str, Any]], cfg: Mapping[str, An
     aggressive = _class_label(cfg, cfg["aggressive_class"])
     where = _regions(fs[0]["data"]["tiles"]) if len(fs) == 1 else ""
     noun = "Feature" if len(fs) == 1 else "Features"
-    return (f"{noun} lowering the likelihood of {aggressive} in this read: {_join([_concept_phrase(f) for f in fs])}"
-            f"{f' ({where})' if where else ''}.")
+    return (f"{noun} lowering the likelihood of {aggressive} in this read: "
+            f"{_with_regions(_join([_concept_phrase(f) for f in fs]), where)}.")
 
 
 def _cells_sentence(f: Mapping[str, Any]) -> str:
