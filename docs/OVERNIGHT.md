@@ -49,8 +49,9 @@ In situ ↔ invasive confusion: 3 of 30 in situ images called invasive (was 4); 
 
 ### 2. Conformal sets made usable (disclosed post-hoc change)
 Pre-registered LAC returned **empty sets for 23.5%** of test images and never a multi-class set, so the worklist
-showed "∅ empty" and the InSitu-vs-Invasive story never happened with real data. Cause: the 50-image calibration split
-is far easier than the test split (98% vs 84% accurate), which breaks the exchangeability the guarantee needs.
+showed "∅ empty" and the InSitu-vs-Invasive story never happened with real data. Likely cause: the 50-image calibration
+split is far easier than the test split (98% vs 84% accurate), which suggests the exchangeability the guarantee needs
+does not hold.
 Tiers now use **APS (Romano et al. 2020) with the argmax added to an empty set** (`conformal.method: aps`,
 `conformal.nonempty: true`; plan §6.6 allows APS or LAC). LAC is still computed and reported next to it.
 
