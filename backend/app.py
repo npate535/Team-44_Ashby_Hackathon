@@ -575,12 +575,12 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
         cfg, cases_dir=cases, artifacts_root=art,
         db_path=Path(db_path) if db_path is not None else art / cfg["backend"]["db_file"],
         fixtures_dir=Path(fixtures_dir) if fixtures_dir is not None else paths["fixtures_dir"], clock=clock)
-    log.info("PathQueue backend: %d cases from %s (%d skipped)", len(backend.sim.loaded.cases), cases,
+    log.info("Sepia backend: %d cases from %s (%d skipped)", len(backend.sim.loaded.cases), cases,
              len(backend.sim.loaded.skipped))
     if not backend.sim.loaded.cases:
         log.warning("no valid case JSONs in %s: the worklist will stay empty", cases)
 
-    app = FastAPI(title="PathQueue demo API", version=contract.SCHEMA_VERSION,
+    app = FastAPI(title="Sepia demo API", version=contract.SCHEMA_VERSION,
                   description="Research prototype — not for clinical use. See docs/API.md.")
     app.state.backend = backend
 

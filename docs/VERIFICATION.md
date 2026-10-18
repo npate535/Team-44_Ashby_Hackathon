@@ -1,4 +1,4 @@
-# PathQueue verification
+# Sepia verification
 
 Verified locally on October 18, 2026, 03:00–07:00 (America/Chicago). Research prototype, not a clinically validated
 system. Overnight changes and their measured effect: [OVERNIGHT.md](OVERNIGHT.md). Numbers: [RESULTS.md](RESULTS.md).

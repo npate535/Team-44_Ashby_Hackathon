@@ -48,10 +48,10 @@ Each object in `cases.json` holds the case record plus model output. Replace the
 
 Push the repo, then in Settings > Pages publish from the branch with the `/app` folder, or move `app/` contents to `/docs`.
 
-## Connected to the PathQueue API (Team 44, Oct 17 2026)
+## Connected to the Sepia API (Team 44, Oct 17 2026)
 
 The original vanilla-JS app (worklist, case view, OR board; author: adas286, Team 44) is now connected to the
-PathQueue backend (`backend/`, `docs/API.md`) and extended for breast/BACH. Its ideas are kept and credited:
+Sepia backend (`backend/`, `docs/API.md`) and extended for breast/BACH. Its ideas are kept and credited:
 the **arrival-order vs AI-priority toggle**, the **aging promotion at 75% of target** (now computed server-side by
 `core.tiers`), the **OR board** (surgeon screen with room and countdown), **visibly blocked agent actions** (no stains
 in the frozen lane), the Tasks card, "Routine does not mean cleared", and the "Pathologist approval — the only place a

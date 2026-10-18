@@ -304,7 +304,7 @@ function summaryTiles(ST, ev) {
       label: 'Invasive cases seen sooner (simulated)',
       value: `${f1(Math.abs(firstLook.est))} min ${firstLook.est <= 0 ? 'sooner' : 'later'}`,
       ci: isNum(firstLook.lo) ? (firstLook.hi <= 0 ? `95% of simulated days: ${f1(-firstLook.hi)} to ${f1(-firstLook.lo)} min sooner` : `95% of simulated days: ${range(firstLook.lo, firstLook.hi, f1)} min change`) : null,
-      sentence: `Mean time to first look ${f1(get(fifoQ, 'aggressive_mean.mean'))} min in arrival order vs ${f1(get(tiersQ, 'aggressive_mean.mean'))} min with PathQueue tiers, in a simulated reading day.`,
+      sentence: `Mean time to first look ${f1(get(fifoQ, 'aggressive_mean.mean'))} min in arrival order vs ${f1(get(tiersQ, 'aggressive_mean.mean'))} min with Sepia tiers, in a simulated reading day.`,
       source: 'eval/queue_sim.json'
     }));
     const cost = ci(get(tiersQ, 'vs_fifo.non_flagged_mean'));
@@ -1314,12 +1314,12 @@ function figQueue(ST, ev, L) {
   // the comparison sentence needs both policies; with one missing, say what is there instead of printing "—"
   const both = (m) => isNum(get(fifo, [m, 'mean'])) && isNum(get(tiers, [m, 'mean']));
   const firstLook = both('aggressive_mean')
-    ? `PathQueue tiers ${get(tiers, 'aggressive_mean.mean') <= get(fifo, 'aggressive_mean.mean') ? 'cut' : 'raised'} the mean time to first look for invasive cases from ${f1(get(fifo, 'aggressive_mean.mean'))} to ${f1(get(tiers, 'aggressive_mean.mean'))} min${dA && isNum(dA.share_days_lower) ? ` (sooner on ${pc(dA.share_days_lower)} of days)` : ''}`
+    ? `Sepia tiers ${get(tiers, 'aggressive_mean.mean') <= get(fifo, 'aggressive_mean.mean') ? 'cut' : 'raised'} the mean time to first look for invasive cases from ${f1(get(fifo, 'aggressive_mean.mean'))} to ${f1(get(tiers, 'aggressive_mean.mean'))} min${dA && isNum(dA.share_days_lower) ? ` (sooner on ${pc(dA.share_days_lower)} of days)` : ''}`
     : '';
   const unflagged = both('non_flagged_mean')
     ? `unflagged cases waited ${f1(get(fifo, 'non_flagged_mean.mean'))} → ${f1(get(tiers, 'non_flagged_mean.mean'))} min${dN && isNum(dN.share_days_higher) ? ` (longer on ${pc(dN.share_days_higher)} of days)` : ''}`
     : '';
-  const compare = firstLook && unflagged ? `${firstLook}, while ${unflagged}.` : firstLook || unflagged ? `${firstLook || unflagged}.` : 'the arrival-order and PathQueue-tier results are not both present in this run, so no comparison is drawn.';
+  const compare = firstLook && unflagged ? `${firstLook}, while ${unflagged}.` : firstLook || unflagged ? `${firstLook || unflagged}.` : 'the arrival-order and Sepia-tier results are not both present in this run, so no comparison is drawn.';
   const take = `In ${isNum(Q.reps) ? Q.reps + ' ' : ''}simulated reading days, ${compare} ${isNum(promo.tiers_aging) && promo.tiers_aging === 0 ? 'The configured aging guard never promoted a case within an 8-hour day, so it has no measured effect here.' : ''}`;
   const a = Q.assumptions || {};
   const assumptions = [a.arrivals, a.reader, isNum(a.utilization) ? `reader utilization ${pc(a.utilization)}` : null, a.tiers, a.interval, a.truth_use].filter(Boolean);

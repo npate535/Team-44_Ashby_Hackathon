@@ -1,4 +1,4 @@
-# PathQueue — Build Plan
+# Sepia — Build Plan
 
 An AI-prioritized pathology worklist with explainable, confidence-aware case reads.
 Built for the 2026 Ashby Prize Hackathon (NCSA Delta, Sat–Sun Oct 17–18, 2026).
@@ -206,7 +206,7 @@ pathqueue/
       embed_tiles.sbatch       # fallback if hosted server is slow/down
   eval/
     metrics.py                 # AUROC, ECE, reliability diagram, conformal coverage, concept AUROC
-    queue_sim.py               # FIFO vs PathQueue waiting-time simulation
+    queue_sim.py               # FIFO vs Sepia waiting-time simulation
     deletion_test.py           # explanation faithfulness
   agent/
     rules.py                   # deterministic rule engine over stain_rules.yaml
@@ -581,7 +581,7 @@ The BACH test split is small, so report a **bootstrap 95% confidence interval** 
 | Explanations are real | Concept AUROCs on NCT-CRC; **deletion test**: removing a case's top-3 tiles for its top concept lowers risk more than removing 3 random tiles (report mean drop ± CI) | `metrics.py`, `deletion_test.py` |
 | Reliability flag works | Accuracy vs degradation severity; AUROC of reliability score for predicting errors | `06_reliability.py` |
 | Retrieval is meaningful | precision@5 | `07_retrieval.py` |
-| Workflow benefit | **Queue simulation:** replay a day of arrivals (Poisson, configurable rate) with a fixed read time per case; compare mean/median time-to-first-look for aggressive cases, FIFO vs PathQueue tiers. State assumptions on the Metrics page. | `queue_sim.py` |
+| Workflow benefit | **Queue simulation:** replay a day of arrivals (Poisson, configurable rate) with a fixed read time per case; compare mean/median time-to-first-look for aggressive cases, FIFO vs Sepia tiers. State assumptions on the Metrics page. | `queue_sim.py` |
 
 ---
 

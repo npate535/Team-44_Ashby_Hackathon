@@ -1,6 +1,6 @@
-# PathQueue
+# Sepia
 
-PathQueue is Team 44’s research workspace for confidence-aware breast pathology triage, built for the 2026 Ashby Prize Hackathon. It connects precomputed model evidence to a persistent review worklist, drafted follow-up orders, simulated surgical margin calls, and routed results.
+Sepia is Team 44’s research workspace for confidence-aware breast pathology triage, built for the 2026 Ashby Prize Hackathon. It connects precomputed model evidence to a persistent review worklist, drafted follow-up orders, simulated surgical margin calls, and routed results.
 
 **Research prototype. Not for clinical use.** BACH labels are diagnostic categories, not Nottingham grades. “Likely invasive” is a triage suggestion. Frozen sections, image-border margins, arrivals, and operating-room assignments are simulated. Approval records and inbox routing are local to this application; no hospital order system is connected.
 
@@ -96,6 +96,6 @@ measured effect: [docs/OVERNIGHT.md](docs/OVERNIGHT.md).
 - AI spot check of concept tiles and cell overlays: Claude (Anthropic), recorded as AI review, not a pathologist.
 - Conformal prediction: APS (Romano, Sesia & Candès, NeurIPS 2020) and LAC (Sadinle, Lei & Wasserman, JASA 2019).
 - NCSA Delta, Lumen, and the MIT-licensed `ncsa/ashby-hackathon-2026` tooling under `resources/official/`.
-- Original teammate worklist by adas286, extended with the API adapter, workflow views, and cohesive PathQueue workspace.
+- Original teammate worklist by adas286, extended with the API adapter, workflow views, and cohesive Sepia workspace.
 
 This is a small-dataset research experiment. Conformal coverage depends on exchangeability; degraded and simulated composite fields do not inherit a clean-test coverage guarantee. Explanations describe model associations. Follow-up rules require clinical review. No clinical validation or external hospital integration is claimed.

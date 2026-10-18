@@ -1,8 +1,8 @@
-# PathQueue Validation Test Structure
+# Sepia Validation Test Structure
 
 Team 44 · 2026 Ashby Prize Hackathon · Research prototype, not for clinical use
 
-This document specifies **five strategies** to validate PathQueue's accuracy and its comparative advantage over **CONCH** and **MUSK**, plus **one strategy** to measure time savings in a simulated diagnostic pathology workflow. Every strategy states its hypothesis, protocol, metrics, pass criteria, and the test files that implement it.
+This document specifies **five strategies** to validate Sepia's accuracy and its comparative advantage over **CONCH** and **MUSK**, plus **one strategy** to measure time savings in a simulated diagnostic pathology workflow. Every strategy states its hypothesis, protocol, metrics, pass criteria, and the test files that implement it.
 
 ---
 
@@ -12,7 +12,7 @@ This document specifies **five strategies** to validate PathQueue's accuracy and
 
 | Arm | Role | Encoder | Head |
 |---|---|---|---|
-| **PathQueue** | System under test | UNI2-h | Linear probe + calibration + APS conformal |
+| **Sepia** | System under test | UNI2-h | Linear probe + calibration + APS conformal |
 | **CONCH-probe** | Primary comparator | CONCH image tower | Identical head and pipeline |
 | **MUSK-probe** | Primary comparator | MUSK image tower | Identical head and pipeline |
 | **CONCH-zeroshot** | Secondary comparator | CONCH + text prompts | None (zero-shot) |
@@ -29,7 +29,7 @@ Before running anything, commit `tests/validation/PREREG.md` containing:
 
 - **Primary metric:** balanced accuracy (4-class BACH: normal, benign, in situ, invasive)
 - **Primary safety metric:** invasive recall at a fixed operating point
-- **Primary comparison:** PathQueue vs. the *better* of CONCH-probe and MUSK-probe
+- **Primary comparison:** Sepia vs. the *better* of CONCH-probe and MUSK-probe
 - **Decision margin:** non-inferiority margin Δ (suggest 2 percentage points) and superiority threshold (paired 95% CI excludes 0)
 - **Multiple comparison handling:** Holm correction across the two primary comparators
 
@@ -99,8 +99,8 @@ Make targets: `make validate` (all), `make validate-gates`, `make validate-s1` �
 **Question:** Does UNI2-h match or beat CONCH and MUSK on BACH under an identical protocol?
 
 **Hypotheses**
-- H1a (non-inferiority): PathQueue balanced accuracy ≥ best comparator − Δ.
-- H1b (superiority): PathQueue's paired CI for the difference excludes 0.
+- H1a (non-inferiority): Sepia balanced accuracy ≥ best comparator − Δ.
+- H1b (superiority): Sepia's paired CI for the difference excludes 0.
 
 **Protocol**
 1. Extract embeddings for every arm using the same tile set and preprocessing (resize and normalization as each model requires, documented per arm).
@@ -125,7 +125,7 @@ Make targets: `make validate` (all), `make validate-gates`, `make validate-s1` �
 
 ## Strategy 2: Calibration and selective-prediction quality
 
-**Question:** When PathQueue says it is 90% confident, is it right about 90% of the time, and does that beat CONCH/MUSK under the same calibration procedure?
+**Question:** When Sepia says it is 90% confident, is it right about 90% of the time, and does that beat CONCH/MUSK under the same calibration procedure?
 
 **Protocol**
 1. Apply the identical calibration method (e.g., temperature scaling fit on a held-out calibration fold) to every arm.
@@ -138,8 +138,8 @@ Make targets: `make validate` (all), `make validate-gates`, `make validate-s1` �
 - AURC (area under risk-coverage curve) and error at 80/90/95% coverage
 
 **Pass criteria**
-- Calibration reduces ECE and NLL relative to uncalibrated for PathQueue (internal sanity)
-- PathQueue AURC is lower than CONCH/MUSK with a paired-bootstrap CI excluding 0, or reported as tied
+- Calibration reduces ECE and NLL relative to uncalibrated for Sepia (internal sanity)
+- Sepia AURC is lower than CONCH/MUSK with a paired-bootstrap CI excluding 0, or reported as tied
 - Confidence ranks errors above correct predictions: AUROC of confidence as an error detector ≥ 0.7
 
 **Why this matters:** the worklist tiers depend on confidence. A better encoder with worse calibration can be a *worse* triage system.
@@ -150,7 +150,7 @@ Make targets: `make validate` (all), `make validate-gates`, `make validate-s1` �
 
 ## Strategy 3: Conformal validity and efficiency per encoder
 
-**Question:** Are PathQueue's conformal sets valid, and are they *smaller* (more informative) than those from CONCH/MUSK at the same coverage?
+**Question:** Are Sepia's conformal sets valid, and are they *smaller* (more informative) than those from CONCH/MUSK at the same coverage?
 
 **Protocol**
 1. For each arm, run **1,000+ random calibration/test partitions** with the same α.
@@ -167,7 +167,7 @@ Make targets: `make validate` (all), `make validate-gates`, `make validate-s1` �
 **Pass criteria**
 - **Validity:** mean coverage ≥ 1 − α − 0.01 for every arm and method (validity is a property of the procedure, so failure here is a bug, not a comparison loss)
 - Argmax-added variant coverage ≥ plain APS coverage in every partition (it can only add labels)
-- **Comparative advantage:** PathQueue has smaller mean set size or higher singleton rate than both comparators at equal coverage, with paired CI excluding 0
+- **Comparative advantage:** Sepia has smaller mean set size or higher singleton rate than both comparators at equal coverage, with paired CI excluding 0
 - Class-conditional invasive coverage reported with CI; flag if below 1 − α even when marginal passes
 
 **Implements:** `s3_conformal/*`
@@ -176,7 +176,7 @@ Make targets: `make validate` (all), `make validate-gates`, `make validate-s1` �
 
 ## Strategy 4: Robustness and distribution shift
 
-**Question:** Does PathQueue degrade more gracefully than CONCH/MUSK, and how much does the conformal guarantee erode?
+**Question:** Does Sepia degrade more gracefully than CONCH/MUSK, and how much does the conformal guarantee erode?
 
 **Protocol**
 1. **Synthetic perturbations** applied to test images only (never train/calibration), at 5 severities each:
@@ -192,7 +192,7 @@ Make targets: `make validate` (all), `make validate-gates`, `make validate-s1` �
 - External set: drop in balanced accuracy and coverage versus in-distribution
 
 **Pass criteria**
-- PathQueue's degradation slope is not steeper than the best comparator's (paired over perturbation types)
+- Sepia's degradation slope is not steeper than the best comparator's (paired over perturbation types)
 - Set size increases monotonically with severity (the system "knows" it is unsure)
 - External-set drop is reported in full even if large. A big drop is a finding, not a failure to hide.
 
@@ -206,9 +206,9 @@ Make targets: `make validate` (all), `make validate-gates`, `make validate-s1` �
 
 **Protocol**
 1. **Fixed-sensitivity comparison:** for each arm, set the threshold so invasive recall = 95% on calibration data, then evaluate specificity and workload (flag rate) on test data.
-2. **Tier-level audit for PathQueue:** after assigning tiers 2 / likely invasive / low-confidence / unflagged, tabulate true class by tier.
-3. **Discordance analysis:** collect images where PathQueue is correct and CONCH or MUSK is wrong (and vice versa). Review a sample of each using the existing human/AI spot-check workflow.
-4. **Complementarity check:** does a simple CONCH+UNI2-h or MUSK+UNI2-h ensemble beat PathQueue alone? If it does, say so.
+2. **Tier-level audit for Sepia:** after assigning tiers 2 / likely invasive / low-confidence / unflagged, tabulate true class by tier.
+3. **Discordance analysis:** collect images where Sepia is correct and CONCH or MUSK is wrong (and vice versa). Review a sample of each using the existing human/AI spot-check workflow.
+4. **Complementarity check:** does a simple CONCH+UNI2-h or MUSK+UNI2-h ensemble beat Sepia alone? If it does, say so.
 
 **Metrics**
 - Specificity and flag rate at 95% invasive recall
@@ -218,7 +218,7 @@ Make targets: `make validate` (all), `make validate-gates`, `make validate-s1` �
 - Inter-rater agreement (Cohen's κ) between human and Claude spot checks on discordant cases
 
 **Pass criteria**
-- False-reassurance rate for PathQueue ≤ comparators' and ideally 0 on the test set, with a CI (rule of three: 0 of n gives an upper bound ≈ 3/n)
+- False-reassurance rate for Sepia ≤ comparators' and ideally 0 on the test set, with a CI (rule of three: 0 of n gives an upper bound ≈ 3/n)
 - Every discordant-case category has a documented hypothesis (e.g., stain artifact, ambiguous border) rather than being left as an unexplained residual
 - If human and AI spot checks disagree (κ < 0.4), report AI review as unreliable for that category
 
@@ -247,7 +247,7 @@ A discrete-event simulation (`workflow_sim.py`, SimPy or hand-rolled) with:
 |---|---|
 | FIFO | Arrival order (standard baseline) |
 | Random | Seeded shuffle |
-| **PathQueue** | Surgical → likely invasive → low confidence → unflagged (UNI2-h + APS tiers) |
+| **Sepia** | Surgical → likely invasive → low confidence → unflagged (UNI2-h + APS tiers) |
 | CONCH-driven | Same tier logic fed by CONCH-probe predictions |
 | MUSK-driven | Same tier logic fed by MUSK-probe predictions |
 | Oracle | True labels (upper bound) |
@@ -272,7 +272,7 @@ The baseline for "AI-assisted review time reduction" is **0%**. Report the pure 
 1. **Main run:** 500 seeded replications per policy per load level, same arrival sequences across policies (common random numbers) so differences are paired.
 2. **Sensitivity sweep:** one-at-a-time and Latin-hypercube sweeps over the ranges above.
 3. **Error injection:** run each AI-driven policy with its *actual* predictions, so misclassified invasive cases are penalized realistically (a mis-tiered case waits longer).
-4. **Break-even analysis:** at what false-reassurance rate does PathQueue stop beating FIFO?
+4. **Break-even analysis:** at what false-reassurance rate does Sepia stop beating FIFO?
 
 ### 6.5 Metrics
 
@@ -285,8 +285,8 @@ The baseline for "AI-assisted review time reduction" is **0%**. Report the pure 
 
 ### 6.6 Pass criteria
 
-- PathQueue reduces mean and p90 time-to-review of invasive cases versus FIFO and Random, paired CI excluding 0, at normal and surge load
-- PathQueue is within the oracle-to-FIFO gap by a reported percentage ("closes X% of the gap")
+- Sepia reduces mean and p90 time-to-review of invasive cases versus FIFO and Random, paired CI excluding 0, at normal and surge load
+- Sepia is within the oracle-to-FIFO gap by a reported percentage ("closes X% of the gap")
 - Versus CONCH-driven and MUSK-driven policies: report the difference with CI. Any advantage should trace back to Strategy 3's set-size and Strategy 5's false-reassurance results; if it does not, treat it as suspect.
 - Benefit shrinks toward zero at low load (idle pathologists make ordering irrelevant). If it does not, the simulator has a bug.
 - Results include every parameter value used, and the report states: *"Simulated; not a clinical time-savings claim."*
@@ -364,7 +364,7 @@ ctx.write_manifest()
 Each strategy writes to `docs/VALIDATION.md`, generated from the CSVs in section 8:
 
 1. Hypothesis and pre-registered decision rule
-2. Table of all arms, **including arms that beat PathQueue**
+2. Table of all arms, **including arms that beat Sepia**
 3. Point estimate, 95% CI, and n for every number, linked to its source CSV and chart
 4. Verdict in one of four forms: *superior*, *non-inferior*, *no demonstrated difference*, *inferior*
 5. Limitations: single-institution BACH, small test set, post-hoc argmax switch, simulated workflow parameters

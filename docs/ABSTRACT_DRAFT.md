@@ -1,13 +1,13 @@
 # Abstract — DRAFT for team review (numbers checked against `artifacts/eval/*.json`, 2026-10-18)
 
-**PathQueue: an explainable, confidence-aware breast pathology worklist built on pathology foundation models**
+**Sepia: an explainable, confidence-aware breast pathology worklist built on pathology foundation models**
 
 *Team 44 · 2026 Ashby Prize in Computational Science Hackathon · research prototype, not for clinical use*
 
 **Problem.** Pathologists read cases in arrival order, so an invasive carcinoma can wait behind benign biopsies, and
 AI triage tools rarely say why they flagged a case or how far to trust the flag.
 
-**Approach.** PathQueue reads each BACH breast microscopy field (Aresta et al., 2019) as a grid of tiles embedded by
+**Approach.** Sepia reads each BACH breast microscopy field (Aresta et al., 2019) as a grid of tiles embedded by
 pathology foundation models on NCSA Delta (UNI2-h for the production read; CONCH and MUSK for text-aligned concepts
 and agreement). A calibrated linear probe suggests one of four categories; split-conformal prediction (APS) returns
 the set of categories that cannot be excluded, and a safety rule sends any case with invasive carcinoma in that set
@@ -29,7 +29,7 @@ margins clear while finding 45% of involved margins on annotated whole-slide win
 pathologist) of top-scoring regions supported invasion, pleomorphism and tubule features (18–19 of 20) but not the normal-lobule or mitosis
 features (0 of 20).
 
-**Significance.** PathQueue shows how foundation-model reads can be made actionable in a worklist with calibrated,
+**Significance.** Sepia shows how foundation-model reads can be made actionable in a worklist with calibrated,
 set-valued confidence, explicit safety rules and grounded explanations, while stating what is simulated and what is
 not validated: frozen sections, margins and arrivals are simulated, the dataset is small, and no clinical validation
 is claimed.
@@ -44,7 +44,7 @@ limit was found in the inspected organizer material, so check the submission for
 **Problem.** Pathologists read cases in arrival order, so invasive carcinoma can wait behind benign biopsies, and AI
 triage tools rarely say why they flagged a case or how far to trust the flag.
 
-**Approach.** PathQueue embeds each BACH breast microscopy image (Aresta et al., 2019) as tiles with pathology
+**Approach.** Sepia embeds each BACH breast microscopy image (Aresta et al., 2019) as tiles with pathology
 foundation models on NCSA Delta (UNI2-h for the prediction; CONCH and MUSK for concepts and agreement). A calibrated
 linear probe suggests one of four categories; split-conformal APS sets list the categories that cannot be excluded,
 and any case with invasive carcinoma in its set goes to the top of the worklist, behind only simulated frozen

@@ -56,7 +56,7 @@ def test_results_md_quotes_every_number_with_its_source(tmp_path):
     out = results_md.run(ctx)
     assert out == tmp_path / "art" / "RESULTS_synthetic.md"          # synthetic never overwrites docs/RESULTS.md
     text = out.read_text(encoding="utf-8")
-    assert text.startswith("# PathQueue results") and "SYNTHETIC DATA" in text
+    assert text.startswith("# Sepia results") and "SYNTHETIC DATA" in text
     for src in ("eval/metrics.json", "eval/calibration.json", "eval/conformal.json", "eval/thunder.json",
                 "eval/queue_sim.json", "eval/margin.json"):
         assert src in text

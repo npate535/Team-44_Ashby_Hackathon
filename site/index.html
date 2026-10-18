@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>PathQueue</title>
-<meta name="description" content="Team 44's build plan for PathQueue: an AI-prioritized pathology worklist with explainable, confidence-aware case reads, built for the 2026 Ashby Prize Hackathon.">
+<title>Sepia</title>
+<meta name="description" content="Team 44's build plan for Sepia: an AI-prioritized pathology worklist with explainable, confidence-aware case reads, built for the 2026 Ashby Prize Hackathon.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Caveat:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Schibsted+Grotesk:wght@600;800&family=UnifrakturMaguntia&display=swap">
@@ -233,7 +233,7 @@ html { scroll-behavior: smooth; }
 <header class="stamp">
   <div class="stamp-inner">
     <h2>Updated File</h2>
-    <span class="meta">PathQueue build plan · supersedes the whiteboard plan · Sat Oct 17, 2026</span>
+    <span class="meta">Sepia build plan · supersedes the whiteboard plan · Sat Oct 17, 2026</span>
   </div>
 </header>
 
@@ -301,7 +301,7 @@ html { scroll-behavior: smooth; }
   <main>
     <div class="masthead">
       <span class="eyebrow">Team 44 · Ashby Prize Hackathon 2026 · NCSA Delta, Sat–Sun Oct 17–18</span>
-      <h1>PathQueue</h1>
+      <h1>Sepia</h1>
       <p class="lede">An AI-prioritized pathology worklist with explainable, confidence-aware case reads.</p>
       <p>A pathologist opens one worklist fed by two lanes. Frozen sections from the operating room always come first, with a running timer. Biopsies are sorted by risk and confidence, and flagged cases arrive with follow-up orders already drafted. The model suggests. The pathologist decides, and nothing is ordered without their approval.</p>
       <p class="status"><b>Status</b><span>This is the build plan. No results yet. Metrics will be added from cached test-split runs only.</span></p>
@@ -344,11 +344,11 @@ html { scroll-behavior: smooth; }
     </section>
 
     <section id="board">
-      <div class="section-head"><span class="eyebrow">The board</span><h2>How a case moves through PathQueue</h2></div>
+      <div class="section-head"><span class="eyebrow">The board</span><h2>How a case moves through Sepia</h2></div>
       <figure class="wb" aria-labelledby="wb-cap">
         <div class="wb-frame">
           <div class="wb-scroll">
-            <svg id="wb" viewBox="0 0 900 1560" role="img" aria-label="Hand-drawn flow. Cases arrive from the surgical lane (simulated frozen sections, timer starts on arrival) and the biopsy lane. The model read cuts each image into tiles, embeds them with CONCH and MUSK, scores eight named criteria, fits a calibrated risk model and adds a conformal set and reliability check. Every read shows why, where, compared to what, and how sure. The worklist sorts cases into four tiers: surgical, likely aggressive, low confidence, unflagged. Surgical cases open a margin view with three answers. Flagged biopsies get agent-drafted orders that are not placed until approved. Unflagged cases go straight to the pathologist. The pathologist decides; margin calls go to the surgeon screen, signed-out results to the oncologist inbox, and every action to an event log."><title>PathQueue, drawn as a whiteboard</title></svg>
+            <svg id="wb" viewBox="0 0 900 1560" role="img" aria-label="Hand-drawn flow. Cases arrive from the surgical lane (simulated frozen sections, timer starts on arrival) and the biopsy lane. The model read cuts each image into tiles, embeds them with CONCH and MUSK, scores eight named criteria, fits a calibrated risk model and adds a conformal set and reliability check. Every read shows why, where, compared to what, and how sure. The worklist sorts cases into four tiers: surgical, likely aggressive, low confidence, unflagged. Surgical cases open a margin view with three answers. Flagged biopsies get agent-drafted orders that are not placed until approved. Unflagged cases go straight to the pathologist. The pathologist decides; margin calls go to the surgeon screen, signed-out results to the oncologist inbox, and every action to an event log."><title>Sepia, drawn as a whiteboard</title></svg>
           </div>
         </div>
         <div class="wb-tray" aria-hidden="true"><span class="mk black"></span><span class="mk pink"></span><span class="mk purple"></span><span class="mk red"></span></div>
@@ -361,7 +361,7 @@ html { scroll-behavior: smooth; }
       </figure>
       <div class="origin">
         <img src="board.jpg" width="1400" height="1050" alt="The original team whiteboard: prioritize stuff, a model that evaluates incoming images, pathologist approval, an agent that orders stains, OR integration and the oncologist.">
-        <p class="small muted">Where it started: the team whiteboard from Saturday morning. PathQueue keeps its spine (worklist, model, agent, pathologist, surgeon, oncologist) and adds tiers, conformal confidence and grounded explanations.</p>
+        <p class="small muted">Where it started: the team whiteboard from Saturday morning. Sepia keeps its spine (worklist, model, agent, pathologist, surgeon, oncologist) and adds tiers, conformal confidence and grounded explanations.</p>
       </div>
     </section>
 
@@ -439,7 +439,7 @@ html { scroll-behavior: smooth; }
       embed_tiles.sbatch       # fallback if hosted server is slow/down
   eval/
     metrics.py                 # AUROC, ECE, reliability diagram, conformal coverage, concept AUROC
-    queue_sim.py               # FIFO vs PathQueue waiting-time simulation
+    queue_sim.py               # FIFO vs Sepia waiting-time simulation
     deletion_test.py           # explanation faithfulness
   agent/
     rules.py                   # deterministic rule engine over stain_rules.yaml
@@ -775,7 +775,7 @@ pip install --user git+https://github.com/lilab-stanford/MUSK.git fairscale sent
           <tr><td>Explanations are real</td><td>Concept AUROCs on NCT-CRC. Deletion test: removing a case's top-3 tiles for its top concept lowers risk more than removing three random tiles (mean drop ± CI).</td><td class="mono">metrics.py, deletion_test.py</td></tr>
           <tr><td>Reliability flag works</td><td>Accuracy vs degradation severity; AUROC of the reliability score for predicting errors</td><td class="mono">06_reliability.py</td></tr>
           <tr><td>Retrieval is meaningful</td><td>Precision@5</td><td class="mono">07_retrieval.py</td></tr>
-          <tr><td>Workflow benefit</td><td>Queue simulation: a day of Poisson arrivals with a fixed read time. Mean and median time-to-first-look for aggressive cases, FIFO vs PathQueue tiers, with assumptions stated on the Metrics page.</td><td class="mono">queue_sim.py</td></tr>
+          <tr><td>Workflow benefit</td><td>Queue simulation: a day of Poisson arrivals with a fixed read time. Mean and median time-to-first-look for aggressive cases, FIFO vs Sepia tiers, with assumptions stated on the Metrics page.</td><td class="mono">queue_sim.py</td></tr>
         </tbody>
       </table></div>
     </section>

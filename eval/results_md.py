@@ -272,7 +272,7 @@ LIMITATIONS = [
 def build(art: Path, cfg: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
     present = {n: io.read_json(schemas.eval_json(art, n)) for n in OWN + FOREIGN if schemas.eval_json(art, n).is_file()}
     synthetic = any(bool(d.get("synthetic")) for d in present.values())
-    lines = ["# PathQueue results", ""]
+    lines = ["# Sepia results", ""]
     if synthetic:
         lines += ["> **SYNTHETIC DATA — these numbers come from generated test data and are NOT results.**", ""]
     lines += ["> Research prototype — not for clinical use. Every number below is quoted from the eval file named "

@@ -1,7 +1,7 @@
-# PathQueue — one-shot build plan
+# Sepia — one-shot build plan
 
 ## Context
-Team 44 (Rishabh, Aarushi Das, Cheryl Tsai, Nadia Figueroa, Neev Patel) builds **PathQueue** as specified in
+Team 44 (Rishabh, Aarushi Das, Cheryl Tsai, Nadia Figueroa, Neev Patel) builds **Sepia** as specified in
 `plan.md` + `CELLS_SPEC.md` (sources of truth: breast/BACH only, Case JSON contract §7, tier rules §1, Rules for
 Claude Code §16, cell module behind `cells.enabled`). The repo holds only specs, `resources/` (official NCSA tooling
 snapshot + decks), `scripts/` (Delta SSH + hosted-model helpers) and `site/`; nothing is built. The user asked for

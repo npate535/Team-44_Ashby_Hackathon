@@ -1,4 +1,4 @@
-# PathQueue results
+# Sepia results
 
 > Research prototype — not for clinical use. Every number below is quoted from the eval file named beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.
 
@@ -87,17 +87,17 @@ Source: `eval/queue_sim.json` · 1000 simulated days · minutes, mean [2.5–97.
 | Policy | Invasive: mean first look | Invasive: P90 | Unflagged: mean wait | Overtime |
 |---|---|---|---|---|
 | FIFO (arrival order) | 20.2 [3.5, 60.1] | 37.7 [8.1, 100.8] | 20.0 [4.0, 59.5] | 29.3 [0.0, 104.3] |
-| PathQueue tiers | 6.0 [1.9, 12.9] | 13.0 [4.8, 31.5] | 45.0 [5.6, 151.9] | 29.3 [0.0, 104.3] |
-| PathQueue tiers + aging guard (configured targets) | 6.0 [1.9, 12.9] | 13.0 [4.8, 31.5] | 45.0 [5.6, 151.9] | 29.3 [0.0, 104.3] |
+| Sepia tiers | 6.0 [1.9, 12.9] | 13.0 [4.8, 31.5] | 45.0 [5.6, 151.9] | 29.3 [0.0, 104.3] |
+| Sepia tiers + aging guard (configured targets) | 6.0 [1.9, 12.9] | 13.0 [4.8, 31.5] | 45.0 [5.6, 151.9] | 29.3 [0.0, 104.3] |
 | Sensitivity: tiers + aging, day-scale targets | 6.0 [1.9, 12.9] | 13.0 [4.8, 31.5] | 44.8 [5.6, 151.2] | 29.3 [0.0, 104.3] |
 
-PathQueue tiers vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 25.0 [0.7, 93.2] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
+Sepia tiers vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 25.0 [0.7, 93.2] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
 
-PathQueue tiers + aging guard (configured targets) vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 25.0 [0.7, 93.2] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
+Sepia tiers + aging guard (configured targets) vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 25.0 [0.7, 93.2] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
 
 Sensitivity: tiers + aging, day-scale targets vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 24.8 [0.7, 92.7] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
 
-Aging guard: share of reads promoted per day — PathQueue tiers + aging guard (configured targets) 0.0%; Sensitivity: tiers + aging, day-scale targets 2.7%.
+Aging guard: share of reads promoted per day — Sepia tiers + aging guard (configured targets) 0.0%; Sensitivity: tiers + aging, day-scale targets 2.7%.
 
 Assumptions: arrivals: Poisson, 6 per hour for 8 h; cases drawn uniformly with replacement from the clean test split; reader: one reader, fixed 9 min per case, non-preemptive, works overtime until empty; utilization: 0.9; tiers: core.tiers (surgical 1; Invasive top or in the aps_marginal_nonempty conformal set 2; set size != 1, reliability flag or insufficient tissue 3; else 4); common_random_numbers: True; seed: 44; interval: 2.5-97.5 percentiles over simulated days (simulation uncertainty only); truth_use: true labels only score the waits; they never drive the queue.
 

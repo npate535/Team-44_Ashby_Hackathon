@@ -6,7 +6,7 @@ margins, arrivals and operating rooms are simulated, and the app says so on ever
 
 | Time | Click | Say |
 |---|---|---|
-| 0:00 | **Start replay** (top bar) | "Biopsies arrive in real time. PathQueue sorts them: frozen sections first, then anything where invasive carcinoma can't be excluded, then low-confidence reads, then the rest." Point at the composition bar and the tier groups. |
+| 0:00 | **Start replay** (top bar) | "Biopsies arrive in real time. Sepia sorts them: frozen sections first, then anything where invasive carcinoma can't be excluded, then low-confidence reads, then the rest." Point at the composition bar and the tier groups. |
 | 0:20 | Wait for **BACH_0167** to arrive (planned last arrival; it jumps into tier 2). Press **N** / **Open next case**, or click it | "It arrived last but jumps the queue: its confidence set is {in situ, invasive}." |
 | 0:35 | Case view: hover the heatmap; open **Why** | "Each region is scored; the strongest associated features are frequent mitotic figures and tumor necrosis, both above the training average. These are associations from a concept model, not causes and not a Nottingham grade. The AI spot-check badge (AI, not a pathologist) says how often the top regions really show each feature: for these two it is weak, 0 of 20 for mitoses and 3 of 20 for necrosis, so I discount them." |
 | 0:55 | **Prediction and confidence** | "65% calibrated probability of invasive carcinoma, but the APS set keeps in situ in play at the 90% level. MUSK agrees, 4 of 5 similar reference cases agree." |

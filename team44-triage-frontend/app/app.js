@@ -502,7 +502,7 @@ function updateShell() {
   const desc = pageDescription();
   $('#page-description').textContent = desc;
   $('#page-description').title = desc; // the header truncates it on narrower screens
-  document.title = `${ST.route === 'case' && ST.caseId ? ST.caseId + ' · ' : ''}${crumb} · PathQueue`;
+  document.title = `${ST.route === 'case' && ST.caseId ? ST.caseId + ' · ' : ''}${crumb} · Sepia`;
   $('.workspace').dataset.route = ST.route;
   $('#queue-count').textContent = ST.health?.open_cases ?? openItems(ST.items).length;
   const orOpen = (ST.health && ST.health.open_surgical) ?? null;
@@ -537,7 +537,7 @@ function updateShell() {
       ? 'pending'
       : 'ready';
   $('#connection').textContent = offline ? 'Reconnecting' : h ? 'Connected' : 'Connecting…';
-  $('#connection').title = offline ? 'The local service is not answering' : 'Local PathQueue service';
+  $('#connection').title = offline ? 'The local service is not answering' : 'Local Sepia service';
   $('#connection').dataset.state = offline ? 'offline' : h ? 'online' : 'pending';
   updateReplay();
   syncGlass();

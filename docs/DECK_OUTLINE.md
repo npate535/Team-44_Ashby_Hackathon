@@ -7,7 +7,7 @@ BACH imagery is CC BY-NC-ND 4.0: cite Aresta et al. 2019 on every slide that sho
 
 | # | Slide | Content | Visual |
 |---|---|---|---|
-| 1 | PathQueue | One line: an explainable, confidence-aware breast pathology worklist. Team 44. "Research prototype, not for clinical use." | App worklist screenshot |
+| 1 | Sepia | One line: an explainable, confidence-aware breast pathology worklist. Team 44. "Research prototype, not for clinical use." | App worklist screenshot |
 | 2 | The problem | Cases are read in arrival order; AI flags rarely say why or how sure. Frozen sections need answers in ~20 min. | — |
 | 3 | What we built | Two lanes (biopsy, simulated frozen section), four tiers, safety rule, drafted orders, routing to surgeon and oncologist. | Architecture diagram (plan §3) |
 | 4 | Data and models | BACH 400 images, THUNDER patient-safe split (218 / 50 / 132); 7 encoders embedded on NCSA Delta; UNI2-h (production), CONCH, MUSK and H-optimus-0 probes (plus ABMIL and a top-3 fusion) compared by patient-grouped CV inside train only; PathGen-CLIP zero-shot comparison; Virchow2 and Phikon-v2 embedded but not among the pre-registered candidates. | Model-choice forest plot |

@@ -1,4 +1,4 @@
-# PathQueue — Cell Segmentation Spec
+# Sepia — Cell Segmentation Spec
 
 Extends `Plan.md`. Read `Plan.md` first, especially Section 2 (compute rules) and
 Section 16 (rules for Claude Code); all of them apply here.
@@ -11,7 +11,7 @@ and showing them in the explanation.
 nuclear size and shape variation, lymphocyte proximity) that the interpretable model uses and
 the summary cites. Every number shown to the user comes from a stored measurement.
 
-**Feature flag:** `cells.enabled` in `config/settings.yaml`. The rest of PathQueue must work
+**Feature flag:** `cells.enabled` in `config/settings.yaml`. The rest of Sepia must work
 unchanged when it is `false`. If this module fails, turn it off and move on.
 
 ---

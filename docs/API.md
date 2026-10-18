@@ -1,4 +1,4 @@
-# PathQueue demo API
+# Sepia demo API
 
 FastAPI backend in `backend/` (BUILD_PLAN Task 6), run locally from precomputed artifacts with zero LLM calls.
 Research prototype — not for clinical use. All JSON; errors are `{"detail": "<message>"}`.

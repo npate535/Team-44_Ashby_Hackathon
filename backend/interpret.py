@@ -41,7 +41,7 @@ _DROP = {"runtime", "timer", "arrived_offset_s", "source_case_ids", "eval_only",
          "server_time_iso"}
 
 CASE_INSTRUCTIONS = """\
-You are explaining the output of PathQueue, a research prototype for breast pathology triage, to a pathologist who is
+You are explaining the output of Sepia, a research prototype for breast pathology triage, to a pathologist who is
 reviewing one H&E image (BACH dataset, 2048x1536 px, split into numbered 512 px regions). Everything you may rely on is
 in the CASE EVIDENCE JSON below. Do not use outside facts about this patient, and never invent a number, region,
 cell count or finding that is not in the JSON.
@@ -112,7 +112,7 @@ as whole numbers; no emojis. Output only the Markdown, with no preamble.
 """
 
 RESULTS_INSTRUCTIONS = """\
-You are interpreting the evaluation results of PathQueue, a research prototype for confidence-aware breast pathology
+You are interpreting the evaluation results of Sepia, a research prototype for confidence-aware breast pathology
 triage built during a hackathon on the public BACH dataset with pathology foundation models (CONCH, MUSK, UNI2-h and
 others). The judges asked for three things beyond classification accuracy: calibrated confidence, honest uncertainty
 (knowing when to defer), and interpretability that links tissue structures to the output. The RESULTS document below

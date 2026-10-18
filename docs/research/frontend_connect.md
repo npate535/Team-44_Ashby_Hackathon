@@ -29,7 +29,7 @@ the shapes proposed below and a bare `CasePublic`.
 | `setInterval` 1 s: `el += 1` (1 simulated min/s) | Local fake clock | **Replace** with server clocks: surgical timers use wall clock; arrivals use the sim clock. The 1 s tick only interpolates timer text (§3.4) |
 | `#pp` Pause clock | Local pause | **Wire** to `POST /api/sim/pause` / `start`. Add Start, Reset, and inject buttons (normal/degraded/composite) |
 | fetch `data/cases.json` + "serve over HTTP" error card | Data load | **Replace** with `api.js`. Keep the error card's wording for the `file://` case |
-| CSS tokens `--bg --sf --ink --mut --ln --hema --eos --eosl --amb --ambl --grn --grnl --bl`; dark theme via `prefers-color-scheme` + `:root[data-theme]`; IBM Plex / Iowan type; `.seg`, `.tier`, `.timer.hot`, `.pbar`, `.aged`, `.card`, `.grid`, `.chips`, `.look`, `.kv`, `.act(.off/.blk)`, `.btn(.p/.d)`, `.verdict`, `.or/.steps/.big`, reduced motion | Visual language | **Keep all verbatim.** Append a `/* PathQueue additions */` section only (new tokens below). Don't recolor existing tokens |
+| CSS tokens `--bg --sf --ink --mut --ln --hema --eos --eosl --amb --ambl --grn --grnl --bl`; dark theme via `prefers-color-scheme` + `:root[data-theme]`; IBM Plex / Iowan type; `.seg`, `.tier`, `.timer.hot`, `.pbar`, `.aged`, `.card`, `.grid`, `.chips`, `.look`, `.kv`, `.act(.off/.blk)`, `.btn(.p/.d)`, `.verdict`, `.or/.steps/.big`, reduced motion | Visual language | **Keep all verbatim.** Append a `/* Sepia additions */` section only (new tokens below). Don't recolor existing tokens |
 | `.mock` amber notice | "Mock data" banner | **Keep the class.** It shows only in `?mock=1` or when any case has `synthetic:true`. Add a persistent `.banner`: "Research prototype — not for clinical use" |
 
 New CSS tokens, appended:
@@ -424,12 +424,12 @@ Banners: `banner-research` is always on. `banner-mock` appears in mock mode or w
 
 ```
 team44-triage-frontend/
-  README.md            # + "Connected to PathQueue API" section, run modes, credits the original author's ideas
+  README.md            # + "Connected to Sepia API" section, run modes, credits the original author's ideas
   app/
     index.html         # shell; #app pre-filled with "Loading… if this stays, serve over HTTP (see README)";
                        # <script type="module" src="app.js">
     app.js             # ENTRY (kept filename, now an ES module): ST, router, draw(), delegation, poll loop, 1 s tick
-    styles.css         # original verbatim + appended "PathQueue additions"
+    styles.css         # original verbatim + appended "Sepia additions"
     js/api.js  js/mock.js  js/adapter.js (toView, TIER, REASON, fmt, rem, esc)  js/svg.js  js/types.js (JSDoc
        typedefs mirroring core/contract.py; header says "keep in sync with core/contract.py + frontend/src/types.ts")
     js/views/{worklist,case_biopsy,case_surgical,heatmap,why,cells,agent,surgeon,oncologist,metrics,spotcheck}.js
