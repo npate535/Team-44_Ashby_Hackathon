@@ -129,3 +129,101 @@ def test_region_info_explains_qc_failed_regions():
         assert "failed tissue quality control" in out["missing"]
     assert "Tile P(Invasive)" in out["kept"] and "Passed tissue QC" in out["kept"]
     assert out["grid"].count('tabindex="0"') == 1                     # roving tabindex: a single tab stop
+
+
+# ---- exact region contributions (Workstream A) ------------------------------------------------------------------------
+LEGEND = ("Each region's push toward (pink) or away from (blue) invasive carcinoma. The pushes plus a constant add up "
+          "exactly to the model's invasive score.")
+
+
+def _contrib_view(extra: str = "") -> str:
+    """JS prelude: a biopsy view whose tiles carry known contributions (region 7 = +0.42, region 2 = -0.21)."""
+    return """
+        const base = A.toView({...biopsy, _fetched_ms: 0}, 0, cfg, null);
+        const vals = {0: 0.05, 1: -0.1, 2: -0.21, 3: 0.0, 4: 0.12, 5: 0.3, 6: 0.25, 7: 0.42, 8: -0.02, 9: 0.18, 10: null, 11: 0.01};
+        const v = {...base, tiles: base.tiles.map(t => ({...t, contribution: vals[t.idx]}))};
+        const hm = {sel: null, hl: [], opacity: 0.6, why: null};
+    """ + extra
+
+
+def test_contribution_layer_is_offered_and_selected_by_default():
+    out = run_node(_contrib_view("""
+        out.attribution = v.attribution;
+        out.layers = H.layers(v).map(l => l.label);
+        out.default = H.layerOf(v, null).id;
+        out.controls = H.heatmapControls(v, hm);
+        out.svgKind = /data-kind="([a-z]+)"/.exec(H.overlaySvg(v, hm))[1];
+    """))
+    assert out["attribution"]["method"] == "exact_linear"
+    assert out["layers"][0] == "Region contribution (exact)" and "Overall risk (tile P(Invasive))" in out["layers"]
+    assert out["default"] == "contribution" and out["svgKind"] == "contribution"
+    assert '<option value="contribution" selected>Region contribution (exact)</option>' in out["controls"]
+
+
+def test_contribution_colours_are_signed_and_scaled_to_the_case_max():
+    out = run_node(_contrib_view("""
+        const svg = H.overlaySvg(v, hm);
+        const rect = (i) => (svg.match(new RegExp('<rect class="hm-tile ([a-z]+)"[^>]*data-tile="' + i + '" data-v="([0-9.]+)"')) || []).slice(1);
+        out.r7 = rect(7); out.r2 = rect(2); out.r10 = rect(10);
+        out.legend = H.heatmapLegend(v, hm);
+        out.tip7 = H.regionInfo(v, hm, 7);
+        out.tip2 = H.regionInfo(v, hm, 2).text;
+        out.tip10 = H.regionInfo(v, hm, 10).text;
+        out.grid = H.regionGrid(v, hm);
+    """))
+    assert out["r7"] == ["pos", "1.0000"]                              # the case max |contribution| is fully shaded
+    assert out["r2"] == ["neg", "0.5000"]                              # 0.21 / 0.42, blue
+    assert out["r10"][1] == "0.0000"                                   # pooled-region value missing: unshaded
+    assert LEGEND.replace("'", "&#39;") in out["legend"] and 'data-kind="contribution"' in out["legend"]
+    assert "+0.42" in out["legend"] and "−0.42" in out["legend"]
+    assert out["tip7"]["text"].startswith("Region 7 · +0.42 toward invasive")
+    assert "Region 7 · +0.42 toward invasive" in out["tip7"]["html"]
+    assert out["tip2"].startswith("Region 2 · −0.21 away from invasive")
+    assert "not available" in out["tip10"]
+    assert ">+0.42<" in out["grid"]
+
+
+def test_qc_failed_regions_stay_hatched_in_the_contribution_layer():
+    out = run_node(_contrib_view("""
+        const kept = {...v, tiles: v.tiles.filter(t => ![3, 8].includes(t.idx))};
+        const svg = H.overlaySvg(kept, hm);
+        out.drop3 = svg.includes('class="hm-drop" style="fill:url(#hm-hatch)" data-tile="3"');
+        out.drop8 = svg.includes('class="hm-drop" style="fill:url(#hm-hatch)" data-tile="8"');
+        out.tile3 = svg.includes('class="hm-tile pos" data-testid="hm-tile" data-tile="3"') || svg.includes('class="hm-tile neg" data-testid="hm-tile" data-tile="3"');
+        out.tip3 = H.regionInfo(kept, hm, 3).text;
+    """))
+    assert out["drop3"] and out["drop8"] and not out["tile3"]
+    assert "failed tissue quality control" in out["tip3"]
+
+
+def test_contribution_layer_absent_without_contributions():
+    out = run_node("""
+        const raw = {...biopsy, prediction: {...biopsy.prediction, attribution: null},
+                     tiles: biopsy.tiles.map(t => ({...t, contribution: null}))};
+        const v = A.toView({...raw, _fetched_ms: 0}, 0, cfg, null);
+        const hm = {sel: null, hl: [], opacity: 0.6, why: null};
+        out.layers = H.layers(v).map(l => l.id);
+        out.default = H.layerOf(v, null).id;
+        out.why = W.why(v, hm, cfg, null);
+        const v2 = A.toView({...biopsy, prediction: (({attribution, ...p}) => p)(biopsy.prediction),
+                             tiles: biopsy.tiles.map(({contribution, ...t}) => t), _fetched_ms: 0}, 0, cfg, null);
+        out.layers2 = H.layers(v2).map(l => l.id);
+    """)
+    assert "contribution" not in out["layers"] and out["default"] == "risk"
+    assert "contribution" not in out["layers2"]
+    assert "Regions with the largest push" not in out["why"]
+
+
+def test_why_card_lists_the_regions_with_the_largest_push():
+    out = run_node(_contrib_view("""
+        out.html = W.why(v, hm, cfg, null);
+        out.top = W.topRegions(v, 3).map(r => [r.idx, r.contribution, r.concepts.map(c => c.id)]);
+    """))
+    html = out["html"]
+    assert "Regions with the largest push" in html
+    assert [r[0] for r in out["top"]] == [7, 5, 6]                    # the three largest positive contributions
+    assert all(len(r[2]) == 2 for r in out["top"])                     # each with its two highest concept z-scores
+    for idx in (7, 5, 6):
+        assert f'data-rg="{idx}" data-rg-scope="case"' in html         # opens the viewer focused on that region
+    assert "+0.42" in html and "Region 7" in html
+    assert html.index("Region 7") < html.index("Region 5") < html.index("Region 6")

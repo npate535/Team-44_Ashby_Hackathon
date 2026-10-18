@@ -42,7 +42,7 @@ const ST = {
   editing: null,
   editDraft: {},
   marginPick: [],
-  hm: { sel: 'risk', hl: [], opacity: 0.6, why: null },
+  hm: { sel: null, hl: [], opacity: 0.6, why: null }, // sel null: the case's first layer (heatmap.js layers)
   tab: 'evidence',
   cellsOverlay: true,
   cellsTile: null,
@@ -125,7 +125,7 @@ function onRoute() {
     ST.cellsTile = null;
     ST.marginPick = [];
     ST.justDone = null;
-    ST.hm = { sel: 'risk', hl: [], opacity: ST.hm.opacity, why: null };
+    ST.hm = { sel: null, hl: [], opacity: ST.hm.opacity, why: null };
     window.scrollTo(0, 0);
   }
   document.querySelectorAll('nav [data-nav]').forEach((b) => {

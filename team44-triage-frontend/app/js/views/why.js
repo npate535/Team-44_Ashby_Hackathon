@@ -145,9 +145,49 @@ function whyRow(r, hm, maxAbs, cells, metrics) {
   );
 }
 
+/** The k regions with the largest positive exact contributions, each with its two highest concept z-scores. */
+export function topRegions(v, k = 3) {
+  if (!v.attribution) return [];
+  const label = (id) => ((v.concepts || []).find((c) => c.id === id) || {}).label || id;
+  return v.tiles
+    .filter((t) => isNum(t.contribution) && Number(t.contribution) > 0)
+    .sort((a, b) => b.contribution - a.contribution || a.idx - b.idx)
+    .slice(0, k)
+    .map((t) => ({
+      idx: t.idx,
+      contribution: Number(t.contribution),
+      concepts: Object.entries(t.concepts || {})
+        .filter(([, z]) => isNum(z))
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 2)
+        .map(([id, z]) => ({ id, label: label(id), z: Number(z) }))
+    }));
+}
+
+function regionPush(v) {
+  const top = topRegions(v, 3);
+  if (!top.length) return '';
+  const rows = top
+    .map((r) => {
+      const zs = r.concepts.map((c) => `${c.label} ${sz(c.z)}`).join(' · ');
+      return (
+        `<button type="button" class="why-region" data-testid="why-region-${r.idx}" data-rg="${r.idx}" data-rg-scope="case" ` +
+        `aria-label="Region ${r.idx} · ${esc(signed(r.contribution))} toward invasive.${zs ? ` Highest concept scores: ${esc(zs)}.` : ''} Opens the image viewer at this region.">` +
+        `<span class="wg-n">Region ${r.idx}</span><b class="v up">${esc(signed(r.contribution))}</b>` +
+        `<span class="wg-z">${zs ? esc(zs) : 'No concept scores'}</span></button>`
+      );
+    })
+    .join('');
+  return (
+    `<section class="why-regions" data-testid="why-regions"><h3>Regions with the largest push</h3>` +
+    '<p class="sub">Each region\'s exact additive term in the model\'s invasive score (centered calibrated logit), with the region\'s two highest concept z-scores. Select a region to zoom to it.</p>' +
+    `<div class="wg-list">${rows}</div></section>`
+  );
+}
+
 export function why(v, hm, cfg, metrics) {
   const rows = v.why;
-  if (!rows.length) return '<div class="note">No criterion contributions for this case.</div>';
+  if (!rows.length) return regionPush(v) + '<div class="note">No criterion contributions for this case.</div>';
   const maxAbs = Math.max(1e-9, ...rows.map((r) => Math.abs(num(r.contribution))));
   const conceptPrediction = /^(cb_|concept_bottleneck)/.test(v.model || '');
   const explModel = metrics && metrics.eval && metrics.eval.metrics && metrics.eval.metrics.models ? metrics.eval.metrics.models.b : null;
@@ -180,6 +220,7 @@ export function why(v, hm, cfg, metrics) {
     ? '<p class="sub why-nolevel" data-testid="why-no-level">This case file has no training-standardized levels for the text-prompt criteria, so only each feature\'s push is shown; hover a row for its mean tile z.</p>'
     : '';
   return (
+    regionPush(v) +
     provenance +
     headline +
     levelNote +
