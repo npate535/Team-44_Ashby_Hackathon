@@ -12,6 +12,8 @@ make test                       # 2,500+ unit/integration tests
 make e2e                        # Playwright workflow tests (PQ_E2E=1)
 ```
 
+Presenter script with real case IDs: [DEMO_SCRIPT.md](DEMO_SCRIPT.md).
+
 Demo path (plan §14), verified by hand on the real artifacts at 03:05–03:09 CDT:
 Start replay → tier-2 biopsies sort to the top → open one → **Order tests** → **Sign out** → it appears in the
 **Oncology inbox** · **+ Composite** sends a simulated frozen section to an OR → it jumps to tier 1 with a running
