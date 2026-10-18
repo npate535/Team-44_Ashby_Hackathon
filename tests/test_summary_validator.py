@@ -47,13 +47,16 @@ def test_validator_drops_bad_sentences(bad, reason):
 
 
 @pytest.mark.parametrize("good", [
-    sentence("Suggested category: invasive carcinoma (calibrated probability 0.72).", "F1"),
-    sentence("Suggested category: invasive carcinoma (calibrated probability 72%).", "F1"),
-    sentence("Suggested category: invasive carcinoma (probability 0.7).", "F1"),            # rounding of 0.72
+    sentence("Suggested category: invasive carcinoma (calibrated probability 0.72); in situ carcinoma cannot be "
+             "excluded.", "F1"),
+    sentence("Suggested category: invasive carcinoma (calibrated probability 72%); in situ carcinoma cannot be "
+             "excluded.", "F1"),
+    sentence("Suggested category: invasive carcinoma (probability 0.7); in situ carcinoma cannot be excluded.",
+             "F1"),                                                                         # rounding of 0.72
     sentence("Tumor infiltrating stroma in regions 5 and 6 pushes the read up by 0.44.", "F2"),
     sentence("Variation in nuclear size is higher than in 95% of benign reference cases (regions 5 and 6).", "F6"),
     sentence("4 of 5 similar reference cases share the suggested category.", "F4"),
-    sentence("Ki-67, CK5/6 and p63 are named in F1 but are not numbers.", "F1"),
+    sentence("Ki-67, CK5/6 and p63 are named in F1 but are not numbers.", "F2"),
 ])
 def test_validator_keeps_grounded_sentences(good):
     kept, dropped = S.validate([good], FINDINGS, CFG)
@@ -74,7 +77,8 @@ def test_number_words_inside_a_cited_label_are_allowed():
 
 
 def test_numbers_across_multiple_cited_findings_are_pooled():
-    s = sentence("Probability 0.72; regions 5 and 6.", "F1", "F2")
+    s = sentence("Invasive carcinoma is suggested (probability 0.72; in situ carcinoma cannot be excluded), with "
+                 "tumor infiltrating stroma in regions 5 and 6.", "F1", "F2")
     assert S.validate([s], FINDINGS, CFG)[0] == [s]
 
 
@@ -104,7 +108,7 @@ def test_reviewer_bypasses_are_rejected(text):
 
 
 def test_validator_caps_sentences_and_dedupes_citations():
-    many = [sentence("Suggested category: invasive carcinoma.", "F1", "F1")] * 6
+    many = [sentence("Invasive carcinoma is suggested; in situ carcinoma cannot be excluded.", "F1", "F1")] * 6
     kept, dropped = S.validate(many, FINDINGS, CFG)
     assert len(kept) == CFG["summary"]["max_sentences"] and kept[0]["findings"] == ["F1"]
     assert all(d["reason"] == "beyond summary.max_sentences" for d in dropped)
@@ -132,7 +136,8 @@ def test_template_covers_prediction_concept_cell_and_retrieval():
     texts = [s["text"] for s in S.template(FINDINGS, CFG)]
     assert texts[0].startswith("Suggested category: invasive carcinoma (calibrated probability 0.72)")
     assert "in situ carcinoma is also in the confidence set" in texts[0]
-    assert any("most associated with invasive carcinoma" in t and "regions 5 and 6" in t for t in texts)
+    assert any(t.startswith("Strongest push toward invasive carcinoma in this read: invasion (regions 5 and 6)")
+               for t in texts)
     assert any("higher than in 95% of benign reference cases (regions 5 and 6)" in t for t in texts)
 
 
@@ -194,7 +199,7 @@ def test_template_concept_down_sentence():
                 {"id": "F2", "kind": "concept", "data": {"concept": "normal_lobules", "label": "Normal two-layered lobules",
                                                          "contribution": -0.4, "tiles": [3]}}]
     texts = [s["text"] for s in S.template(findings, CFG)]
-    assert "Normal two-layered lobules (region 3) is a feature associated with a lower likelihood of invasive carcinoma." in texts
+    assert "Feature lowering the likelihood of invasive carcinoma in this read: normal two-layered lobules (region 3)." in texts
 
 
 # ---- generate (LLM path mocked) ---------------------------------------------------------------------------------------
@@ -348,3 +353,161 @@ def test_features_pushing_away_are_not_presented_as_support():
 def test_margin_calls_are_hedged():
     assert _S.semantic_problem("Tumor is present at the superior and medial margins.", [_MARGIN_TUMOR])
     assert _S.semantic_problem("Tumor is suggested at the superior and medial margins.", [_MARGIN_TUMOR]) is None
+
+
+# ---- clinical audit rules (2026-10-18: every sentence of the 328 demo summaries was audited) ---------------------------
+def _c(fid, concept, label, contribution, level, tiles=(1,)):
+    return {"id": fid, "kind": "concept", "data": {"concept": concept, "label": label, "contribution": contribution,
+                                                   "tiles": list(tiles), "level": level}}
+
+
+def _pred(top, members, fid="F1"):
+    return {"id": fid, "kind": "prediction", "data": {"top": top, "p": 0.7, "set": list(members), "confidence": 0.9}}
+
+
+_INV_LOW_AWAY = _c("F2", "invasion", "Tumor infiltrating stroma", -0.58, "below_typical")
+_INV_HIGH_UP = _c("F2", "invasion", "Tumor infiltrating stroma", 0.66, "above_typical")
+_TUB_HIGH_AWAY = _c("F3", "tubules", "Gland / tubule formation", -0.6, "above_typical")
+_TUB_LOW_UP = _c("F3", "tubules", "Gland / tubule formation", 0.9, "below_typical")
+_LYMPH_HIGH_AWAY = _c("F4", "lymphocytes", "Dense lymphocytic infiltrate (TILs)", -0.8, "above_typical")
+_MIT_LOW_UP = _c("F5", "mitoses", "Frequent mitotic figures", 0.4, "below_typical")
+_INV_TYPICAL = _c("F6", "invasion", "Tumor infiltrating stroma", -0.23, "typical")
+
+
+@pytest.mark.parametrize("text,ok", [
+    ("A benign lesion is suggested; in situ carcinoma cannot be excluded.", True),
+    ("A benign lesion is suggested.", False),                                                   # omits a set class
+    ("A benign lesion is suggested; in situ carcinoma and a benign lesion cannot be excluded.", False),   # top again
+    ("A benign lesion is suggested; invasive carcinoma cannot be excluded.", False),            # not in the set
+    ("A benign lesion; in situ carcinoma cannot be excluded.", False),                          # stated as fact
+    ("In situ carcinoma cannot be excluded.", False),                                           # top not named
+])
+def test_prediction_sentence_names_the_set_exactly(text, ok):
+    problem = _S.semantic_problem(text, [_pred("Benign", ["Benign", "InSitu"])], aggressive_top=False)
+    assert (problem is None) == ok, problem
+
+
+@pytest.mark.parametrize("text,cited,ok", [
+    ("Scarce tumor infiltrating stroma pushes the read toward invasive carcinoma.", [_INV_LOW_AWAY], False),
+    ("Scarce tumor infiltrating stroma pushes the read away from invasive carcinoma.", [_INV_LOW_AWAY], True),
+    ("Scarce gland / tubule formation is associated with a lower likelihood of invasive carcinoma.", [_TUB_LOW_UP], False),
+    ("Scarce gland / tubule formation pushes the read toward invasive carcinoma.", [_TUB_LOW_UP], True),
+    ("Prominent tumor infiltrating stroma pushes the read toward invasive carcinoma, while a prominent lymphocytic "
+     "infiltrate pushes it away.", [_INV_HIGH_UP, _LYMPH_HIGH_AWAY], True),                    # per-clause attribution
+    ("Prominent tumor infiltrating stroma pushes the read away from invasive carcinoma, while a prominent lymphocytic "
+     "infiltrate pushes it toward invasive carcinoma.", [_INV_HIGH_UP, _LYMPH_HIGH_AWAY], False),  # crossed
+    ("Prominent tumor infiltrating stroma pushes the read toward invasive carcinoma, while scarce gland / tubule "
+     "formation is associated with a lower likelihood of invasive carcinoma.", [_INV_HIGH_UP, _TUB_LOW_UP], False),
+])
+def test_concept_direction_follows_the_sign_of_the_contribution(text, cited, ok):
+    problem = _S.semantic_problem(text, cited, aggressive_top=True)
+    assert (problem is None) == ok, problem
+
+
+@pytest.mark.parametrize("text,cited,aggressive_top,ok", [
+    ("Prominent gland / tubule formation is associated with this result.", [_TUB_HIGH_AWAY], False, False),
+    ("Prominent tumor infiltrating stroma is associated with this finding.", [_INV_HIGH_UP], False, False),
+    ("Prominent tumor infiltrating stroma is the strongest associated feature.", [_INV_HIGH_UP], False, False),
+    ("Scarce gland / tubule formation and frequent mitotic figures further support the result.", [_TUB_LOW_UP], False,
+     False),
+    ("Prominent tumor infiltrating stroma is associated with this category.", [_INV_HIGH_UP], True, True),
+    ("Prominent tumor infiltrating stroma is associated with this finding.", [_INV_HIGH_UP], True, False),  # vague
+    ("Prominent gland / tubule formation is associated with a lower likelihood of invasive carcinoma.",
+     [_TUB_HIGH_AWAY], False, True),
+])
+def test_concept_support_is_never_retargeted_at_the_suggested_category(text, cited, aggressive_top, ok):
+    problem = _S.semantic_problem(text, cited, aggressive_top=aggressive_top)
+    assert (problem is None) == ok, problem
+
+
+@pytest.mark.parametrize("text,cited,ok", [
+    ("Tumor infiltrating stroma is present.", [_INV_TYPICAL], False),         # typical is neither present nor scarce
+    ("Typical tumor infiltrating stroma pushes the read away from invasive carcinoma.", [_INV_TYPICAL], True),
+    ("Scarce frequent mitotic figures push the read toward invasive carcinoma.", [_MIT_LOW_UP], False),
+    ("Frequent mitotic figures are scarce.", [_MIT_LOW_UP], False),
+    ("Scarce mitotic figures push the read toward invasive carcinoma.", [_MIT_LOW_UP], True),
+])
+def test_concept_level_wording(text, cited, ok):
+    problem = _S.semantic_problem(text, cited, aggressive_top=False)
+    assert (problem is None) == ok, problem
+
+
+_RETR_LOW = {"id": "F5", "kind": "retrieval", "data": {"agree": 1, "of": 5, "label": "Benign"}}
+_RETR_HIGH = {"id": "F5", "kind": "retrieval", "data": {"agree": 4, "of": 5, "label": "Benign"}}
+
+
+@pytest.mark.parametrize("text,finding,ok", [
+    ("The case is similar to benign reference cases.", _RETR_LOW, False),
+    ("Similar reference cases favor a benign lesion.", _RETR_LOW, False),
+    ("The case is similar to 1 of 5 reference cases.", _RETR_LOW, False),       # which category?
+    ("The case is similar to 5 reference cases.", _RETR_LOW, False),            # the total quoted as agreeing
+    ("1 of 5 most similar reference cases shares the suggested category.", _RETR_LOW, True),
+    ("Only 1 of 5 similar reference cases is benign.", _RETR_LOW, True),
+    ("The case is similar to 5 benign reference cases.", _RETR_HIGH, False),
+    ("4 of 5 most similar reference cases share the suggested category.", _RETR_HIGH, True),
+])
+def test_retrieval_agreement_is_quoted_not_inflated(text, finding, ok):
+    problem = _S.semantic_problem(text, [finding])
+    assert (problem is None) == ok, problem
+
+
+def test_margin_hedge_and_exact_margins():
+    clear = {"id": "F7", "kind": "margin", "data": {"suggested_call": "clear", "involved": []}}
+    assert _S.semantic_problem("Margins are clear and the read is consistent with similar cases.", [clear])
+    assert _S.semantic_problem("Suggested margin call (simulated frozen section): margins clear.", [clear]) is None
+    assert _S.semantic_problem("Suggested margin call: tumor at the superior, medial and lateral margins.",
+                               [_MARGIN_TUMOR])                            # lateral is not involved
+
+
+_NUC = {"id": "F7", "kind": "cells", "data": {"feature": "nuc_area_mean", "label": "Nuclear size", "value": 43.88,
+                                              "unit": "um2", "ref_percentile": 0.0, "tiles": [1]}}
+_NUC_CV = {"id": "F8", "kind": "cells", "data": {"feature": "nuc_area_cv", "label": "Variation in nuclear size",
+                                                 "value": 0.57, "unit": "", "ref_percentile": 0.95, "tiles": [1]}}
+_NEO = {"id": "F9", "kind": "cells", "data": {"feature": "neo_density", "label": "Tumor cell density", "value": 2471.9977,
+                                              "unit": "per mm2", "ref_percentile": 0.96, "tiles": [1]}}
+
+
+@pytest.mark.parametrize("text,cited,aggressive_top,ok", [
+    ("Nuclear size is higher than in most benign reference cases.", [_NUC], False, False),
+    ("No benign reference case has a lower nuclear size, while variation in nuclear size is higher than in 95% of "
+     "benign reference cases.", [_NUC, _NUC_CV], False, True),            # "nuclear size" inside the longer label
+    ("Nuclear size is 43.88.", [_NUC], False, False),                     # a bare value means nothing
+    ("Tumor cell density is higher than in 96% of benign reference cases.", [_NEO], False, True),
+    ("The case is supported by a high tumor cell density of 2472.", [_NEO], False, False),   # cells are not support
+    ("A high tumor cell density of 2472 is in keeping with the suggestion.", [_NEO], True, True),
+])
+def test_cell_wording_follows_the_benign_reference_percentile(text, cited, aggressive_top, ok):
+    problem = _S.semantic_problem(text, cited, aggressive_top=aggressive_top)
+    assert (problem is None) == ok, problem
+
+
+def test_numbers_are_rounded_for_reading():
+    findings = [_pred("Benign", ["Benign"]), dict(_NEO, id="F2"),
+                {"id": "F3", "kind": "cells", "data": {"feature": "dead_fraction", "label": "Dead cell fraction",
+                                                       "value": 0.0245, "ref_percentile": 0.004, "tiles": [1]}}]
+    for text, ids in (("Tumor cell density of 2471.9977 is higher than in 96% of benign reference cases.", ["F2"]),
+                      ("Only 0% of benign reference cases have a lower dead cell fraction.", ["F3"])):
+        kept, dropped = S.validate([sentence(text, *ids)], findings, CFG)
+        assert kept == [], text
+
+
+def test_required_prediction_first_and_strongest_concept_backfilled():
+    findings = [_pred("Benign", ["Benign", "InSitu"]), _INV_HIGH_UP, _TUB_HIGH_AWAY, _RETR_HIGH, _MARGIN_DEFER,
+                _FLAGGED]
+    kept = [{"text": "4 of 5 most similar reference cases share the suggested category.", "findings": ["F5"]}]
+    out, added = S.ensure_required(kept, findings, CFG)
+    assert out[0]["findings"] == ["F1"] and out[1]["findings"] == ["F2"]          # strongest concept: invasion (+)
+    assert out[1]["text"].startswith("Strongest push toward invasive carcinoma in this read: prominent tumor")
+    assert added == 4 and len(out) == CFG["summary"]["max_sentences"]
+    assert {"F6", "F7"} <= {i for s in out for i in s["findings"]}
+    assert S.validate(out, findings, CFG)[1] == []
+
+
+def test_template_concept_phrases_follow_level():
+    findings = [_pred("Invasive", ["Invasive"]), _TUB_LOW_UP, _MIT_LOW_UP, _LYMPH_HIGH_AWAY, _INV_TYPICAL]
+    texts = [s["text"] for s in S.template(findings, CFG)]
+    assert ("Strongest push toward invasive carcinoma in this read: scarce gland / tubule formation (region 1), then "
+            "scarce mitotic figures.") in texts
+    assert ("Features lowering the likelihood of invasive carcinoma in this read: dense lymphocytic infiltrate (TILs) "
+            "and tumor infiltrating stroma (typical level).") in texts
+    assert S.validate(S.template(findings, CFG), findings, CFG)[1] == []
