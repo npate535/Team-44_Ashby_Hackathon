@@ -1,6 +1,6 @@
 # 3-minute demo script (real artifacts)
 
-Start from a fresh workspace: `make demo` (or `outputs/restart_main_app.sh`, which archives the previous workspace
+Start from a fresh workspace: `make demo`, or `make demo-fresh` (runs `scripts/demo_fresh.sh` in the background and archives the previous workspace
 database first), open `http://127.0.0.1:8000`. Everything below happens on real BACH test images; frozen sections,
 margins, arrivals and operating rooms are simulated, and the app says so on every screen.
 

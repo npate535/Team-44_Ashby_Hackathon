@@ -109,7 +109,7 @@ reader to discount the weak ones.
   aging guard reshuffle the queue. Reset restores the replay speed.
 - Each concept row now explains its whole push: the case JSON carries both standardized inputs (`value_std` for the
   3-strongest-region mean, `frac_std` for the share of regions above threshold).
-- `outputs/restart_main_app.sh` restarts the app on a fresh workspace and archives the previous database.
+- `make demo-fresh` (`scripts/demo_fresh.sh`) restarts the app on a fresh workspace and archives the previous database.
 
 ## Limits that still hold
 Small public dataset (BACH, 132 test images); simulated frozen sections, margins, arrivals and OR rooms; stain rules
