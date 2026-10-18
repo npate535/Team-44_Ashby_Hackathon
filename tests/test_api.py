@@ -448,6 +448,17 @@ def test_static_routes_never_serve_json(tmp_path):
     assert "true_label" not in client.get("/fixtures/demo_0001.json").text
 
 
+def test_fixture_json_suffix_case_never_serves_the_raw_case(tmp_path):
+    # case-insensitive filesystems (macOS/APFS) open demo_0001.json for demo_0001.JSON: still the public form only
+    client, _ = make_client(tmp_path, cases_dir=FIXTURES)
+    for url in ("/fixtures/demo_0001.JSON", "/fixtures/demo_0001.Json"):
+        res = client.get(url)
+        assert res.status_code in (200, 404), url
+        assert "eval_only" not in res.text and "true_label" not in res.text, url
+        if res.status_code == 200:
+            assert find_keys(res.json()) == []
+
+
 def test_non_string_payload_values_are_422(dev):
     client, clock, roles, _ = dev
     arrive_all_biopsies(client, clock)

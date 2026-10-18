@@ -654,7 +654,9 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
                 raise db.NotFoundError(f"{kind}/{name} not found")
             if w is not None and kind in ("images", "cells", "spotcheck"):
                 return Response(thumbnail(path, w), media_type="image/jpeg")
-            if path.suffix == ".json":          # fixture cases for ?mock=1: public form only (no eval_only)
+            # fixture cases for ?mock=1: public form only (no eval_only). Case-insensitive like the suffix check above:
+            # on macOS/APFS /fixtures/demo_0001.JSON opens demo_0001.json and must not be served raw.
+            if path.suffix.lower() == ".json":
                 try:
                     return contract.to_public(io.read_json(path))
                 except (ValueError, OSError) as exc:
