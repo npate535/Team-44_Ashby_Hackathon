@@ -12,9 +12,10 @@ for any choice. Everything below is WSI-free except the explicitly labeled ablat
 2. Selection by patient-grouped CV inside train (riskmodels: K folds x R repeats, one-SE rule, simplest wins),
    separately for the black-box family (A) and the concept family (B); then the plan §6.6 A-vs-B rule on CV
    out-of-fold AUROC(Invasive) / BAcc decides what drives predictions (settings model_choice.production overrides).
-3. Temperature per model from its out-of-fold train logits (all repeats, §A3); marginal LAC conformal on the
-   calibration split at settings.alpha (APS with conformal.seed for the fit and conformal.seed + 1 for the sets,
-   and Mondrian, both secondary); risk = calibrated P(aggressive class).
+3. Temperature per model from its out-of-fold train logits (all repeats, §A3); LAC, APS (conformal.seed for the fit,
+   conformal.seed + 1 for the sets) and Mondrian conformal sets fit on the calibration split at settings.alpha;
+   set_tier = the conformal.method x mode set (core.conformal.tier_set_source), argmax added to empty rows when
+   conformal.nonempty, drives the tiers; risk = calibrated P(aggressive class).
 4. Outputs (data root): predictions.csv (calibration/test + every degraded and composite variant + out-of-fold train
    rows), contributions.csv (concept bottleneck B), tile_risk.csv (+ tile_risk_oof.csv when 04a has not written
    it), margins.json, models/<name>.npz (exported weights), predictions_view0.csv (private to 06: clean view-0
@@ -495,6 +496,14 @@ class RiskStep:
             sets = conformal.aps_sets(p, self.conf[model]["qhat_aps"], seed + 1, bool(cfg["conformal"]["aps_randomized"]))
             df.loc[part.index, "set_aps"] = [schemas.format_set(conformal.set_labels(s, self.classes), self.classes)
                                              for s in sets]
+        # tier-driving set (settings conformal.method x mode; argmax added to empty rows when conformal.nonempty)
+        source = conformal.tier_set_source(cfg)
+        pcal = df[[schemas.cal_prob_col(k) for k in self.classes]].to_numpy()
+        tier = np.array([[k in schemas.parse_set(v) for k in self.classes] for v in df[source]], dtype=bool)
+        if bool(cfg["conformal"].get("nonempty", False)):
+            tier = conformal.nonempty_sets(tier, pcal)
+        df["set_tier"] = [schemas.format_set(conformal.set_labels(t, self.classes), self.classes) for t in tier]
+        df["set_tier_size"] = tier.sum(axis=1).astype(int)
         # uncalibrated probabilities of every evaluated model; OOF means for train rows
         for model, c in self.cands.items():
             cols = [schemas.prob_col(model, k) for k in self.classes]

@@ -164,6 +164,35 @@ def mondrian_sets(probs: np.ndarray, qhats: np.ndarray) -> np.ndarray:
     return (1.0 - probs) <= qhats[None, :]
 
 
+def nonempty_sets(sets: np.ndarray, probs: np.ndarray) -> np.ndarray:
+    """Add the argmax class to every empty row. The result is a superset of `sets`, so coverage can only rise; the
+    worklist then always shows a differential instead of an empty set (settings conformal.nonempty)."""
+    sets = np.array(sets, dtype=bool, copy=True)
+    probs = _check_probs(probs)
+    if sets.shape != probs.shape:
+        raise ValueError(f"sets {sets.shape} and probs {probs.shape} must have the same shape")
+    empty = ~sets.any(axis=1)
+    sets[np.flatnonzero(empty), probs[empty].argmax(axis=1)] = True
+    return sets
+
+
+TIER_SET_SOURCES = {("lac", "marginal"): "set_lac", ("lac", "mondrian"): "set_mondrian", ("aps", "marginal"): "set_aps"}
+
+
+def tier_set_source(cfg) -> str:
+    """predictions.csv column whose set drives the worklist tiers: settings conformal.method x conformal.mode."""
+    key = (str(cfg["conformal"]["method"]), str(cfg["conformal"]["mode"]))
+    if key not in TIER_SET_SOURCES:
+        raise ValueError(f"conformal.method/mode {key} has no tier set (choose one of {sorted(TIER_SET_SOURCES)})")
+    return TIER_SET_SOURCES[key]
+
+
+def tier_set_name(cfg) -> str:
+    """Display name of the tier-driving set, e.g. 'aps_marginal_nonempty'."""
+    name = f"{cfg['conformal']['method']}_{cfg['conformal']['mode']}"
+    return name + ("_nonempty" if bool(cfg["conformal"].get("nonempty", False)) else "")
+
+
 def set_labels(mask: np.ndarray, classes: Sequence[str]) -> list[str]:
     """Class names of one set row (bool (C,)), in classes order. [] for an empty set."""
     mask = np.asarray(mask, dtype=bool).ravel()

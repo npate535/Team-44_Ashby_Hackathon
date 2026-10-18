@@ -15,7 +15,7 @@ Writes <artifacts>/eval/:
                     evaluated model's row.
   calibration.json  ECE (equal-mass bins; biased at small n), Brier and NLL before (uncalibrated p__<production>)
                     and after temperature (pcal__), reliability-diagram data for both.
-  conformal.json    coverage and mean set size for marginal LAC (drives tiers), APS and Mondrian when present; per-class
+  conformal.json    coverage and mean set size for marginal LAC, APS, Mondrian and the tier set (set_tier); per-class
                     coverage; empty-set rate; set-size histogram; the finite-sample note: with n calibration cases,
                     coverage given the calibration set ~ Beta(k, n + 1 - k), k = ceil((n + 1)(1 - alpha)).
 
@@ -40,7 +40,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from core import calibration, cli, io, schemas, stats
+from core import calibration, cli, conformal, io, schemas, stats
 
 STEP = "eval_metrics"
 
@@ -309,9 +309,11 @@ def conformal_payload(df: pd.DataFrame, preds: pd.DataFrame, cfg: Mapping[str, A
     alpha = float(cfg["alpha"])
     n_cal = int(preds["case_id"].isin(set(calibration_ids)).sum())
     out: dict[str, Any] = {"split": "test", "n": int(len(df)), "n_groups": int(len(set(groups))), "alpha": alpha,
-                           "target_coverage": 1 - alpha, "drives_tiers": f"{cfg['conformal']['method']}_{cfg['conformal']['mode']}",
+                           "target_coverage": 1 - alpha, "drives_tiers": conformal.tier_set_name(cfg),
                            "finite_sample": beta_note(n_cal, alpha), "methods": {}}
     columns = {"lac_marginal": "set_lac", "aps": "set_aps", "mondrian": "set_mondrian"}
+    if "set_tier" in df.columns and conformal.tier_set_name(cfg) not in ("lac_marginal", "aps_marginal"):
+        columns[conformal.tier_set_name(cfg)] = "set_tier"
     for j, (name, col) in enumerate(columns.items()):
         if col not in df.columns:
             continue
@@ -332,7 +334,8 @@ def conformal_payload(df: pd.DataFrame, preds: pd.DataFrame, cfg: Mapping[str, A
                 continue
             block["per_class"][cls] = ci(cover, [y[mask], sets[mask]], groups[mask], cfg, 402 + 10 * j + ci_idx)
         out["methods"][name] = block
-    out["notes"] = ["Marginal LAC drives the worklist tiers; APS and Mondrian are secondary and never drive tiers.",
+    out["notes"] = [f"{conformal.tier_set_name(cfg)} drives the worklist tiers; the other methods are reported "
+                    "alongside and never drive tiers.",
                     "Mondrian uses about a dozen calibration cases per class, so its thresholds are near-maximal "
                     "and conservative.", "No coverage claim is made for degraded or composite variants."]
     return out

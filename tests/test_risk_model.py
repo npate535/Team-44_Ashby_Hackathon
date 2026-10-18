@@ -171,3 +171,19 @@ def test_rerun_skips_and_view0_file(run05):
     before = schemas.predictions_csv(root).stat().st_mtime_ns
     assert step05.main(["--data-root", str(root), "--artifacts-root", str(art)]) == 0
     assert schemas.predictions_csv(root).stat().st_mtime_ns == before
+
+
+def test_tier_set_follows_configured_method_and_is_nonempty(run05):
+    root, _, cfg = run05
+    df = read(schemas.predictions_csv(root))
+    source = conformal.tier_set_source(cfg)
+    nonempty = bool(cfg["conformal"].get("nonempty", False))
+    for row in df.itertuples():
+        base = schemas.parse_set(getattr(row, source))
+        tier = schemas.parse_set(row.set_tier)
+        assert row.set_tier_size == len(tier)
+        assert set(base) <= set(tier)
+        if base or not nonempty:
+            assert tier == base
+        else:
+            assert tier == [row.top]

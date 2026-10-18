@@ -5,7 +5,7 @@
 Model (every assumption is written to queue_sim.json `assumptions`):
   * One simulated day per replication: Poisson arrivals at settings queue_sim.arrivals_per_hour for
     queue_sim.day_hours; each arrival is a real TEST case drawn uniformly with replacement (clean cases only), with
-    its real read: lane, calibrated probabilities, LAC set, risk, reliability flag and QC tile count.
+    its real read: lane, calibrated probabilities, tier conformal set (set_tier), risk, reliability flag and QC tile count.
   * One reader, fixed read time queue_sim.read_time_min per case, non-preemptive; the reader works past the end of
     the day until the queue is empty (overtime is reported).
   * Sensitivity: one extra run 'tiers_aging_<name>' per settings queue_sim.aging_scenarios entry, with the aging
@@ -34,7 +34,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from core import cli, io, schemas, tiers
+from core import cli, conformal, io, schemas, tiers
 from eval.metrics import load_cases, load_predictions, write_eval
 
 STEP = "eval_queue_sim"
@@ -66,7 +66,7 @@ def test_cases(cfg: Mapping[str, Any], root) -> list[dict[str, Any]]:
             raise ValueError(f"test case {cid}: blank reliability_flag")
         case = {"case_id": cid, "lane": row["lane"], "arrived_offset_s": 0.0,
                 "prediction": {"classes": classes, "probs": [float(p[schemas.cal_prob_col(c)]) for c in classes],
-                               "conformal_set": schemas.parse_set(p["set_lac"]), "risk_score": float(p["risk"])},
+                               "conformal_set": schemas.parse_set(p["set_tier"] if "set_tier" in p.index else p["set_lac"]), "risk_score": float(p["risk"])},
                 "quality": {"reliability_flag": bool(int(flag)), "qc_tiles_kept": int(qc[cid])}}
         tier, reasons = tiers.assign_tier(case, cfg)
         out.append({"case": case, "truth": row["label"], "tier": tier, "reasons": reasons})
@@ -220,8 +220,8 @@ def run(ctx: cli.StepContext, reps: int | None = None) -> Any:
                         "with replacement from the clean test split",
             "reader": f"one reader, fixed {q['read_time_min']} min per case, non-preemptive, works overtime until empty",
             "utilization": round(utilization, 3),
-            "tiers": "core.tiers (surgical 1; Invasive top or in the LAC set 2; set size != 1, reliability flag or "
-                     "insufficient tissue 3; else 4)",
+            "tiers": f"core.tiers (surgical 1; Invasive top or in the {conformal.tier_set_name(cfg)} conformal set 2; "
+                     "set size != 1, reliability flag or insufficient tissue 3; else 4)",
             "aging": dict(cfg["aging"]),
             "common_random_numbers": True, "seed": int(q["seed"]),
             "interval": "2.5-97.5 percentiles over simulated days (simulation uncertainty only)",

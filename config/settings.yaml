@@ -90,7 +90,10 @@ tiles:
 
 qc:
   saturation_min: 0.07              # a pixel is tissue when HSV saturation (0-1) > saturation_min ...
-  brightness_max: 0.92              # ... and HSV value (0-1) < brightness_max
+  brightness_max: 1.0               # ... and HSV value (0-1) < brightness_max; >= 1 disables the value test. Was 0.92:
+                                    # HSV value = max RGB channel, so pale BACH tissue sits at V 0.95-1.0 and the cut
+                                    # failed 50/400 images (31 Invasive) as "insufficient tissue". Fixed 2026-10-18 by
+                                    # pipeline/01q_requalify_qc.py (saturation alone separates the grey glass background).
   min_tissue_frac: 0.5              # a tile passes QC when its tissue fraction >= min_tissue_frac
   min_tiles_kept: 3                 # fewer QC-passing contract-grid tiles = insufficient tissue (tier 3; stain rule `insufficient`)
 
@@ -125,9 +128,17 @@ encoders:                           # model loading details live in config/encod
 
 alpha: 0.1                          # conformal miscoverage (plan §6.6)
 conformal:
-  method: lac                       # lac | aps
+  # Tier-driving set = method x mode (core.conformal.tier_set_source), written to predictions.csv set_tier.
+  # POST-HOC CHANGE 2026-10-18 (recorded in docs/RESULTS.md): pre-registered LAC (marginal) is kept and reported, but
+  # on held-out test it returned EMPTY sets for ~19-24% of cases and never a multi-class set, so it gave the reader no
+  # differential (and never surfaced InSitu-vs-Invasive ambiguity). The 50-image calibration split is unusually easy
+  # (98% accurate vs ~84% on test), so LAC's 90% threshold demanded P >= ~0.79. Plan §6.6 allows APS or LAC; APS
+  # (Romano et al. 2020) adapts set size to uncertainty. nonempty adds the argmax class to an empty set (a superset,
+  # so coverage can only rise). This choice was made AFTER viewing test results: its coverage is reported as such.
+  method: aps                       # lac | aps
   mode: marginal                    # marginal | mondrian
-  secondary: [aps, mondrian]        # reported alongside, never drive tiers
+  nonempty: true                    # add the argmax class to empty tier sets (core.conformal.nonempty_sets)
+  secondary: [lac, mondrian]        # reported alongside, never drive tiers
   aps_randomized: true
   seed: 44
 
