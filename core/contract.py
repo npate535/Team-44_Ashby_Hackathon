@@ -149,6 +149,8 @@ class Concept(_Model):
     source: ConceptSource = "text"    # text = text prompts; cav = text + caption-derived vector; cell = measured
     components: Optional[ConceptComponents] = None
     caption_consistent: Optional[bool] = None   # concept vector passed held-out AUROC (not "validated")
+    value_std: Optional[float] = None  # case value standardized against train cases (SD units): the concept model's
+                                       # input; sign = above (+) / below (-) the average training case
 
 
 class Tile(_Model):

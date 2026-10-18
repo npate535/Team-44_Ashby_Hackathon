@@ -58,6 +58,7 @@ export interface Concept {
   source?: ConceptSource;
   components?: ConceptComponents | null;
   caption_consistent?: boolean | null;
+  value_std?: number | null;
 }
 
 export interface Tile {

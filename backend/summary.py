@@ -343,17 +343,33 @@ def template_summary(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, An
 SYSTEM_PROMPT = (
     "You write short, grounded summaries of a research-prototype pathology worklist read (breast H&E, BACH dataset). "
     "You never see the image: you only get structured findings. Rules:\n"
-    "1. Write at most {max_sentences} sentences in plain clinical English.\n"
-    "2. Every sentence cites the IDs of the findings it uses, and only those findings.\n"
-    "3. Use only numbers that appear in the cited findings (probabilities may be written as 0.72 or 72%).\n"
-    "4. Never state a diagnosis as fact: say 'suggested', 'associated with', 'cannot be excluded'. Never claim a "
+    "1. Write at most {max_sentences} short sentences in plain clinical English for a pathologist. No filler.\n"
+    "2. Every sentence lists the IDs of the findings it uses in its \"findings\" array, and only those findings. "
+    "Never write finding IDs (F1, F2 ...) inside the text itself.\n"
+    "3. Use only numbers that appear in the cited findings, rounded for reading: probabilities as a whole percent "
+    "(72%) or two decimals (0.72), other measurements to at most two decimals, densities and counts as whole numbers. "
+    "Describe concept values and contributions qualitatively (prominent, scarce) rather than quoting them.\n"
+    "4. Order: the suggested category and, when the confidence set holds more than one class, which classes cannot "
+    "be excluded; then the one or two strongest associated features; then supporting context (similar reference "
+    "cases, quality, cells or margins).\n"
+    "5. Never state a diagnosis as fact: say 'suggested', 'associated with', 'cannot be excluded'. Never claim a "
     "feature causes anything. Concepts are 'features associated with invasive carcinoma', never a Nottingham grade.\n"
-    "5. Surgical cases are simulated frozen sections; margins are simulated.\n"
+    "6. Surgical cases are simulated frozen sections; margins are simulated.\n"
     'Answer with JSON only: {{"sentences": [{{"text": "...", "findings": ["F1"]}}]}}'
 )
 
 
 GROUND_TRUTH_KEYS = frozenset({"true_label", "eval_only", "split", "group", "patient_id"})
+
+
+_INLINE_IDS = re.compile(r"\s*[\[(]\s*F[1-9][0-9]*(?:\s*[,;]\s*F[1-9][0-9]*)*\s*[\])]")
+
+
+def strip_inline_ids(text: str) -> str:
+    """Remove inline citations like ' [F1]' or ' (F2, F4)': the finding IDs live in the sentence's findings list and
+    the UI renders them as chips."""
+    out = _INLINE_IDS.sub("", text)
+    return re.sub(r"\s+([.,;:])", r"\1", out).strip()
 
 
 def build_messages(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]) -> list[dict[str, str]]:
@@ -415,5 +431,6 @@ def generate(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any], *, c
     if len(kept) < int(cfg["summary"]["min_valid_sentences"]):
         return template_summary(findings, cfg), {**info, "generator": "template", "path": "template",
                                                  "reason": f"only {len(kept)} valid sentences"}
+    kept = [{**k, "text": strip_inline_ids(k["text"])} for k in kept]
     generator = f"lumen:{reply['model']}"
     return {"generator": generator, "sentences": kept}, {**info, "generator": generator, "path": "llm", "reason": ""}
