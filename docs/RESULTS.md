@@ -2,7 +2,7 @@
 
 > Research prototype — not for clinical use. Every number below is quoted from the eval file named beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.
 
-Generated 2026-10-18T19:21:55Z from 17 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 4d8e886cc9bb14ce47c967e9cd7fff187aef6e90, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 825532a57ec4ed0637472c7e0625ab707982b912).
+Generated 2026-10-18T19:34:35Z from 17 eval files (git 00b68d1c612cfad9facda44f4d4fb3d614524736, 19b15557e966c050e4a0cc0df67c0546d00464a6, 4d8e886cc9bb14ce47c967e9cd7fff187aef6e90, 700a3b61b0f999a12e7a1a7b54058d6495b93689).
 
 ## Tissue quality control (fixed in this run)
 
@@ -110,7 +110,7 @@ Assumptions: arrivals: Poisson, 6 per hour for 8 h; cases drawn uniformly with r
 
 ## Deferral (risk–coverage) curve
 
-Source: `eval/deferral.json` · pre-registered in docs/VALIDATION_ROUND3.md section 2 · production model `uni2h512_lr`; simulated degraded reads are scored by the model that produced them. Reads are deferred to closer review in ranking order; accuracy is four-class accuracy on the kept reads.
+Source: `eval/deferral.json` · pre-registered in docs/VALIDATION_ROUND3.md section 2 · production model `uni2h512_lr`. Each read is scored by the model that produced it in predictions.csv (counts per population below). Reads are deferred to closer review in ranking order; accuracy is four-class accuracy on the kept reads.
 
 - **Headline.** All test reads (clean + simulated degraded), 20% deferred by reliability score (343 of 1716 reads): accuracy on kept reads 74.6% [62.7%, 89.9%] (n 1716, 24 groups), against 71.6% [58.2%, 85.1%] (n 1716, 24 groups) with no deferral and 71.5% for random deferral of 20%.
 - Paired change, kept minus all (in addition to the pre-registered headline): 3.0 points [0.4, 9.2].
@@ -118,6 +118,8 @@ Source: `eval/deferral.json` · pre-registered in docs/VALIDATION_ROUND3.md sect
 Each cell: accuracy on kept reads · share of all errors deferred · invasive reads called non-invasive among kept reads · in situ reads called invasive among kept reads (random: means over orders).
 
 ### Clean test images (132 reads, 24 groups)
+
+Scoring models: Clean reads: 132 by uni2h512_lr.
 
 | Deferred | Kept | Reliability score | Top-class probability | Conformal set size | Random (mean of orders) |
 |---|---|---|---|---|---|
@@ -134,6 +136,8 @@ Each cell: accuracy on kept reads · share of all errors deferred · invasive re
 | 50% | 66 | 87.9% · 55.6% · 0 · 0 | 92.4% · 72.2% · 0 · 0 | 92.4% · 72.2% · 0 · 0 | 86.4% · 50.1% · 0.0 · 1.5 |
 
 ### All test reads (clean + simulated degraded) (1716 reads, 24 groups)
+
+Scoring models: Clean reads: 132 by uni2h512_lr. Simulated degraded reads: 1,452 by cb_text (concept-bottleneck model), 132 by uni2h_lr.
 
 | Deferred | Kept | Reliability score | Top-class probability | Conformal set size | Random (mean of orders) |
 |---|---|---|---|---|---|

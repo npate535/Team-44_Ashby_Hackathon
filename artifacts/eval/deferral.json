@@ -1,10 +1,10 @@
 {
   "name": "deferral",
-  "created_utc": "2026-10-18T19:18:30Z",
+  "created_utc": "2026-10-18T19:34:34Z",
   "config_hash": "54f522670b9e3597a011a17410ba7d9d0cbfe705b7bfd2a92c565473ad712ebd",
-  "git_sha": "825532a57ec4ed0637472c7e0625ab707982b912",
+  "git_sha": "00b68d1c612cfad9facda44f4d4fb3d614524736",
   "synthetic": false,
-  "git_dirty": true,
+  "git_dirty": false,
   "pre_registration": "docs/VALIDATION_ROUND3.md section 2",
   "production_model": "uni2h512_lr",
   "fractions": [
@@ -25,7 +25,7 @@
       "clean_test": "the clean held-out test images",
       "all_test_reads": "clean test reads plus the simulated degraded variants (blur, JPEG, stain shift, resampling); composites excluded"
     },
-    "scoring": "each read's predicted class is `top` in predictions.csv, from the model that produced it (production model for clean reads, fallback model for simulated variants), as in the app; truth is the source case's label",
+    "scoring": "each read's predicted class is `top` in predictions.csv, from the model that produced it; the models and their read counts are listed per population in populations.<name>.scoring and models_by_read_type; truth is the source case's label",
     "rankings": {
       "reliability": "lowest reliability score (reliability.csv) deferred first",
       "top_prob": "lowest calibrated top-class probability deferred first",
@@ -50,6 +50,12 @@
       "models": {
         "uni2h512_lr": 132
       },
+      "models_by_read_type": {
+        "clean": {
+          "uni2h512_lr": 132
+        }
+      },
+      "scoring": "Clean reads: 132 by uni2h512_lr.",
       "variants": {
         "clean": 132
       },
@@ -425,6 +431,16 @@
         "uni2h512_lr": 132,
         "uni2h_lr": 132
       },
+      "models_by_read_type": {
+        "clean": {
+          "uni2h512_lr": 132
+        },
+        "simulated_degraded": {
+          "cb_text": 1452,
+          "uni2h_lr": 132
+        }
+      },
+      "scoring": "Clean reads: 132 by uni2h512_lr. Simulated degraded reads: 1,452 by cb_text (concept-bottleneck model), 132 by uni2h_lr.",
       "variants": {
         "blur1": 132,
         "blur2": 132,
