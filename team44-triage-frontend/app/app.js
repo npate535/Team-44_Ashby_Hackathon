@@ -324,6 +324,40 @@ function currentFp() {
   return parts.join('|');
 }
 
+// Stable identity of a focusable element across re-renders (volatile attributes such as data-state are left out).
+const FOCUS_ATTRS = [
+  'id', 'data-testid', 'data-case-id', 'data-sort', 'data-lane-filter', 'data-status-filter', 'data-tier-filter',
+  'data-inbox-key', 'data-inbox-read', 'data-act', 'data-call', 'data-tab', 'data-f', 'data-why', 'data-page',
+  'data-pick', 'data-edit-seq', 'data-edit-item', 'data-hm', 'data-cells', 'data-spot-item', 'data-spot-verdict',
+  'data-spot-group', 'data-next-case', 'data-mx-open', 'href'
+];
+function focusKey(el) {
+  const app = $('#app');
+  if (!el || el === app || !app.contains(el)) return null;
+  const tag = el.tagName.toLowerCase();
+  const attrs = FOCUS_ATTRS.filter((a) => el.hasAttribute(a)).map((a) => `[${a}="${CSS.escape(el.getAttribute(a))}"]`);
+  // anonymous controls (e.g. a <summary>) and repeated links are told apart by their position among the matches
+  const sel = tag + attrs.join('');
+  try {
+    return { sel, index: Math.max(0, [...app.querySelectorAll(sel)].indexOf(el)) };
+  } catch (_) {
+    return null;
+  }
+}
+function findFocus(key) {
+  try {
+    const list = $('#app').querySelectorAll(key.sel);
+    return list[key.index] || list[0] || null;
+  } catch (_) {
+    return null;
+  }
+}
+function detailsKey(el) {
+  const owner = el.parentElement && el.parentElement.closest('[data-room], [data-case-id], [data-inbox-key], [id]');
+  const ownerId = owner ? owner.dataset.room || owner.dataset.caseId || owner.dataset.inboxKey || owner.id : '';
+  return `${el.className}|${el.dataset.mxOpen || el.dataset.testid || ''}|${ownerId}`;
+}
+
 function draw(forceRender = false) {
   if (!ST.cfg) return;
   $('[data-testid=banner-mock]').hidden = !(ST.mock || ST.synthetic);
@@ -346,18 +380,24 @@ function draw(forceRender = false) {
   const y = window.scrollY;
   const searchFocused = active && active.id === 'case-search';
   const caret = searchFocused ? active.selectionStart : null;
-  const focusedRow = active && active.matches && active.matches('tr.row') ? active.dataset.caseId : null;
-  const openHow = !!document.querySelector('details.how[open]');
+  // Keyboard position survives the poll's re-render: the focused control (row, filter, tab, inbox card...) is found
+  // again by its identifying attributes, and open <details> stay open.
+  const focusSel = focusKey(active);
+  const openDetails = [...$('#app').querySelectorAll('details[open]')].map(detailsKey);
   $('#app').innerHTML = view();
   if (searchFocused && $('#case-search')) {
     $('#case-search').focus({ preventScroll: true });
     $('#case-search').setSelectionRange(caret, caret);
+  } else if (focusSel) {
+    const el = findFocus(focusSel);
+    (el || $('#app')).focus({ preventScroll: true });
   }
-  if (focusedRow) {
-    const el = document.querySelector(`tr.row[data-case-id="${CSS.escape(focusedRow)}"]`);
-    if (el) el.focus({ preventScroll: true });
-  }
-  if (openHow && $('details.how')) $('details.how').open = true;
+  if (openDetails.length)
+    $('#app')
+      .querySelectorAll('details')
+      .forEach((el) => {
+        if (openDetails.includes(detailsKey(el))) el.open = true;
+      });
   window.scrollTo(0, y);
   if (ST.route === 'worklist' && ST.loadedOnce) {
     // arrivals after the first rendered data animate in; whatever was there on load does not
@@ -537,11 +577,11 @@ function tickClock() {
   }
   const sim = ST.sim;
   if (!sim) return;
-  const since = sim._fetched_ms && sim.running ? ((Date.now() - sim._fetched_ms) / 1000) * sim.speed : 0;
+  const since = sim._fetched_ms && sim.running ? ((Date.now() - sim._fetched_ms) / 1000) * (Number(sim.speed) || 1) : 0;
   const fresh = !sim.running && !(sim.sim_time_s > 0);
   const state = sim.running ? 'Replay running' : fresh ? 'Replay ready' : 'Replay paused';
   $('#sim').innerHTML =
-    `<i class="rs-dot" aria-hidden="true"></i><b>${state}</b><span class="rs-t">+${mmss(sim.sim_time_s + since)}</span><span class="rs-x">×${Number(sim.speed.toFixed(1))}</span>${ST.mock ? '<span class="rs-x">mock</span>' : ''}` +
+    `<i class="rs-dot" aria-hidden="true"></i><b>${state}</b><span class="rs-t">+${mmss((Number(sim.sim_time_s) || 0) + since)}</span><span class="rs-x">×${Number((Number(sim.speed) || 1).toFixed(1))}</span>${ST.mock ? '<span class="rs-x">mock</span>' : ''}` +
     `<span class="sr-only"> · simulator ${sim.running ? 'running' : 'paused'}</span>`;
 }
 
@@ -656,7 +696,12 @@ async function simCommand(cmd, variant) {
   if (ST.simBusy) return;
   ST.simBusy = true;
   updateReplay();
-  const res = await act(() => api.sim(cmd, cmd === 'inject_surgical' ? { variant } : undefined));
+  const res = await act(async () => {
+    const out = await api.sim(cmd, cmd === 'inject_surgical' ? { variant } : undefined);
+    // Leave a case view before the follow-up poll: the reset case no longer exists (no 404 + "not found" flash).
+    if (cmd === 'reset') clearReplayState();
+    return out;
+  });
   ST.simBusy = false;
   updateShell();
   if (res && cmd === 'inject_surgical' && res.injected) {
@@ -670,18 +715,26 @@ async function simCommand(cmd, variant) {
     });
   }
   if (res && cmd === 'start') toast('Replay started', { sub: 'Biopsies arrive over the next minute or two.' });
-  if (res && cmd === 'reset') {
-    ST.page = 0;
-    ST.cases = {};
-    ST.events = {};
-    ST.routed = { surgeon: [], oncologist: [] };
-    ST.seen = new Set();
-    ST.firstLoad = true;
-    ST.tierFilter = null;
-    toast('Replay reset', { sub: 'Decisions and routed results from the last replay were cleared.' });
-    if (ST.route === 'case') go('#/worklist');
-  }
+  if (res && cmd === 'reset') toast('Replay reset', { sub: 'Decisions and routed results from the last replay were cleared.' });
   return res;
+}
+
+function clearReplayState() {
+  ST.page = 0;
+  ST.cases = {};
+  ST.events = {};
+  ST.routed = { surgeon: [], oncologist: [] };
+  ST.items = [];
+  ST.seen = new Set();
+  ST.firstLoad = true;
+  ST.tierFilter = null;
+  ST.freshCalls.clear();
+  ST.inboxOpen = null;
+  ST.justDone = null;
+  if (ST.route === 'case') {
+    location.hash = '#/worklist';
+    onRoute(); // synchronously: the hashchange event fires after the follow-up poll has started
+  }
 }
 
 function findingClick(fid) {
