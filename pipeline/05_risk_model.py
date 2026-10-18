@@ -287,6 +287,12 @@ class RiskStep:
                 self.skipped[name] = "no specification in risk_model.embedding_candidates"
         concepts = rm.concept_frame(self.root, cfg)
         concepts_v0 = rm.concept_frame(self.root, cfg, view0=True)
+        # contract concepts[].source: "cav" when 04_concepts blended a caption-derived vector into the concept score
+        # (c__cav_top<k> is finite; NaN when the concept is not caption-consistent), else "text"
+        top_k = int(cfg["concepts"]["top_k"])
+        self.concept_sources = {cid: "cav" if concepts is not None and f"{cid}__cav_top{top_k}" in concepts.columns
+                                and bool(pd.to_numeric(concepts[f"{cid}__cav_top{top_k}"], errors="coerce").notna().any())
+                                else "text" for cid in cfg["concepts"]["ids"]}
         cells = rm.cell_frame(self.root, cfg)
         for name in mc["concept_models"]:
             fs = rm.concept_features(name, concepts, cells, cfg, self.cases, concepts_v0)
@@ -602,6 +608,7 @@ class RiskStep:
                     model_parts.append((fb, fbc, var_df))
                     break
         concepts = set(self.cfg["concepts"]["ids"])
+        sources = getattr(self, "concept_sources", {})
         rows = []
         for model_name, cand, x_df in model_parts:
             if x_df.empty:
@@ -613,7 +620,8 @@ class RiskStep:
                 for j, feat in enumerate(cand.fs.names):
                     base = feat.split("__")[0]
                     rows.append({"case_id": rid, "split": split, "model": model_name, "feature": feat, "concept": base,
-                                 "source": "text" if base in concepts else "cell", "value": float(x_df.iloc[i, j]),
+                                 "source": sources.get(base, "text") if base in concepts else "cell",
+                                 "value": float(x_df.iloc[i, j]),
                                  "value_std": float(std[i, j]), "contribution": float(contrib[i, j])})
         df = pd.DataFrame(rows)
         schemas.validate_frame(schemas.CONTRIBUTIONS, df)
