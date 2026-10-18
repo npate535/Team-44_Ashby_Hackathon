@@ -572,7 +572,10 @@ document.addEventListener('change', (e) => {
   if (e.target.dataset && e.target.dataset.editItem !== undefined) {
     const n = $$('#app [data-edit-item]').filter((x) => x.checked).length;
     const b = $('#app [data-testid=action-edit-save]');
-    if (b) b.textContent = n ? `Order ${n} selected` : 'Select at least one item';
+    if (b) {
+      b.textContent = n ? `Order ${n} selected` : 'Select at least one item';
+      b.disabled = !n; // the backend rejects an empty edit; dismiss the flag to drop every order
+    }
   }
 });
 

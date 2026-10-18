@@ -11,7 +11,11 @@ import { checksOnly, howSure, summary } from './why.js';
 
 export function callText(call) {
   if (!call) return '';
-  if (call.call === 'tumor_at_margin') return `Tumor at ${call.margins.join(' and ')} margin — more tissue needed`;
+  if (call.call === 'tumor_at_margin') {
+    const m = call.margins || [];
+    const list = m.length > 1 ? `${m.slice(0, -1).join(', ')} and ${m[m.length - 1]}` : m.join('');
+    return `Tumor at ${list} margin${m.length > 1 ? 's' : ''} — more tissue needed`;
+  }
   return CALL_TEXT[call.call] || call.call;
 }
 

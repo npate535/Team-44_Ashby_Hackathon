@@ -11,10 +11,11 @@ const cap = (t) => String(t).replace(/^./, (ch) => ch.toUpperCase());
 // ---- Why ---------------------------------------------------------------------------------------------------------------
 
 /**
- * Level of a feature in this case, relative to the reference (training) data, in words.
- * - value_std (optional field: case feature standardized against training cases) → "less than typical (−1.2 SD)".
- * - cell features → reference percentile against benign/normal reference cases.
- * - otherwise `value` = mean concept z of the case's 3 strongest regions, z-scored against reference regions.
+ * Level of a feature in this case relative to the training cases, in words.
+ * - text / concept-vector criteria: ONLY from `value_std` (the case feature standardized against training cases, the
+ *   concept model's actual input). Without it no level word is shown, only the push.
+ * - measured cell features: reference percentile against benign/normal reference cases.
+ * The raw `value` (mean tile z of the 3 strongest regions, a different scale) goes to the tooltip only.
  */
 export function levelOf(r, cells) {
   if (r.measured) {
@@ -23,51 +24,26 @@ export function levelOf(r, cells) {
     if (isNum(p)) {
       const q = Math.round(p * 100);
       const word = p >= 0.9 ? 'High' : p >= 0.6 ? 'Above typical' : p > 0.4 ? 'Typical' : p > 0.1 ? 'Below typical' : 'Low';
-      return {
-        word,
-        cls: p >= 0.6 ? 'hi' : p > 0.4 ? 'mid' : 'lo',
-        short: `${q}th pct`,
-        long: `higher than ${q}% of benign/normal reference cases`
-      };
+      return { word, cls: p >= 0.6 ? 'hi' : p > 0.4 ? 'mid' : 'lo', short: `${q}th percentile`, long: `higher than ${q}% of benign/normal reference cases`, tip: '' };
     }
-    return { word: 'Measured', cls: 'mid', short: '', long: 'no reference percentile available' };
+    return { word: '', cls: 'none', short: '', long: '', tip: 'no reference percentile available' };
   }
+  const tip = isNum(r.value) ? `Mean score of its 3 strongest regions (tile z): ${sz(Number(r.value))}` : '';
   if (isNum(r.valueStd)) {
-    const s = Number(r.valueStd);
-    const word =
-      s < -1.5 ? 'Much less than typical' : s < -0.5 ? 'Less than typical' : s <= 0.5 ? 'About typical' : s <= 1.5 ? 'More than typical' : 'Much more than typical';
-    return {
-      word,
-      cls: s < -0.5 ? 'lo' : s <= 0.5 ? 'mid' : 'hi',
-      short: `${sz(s)} SD`,
-      long: `${sz(s)} SD from the average training case`
-    };
+    const v = Number(r.valueStd);
+    const word = v >= 0.5 ? 'Above typical' : v <= -0.5 ? 'Below typical' : 'Typical';
+    return { word, cls: v >= 0.5 ? 'hi' : v <= -0.5 ? 'lo' : 'mid', short: `${sz(v)} SD vs training cases`, long: `${sz(v)} SD from the average training case`, tip, std: v };
   }
-  const z = isNum(r.value) ? Number(r.value) : null;
-  const top = z === null ? '' : `z ${sz(z)} in its top regions`;
-  const exp = r.direction === 'up' ? 1 : r.direction === 'down' ? -1 : 0;
-  if (exp && isNum(r.contribution)) {
-    // contribution = learned weight × (case feature − training mean) / SD: with the expected direction of the concept
-    // (concept bank), its sign says whether this case sits above or below the average training case.
-    const c = Number(r.contribution);
-    if (Math.abs(c) < NEGLIGIBLE)
-      return { word: 'Near average', cls: 'mid', short: top, long: `close to the average training case (${top})`, pos: 0 };
-    const above = Math.sign(c) === exp;
-    return {
-      word: above ? 'Above average' : 'Below average',
-      cls: above ? 'hi' : 'lo',
-      short: top,
-      long: `${above ? 'higher' : 'lower'} than the average training case (${top})`,
-      pos: above ? 1 : -1
-    };
-  }
-  if (z === null) return { word: 'Not scored', cls: 'mid', short: '', long: 'no score for this case' };
-  const word = z < 0 ? 'Scarce' : z < 1 ? 'Modest' : z < 2 ? 'Present' : 'Prominent';
-  const long =
-    z < 0
-      ? `even its strongest regions score below an average reference region (z ${sz(z)})`
-      : `its strongest regions score ${sz(z)} SD against an average reference region`;
-  return { word, cls: z < 0 ? 'lo' : z < 1 ? 'mid' : 'hi', short: `z ${sz(z)}`, long };
+  return { word: '', cls: 'none', short: '', long: '', tip };
+}
+
+/** AI spot check of a concept's top regions (eval/spotcheck.json summary.concept[id] = {n, acceptable}). */
+function spotOf(metrics, id) {
+  const sc = metrics && metrics.eval && metrics.eval.spotcheck;
+  const e = sc && sc.summary && sc.summary.concept ? sc.summary.concept[id] : null;
+  if (!e || !isNum(e.n) || !isNum(e.acceptable) || Number(e.n) <= 0) return null;
+  const low = Number(e.acceptable) / Number(e.n) <= 0.25;
+  return { n: Number(e.n), ok: Number(e.acceptable), low };
 }
 
 function pushOf(c) {
@@ -105,30 +81,38 @@ function pushBar(c, maxAbs) {
   );
 }
 
-function whyRow(r, hm, maxAbs, cells) {
+function whyRow(r, hm, maxAbs, cells, metrics) {
   const lvl = levelOf(r, cells);
   const push = pushOf(r.contribution);
   const context = r.direction === 'context';
-  const src = '';
   const cc = r.captionConsistent
     ? '<span class="cc" data-testid="caption-consistent" title="Concept vector agreed with mined captions on held-out data (caption co-mention, not tissue truth)">✓ caption-consistent</span>'
     : r.measured
       ? ''
       : '<span class="cc no" title="No concept vector passed the held-out caption check; text prompts only">text prompts only</span>';
+  const spot = r.measured ? null : spotOf(metrics, r.id);
+  const spotBadge = spot
+    ? `<span class="spot${spot.low ? ' low' : ''}" data-testid="spot-${esc(r.id)}" title="AI-reviewed spot check (Claude), not pathologist-validated: ${spot.ok} of ${spot.n} of this feature's top regions looked like the feature.${spot.low ? ' Top regions often did not show this feature, so discount this row.' : ''}">AI spot check ${spot.ok}/${spot.n}${spot.low ? ' · top regions often did not show this feature' : ''}</span>`
+    : '';
   const spread = isNum(r.spread) ? ` Prompt-ensemble spread ${Number(r.spread).toFixed(2)}.` : '';
-  const expect =
-    r.direction === 'up' ? 'Expected to be more prominent in invasive carcinoma' : r.direction === 'down' ? 'Expected to be less prominent in invasive carcinoma' : '';
-  const why =
-    lvl.pos === 1 || lvl.pos === -1
-      ? `${expect}, so this ${push.word.replace(' carcinoma', '')}`
-      : `In the concept model this ${push.word.replace(' carcinoma', '')}`;
-  const sentence = `${r.measured ? 'Measured: ' : ''}${cap(lvl.long)}. ${why}.${context ? ' Context feature, not ranked as a risk criterion.' : ''}`;
+  const lead = r.measured
+    ? lvl.long
+      ? `Measured: ${lvl.long}.`
+      : 'Measured.'
+    : lvl.word
+      ? `${lvl.word} for this case (${lvl.short}).`
+      : '';
+  const how = `In the concept model it ${push.word.replace(' carcinoma', '')}.`;
+  const sentence = `${lead}${lead ? ' ' : ''}${how}${context ? ' Context feature, not ranked as a risk criterion.' : ''}`;
   const tiles = (r.tiles || []).filter((t) => Number.isInteger(t));
+  const tipText = [lvl.tip, spread.trim()].filter(Boolean).join(' · ');
   return (
-    `<button type="button" class="why-row${hm.why === r.id ? ' on' : ''}" data-testid="why-bar-${esc(r.id)}" data-why="${esc(r.id)}" data-tiles="${esc(tiles.join(','))}" ` +
-    `aria-pressed="${hm.why === r.id}" aria-label="${esc(r.label)}. ${esc(lvl.word)}. ${esc(sentence)} Contribution ${esc(isNum(r.contribution) ? signed(r.contribution) : 'not available')}.${esc(spread)}${tiles.length ? ` Highlights regions ${esc(tiles.join(', '))}.` : ''}">` +
-    `<span class="wr-head"><span class="lbl">${esc(r.label)}</span>${src}${cc}${context ? '<span class="src ctx" title="Plan §6.4: context, not ranked">context</span>' : ''}</span>` +
-    `<span class="wr-level ${lvl.cls}" title="${esc(lvl.long)}"><b>${esc(lvl.word)}</b>${lvl.short ? `<span>${esc(lvl.short)}</span>` : ''}</span>` +
+    `<button type="button" class="why-row${hm.why === r.id ? ' on' : ''}" data-testid="why-bar-${esc(r.id)}" data-why="${esc(r.id)}" data-tiles="${esc(tiles.join(','))}"${tipText ? ` title="${esc(tipText)}"` : ''} ` +
+    `aria-pressed="${hm.why === r.id}" aria-label="${esc(r.label)}. ${esc(sentence)} Contribution ${esc(isNum(r.contribution) ? signed(r.contribution) : 'not available')}.${tipText ? ' ' + esc(tipText) + '.' : ''}${spot ? ` AI spot check ${spot.ok} of ${spot.n}, not pathologist-validated.` : ''}${tiles.length ? ` Highlights regions ${esc(tiles.join(', '))}.` : ''}">` +
+    `<span class="wr-head"><span class="lbl">${esc(r.label)}</span><span class="wr-badges">${cc}${spotBadge}${context ? '<span class="src ctx" title="Plan §6.4: context, not ranked">context</span>' : ''}</span></span>` +
+    (lvl.word
+      ? `<span class="wr-level ${lvl.cls}"><b>${esc(lvl.word)}</b>${lvl.short ? `<span>${esc(lvl.short)}</span>` : ''}</span>`
+      : '<span class="wr-level none"><span>—</span></span>') +
     `<span class="wr-bar">${pushBar(r.contribution, maxAbs)}</span>` +
     `<span class="v ${push.cls}"><b>${isNum(r.contribution) ? signed(r.contribution) : '—'}</b><span>${esc(push.short)}</span></span>` +
     `<span class="wr-say">${esc(sentence)}${tiles.length ? ` <span class="wr-tiles">Regions ${esc(tiles.join(', '))}</span>` : ''}</span>` +
@@ -163,15 +147,20 @@ export function why(v, hm, cfg, metrics) {
           g.id === 'cells'
             ? '<span class="src m" data-testid="src-measured" title="Measured from segmented nuclei">◆ measured</span>'
             : '<span class="src" data-testid="src-estimated" title="Estimated from text prompts and concept vectors">○ estimated</span>'
-        }</h3><div class="why">${g.rows.map((r) => whyRow(r, hm, maxAbs, v.cells)).join('')}</div></section>`
+        }</h3><div class="why">${g.rows.map((r) => whyRow(r, hm, maxAbs, v.cells, metrics)).join('')}</div></section>`
     )
     .join('');
+  const noLevels = !rows.some((r) => !r.measured && isNum(r.valueStd));
+  const levelNote = noLevels
+    ? '<p class="sub why-nolevel" data-testid="why-no-level">This case file has no training-standardized levels for the text-prompt criteria, so only each feature\'s push is shown; hover a row for its mean tile z.</p>'
+    : '';
   return (
     provenance +
     headline +
+    levelNote +
     `<div class="why-key" aria-hidden="true"><span>Feature</span><span>Level in this case</span><span class="axis"><span>← away</span><span>push on the invasive score</span><span>toward →</span></span></div>` +
     groups +
-    '<p class="sub why-foot">Level: where this case sits against the average training case, read from the sign of its push and the feature\'s expected direction; z is the mean concept score of its 3 strongest regions against reference regions. Measured cell features use the percentile against benign/normal reference cases. Push: the concept model\'s learned weight × this case\'s feature, relative to an average training case, so a scarce feature can push toward invasive. Associated features, not causes; not a Nottingham grade. Select a row to outline its regions on the image.</p>'
+    '<p class="sub why-foot">Level: the case feature in standard deviations from the average training case (the concept model\'s input); typical = within ±0.5 SD. Measured cell features use the percentile against benign/normal reference cases. Push: the concept model\'s learned weights × this case\'s standardized features for that criterion (the 3-strongest-region mean shown as the level, plus the share of regions above threshold), so the push need not follow the level\'s sign. Hover a row for the mean tile z of its 3 strongest regions. Associated features, not causes; not a Nottingham grade. Select a row to outline its regions on the image.</p>'
   );
 }
 
@@ -344,7 +333,8 @@ export function compared(v, cfg, assetUrl) {
     const label = (id) => (v.concepts.find((k) => k.id === id) || {}).label || humanize(id);
     const lv = (id) => {
       const k = v.why.find((r) => r.id === id);
-      return k ? levelOf(k, v.cells).word.toLowerCase() + ' here' : '';
+      const w = k ? levelOf(k, v.cells).word : '';
+      return w ? w.toLowerCase() + ' here' : '';
     };
     h +=
       `<div class="contrast cv-contrast" data-testid="contrast-case">` +
