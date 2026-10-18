@@ -122,7 +122,11 @@ class Backend:
         self.fixtures_dir = fixtures_dir
         self.flat_media = cases_dir.resolve() == fixtures_dir.resolve()
         self.store = db.Store(db_path)
-        self.sim = Simulator(self.store, cfg, lambda: db.load_case_dir(cases_dir), clock)
+        try:
+            self.sim = Simulator(self.store, cfg, lambda: db.load_case_dir(cases_dir), clock)
+        except Exception:
+            self.store.close()
+            raise
         timer = cfg["margin"]["timer"]
         self.amber_s = float(timer["amber_min"]) * 60.0
         self.red_s = float(timer["red_min"]) * 60.0
@@ -405,15 +409,46 @@ class Backend:
         return {"recorded": len(body.reviews), "total": len(reviews), "reviewer_kind": payload["reviewer_kind"],
                 "summary": summary}
 
+    def artifact_status(self) -> dict[str, Any]:
+        """Check the media actually referenced by loaded cases; never substitute fixture images."""
+        assets: set[str] = set()
+        models: set[str] = set()
+        for case in self.sim.loaded.cases:
+            assets.add(case["image"]["display"])
+            models.add(case["prediction"]["model"])
+            for ref in case.get("similar_cases", []):
+                assets.add(ref["image"])
+            contrast = case.get("contrast_case")
+            if contrast:
+                assets.add(contrast.get("image") or f"images/{contrast['case_id']}.jpg")
+            cells = case.get("cells") or {}
+            for tile in cells.get("tiles", []):
+                if tile.get("overlay"):
+                    assets.add(tile["overlay"])
+        missing = []
+        for asset in sorted(assets):
+            kind, _, name = asset.partition("/")
+            try:
+                exists = self.media_path(kind, name).is_file()
+            except db.NotFoundError:
+                exists = False
+            if not exists:
+                missing.append(asset)
+        return {"referenced": len(assets), "available": len(assets) - len(missing),
+                "missing": missing, "models": sorted(models)}
+
     def health(self) -> dict[str, Any]:
         wall = self.sim.wall_now()
         loaded = len(self.sim.loaded.cases)
+        assets = self.artifact_status()
         return {
-            "status": "ok" if loaded and not self.sim.loaded.skipped else "degraded",
+            "status": "ok" if loaded and not self.sim.loaded.skipped and not assets["missing"] else "degraded",
+            "assets": assets,
             "cases_dir": str(self.cases_dir),
             "artifacts_root": str(self.artifacts_root),
             "media": "fixtures" if self.flat_media else "artifacts",
             "loaded": loaded,
+            "open_cases": sum(not db.is_done(row) for row in self.store.rows()),
             "skipped": self.sim.loaded.skipped,
             "synthetic": self.synthetic,
             "sim": self.sim.status(),

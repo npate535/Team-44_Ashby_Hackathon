@@ -631,3 +631,49 @@ def test_config_carries_cell_feature_names_from_the_features_file(tmp_path):
 def config_root():
     from core import config
     return config.REPO_ROOT
+
+
+def test_health_reports_missing_referenced_media(dev):
+    client, _, _, root = dev
+    health = client.get('/api/health').json()
+    assert health['assets']['missing'] == []
+    assert health['assets']['available'] == health['assets']['referenced']
+    assert health['assets']['models']
+    image = next((root / 'images').glob('*.jpg'))
+    image.unlink()
+    health = client.get('/api/health').json()
+    assert health['status'] == 'degraded'
+    assert f'images/{image.name}' in health['assets']['missing']
+    assert health['assets']['available'] == health['assets']['referenced'] - 1
+
+
+def test_restart_preserves_decisions_routes_and_replay_clock(dev, tmp_path):
+    client, clock, roles, root = dev
+    arrive_all_biopsies(client, clock)
+    hero = roles['hero_biopsy']
+    assert client.post(f'/api/cases/{hero}/decision', json={'action': 'approve_orders'}).status_code == 200
+    assert client.post(f'/api/cases/{hero}/decision', json={'action': 'sign_out'}).status_code == 200
+    before = client.get('/api/health').json()['sim']
+    routed = client.get('/api/routed?to=oncologist').json()
+    restarted, _ = make_client(tmp_path, cases_dir=root / 'cases', artifacts_root=root, clock=clock)
+    after = restarted.get('/api/health').json()['sim']
+    assert after['sim_time_s'] == pytest.approx(before['sim_time_s'])
+    assert after['running'] is False
+    assert restarted.get('/api/routed?to=oncologist').json() == routed
+    case = restarted.get(f'/api/cases/{hero}').json()
+    assert case['runtime']['done'] is True
+    assert case['agent']['status'] == 'approved'
+
+
+def test_changed_artifacts_cannot_silently_erase_saved_workspace(dev, tmp_path):
+    from backend.db import ServerDataError
+    client, clock, roles, root = dev
+    arrive_all_biopsies(client, clock)
+    before = client.get('/api/worklist').json()['items']
+    path = root / 'cases' / f"{roles['hero_biopsy']}.json"
+    payload = json.loads(path.read_text())
+    payload['prediction']['model'] = 'a_new_model'
+    path.write_text(json.dumps(payload))
+    with pytest.raises(ServerDataError, match='case artifacts differ'):
+        make_client(tmp_path, cases_dir=root / 'cases', artifacts_root=root, clock=clock)
+    assert client.get('/api/worklist').json()['items'] == before

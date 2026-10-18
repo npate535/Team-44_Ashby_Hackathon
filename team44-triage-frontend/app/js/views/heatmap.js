@@ -36,7 +36,7 @@ export function heatmap(v, hm, assetUrl) {
     for (let c = 0; c < cols; c++) {
       const idx = r * cols + c, t = byIdx.get(idx);
       if (!t) {
-        rects += `<rect class="hm-drop" data-tile="${idx}" x="${c * tile}" y="${r * tile}" width="${tile}" height="${tile}"><title>Region ${idx}: removed by quality control</title></rect>`;
+        rects += `<rect class="hm-drop" data-tile="${idx}" x="${c * tile}" y="${r * tile}" width="${tile}" height="${tile}"><title>Region ${idx}: failed quality control</title></rect>`;
         continue;
       }
       const val = tileValue(t, hm.sel, maxA);

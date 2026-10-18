@@ -81,12 +81,32 @@ def load_emb(root: str | Path, encoder: str, set_name: str, head: str, *, views:
         raise ValueError(f"{encoder}/{set_name}_{head}: emb_row is not 0..N-1 in order")
     if not np.all(np.isfinite(x)):
         raise ValueError(f"{encoder}/{set_name}_{head}: non-finite embeddings")
+    index["case_id"] = source_case_ids(index)
     return x, index
+
+
+def source_case_ids(index: pd.DataFrame) -> list[str]:
+    """Normalize source-ID and already-qualified variant indexes from Delta exports.
+
+    QC and patient/split joins always use the original case. A mismatched variant suffix
+    is rejected rather than silently assigning the wrong source or duplicating the suffix.
+    """
+    out = []
+    for case, dtype, severity in zip(index["case_id"].astype(str),
+                                      index["degrade_type"].fillna(""),
+                                      index["degrade_severity"].fillna(0)):
+        if dtype and "_FSIM_" in case:
+            suffix = f"_FSIM_{dtype}{int(severity)}"
+            if not case.endswith(suffix):
+                raise ValueError(f"variant ID {case!r} contradicts degradation metadata")
+            case = case[:-len(suffix)]
+        out.append(case)
+    return out
 
 
 def read_ids(index: pd.DataFrame) -> np.ndarray:
     """Vectorized read_id over an EMB_INDEX frame (variant_case_id for degraded rows, else case_id)."""
-    case = index["case_id"].astype(str)
+    case = pd.Series(source_case_ids(index), index=index.index, dtype=str)
     dtype = index["degrade_type"].fillna("").astype(str)
     sev = index["degrade_severity"].fillna(0).astype(int).astype(str)
     bad = sorted(set(dtype[dtype != ""]) - set(schemas.DEGRADE_TYPES))
@@ -97,7 +117,11 @@ def read_ids(index: pd.DataFrame) -> np.ndarray:
 
 def read_id(row_case: Any, dtype: Any, sev: Any) -> str:
     if isinstance(dtype, str) and dtype:
-        return schemas.variant_case_id(str(row_case), dtype, int(sev))
+        case = str(row_case)
+        suffix = f"_FSIM_{dtype}{int(sev)}"
+        if case.endswith(suffix):
+            return case
+        return schemas.variant_case_id(case, dtype, int(sev))
     return str(row_case)
 
 
@@ -139,6 +163,7 @@ def pool_tiles(x: np.ndarray, index: pd.DataFrame, qc: pd.DataFrame | None, *, b
     """
     idx = index[["case_id", "grid", "tile_idx", "degrade_type", "degrade_severity", "view"]].copy()
     idx["degrade_type"] = idx["degrade_type"].fillna("").astype(str)
+    idx["case_id"] = source_case_ids(idx)
     idx["read_id"] = read_ids(idx)
     if qc is not None and not composite:
         q = qc[TILE_KEY + ["qc_pass"]].copy()
@@ -473,6 +498,7 @@ def tile_bags(x: np.ndarray, index: pd.DataFrame, qc: pd.DataFrame | None, *, by
     every tile, as in pool_tiles."""
     idx = index[["case_id", "grid", "tile_idx", "degrade_type", "degrade_severity", "view"]].copy()
     idx["degrade_type"] = idx["degrade_type"].fillna("").astype(str)
+    idx["case_id"] = source_case_ids(idx)
     idx["read_id"] = read_ids(idx)
     idx["tile_idx"] = idx["tile_idx"].astype(int)
     if qc is not None and not composite:

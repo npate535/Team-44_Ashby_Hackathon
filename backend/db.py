@@ -124,10 +124,11 @@ CREATE TABLE events (
     at_wall    REAL NOT NULL,
     sim_time_s REAL NOT NULL
 );
+CREATE TABLE workspace_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE INDEX events_case ON events (case_id, id);
 CREATE INDEX routed_role ON routed_results (to_role, id);
 """
-TABLES = ("cases", "orders", "decisions", "routed_results", "events")
+TABLES = ("cases", "orders", "decisions", "routed_results", "events", "workspace_state")
 ROUTE_ROLES = ("surgeon", "oncologist")
 
 
@@ -232,6 +233,34 @@ class Store:
     def close(self) -> None:
         with self._lock:
             self._conn.close()
+
+    def restore(self, loaded: LoadResult) -> float | None:
+        """Reuse an existing workspace, preserving every decision and original case payload.
+
+        Changed artifacts require a separate workspace/database, never a silent destructive reseed.
+        Older stores without a clock checkpoint recover the most recent recorded simulator time.
+        """
+        with self._lock:
+            tables = {r[0] for r in self._conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            if "cases" not in tables:
+                return None
+            if not (set(TABLES) - {"workspace_state"}).issubset(tables):
+                raise ServerDataError("incomplete workspace database; preserve it and select a new database")
+            stored = {r["case_id"]: r["public_json"] for r in self._conn.execute("SELECT case_id, public_json FROM cases")}
+            incoming = {c["case_id"]: _dumps(c) for c in loaded.cases}
+            if stored != incoming:
+                raise ServerDataError("case artifacts differ from the saved workspace; use a separate artifact root "
+                                      "or archive the database before intentionally starting a new replay")
+            self._conn.execute("CREATE TABLE IF NOT EXISTS workspace_state (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+            row = self._conn.execute("SELECT value FROM workspace_state WHERE key='sim_time_s'").fetchone()
+            if row:
+                return float(row[0])
+            return float(self._conn.execute("SELECT COALESCE(MAX(sim_time_s), 0) FROM events").fetchone()[0])
+
+    def checkpoint_clock(self, sim: float) -> None:
+        with self._lock:
+            self._conn.execute("INSERT INTO workspace_state (key, value) VALUES ('sim_time_s', ?) "
+                               "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (str(sim),))
 
     # ---- seeding ------------------------------------------------------------------------------------------------
     def seed(self, loaded: LoadResult, *, wall: float, sim: float = 0.0) -> None:

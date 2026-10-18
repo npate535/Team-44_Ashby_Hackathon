@@ -109,7 +109,13 @@ class Simulator:
             raise KeyError(f"settings demo.heroes is missing {missing} (needed by inject_surgical)")
         self.loaded: db.LoadResult = loader()
         self.clock_sim.speed = self.replay_speed(self.loaded)
-        self.store.seed(self.loaded, wall=self.clock.wall(), sim=0.0)
+        restored = self.store.restore(self.loaded)
+        if restored is None:
+            self.store.seed(self.loaded, wall=self.clock.wall(), sim=0.0)
+        else:
+            # Resume explicitly: server downtime must not silently accelerate the arrival replay.
+            self.clock_sim._base = restored
+            log.info("restored workspace at simulator +%.1fs (paused); decisions preserved", restored)
 
     def replay_speed(self, loaded: db.LoadResult) -> float:
         """sim.speed, raised so the last self-arriving case arrives within sim.max_replay_wall_s of Start."""
@@ -172,6 +178,7 @@ class Simulator:
                 self.store.mark_arrived(row["case_id"], arrived_sim=float(row["arrived_offset_s"]),
                                         arrived_wall=wall - lag, injected=False, wall=wall, sim=sim)
                 arrived.append(row["case_id"])
+            self.store.checkpoint_clock(sim)
             return arrived
 
     def inject_surgical(self, variant: str) -> str:
