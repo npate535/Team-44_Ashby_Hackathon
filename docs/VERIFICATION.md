@@ -1,35 +1,48 @@
 # PathQueue verification
 
-Verified locally on October 17, 2026 (America/Chicago). This is a research prototype, not a clinically validated system.
+Verified locally on October 18, 2026, 03:00–07:00 (America/Chicago). Research prototype, not a clinically validated
+system. Overnight changes and their measured effect: [OVERNIGHT.md](OVERNIGHT.md). Numbers: [RESULTS.md](RESULTS.md).
 
 ## Code and workflows
 
-- Full Python/unit/integration suite: **2,494 passed** in 116.34 seconds.
-- Isolated browser suite: **16 passed** in 99.12 seconds, covering desktop/light and phone/dark workflows. These tests use explicitly synthetic temporary workspaces, separate from the real application.
-- After the final wording refinements: **64 targeted tests passed** (frontend modules, conformal behavior, evaluation metrics). TypeScript contract consistency passed.
-- Real application browser verification used actual BACH-derived artifacts at `http://127.0.0.1:8000/`: tissue images, supporting-region links, measured cell overlays and toggles, coverage disclosure, drafted-order approval, sign-out, reload persistence, and oncology routing.
-- Surgical verification followed the specific injected case IDs through the queue: a named-margin call, operating-room routing, stopped timers, a degraded-case deferral, and scored composite margin segments. These are simulated surgical fields and operator test decisions, not clinical margin assessments.
-- Actual evaluation charts loaded. One cell-overlay review was recorded explicitly as **AI / unsure**, with no clinical assessment claimed. A 390-pixel phone viewport with dark theme and reduced motion loaded actual cell images without horizontal overflow. No browser page errors occurred in the completed real-data pass.
-- Server restart persistence and refusal to silently overwrite a workspace with changed case artifacts are covered by integration tests. Only explicit replay reset clears decisions.
-
-Local evidence is in ignored `outputs/verified-unit-suite.log`, `outputs/verified-browser-suite.log`, `outputs/final-browser/`, and `outputs/real-final-remaining-v3.log`. Evidence screenshots are local because they contain BACH-derived imagery.
+- Full Python unit/integration suite on merged `main`: **2,532 passed**, 1 skipped (the opt-in browser suite), ~2 min.
+- Browser suite (`PQ_E2E=1`, Playwright, desktop/light and phone/dark, labelled synthetic temporary workspaces):
+  **23 passed**. It covers the replay, tier ordering, drafted-order approval with inline confirmation, sign-out to the
+  oncology inbox, frozen-section injection, named-margin and defer calls, the OR board timer stop, keyboard
+  next-case navigation, reload persistence, the evaluation and evidence-review pages.
+- Contract → TypeScript consistency (`make types-check`) passes after the `value_std` and generator changes.
+- **Hand-driven demo on the real artifacts** at `http://127.0.0.1:8000/` (03:05–03:09): arrival replay; a tier-2
+  biopsy (BACH_0364) → Order tests (confirm) → Sign out (confirm) → oncology report card; composite frozen section
+  COMP_026 → OR-3 tier 1 with running timer → Tumor at superior/medial/lateral (pre-filled) → OR board shows the call,
+  turnaround and stopped timer, plus a toast; degraded frozen section BACH_0301_FSIM_resample3 → reliability flag →
+  plain-language defer reason → Defer to permanent → routed. After the full replay the planned hero BACH_0167 sits in
+  tier 2 with the set {InSitu, Invasive} and drafted p63/calponin + ER/PR/HER2/Ki-67. All decisions were made by the
+  operator for testing, not clinical assessments; the workspace was then archived and reset for the morning.
+- The three UI agents each screenshot-checked their pages at 1440×900 and 390×844 in light and dark: no page errors,
+  no horizontal overflow, no broken images (scripts and screenshots under `.worktrees/ov-*-env/shots/`, git-ignored
+  because they contain BACH-derived imagery).
 
 ## Data and compute
 
-The complete analysis/evaluation pipeline finished with **328 contract-valid application cases**, **zero rejected case files**, and **zero synthetic fixture cases** in the default workspace. These comprise 132 original held-out images, 132 degraded simulation fields, and 64 composite simulation fields. All **901 referenced media assets** were available and passed image decoding checks. Original and simulated populations remain separate in evaluations.
-
-Delta exports were imported using manifest paths, per-file sizes and SHA-256 verification. Seven real encoder outputs were available: CONCH, MUSK, UNI2-H, H-optimus-0, Virchow2, Phikon-v2, and PathGen-CLIP. Production `uni2h_lr` was selected using grouped training cross-validation; the separate `cb_text` model supplies supporting concept associations. Its contributions are not presented as contributions to the production classifier.
-
-Full cell processing completed for **1,070 selected tiles from 364 source cases**, yielding **108,661 nuclei**. Every selected tile had an output. The remaining 36 source cases had no eligible QC regions; measurements are unavailable there. Minimum-count feature exclusions remain missing, rather than becoming zero. In the application, 129 entries have actual cell outputs. Cell types have not been validated by a pathologist.
-
-GPU work used Delta's permitted queue and one GPU at a time. The recorded requested allocation totals 300 of the 420 allowed GPU-minutes; no further jobs were needed. Grounded Lumen generation and its cache were exercised; remaining template text retains its generator attribution. Reviewing precomputed cases requires no live GPU or LLM call.
-
-Before publication, the preceding local artifact workspace and databases were preserved at `artifacts/archive/core-20261018T042840Z`. The final replay is paused with the verification decisions preserved. Licensed imagery, weights, embeddings, credentials, caches, and SQLite records remain outside Git.
+- Default workspace: **328 contract-valid cases** (132 held-out test images, 132 degraded simulated frozen sections,
+  64 composite simulated fields), **0 rejected**, **0 synthetic**; **903 of 903** referenced media assets present.
+- Tile QC re-run on the laptop with the corrected mask (`pipeline/01q_requalify_qc.py`): insufficient-tissue images
+  51 → 0; display-JPEG recomputation of the old rule reproduces the Delta full-resolution values (r = 0.998). The
+  original columns are kept in `data/meta/tiles_qc_v1.csv`. No new GPU work was needed: every tile had been embedded on
+  Delta. The earlier Delta GPU usage (300 of 420 allowed GPU-minutes) is unchanged.
+- Laptop steps 04 → 08 and the whole evaluation suite were re-run (`make analyze` order) after the QC fix and the
+  conformal change; `eval/analytics.py` reproduces every AUROC in `metrics.json` exactly from its ROC points.
+- Summaries: 328 Lumen calls to `gemma-4-31b-it`, cached under `data/llm_cache/`; 176 summaries are fully LLM-written,
+  152 carry a required deterministic margin / quality sentence (`lumen:gemma-4-31b-it+template`). Every sentence passed
+  the citation, number and semantic checks; the live demo makes zero LLM calls.
+- AI spot check (Claude, not a pathologist): 200 tiles reviewed through the app's API, recorded in
+  `eval/spotcheck.json` with per-tile notes; no human review has been recorded yet.
+- The workspace databases from earlier sessions are archived under `artifacts/archive/` (never deleted).
 
 ## Results and limits
 
-See [RESULTS.md](RESULTS.md) for generated estimates, patient/pseudo-patient grouped confidence intervals, evaluation populations, and protocols. Held-out classification accuracy is **83.3% on 132 original images**. Observed LAC coverage is **67.4%, below its nominal 90% target**; the interface explicitly discloses this shortfall. The theoretical coverage statement requires exchangeability and does not establish coverage for this cohort or an individual case.
-
-The final real model does not produce every exact scenario described in the planning-stage demo story. Its outputs were retained. For example, the two-class ambiguity/order-rule branch is exercised with explicit synthetic workflow fixtures; a matching real prediction was not manufactured.
-
-Arrivals, operating-room assignments, frozen artifacts, image-border margins, and queue-benefit estimates are simulations. Approvals and routed inbox results are persisted locally. Hospital order entry, clinical deployment, expert validation, and a coverage guarantee are not claimed.
+Held-out test accuracy is **84.1% on 132 original images** (macro-F1 0.83); invasive sensitivity 100%, specificity
+97%. The tier-driving APS set covers **90.2%** against a 90% target, but that method was chosen after viewing test
+results, so the figure is optimistic; the pre-registered LAC covers 72.7%. Arrivals, operating rooms, frozen
+artifacts, image-border margins and queue-benefit estimates are simulations. Stain rules are illustrative and need
+clinical review. Hospital order entry, clinical deployment, expert validation and a coverage guarantee are not claimed.
