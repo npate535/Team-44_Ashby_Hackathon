@@ -346,12 +346,12 @@ export function heatmap({ width = 560, rows = [], cols = [], values = [], text =
           const t = Math.min(1, Math.abs(v) / max);
           const p = Math.round(8 + 88 * t);
           fill = `color-mix(in srgb, ${v < 0 ? 'var(--cx-neg)' : 'var(--cx-pos)'} ${p}%, var(--cx-mid))`;
-          if (p > 58) on = v < 0 ? 'cx-on-indigo' : 'cx-on-coral';
+          if (p > 82) on = v < 0 ? 'cx-on-indigo' : 'cx-on-coral'; // measured crossover: ink reads better below ~82%
         } else {
           const t = Math.min(1, Math.max(0, v / max));
           const p = Math.round(6 + 90 * t);
           fill = `color-mix(in srgb, var(--cx-seq) ${p}%, var(--cx-seq0))`;
-          if (p > 56) on = 'cx-on-indigo';
+          if (p > 82) on = 'cx-on-indigo';
         }
       }
       const label = text ? text(i, j) : isNum(v) ? fmtNum(v) : 'n/a';
