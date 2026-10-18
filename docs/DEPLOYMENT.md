@@ -12,7 +12,7 @@ Push application changes to `main`. The `Deploy Sepia` GitHub Actions workflow r
 
 The workflow preserves the existing `sepia_data` volume. The first private deployment seeded the real case artifacts into this volume; subsequent builds contain no case dataset. `/data/pathqueue.sqlite`, images, measured evidence and cached interpretations stay on the mounted volume across code updates. Do not destroy or replace this volume. This is one machine with SQLite; do not scale it to multiple machines.
 
-`X-Sepia-Release` on HTTP responses identifies the deployed commit. Check `/api/health` after a deployment and confirm the header matches the workflow's commit. HTTPS certificates are managed by Fly. DNS uses an apex A and AAAA record and a `www` CNAME to the Fly hostname.
+`X-Sepia-Release` on HTTP responses identifies the deployed commit. Check `/api/health` after a deployment and confirm the header matches the workflow's commit. The CI health check uses the Fly hostname so a registrar's DNS propagation delay does not block code updates. Check the custom-domain certificate with `fly certs check sepia-ashby.xyz --app sepia-ashby`. DNS uses an apex A and AAAA record and a `www` CNAME to the Fly hostname.
 
 ## Manual deployment
 
