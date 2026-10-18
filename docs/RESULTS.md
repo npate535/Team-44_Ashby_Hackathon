@@ -2,7 +2,7 @@
 
 > Research prototype — not for clinical use. Every number below is quoted from the eval file named beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.
 
-Generated 2026-10-18T08:04:47Z from 16 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 700a3b61b0f999a12e7a1a7b54058d6495b93689, None).
+Generated 2026-10-18T13:54:01Z from 16 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 4154f7693e436121aeffecbf8743c5af029a6968, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 7ab2ffcbddd91931b194a5dec698c13622fef8d7).
 
 ## Tissue quality control (fixed in this run)
 
@@ -14,15 +14,15 @@ Source: `eval/metrics.json` · test n = 132, 24 patient / pseudo-patient groups 
 
 | Metric | Estimate [95% CI] |
 |---|---|
-| Invasive vs rest AUROC | 1.00 [0.99, 1.00] (n 132, 24 groups) |
-| Macro AUROC | 0.95 [0.85, 0.99] (n 132, 24 groups) |
+| Invasive vs rest AUROC | 0.998 [0.994, 1.000] (n 132, 24 groups) |
+| Macro AUROC | 0.947 [0.852, 0.992] (n 132, 24 groups) |
 | Macro-F1 | 0.83 [0.61, 0.93] (n 132, 24 groups) |
 | Balanced accuracy | 0.84 [0.62, 0.94] (n 132, 24 groups) |
 | Accuracy | 0.84 [0.70, 0.94] (n 132, 24 groups) |
-| Invasive sensitivity | 1.00 [1.00, 1.00] (n 132, 24 groups) |
-| Invasive specificity | 0.97 [0.94, 1.00] (n 132, 24 groups) |
+| Invasive sensitivity | 1.000 [1.000, 1.000] (n 132, 24 groups) |
+| Invasive specificity | 0.970 [0.936, 1.000] (n 132, 24 groups) |
 
-Model A `uni2h_lr` vs Model B `cb_text` (Invasive-vs-rest AUROC (uncalibrated scores)): A 1.00 [0.99, 1.00] (n 132, 24 groups); B 1.00 [1.00, 1.00] (n 132, 24 groups); paired difference A − B -0.00 [-0.01, 0.00] (n 132, 24 groups).
+Model A `uni2h_lr` vs Model B `cb_text` (Invasive-vs-rest AUROC (uncalibrated scores)): A 0.998 [0.994, 1.000] (n 132, 24 groups); B 1.000 [1.000, 1.000] (n 132, 24 groups); paired difference A − B 0.00 [-0.01, 0.00] (n 132, 24 groups).
 
 In situ ↔ invasive confusion: 3 of 30 in situ cases called invasive; 0 of 31 invasive cases called in situ.
 
@@ -50,7 +50,7 @@ Per-class coverage of the tier set (aps_marginal_nonempty): Normal 82.6% [60.9%,
 
 Per-class LAC coverage (pre-registered): Normal 56.5% [26.3%, 80.0%] (n 23, 6 groups); Benign 70.8% [44.4%, 88.2%] (n 48, 6 groups); InSitu 66.7% [33.3%, 79.0%] (n 30, 6 groups); Invasive 93.5% [83.3%, 100.0%] (n 31, 17 groups).
 
-**Post-hoc change, disclosed:** marginal LAC was the pre-registered tier set. On the held-out test split it returned empty sets for 18.9% of cases and no multi-class sets, so it gave the reader no differential; the 50-image calibration split is far easier than the test split, which violates the exchangeability the guarantee needs. Tiers now use the set named above (APS, Romano et al. 2020, with the argmax class added to empty sets). The switch was made after viewing test results, so its observed coverage is optimistic and is not an independent confirmation.
+**Post-hoc change, disclosed:** marginal LAC was the pre-registered tier set. On the held-out test split it returned empty sets for 18.9% of cases and no multi-class sets, so it gave the reader no differential; the 50-image calibration split is far easier than the test split, which likely violates the exchangeability the guarantee needs. Tiers now use the set named above (APS, Romano et al. 2020, with the argmax class added to empty sets). The switch was made after viewing test results, so its observed coverage is optimistic and is not an independent confirmation.
 
 Under exchangeability and continuous scores, coverage conditional on a random calibration set follows ~Beta(46, 5) (mean 0.902, SD 0.041); the 1 - alpha = 0.90 guarantee is marginal over calibration sets, not a guarantee for this test cohort. Compare the observed held-out coverage with the target.
 
@@ -91,11 +91,11 @@ Source: `eval/queue_sim.json` · 1000 simulated days · minutes, mean [2.5–97.
 | PathQueue tiers + aging guard (configured targets) | 6.0 [1.9, 12.9] | 13.0 [4.8, 31.5] | 45.0 [5.6, 151.9] | 29.3 [0.0, 104.3] |
 | Sensitivity: tiers + aging, day-scale targets | 6.0 [1.9, 12.9] | 13.0 [4.8, 31.5] | 44.8 [5.6, 151.2] | 29.3 [0.0, 104.3] |
 
-PathQueue tiers vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 25.0 [0.7, 93.2] min**; false negatives n/a min.
+PathQueue tiers vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 25.0 [0.7, 93.2] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
 
-PathQueue tiers + aging guard (configured targets) vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 25.0 [0.7, 93.2] min**; false negatives n/a min.
+PathQueue tiers + aging guard (configured targets) vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 25.0 [0.7, 93.2] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
 
-Sensitivity: tiers + aging, day-scale targets vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 24.8 [0.7, 92.7] min**; false negatives n/a min.
+Sensitivity: tiers + aging, day-scale targets vs FIFO: invasive first look -14.2 [-51.3, 0.0] min; **delay imposed on unflagged cases 24.8 [0.7, 92.7] min**; false negatives: not available (no simulated day had a truly invasive case outside tiers 1-2).
 
 Aging guard: share of reads promoted per day — PathQueue tiers + aging guard (configured targets) 0.0%; Sensitivity: tiers + aging, day-scale targets 2.7%.
 
@@ -108,7 +108,7 @@ Assumptions: arrivals: Poisson, 6 per hour for 8 h; cases drawn uniformly with r
 
 ## Simulated margin read
 
-Source: `eval/margin.json` · threshold 1.000 (CI {'lo': 0.847377, 'hi': 0.999893, 'ci': 0.95, 'n_boot': 2000, 'n_valid': 2000, 'n': 30, 'n_groups': 6}, from 30 benign calibration images).
+Source: `eval/margin.json` · threshold P = 0.99982 [0.84738, 0.99989] (n 30, 6 groups), from 30 benign calibration images.
 
 - Benign test images, false tumor-at-margin per margin (pooled over 4 margins): 0.0% [0.0%, 0.0%] (n 284, 7 groups) (the threshold targets ≤ 5% per margin; 71 of 71 benign test images scored). Image-level, any of 4 margins: 0.0% [0.0%, 0.0%] (n 71, 7 groups) (no 5% target at image level).
 - Carcinoma test images with ≥ 1 margin called clear: 47.5% [25.0%, 64.7%] (n 61, 19 groups); Spearman(max margin score, case risk) 0.54 [0.05, 0.84] (n 61, 19 groups).
@@ -124,45 +124,65 @@ Source: `eval/margin.json` · threshold 1.000 (CI {'lo': 0.847377, 'hi': 0.99989
 ### `eval/model_choice.json`
 
 - cv_metrics · conch_probe_lr · log_loss: 0.31 [0.23, 0.40] (n 218, 49 groups)
-- cv_metrics · conch_probe_lr · auroc_invasive: 0.99 [0.98, 1.00] (n 218, 49 groups)
+- cv_metrics · conch_probe_lr · auroc_invasive: 0.993 [0.981, 1.000] (n 218, 49 groups)
 - cv_metrics · conch_probe_lr · balanced_accuracy: 0.90 [0.86, 0.94] (n 218, 49 groups)
 - cv_metrics · conch_probe_lr · macro_f1: 0.90 [0.85, 0.94] (n 218, 49 groups)
-- cv_metrics · conch_probe_lr · macro_auroc: 0.99 [0.97, 1.00] (n 218, 49 groups)
+- cv_metrics · conch_probe_lr · macro_auroc: 0.986 [0.972, 0.995] (n 218, 49 groups)
 - cv_metrics · uni2h_lr · log_loss: 0.26 [0.20, 0.33] (n 218, 49 groups)
-- cv_metrics · uni2h_lr · auroc_invasive: 1.00 [1.00, 1.00] (n 218, 49 groups)
-- cv_metrics · uni2h_lr · balanced_accuracy: 0.95 [0.92, 0.98] (n 218, 49 groups)
-- cv_metrics · uni2h_lr · macro_f1: 0.95 [0.91, 0.98] (n 218, 49 groups)
-- cv_metrics · uni2h_lr · macro_auroc: 0.99 [0.98, 1.00] (n 218, 49 groups)
+- cv_metrics · uni2h_lr · auroc_invasive: 0.999 [0.998, 1.000] (n 218, 49 groups)
+- cv_metrics · uni2h_lr · balanced_accuracy: 0.949 [0.916, 0.981] (n 218, 49 groups)
+- cv_metrics · uni2h_lr · macro_f1: 0.951 [0.915, 0.980] (n 218, 49 groups)
+- cv_metrics · uni2h_lr · macro_auroc: 0.993 [0.984, 0.999] (n 218, 49 groups)
 - cv_metrics · hoptimus0_lr · log_loss: 0.32 [0.25, 0.40] (n 218, 49 groups)
-- cv_metrics · hoptimus0_lr · auroc_invasive: 1.00 [0.99, 1.00] (n 218, 49 groups)
-- cv_metrics · hoptimus0_lr · balanced_accuracy: 0.91 [0.87, 0.95] (n 218, 49 groups)
-- cv_metrics · hoptimus0_lr · macro_f1: 0.91 [0.87, 0.95] (n 218, 49 groups)
-- cv_metrics · hoptimus0_lr · macro_auroc: 0.99 [0.98, 1.00] (n 218, 49 groups)
+- cv_metrics · hoptimus0_lr · auroc_invasive: 0.997 [0.991, 1.000] (n 218, 49 groups)
+- cv_metrics · hoptimus0_lr · balanced_accuracy: 0.910 [0.867, 0.952] (n 218, 49 groups)
+- cv_metrics · hoptimus0_lr · macro_f1: 0.913 [0.865, 0.952] (n 218, 49 groups)
+- cv_metrics · hoptimus0_lr · macro_auroc: 0.990 [0.978, 0.998] (n 218, 49 groups)
 - cv_metrics · musk_lr · log_loss: 0.33 [0.24, 0.44] (n 218, 49 groups)
-- cv_metrics · musk_lr · auroc_invasive: 0.98 [0.95, 1.00] (n 218, 49 groups)
+- cv_metrics · musk_lr · auroc_invasive: 0.983 [0.953, 0.998] (n 218, 49 groups)
 - cv_metrics · musk_lr · balanced_accuracy: 0.89 [0.84, 0.94] (n 218, 49 groups)
 - cv_metrics · musk_lr · macro_f1: 0.89 [0.84, 0.93] (n 218, 49 groups)
-- cv_metrics · musk_lr · macro_auroc: 0.98 [0.97, 0.99] (n 218, 49 groups)
+- cv_metrics · musk_lr · macro_auroc: 0.981 [0.965, 0.993] (n 218, 49 groups)
 - cv_metrics · cb_text · log_loss: 0.48 [0.38, 0.59] (n 218, 49 groups)
-- cv_metrics · cb_text · auroc_invasive: 0.99 [0.98, 1.00] (n 218, 49 groups)
+- cv_metrics · cb_text · auroc_invasive: 0.990 [0.975, 0.999] (n 218, 49 groups)
 - cv_metrics · cb_text · balanced_accuracy: 0.85 [0.80, 0.90] (n 218, 49 groups)
 - cv_metrics · cb_text · macro_f1: 0.85 [0.79, 0.90] (n 218, 49 groups)
-- cv_metrics · cb_text · macro_auroc: 0.96 [0.93, 0.97] (n 218, 49 groups)
+- cv_metrics · cb_text · macro_auroc: 0.956 [0.933, 0.975] (n 218, 49 groups)
 - cv_metrics · cb_text_cells · log_loss: 0.73 [0.64, 0.82] (n 218, 49 groups)
-- cv_metrics · cb_text_cells · auroc_invasive: 0.99 [0.97, 1.00] (n 218, 49 groups)
+- cv_metrics · cb_text_cells · auroc_invasive: 0.988 [0.973, 0.998] (n 218, 49 groups)
 - cv_metrics · cb_text_cells · balanced_accuracy: 0.76 [0.71, 0.82] (n 218, 49 groups)
 - cv_metrics · cb_text_cells · macro_f1: 0.76 [0.69, 0.82] (n 218, 49 groups)
-- cv_metrics · cb_text_cells · macro_auroc: 0.93 [0.91, 0.96] (n 218, 49 groups)
+- cv_metrics · cb_text_cells · macro_auroc: 0.933 [0.905, 0.957] (n 218, 49 groups)
 - cv_metrics · cb_cells · log_loss: 1.32 [1.27, 1.38] (n 218, 49 groups)
 - cv_metrics · cb_cells · auroc_invasive: 0.68 [0.58, 0.78] (n 218, 49 groups)
 - cv_metrics · cb_cells · balanced_accuracy: 0.37 [0.31, 0.44] (n 218, 49 groups)
 - cv_metrics · cb_cells · macro_f1: 0.33 [0.26, 0.39] (n 218, 49 groups)
 - cv_metrics · cb_cells · macro_auroc: 0.62 [0.57, 0.67] (n 218, 49 groups)
 - cv_metrics · abmil · log_loss: 0.26 [0.12, 0.43] (n 218, 49 groups)
-- cv_metrics · abmil · auroc_invasive: 1.00 [1.00, 1.00] (n 218, 49 groups)
-- cv_metrics · abmil · balanced_accuracy: 0.92 [0.88, 0.96] (n 218, 49 groups)
-- cv_metrics · abmil · macro_f1: 0.92 [0.88, 0.96] (n 218, 49 groups)
-- cv_metrics · abmil · macro_auroc: 0.99 [0.98, 1.00] (n 218, 49 groups)
+- cv_metrics · abmil · auroc_invasive: 1.000 [0.999, 1.000] (n 218, 49 groups)
+- cv_metrics · abmil · balanced_accuracy: 0.921 [0.881, 0.959] (n 218, 49 groups)
+- cv_metrics · abmil · macro_f1: 0.922 [0.877, 0.957] (n 218, 49 groups)
+- cv_metrics · abmil · macro_auroc: 0.991 [0.982, 0.998] (n 218, 49 groups)
+- cv_metrics · fusion_top3 · log_loss: 0.21 [0.13, 0.32] (n 218, 49 groups)
+- cv_metrics · fusion_top3 · auroc_invasive: 0.998 [0.995, 1.000] (n 218, 49 groups)
+- cv_metrics · fusion_top3 · balanced_accuracy: 0.942 [0.905, 0.977] (n 218, 49 groups)
+- cv_metrics · fusion_top3 · macro_f1: 0.943 [0.903, 0.976] (n 218, 49 groups)
+- cv_metrics · fusion_top3 · macro_auroc: 0.991 [0.978, 0.998] (n 218, 49 groups)
+- ablation_concepts_cells · cb_text · log_loss: 0.48 [0.38, 0.59] (n 218, 49 groups)
+- ablation_concepts_cells · cb_text · auroc_invasive: 0.990 [0.975, 0.999] (n 218, 49 groups)
+- ablation_concepts_cells · cb_text · balanced_accuracy: 0.85 [0.80, 0.90] (n 218, 49 groups)
+- ablation_concepts_cells · cb_text · macro_f1: 0.85 [0.79, 0.90] (n 218, 49 groups)
+- ablation_concepts_cells · cb_text · macro_auroc: 0.956 [0.933, 0.975] (n 218, 49 groups)
+- ablation_concepts_cells · cb_text_cells · log_loss: 0.73 [0.64, 0.82] (n 218, 49 groups)
+- ablation_concepts_cells · cb_text_cells · auroc_invasive: 0.988 [0.973, 0.998] (n 218, 49 groups)
+- ablation_concepts_cells · cb_text_cells · balanced_accuracy: 0.76 [0.71, 0.82] (n 218, 49 groups)
+- ablation_concepts_cells · cb_text_cells · macro_f1: 0.76 [0.69, 0.82] (n 218, 49 groups)
+- ablation_concepts_cells · cb_text_cells · macro_auroc: 0.933 [0.905, 0.957] (n 218, 49 groups)
+- ablation_concepts_cells · cb_cells · log_loss: 1.32 [1.27, 1.38] (n 218, 49 groups)
+- ablation_concepts_cells · cb_cells · auroc_invasive: 0.68 [0.58, 0.78] (n 218, 49 groups)
+- ablation_concepts_cells · cb_cells · balanced_accuracy: 0.37 [0.31, 0.44] (n 218, 49 groups)
+- ablation_concepts_cells · cb_cells · macro_f1: 0.33 [0.26, 0.39] (n 218, 49 groups)
+- ablation_concepts_cells · cb_cells · macro_auroc: 0.62 [0.57, 0.67] (n 218, 49 groups)
 
 ### `eval/concepts.json`
 
@@ -179,10 +199,10 @@ Source: `eval/margin.json` · threshold 1.000 (CI {'lo': 0.847377, 'hi': 0.99989
 - cav · concepts · benign_stroma_fat · heldout_auroc: 0.84 [0.79, 0.89] (n 580, 304 groups)
 - cav · concepts · lymphocytes · heldout_auroc: 0.79 [0.73, 0.85] (n 457, 221 groups)
 - cav · concepts · necrosis · heldout_auroc: 0.87 [0.81, 0.91] (n 640, 252 groups)
-- nct · concepts · lymphocytes · text: 1.00 [1.00, 1.00] (n 2700, 2700 groups)
+- nct · concepts · lymphocytes · text: 0.998 [0.996, 0.999] (n 2700, 2700 groups)
 - nct · concepts · lymphocytes · cav: 0.32 [0.29, 0.35] (n 2700, 2700 groups)
-- nct · concepts · necrosis · text: 0.94 [0.93, 0.95] (n 2700, 2700 groups)
-- nct · concepts · necrosis · cav: 0.95 [0.94, 0.96] (n 2700, 2700 groups)
+- nct · concepts · necrosis · text: 0.939 [0.927, 0.950] (n 2700, 2700 groups)
+- nct · concepts · necrosis · cav: 0.952 [0.940, 0.963] (n 2700, 2700 groups)
 - nct · concepts · pleomorphism · text: 0.59 [0.56, 0.62] (n 2700, 2700 groups)
 - nct · concepts · pleomorphism · cav: 0.61 [0.58, 0.65] (n 2700, 2700 groups)
 - nct · concepts · benign_stroma_fat · text: 0.87 [0.85, 0.88] (n 2700, 2700 groups)
@@ -191,7 +211,7 @@ Source: `eval/margin.json` · threshold 1.000 (CI {'lo': 0.847377, 'hi': 0.99989
 ### `eval/concepts_bach.json`
 
 - concepts · tubules · class_means · Normal: 1.07 [0.85, 1.32] (n 23, 6 groups)
-- concepts · tubules · class_means · Benign: 1.14 [0.98, 1.36] (n 48, 6 groups)
+- concepts · tubules · class_means · Benign: 1.141 [0.978, 1.358] (n 48, 6 groups)
 - concepts · tubules · class_means · InSitu: 0.44 [0.19, 0.85] (n 30, 6 groups)
 - concepts · tubules · class_means · Invasive: -0.52 [-0.90, -0.12] (n 31, 17 groups)
 - concepts · tubules · auroc_Invasive_vs_rest: 0.08 [0.01, 0.20] (n 132, 24 groups)
@@ -199,17 +219,17 @@ Source: `eval/margin.json` · threshold 1.000 (CI {'lo': 0.847377, 'hi': 0.99989
 - concepts · pleomorphism · class_means · Benign: -0.02 [-0.22, 0.29] (n 48, 6 groups)
 - concepts · pleomorphism · class_means · InSitu: 0.29 [-0.18, 1.16] (n 30, 6 groups)
 - concepts · pleomorphism · class_means · Invasive: 1.46 [1.20, 1.72] (n 31, 17 groups)
-- concepts · pleomorphism · auroc_Invasive_vs_rest: 0.95 [0.90, 0.98] (n 132, 24 groups)
+- concepts · pleomorphism · auroc_Invasive_vs_rest: 0.949 [0.903, 0.983] (n 132, 24 groups)
 - concepts · mitoses · class_means · Normal: 0.21 [-0.04, 0.41] (n 23, 6 groups)
 - concepts · mitoses · class_means · Benign: 0.11 [-0.25, 0.40] (n 48, 6 groups)
 - concepts · mitoses · class_means · InSitu: 0.89 [0.51, 1.32] (n 30, 6 groups)
 - concepts · mitoses · class_means · Invasive: 1.32 [1.05, 1.56] (n 31, 17 groups)
-- concepts · mitoses · auroc_Invasive_vs_rest: 0.85 [0.75, 0.96] (n 132, 24 groups)
+- concepts · mitoses · auroc_Invasive_vs_rest: 0.851 [0.752, 0.960] (n 132, 24 groups)
 - concepts · invasion · class_means · Normal: 0.43 [0.19, 0.66] (n 23, 6 groups)
 - concepts · invasion · class_means · Benign: 0.20 [-0.14, 0.59] (n 48, 6 groups)
 - concepts · invasion · class_means · InSitu: 0.41 [0.29, 0.59] (n 30, 6 groups)
 - concepts · invasion · class_means · Invasive: 1.31 [1.14, 1.48] (n 31, 17 groups)
-- concepts · invasion · auroc_Invasive_vs_rest: 0.96 [0.90, 0.99] (n 132, 24 groups)
+- concepts · invasion · auroc_Invasive_vs_rest: 0.964 [0.903, 0.993] (n 132, 24 groups)
 - concepts · duct_confined · class_means · Normal: -0.17 [-0.34, 0.02] (n 23, 6 groups)
 - concepts · duct_confined · class_means · Benign: 0.33 [-0.33, 0.86] (n 48, 6 groups)
 - concepts · duct_confined · class_means · InSitu: 1.08 [0.90, 1.27] (n 30, 6 groups)
@@ -225,11 +245,16 @@ Source: `eval/margin.json` · threshold 1.000 (CI {'lo': 0.847377, 'hi': 0.99989
 - concepts · benign_stroma_fat · class_means · InSitu: 0.59 [0.49, 0.78] (n 30, 6 groups)
 - concepts · benign_stroma_fat · class_means · Invasive: -0.08 [-0.37, 0.19] (n 31, 17 groups)
 - concepts · benign_stroma_fat · auroc_Invasive_vs_rest: 0.15 [0.03, 0.26] (n 132, 24 groups)
-- concepts · lymphocytes · class_means · Normal: 0.67 [0.26, 1.00] (n 23, 6 groups)
+- concepts · lymphocytes · class_means · Normal: 0.674 [0.263, 0.998] (n 23, 6 groups)
 - concepts · lymphocytes · class_means · Benign: 0.62 [0.48, 0.93] (n 48, 6 groups)
 - concepts · lymphocytes · class_means · InSitu: 0.70 [0.44, 1.37] (n 30, 6 groups)
 - concepts · lymphocytes · class_means · Invasive: 0.54 [0.29, 0.82] (n 31, 17 groups)
 - concepts · lymphocytes · auroc_Invasive_vs_rest: 0.44 [0.27, 0.62] (n 132, 24 groups)
+- concepts · necrosis · class_means · Normal: -0.33 [-0.53, -0.10] (n 23, 6 groups)
+- concepts · necrosis · class_means · Benign: 0.37 [0.05, 0.62] (n 48, 6 groups)
+- concepts · necrosis · class_means · InSitu: 1.40 [0.86, 2.07] (n 30, 6 groups)
+- concepts · necrosis · class_means · Invasive: 1.25 [1.12, 1.40] (n 31, 17 groups)
+- concepts · necrosis · auroc_Invasive_vs_rest: 0.787 [0.622, 0.960] (n 132, 24 groups)
 
 ### `eval/zeroshot.json`
 
@@ -261,7 +286,7 @@ Source: `eval/margin.json` · threshold 1.000 (CI {'lo': 0.847377, 'hi': 0.99989
 - accuracy_vs_degradation · curve · resample · 1: 0.69 [0.54, 0.84] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · resample · 2: 0.74 [0.61, 0.88] (n 132, 24 groups)
 - accuracy_vs_degradation · curve · resample · 3: 0.73 [0.64, 0.85] (n 132, 24 groups)
-- error_auroc_test: 0.71 [0.59, 0.86] (n 1716, 24 groups)
+- error_auroc_test: 0.70 [0.59, 0.86] (n 1716, 24 groups)
 - feature_auroc_test · ood_percentile: 0.49 [0.40, 0.58] (n 1716, 24 groups)
 - feature_auroc_test · set_size: 0.70 [0.64, 0.79] (n 1716, 24 groups)
 - feature_auroc_test · conch_musk_disagree: 0.61 [0.51, 0.75] (n 1716, 24 groups)
@@ -273,12 +298,12 @@ Source: `eval/margin.json` · threshold 1.000 (CI {'lo': 0.847377, 'hi': 0.99989
 
 ### `eval/deletion.json`
 
-- models · uni2h_lr · predicted_aggressive · mean_drop_random: -0.00 [-0.00, 0.00] (n 34, 17 groups)
+- models · uni2h_lr · predicted_aggressive · mean_drop_random: 0.00 [0.00, 0.00] (n 34, 17 groups)
 - models · uni2h_lr · predicted_aggressive · mean_drop_risk: 0.02 [0.00, 0.04] (n 34, 17 groups)
-- models · uni2h_lr · predicted_aggressive · mean_drop_concept: -0.00 [-0.02, 0.01] (n 34, 17 groups)
-- models · uni2h_lr · predicted_aggressive · concept_minus_random: -0.00 [-0.02, 0.01] (n 34, 17 groups)
+- models · uni2h_lr · predicted_aggressive · mean_drop_concept: 0.00 [-0.02, 0.01] (n 34, 17 groups)
+- models · uni2h_lr · predicted_aggressive · concept_minus_random: 0.00 [-0.02, 0.01] (n 34, 17 groups)
 - models · uni2h_lr · predicted_aggressive · risk_minus_random: 0.02 [0.00, 0.05] (n 34, 17 groups)
-- models · uni2h_lr · all_eligible · mean_drop_random: -0.00 [-0.00, 0.00] (n 132, 24 groups)
+- models · uni2h_lr · all_eligible · mean_drop_random: 0.00 [0.00, 0.00] (n 132, 24 groups)
 - models · uni2h_lr · all_eligible · mean_drop_risk: 0.01 [0.00, 0.02] (n 132, 24 groups)
 - models · uni2h_lr · all_eligible · mean_drop_concept: 0.00 [-0.01, 0.01] (n 132, 24 groups)
 - models · uni2h_lr · all_eligible · concept_minus_random: 0.00 [-0.01, 0.01] (n 132, 24 groups)
@@ -315,7 +340,7 @@ Source: `eval/margin.json` · threshold 1.000 (CI {'lo': 0.847377, 'hi': 0.99989
 - direction_checks · features · infl_fraction · class_means · Benign: 0.05 [0.01, 0.11] (n 40, 6 groups)
 - direction_checks · features · infl_fraction · class_means · InSitu: 0.02 [0.01, 0.03] (n 29, 5 groups)
 - direction_checks · features · infl_fraction · class_means · Invasive: 0.01 [0.01, 0.02] (n 28, 16 groups)
-- direction_checks · features · infl_fraction · difference: -0.04 [-0.08, -0.00] (n 85, 21 groups)
+- direction_checks · features · infl_fraction · difference: -0.04 [-0.08, 0.00] (n 85, 21 groups)
 - direction_checks · features · til_proximity · class_means · Normal: 0.47 [0.37, 0.59] (n 16, 6 groups)
 - direction_checks · features · til_proximity · class_means · Benign: 0.59 [0.35, 0.77] (n 34, 6 groups)
 - direction_checks · features · til_proximity · class_means · InSitu: 0.73 [0.67, 0.91] (n 23, 5 groups)
@@ -325,11 +350,52 @@ Source: `eval/margin.json` · threshold 1.000 (CI {'lo': 0.847377, 'hi': 0.99989
 - direction_checks · features · dead_fraction · class_means · Benign: 0.02 [0.01, 0.04] (n 40, 6 groups)
 - direction_checks · features · dead_fraction · class_means · InSitu: 0.01 [0.00, 0.02] (n 29, 5 groups)
 - direction_checks · features · dead_fraction · class_means · Invasive: 0.01 [0.00, 0.01] (n 28, 16 groups)
-- direction_checks · features · dead_fraction · difference: -0.01 [-0.03, -0.00] (n 85, 21 groups)
+- direction_checks · features · dead_fraction · difference: -0.01 [-0.03, 0.00] (n 85, 21 groups)
+- direction_checks · features · epi_fraction · class_means · Normal: 0.23 [0.10, 0.43] (n 17, 6 groups)
+- direction_checks · features · epi_fraction · class_means · Benign: 0.16 [0.11, 0.35] (n 40, 6 groups)
+- direction_checks · features · epi_fraction · class_means · InSitu: 0.13 [0.03, 0.30] (n 29, 5 groups)
+- direction_checks · features · epi_fraction · class_means · Invasive: 0.45 [0.32, 0.56] (n 28, 16 groups)
+- direction_checks · features · epi_fraction · difference: 0.27 [0.09, 0.40] (n 85, 21 groups)
+- convergent_validity · pairs · nuc_area_cv~pleomorphism · tile: 0.34 [0.20, 0.49] (n 298, 24 groups)
+- convergent_validity · pairs · nuc_area_cv~pleomorphism · case: 0.45 [0.25, 0.67] (n 92, 23 groups)
+- convergent_validity · pairs · nuc_shape_cv~pleomorphism · tile: -0.04 [-0.22, 0.10] (n 298, 24 groups)
+- convergent_validity · pairs · nuc_shape_cv~pleomorphism · case: -0.06 [-0.38, 0.22] (n 92, 23 groups)
+- convergent_validity · pairs · infl_fraction~lymphocytes · tile: 0.10 [-0.03, 0.34] (n 382, 24 groups)
+- convergent_validity · pairs · infl_fraction~lymphocytes · case: 0.05 [-0.11, 0.37] (n 114, 23 groups)
+- ablation · rows[12] · log_loss: 0.48 [0.38, 0.59] (n 218, 49 groups)
+- ablation · rows[12] · auroc_invasive: 0.990 [0.975, 0.999] (n 218, 49 groups)
+- ablation · rows[12] · balanced_accuracy: 0.85 [0.80, 0.90] (n 218, 49 groups)
+- ablation · rows[12] · macro_f1: 0.85 [0.79, 0.90] (n 218, 49 groups)
+- ablation · rows[12] · macro_auroc: 0.956 [0.933, 0.975] (n 218, 49 groups)
+- ablation · rows[13] · log_loss: 0.73 [0.64, 0.82] (n 218, 49 groups)
+- ablation · rows[13] · auroc_invasive: 0.988 [0.973, 0.998] (n 218, 49 groups)
+- ablation · rows[13] · balanced_accuracy: 0.76 [0.71, 0.82] (n 218, 49 groups)
+- ablation · rows[13] · macro_f1: 0.76 [0.69, 0.82] (n 218, 49 groups)
+- ablation · rows[13] · macro_auroc: 0.933 [0.905, 0.957] (n 218, 49 groups)
+- ablation · rows[14] · log_loss: 1.32 [1.27, 1.38] (n 218, 49 groups)
+- ablation · rows[14] · auroc_invasive: 0.68 [0.58, 0.78] (n 218, 49 groups)
+- ablation · rows[14] · balanced_accuracy: 0.37 [0.31, 0.44] (n 218, 49 groups)
+- ablation · rows[14] · macro_f1: 0.33 [0.26, 0.39] (n 218, 49 groups)
+- ablation · rows[14] · macro_auroc: 0.62 [0.57, 0.67] (n 218, 49 groups)
+- ablation · rows[19] · log_loss: 0.48 [0.38, 0.59] (n 218, 49 groups)
+- ablation · rows[19] · auroc_invasive: 0.990 [0.975, 0.999] (n 218, 49 groups)
+- ablation · rows[19] · balanced_accuracy: 0.85 [0.80, 0.90] (n 218, 49 groups)
+- ablation · rows[19] · macro_f1: 0.85 [0.79, 0.90] (n 218, 49 groups)
+- ablation · rows[19] · macro_auroc: 0.956 [0.933, 0.975] (n 218, 49 groups)
+- ablation · rows[20] · log_loss: 0.73 [0.64, 0.82] (n 218, 49 groups)
+- ablation · rows[20] · auroc_invasive: 0.988 [0.973, 0.998] (n 218, 49 groups)
+- ablation · rows[20] · balanced_accuracy: 0.76 [0.71, 0.82] (n 218, 49 groups)
+- ablation · rows[20] · macro_f1: 0.76 [0.69, 0.82] (n 218, 49 groups)
+- ablation · rows[20] · macro_auroc: 0.933 [0.905, 0.957] (n 218, 49 groups)
+- ablation · rows[21] · log_loss: 1.32 [1.27, 1.38] (n 218, 49 groups)
+- ablation · rows[21] · auroc_invasive: 0.68 [0.58, 0.78] (n 218, 49 groups)
+- ablation · rows[21] · balanced_accuracy: 0.37 [0.31, 0.44] (n 218, 49 groups)
+- ablation · rows[21] · macro_f1: 0.33 [0.26, 0.39] (n 218, 49 groups)
+- ablation · rows[21] · macro_auroc: 0.62 [0.57, 0.67] (n 218, 49 groups)
 
 ## Reviewed checks
 
-- Concept top-tile and cell-overlay spot check: **AI-reviewed (Claude), not a pathologist** · `eval/spotcheck.json`. Plausibility of the top-scoring tiles per concept (acceptable / reviewed; the rest unsure or not acceptable):
+- Concept top-tile and cell-overlay spot check: **AI-reviewed, not a pathologist** (reviews by Claude Opus 5.5 (AI, not a pathologist) × 200; Codex UI verification (AI, no clinical assessment) × 1) · `eval/spotcheck.json`. Plausibility of the top-scoring tiles per concept (acceptable / reviewed; the rest unsure or not acceptable):
 
 | Feature | Acceptable |
 |---|---|

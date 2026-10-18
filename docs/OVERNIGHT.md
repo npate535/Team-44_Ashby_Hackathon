@@ -75,7 +75,7 @@ deferred reads and called scarce features "prominent" (a positive push was read 
 - `semantic_problem()` rejects sentences that contradict a cited margin call, reliability flag or feature level,
   state a simulated margin call as fact, or present away-pushing features as support;
 - `ensure_required()` appends the deterministic margin / quality-concern sentence when the model omits it
-  (generator reads `lumen:gemma-4-31b-it+template`; 152 of 328 cases).
+  (generator reads `lumen:gemma-4-31b-it+template`; 97 of 328 cases after the morning audit).
 
 ### 4. Clinical rules
 `uncertain_benign_atypia` (+ CK5/6/ER) now also fires for {Normal, InSitu} sets: two such cases drafted nothing
