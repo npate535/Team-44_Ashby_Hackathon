@@ -563,8 +563,13 @@ def build_findings(case: Mapping[str, Any], cfg: Mapping[str, Any], retrieval_en
     min_abs = float(cfg["findings"]["min_abs_contribution"])
     ranked = [c for c in case["concepts"] if c["source"] != "cell" and abs(c["contribution"]) >= min_abs]
     for c in ranked[: int(cfg["findings"]["max_concepts"])]:
-        add("concept", {"concept": c["id"], "label": c["label"], "contribution": c["contribution"],
-                        "tiles": list(c["top_tiles"]), "value": c["value"], "direction": c["direction"]})
+        data = {"concept": c["id"], "label": c["label"], "contribution": c["contribution"],
+                "tiles": list(c["top_tiles"]), "value": c["value"], "direction": c["direction"]}
+        if c.get("value_std") is not None:          # case vs training cases, for wording (no number to quote)
+            sd = float(cfg["findings"]["level_sd"])
+            v = float(c["value_std"])
+            data["level"] = "above_typical" if v >= sd else ("below_typical" if v <= -sd else "typical")
+        add("concept", data)
     if retrieval_entry is not None:
         add("retrieval", {"agree": int(retrieval_entry["agree"]), "of": int(retrieval_entry["of"]),
                           "label": str(retrieval_entry["predicted"])})

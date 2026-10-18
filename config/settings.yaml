@@ -340,12 +340,13 @@ demo:                               # hero cases auto-picked by step 08 and plac
 findings:
   max_concepts: 3                   # concept findings per case
   min_abs_contribution: 0.05
+  level_sd: 0.5                     # concept finding level: value_std >= +level_sd above_typical, <= -level_sd below_typical
 
 summary:
   max_sentences: 4
   min_valid_sentences: 2            # fewer validated sentences => deterministic template (plan §8.2)
   template_generator: template      # value of summary.generator for template output
-  prompt_version: 2                 # bump to invalidate cached LLM summaries after a prompt change (2: no inline IDs, rounding, order)
+  prompt_version: 3                 # bump to invalidate cached LLM summaries after a prompt change (2: no inline IDs, rounding, order; 3: concept level, exact margin call, reliability flag)
   allowed_codes: [Ki-67, CK5/6, p63, HER2, ER, PR, SMMHC, H&E]   # letter-digit tokens that are names, not numbers
   banned_patterns:                  # case-insensitive regexes; a sentence matching any is dropped (no diagnosis as fact)
     - "\\bdiagnos"
