@@ -138,7 +138,7 @@ function row(v, ST, rank) {
   return (
     `<tr class="row tr-${num(v.tier)}${isNew ? ' new' : ''}${v.done ? ' done' : ''}" tabindex="0" aria-label="${esc(label)}" data-testid="worklist-row" data-case-id="${esc(v.id)}" data-tier="${num(v.tier)}" data-lane="${esc(v.lane)}" data-done="${v.done}" data-reasons="${esc(codes(v).join(' '))}" data-rank="${rank}">` +
     `<td class="c-tier"><span class="tierno t${num(v.tier)}" data-testid="tier-badge" title="Tier ${num(v.tier)} · ${esc(v.tierLabel)}">${num(v.tier)}</span></td>` +
-    `<td class="c-case"><div class="wl-cc"><b class="cid" title="${esc(v.id)}">${esc(v.id)}</b>${v.lane === 'surgical' ? `<span class="lane-inline">Frozen${v.room ? ' ' + esc(v.room) : ''}</span>` : ''}${isNew ? '<span class="newtag">New</span>' : ''}</div></td>` +
+    `<td class="c-case"><div class="wl-cc"><b class="cid" title="${esc(v.id)}">${esc(v.id)}</b>${v.lane === 'surgical' ? `<span class="lane-inline" title="${esc(`Simulated frozen section${v.room ? ' from ' + v.room : ''}${v.variantLabel ? ' · ' + v.variantLabel : ''}`)}">Frozen${v.room ? ' ' + esc(v.room) : ''}</span>` : ''}${isNew ? '<span class="newtag">New</span>' : ''}</div></td>` +
     `<td class="c-lane">${lane}</td>` +
     `<td class="c-sugg">${sugg}</td>` +
     `<td class="c-p"><span class="pnum${v.risk >= 50 ? ' hi' : ''}">${pInv}</span>${v.risk === null ? '' : miniBar(v.risk / 100, v.risk >= 50 ? 'hi' : '')}</td>` +

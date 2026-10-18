@@ -1059,8 +1059,15 @@ tr.row.new {
 }
 .c-set .chips {
   display: inline-flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 4px;
+}
+/* like the flags: a clipped "Invasive" chip is a safety problem, a taller row is not */
+.wl-table tr.row td.c-set {
+  white-space: normal;
+  text-overflow: clip;
+  padding-top: 5px;
+  padding-bottom: 5px;
 }
 .wl-table .chip {
   font-size: 11.5px;
@@ -1435,7 +1442,8 @@ tr.row.new {
     grid-area: flags;
     text-align: right;
   }
-  .wl-table tr.row td.c-flags {
+  .wl-table tr.row td.c-flags,
+  .wl-table tr.row td.c-set {
     padding: 0;
     line-height: normal;
   }
