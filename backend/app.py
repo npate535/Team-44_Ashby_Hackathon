@@ -602,6 +602,8 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
     async def no_store(request: Request, call_next):   # stale ES modules break the demo; everything is local
         response = await call_next(request)
         response.headers["Cache-Control"] = "no-store"
+        if source.get("PATHQUEUE_RELEASE_SHA"):
+            response.headers["X-Sepia-Release"] = source["PATHQUEUE_RELEASE_SHA"]
         return response
 
     interpreter = Interpreter(art / "interpretations", dotenv=config.REPO_ROOT / ".env", eval_dir=art / "eval")

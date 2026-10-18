@@ -8,8 +8,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIRS = ("backend", "core", "agent", "config", "deploy", "fixtures", "team44-triage-frontend/app")
-SOURCE_FILES = ("docs/RESULTS.md", "docs/API.md", "README.md")
-SUFFIXES = {".py", ".yaml", ".yml", ".json", ".js", ".css", ".html", ".svg", ".jpg", ".jpeg", ".png", ".md", ".txt", ".sh", ".service"}
+SOURCE_FILES = ("Dockerfile", ".dockerignore", "fly.toml", "docs/RESULTS.md", "docs/API.md", "README.md")
+SUFFIXES = {".py", ".yaml", ".yml", ".json", ".js", ".css", ".html", ".svg", ".jpg", ".jpeg", ".png", ".webp", ".woff2", ".woff", ".ttf", ".otf", ".md", ".txt", ".sh", ".service"}
 
 
 def files() -> list[Path]:

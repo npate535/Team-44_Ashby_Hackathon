@@ -1,5 +1,24 @@
 /* The shared visual system. Surface, type, color and motion apply to every workspace view.
    Evidence overlays and chart series retain their distinct scientific encodings. */
+/* Type: Fraunces (display: wordmark, page titles, large figures; the SOFT axis rounds its terminals like the emblem's
+   cells) and Bricolage Grotesque (interface text; its optical-size axis keeps small table text calm). Self-hosted,
+   OFL 1.1, see fonts/LICENSE.md. */
+@font-face {
+  font-family: 'Fraunces';
+  src: url('fonts/fraunces-var.woff2') format('woff2-variations'), url('fonts/fraunces-var.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('fonts/bricolage-grotesque-var.woff2') format('woff2-variations'),
+    url('fonts/bricolage-grotesque-var.woff2') format('woff2');
+  font-weight: 200 800;
+  font-stretch: 75% 100%;
+  font-style: normal;
+  font-display: swap;
+}
 :root {
   --bg: #f2f5f1;
   --sf: #fffefa;
@@ -21,8 +40,9 @@
   --s3: var(--amb);
   --paper: var(--bg);
   --inkd: #203c38;
-  --font: 'Avenir Next', 'Segoe UI', sans-serif;
-  --display: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font: 'Bricolage Grotesque', 'Avenir Next', 'Segoe UI', sans-serif;
+  --display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --display-axes: 'SOFT' 100, 'WONK' 0;
   --radius: 18px;
   --glass: #fffefab8;
   --glass-edge: #ffffffdf;
@@ -122,11 +142,12 @@ html { scroll-padding-top: calc(var(--stick, 96px) + 16px); }
   gap: 10px;
   color: var(--ink);
   text-decoration: none;
-  font: 600 21px/1.2 var(--font);
-  letter-spacing: -.8px;
+  font: 600 27px/1 var(--display);
+  font-variation-settings: 'SOFT' 100, 'WONK' 1, 'opsz' 96;
+  letter-spacing: -.6px;
 }
-.masthead .brand img { width: 34px; height: 34px; border-radius: 11px; box-shadow: 0 3px 8px #a7416320; }
-.masthead .brand-sub { display: block; color: var(--mut); font: 500 10px/1.5 var(--font); letter-spacing: .25px; margin-top: 3px; }
+.masthead .brand img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 4px #5a33181f); }
+.masthead .brand-sub { display: block; color: var(--mut); font: 500 11px/1.4 var(--font); letter-spacing: .1px; margin-top: 4px; font-variation-settings: normal; }
 .glass-nav {
   position: relative;
   isolation: isolate;
@@ -347,8 +368,8 @@ tr.row:hover { background: var(--sf2); }
 }
 @media (max-width: 640px) {
   .masthead { gap: 12px; padding: 12px 16px; }
-  .masthead .brand { font-size: 19px; }
-  .masthead .brand img { width: 31px; height: 31px; }
+  .masthead .brand { font-size: 22px; }
+  .masthead .brand img { width: 36px; height: 36px; }
   .masthead .brand-sub { font-size: 9px; }
   .workspace-tag { font-size: 9px; }
   .masthead-tools { gap: 10px; }
@@ -398,4 +419,18 @@ tr.row:hover { background: var(--sf2); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+}
+
+/* Type system: one display face with the emblem's soft terminals, one interface face. Figures stay tabular. */
+body { font-family: var(--font); font-optical-sizing: auto; font-feature-settings: 'ss01'; }
+h1, .mx-section-head h2, .cv .cv-id h2, .empty-state h2, .big, .bigp { font-family: var(--display); font-variation-settings: var(--display-axes); }
+h1 { font-weight: 480; letter-spacing: -.02em; }
+table, .num, time, [role=timer] { font-variant-numeric: tabular-nums; }
+/* Badges inside display headings keep the interface face. */
+h1 .tier, h2 .tier, h1 .pill, h2 .pill, h2 .chip { font-family: var(--font); font-variation-settings: normal; letter-spacing: 0; }
+/* Phones: a compact wordmark so the masthead keeps one line per item. */
+@media (max-width: 640px) {
+  .masthead .brand { font-size: 21px; gap: 8px; }
+  .masthead .brand img { width: 32px; height: 32px; }
+  .masthead .brand-sub { white-space: nowrap; font-size: 10px; }
 }

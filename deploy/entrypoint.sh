@@ -9,4 +9,4 @@ if [ ! -d /data/cases ]; then
     cp -a /seed/. /data/
 fi
 chown -R app:app /data
-exec gosu app python -m uvicorn backend.app:app --host 0.0.0.0 --port 8000 --workers 1 --proxy-headers
+exec gosu app python -m uvicorn backend.app:app --host 0.0.0.0 --port "${PORT:-8000}" --workers 1 --proxy-headers
