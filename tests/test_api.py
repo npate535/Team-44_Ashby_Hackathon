@@ -717,3 +717,17 @@ def test_changed_artifacts_cannot_silently_erase_saved_workspace(dev, tmp_path):
     with pytest.raises(ServerDataError, match='case artifacts differ'):
         make_client(tmp_path, cases_dir=root / 'cases', artifacts_root=root, clock=clock)
     assert client.get('/api/worklist').json()['items'] == before
+
+
+def test_shutdown_checkpoints_the_running_replay_clock(tmp_path):
+    root = dev_root(tmp_path)
+    client, clock = make_client(tmp_path, artifacts_root=root)
+    with client:                                         # lifespan: the shutdown hook runs on exit
+        client.post("/api/sim/start")
+        clock.advance(3)                                 # no request after this: only the shutdown hook sees it
+    from backend import db as store_db
+    restored = store_db.Store(tmp_path / "test.sqlite").restore(store_db.load_case_dir(root / "cases"))
+    assert restored > 0 and restored == pytest.approx(client.app.state.backend.sim.sim_now())   # not the Start time
+    restarted, _ = make_client(tmp_path, artifacts_root=root, clock=clock)
+    sim = restarted.get("/api/health").json()["sim"]
+    assert sim["running"] is False and sim["sim_time_s"] == pytest.approx(restored)
