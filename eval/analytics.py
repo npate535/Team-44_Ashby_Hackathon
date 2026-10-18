@@ -19,7 +19,6 @@ so degraded / composite variants never enter; `variants_excluded` counts them ex
                    distribution overall and per class, aggressive-class-in-set counts, set composition counts;
                    `tier_method_key` names the block that drives tiers and `post_hoc_switch` flags a non-pre-registered
                    choice (its test coverage is optimistic).
-    data_quality   the tile-QC re-qualification summary (data/meta/01q_requalify_qc_summary.json) when present.
     triage         base worklist tier (core.tiers, static, as eval.queue_sim) by true class: where invasive cases land.
     queue          per-simulated-day distributions (quantiles) of the queue-simulation waits per policy and of the
                    paired difference vs FIFO, replaying eval.queue_sim's arrival stream (same seed and reps); the
@@ -55,7 +54,6 @@ QUEUE_KEYS = ("aggressive_mean", "aggressive_p90", "non_flagged_mean", "surgical
 QUEUE_DIFF_KEYS = ("aggressive_mean", "non_flagged_mean")
 CONFORMAL_COLUMNS = {"lac_marginal": "set_lac", "aps": "set_aps", "mondrian": "set_mondrian"}
 PRE_REGISTERED_SET = "lac_marginal"     # plan §6.6 / BUILD_PLAN: the pre-registered tier set (settings conformal comment)
-QC_SUMMARY_STEP = "01q_requalify_qc_summary"   # data-root meta written by pipeline.01q_requalify_qc (when it ran)
 
 
 def _r(values: Any) -> list[float | None]:
@@ -246,17 +244,6 @@ def conformal_block(df: pd.DataFrame, y: np.ndarray, groups: np.ndarray, cfg: Ma
     return out
 
 
-def data_quality_block(root: Path) -> dict[str, Any] | None:
-    """Tile-QC re-qualification summary (all 400 images, every split) when pipeline.01q_requalify_qc has run."""
-    path = schemas.step_meta_json(root, QC_SUMMARY_STEP)
-    if not path.is_file():
-        return None
-    src = io.read_json(path)
-    keep = ("rule_old", "rule_new", "n_cases", "n_tiles", "validation_old_rule_display_vs_fullres", "qc_pass_rate",
-            "insufficient_tissue_cases", "mean_contract_tiles_kept")
-    return {**{k: src[k] for k in keep if k in src}, "source": f"data/meta/{path.name}",
-            "population": "every BACH image (all splits); tile-level QC, not a model result"}
-
 
 def triage_block(cfg: Mapping[str, Any], root: Path) -> dict[str, Any]:
     from core import tiers
@@ -370,10 +357,6 @@ def payload(ctx: cli.StepContext, reps: int | None = None) -> tuple[dict[str, An
         "conformal": conformal_block(df, y, groups, cfg),
         "unavailable": {},
     }
-    dq = data_quality_block(root)
-    if dq is not None:
-        out["data_quality"] = dq
-        inputs.append(schemas.step_meta_json(root, QC_SUMMARY_STEP))
     for name, fn, extra in (("triage", lambda: triage_block(cfg, root), [schemas.reliability_csv(root), schemas.tiles_csv(root)]),
                             ("queue", lambda: queue_block(cfg, root, art, reps), [])):
         try:

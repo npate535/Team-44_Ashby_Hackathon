@@ -178,13 +178,3 @@ def test_tier_set_drives_conformal_block_and_post_hoc_flag(tmp_path):
     assert {"lac_marginal", "aps", "mondrian", "aps_marginal_nonempty"} == set(conf["methods"])
     assert conf["methods"]["aps_marginal_nonempty"]["empty_sets"] == 0
 
-
-def test_data_quality_summary_is_passed_through(tmp_path):
-    D.write_eval_root(tmp_path / "data", CFG)
-    summary = {"n_cases": 400, "qc_pass_rate": {"old": {"g512": 0.75}, "new": {"g512": 0.99}},
-               "insufficient_tissue_cases": {"old": 51, "new": 0}, "per_case": ["should not be copied"]}
-    io.write_json(schemas.step_meta_json(tmp_path / "data", A.QC_SUMMARY_STEP), summary)
-    a = io.read_json(A.run(D.make_ctx(CFG, tmp_path / "data", tmp_path / "art"), reps=5))
-    dq = a["data_quality"]
-    assert dq["insufficient_tissue_cases"] == {"old": 51, "new": 0} and "per_case" not in dq
-    assert dq["source"].endswith("01q_requalify_qc_summary.json")
