@@ -191,8 +191,8 @@ export function heatmapLegend(v, hm) {
     `<div class="lg-scale"><span class="lg-title">${esc(scale.title)}</span><span class="lg-bar" aria-hidden="true"></span>` +
     `<span class="lg-ticks"><span>${esc(scale.lo)}</span><span>${esc(scale.mid)}</span><span>${esc(scale.hi)}</span></span></div>` +
     '<div class="lg-keys">' +
-    '<span class="lg-key"><i class="sw-hatch" aria-hidden="true"></i>Hatched: failed tissue QC, not read by the model</span>' +
-    `<span class="lg-key${linked ? '' : ' dim'}"><i class="sw-hl" aria-hidden="true"></i>${linked ? `Outlined: regions linked to <b>${esc(conceptLabel(v, hm.why) || 'the selection')}</b> (${hm.hl.map(esc).join(', ')})` : 'Outlined: regions linked to a selected feature'}</span>` +
+    '<span class="lg-key"><i class="sw-hatch" aria-hidden="true"></i><span>Hatched: failed tissue QC, not read by the model</span></span>' +
+    `<span class="lg-key${linked ? '' : ' dim'}"><i class="sw-hl" aria-hidden="true"></i><span>${linked ? `Outlined: regions linked to <b>${esc(conceptLabel(v, hm.why) || 'the selection')}</b> (${hm.hl.map(esc).join(', ')})` : 'Outlined: regions linked to a selected feature'}</span></span>` +
     '</div>' +
     `<p class="lg-note">${esc(scale.note)} Hover or focus a region for its values; click it to zoom in.</p></div>`
   );

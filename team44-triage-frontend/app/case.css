@@ -1227,6 +1227,9 @@ dialog.cv-compare::backdrop {
   flex-wrap: wrap;
   font-size: 12px;
 }
+.vw-tools [hidden] {
+  display: none !important; /* .vw-tools label sets display, which beat the hidden attribute (opacity on margin strips) */
+}
 .vw-tools label {
   display: inline-flex;
   align-items: center;
@@ -2140,6 +2143,12 @@ dialog.cv-compare::backdrop {
 .cv-cell-fig {
   margin: 0;
   min-width: 0;
+}
+/* the region a finding pointed to: a steady marker (app.js flashes it once; a 'flash' class here replayed on every poll) */
+.cv-cell-fig.is-target {
+  outline: 2px solid var(--hema);
+  outline-offset: 4px;
+  border-radius: 6px;
 }
 .cv-cell-fig img,
 .cv-cell-fig .crop {

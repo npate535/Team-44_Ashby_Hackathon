@@ -152,13 +152,15 @@ export function agentPanel(v, ST) {
   const btn = (act, label, cls = '', confirm = false) =>
     `<button class="btn${cls}" ${confirm ? 'data-cv-confirm' : 'data-act'}="${act}" data-testid="action-${TESTID[act]}"${can(act) ? '' : ' disabled'}${p && p.action === act ? ' aria-expanded="true"' : confirm ? ' aria-expanded="false"' : ''}>${label}</button>`;
   const nItems = liveItems(detail).length;
+  // recuts and deeper levels are not tests (the frozen-section lane never drafts stains)
+  const orderVerb = detail.some((o) => o.type === 'stain' && o.status !== 'removed' && o.status !== 'dismissed') ? 'Order tests' : 'Place orders';
   const open = ['approve_orders', 'edit_orders', 'closer_look', 'dismiss_flag'].some((a) => v.agent.allowed.includes(a));
   // the same label/state case_ui.js sets live on each tick; a poll re-render must not re-enable an empty edit
   const nSel = Object.values(ST.editDraft || {}).reduce((a, xs) => a + (Array.isArray(xs) ? xs.length : 0), 0);
   const actions = editing
     ? `<div class="btns"><button class="btn p" data-act="edit_save" data-testid="action-edit-save"${nSel && !ST.busy ? '' : ' disabled'}>${nSel ? `Order ${nSel} selected` : 'Select at least one item'}</button><button class="btn" data-act="edit_cancel" data-testid="action-edit-cancel">Cancel</button><span class="sub">Untick items to drop them; edits can only remove drafted items, and the selected ones are ordered at once.</span></div>`
     : open
-      ? `<div class="btns cv-actions">${btn('approve_orders', nItems ? `Order tests (${nItems})` : 'Order tests', ' p', true)}${btn('edit_orders', 'Edit')}${btn('closer_look', 'Take a closer look first')}${btn('dismiss_flag', 'Dismiss flag', ' d', true)}</div>` +
+      ? `<div class="btns cv-actions">${btn('approve_orders', `${orderVerb}${nItems ? ` (${nItems})` : ''}`, ' p', true)}${btn('edit_orders', 'Edit')}${btn('closer_look', 'Take a closer look first')}${btn('dismiss_flag', 'Dismiss flag', ' d', true)}</div>` +
         (ST.busy ? '<p class="sub" role="status">Saving your decision…</p>' : '')
       : '';
   const box = p && p.action !== 'sign_out' ? confirmBox(v, ST, detail) : '';
