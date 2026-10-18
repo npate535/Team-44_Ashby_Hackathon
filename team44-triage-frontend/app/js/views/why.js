@@ -1,7 +1,7 @@
 // Evidence panels (plan §8.1): Why (grouped concept associations), How sure (calibrated probabilities, conformal set,
 // agreement checklist), Compared to (references + contrast case), Summary with finding references.
 // Wording rule (plan §6.4): "features associated with", never causes, never a Nottingham grade; the model suggests.
-import { classLabel, coverageStatus, esc, FINDING_ID, humanize, num, pct, signed, thumbUrl } from '../adapter.js';
+import { classLabel, coverageStatus, esc, exactProb, FINDING_ID, humanize, num, ordinalPct, pct, signed, thumbUrl } from '../adapter.js';
 
 /** A model probability as a percentage that never reads 100% or 0% (exact value goes in tooltips). */
 export const fmtPct = (p) => (!isNum(p) ? '—' : Number(p) >= 0.995 ? '>99%' : Number(p) < 0.005 ? '<1%' : Math.round(Number(p) * 100) + '%');
@@ -31,7 +31,7 @@ export function levelOf(r, cells) {
     if (isNum(p)) {
       const q = Math.round(p * 100);
       const word = p >= 0.9 ? 'High' : p >= 0.6 ? 'Above typical' : p > 0.4 ? 'Typical' : p > 0.1 ? 'Below typical' : 'Low';
-      return { word, cls: p >= 0.6 ? 'hi' : p > 0.4 ? 'mid' : 'lo', short: `${q}th percentile`, long: `higher than ${q}% of benign/normal reference cases`, tip: '', pct: Number(p) };
+      return { word, cls: p >= 0.6 ? 'hi' : p > 0.4 ? 'mid' : 'lo', short: `${ordinalPct(p)} percentile`, long: `higher than ${q}% of benign/normal reference cases`, tip: '', pct: Number(p) };
     }
     return { word: '', cls: 'none', short: '', long: '', tip: 'no reference percentile available' };
   }
@@ -225,7 +225,7 @@ function probChart(v, cfg) {
       const inSet = v.set.includes(p.cls);
       const top = p.cls === v.top;
       const w = Math.max(0, Math.min(100, num(p.p) * 100));
-      const tip = `${p.label}: calibrated probability ${num(p.p).toFixed(3)}${inSet ? ' · in the conformal set' : ' · outside the conformal set'}${top ? ' · top category' : ''}`;
+      const tip = `${p.label}: calibrated probability ${exactProb(p.p)}${inSet ? ' · in the conformal set' : ' · outside the conformal set'}${top ? ' · top category' : ''}`;
       return (
         `<div class="pc-row${inSet ? ' in' : ''}${top ? ' top' : ''}${p.cls === agg ? ' agg' : ''}" title="${esc(tip)}" data-testid="prob-${esc(p.cls)}">` +
         `<span class="pc-lbl">${esc(p.label)}${top ? '<span class="pc-tag">suggested</span>' : ''}</span>` +
@@ -260,9 +260,9 @@ export function howSure(v, cfg, metrics, { compact = false } = {}) {
   const spreads = v.concepts.map((c) => c.spread).filter(isNum);
   const spread = spreads.length ? spreads.reduce((a, b) => a + Number(b), 0) / spreads.length : null;
   const totalRegions = v.image ? num(v.image.grid[0]) * num(v.image.grid[1]) : null;
-  const minTiles = quality && isNum(quality.data.min_tiles_kept) ? Number(quality.data.min_tiles_kept) : null;
+  const minTiles = quality && quality.data && isNum(quality.data.min_tiles_kept) ? Number(quality.data.min_tiles_kept) : null;
 
-  const nb = retrieval
+  const nb = retrieval && retrieval.data && isNum(retrieval.data.of)
     ? { k: num(retrieval.data.agree), of: num(retrieval.data.of) }
     : isNum(ag.neighbor_agreement)
       ? { k: null, of: null, frac: Number(ag.neighbor_agreement) }
@@ -298,7 +298,7 @@ export function howSure(v, cfg, metrics, { compact = false } = {}) {
     check(
       r.oodPct === null ? 'na' : r.oodPct >= 0.9 ? 'warn' : 'ok',
       'Input typicality (OOD percentile)',
-      r.oodPct === null ? '—' : `${Math.round(r.oodPct * 100)}th`,
+      r.oodPct === null ? '—' : ordinalPct(r.oodPct),
       'Distance to reference tissue, as a percentile of calibration cases. Lower is more typical; 90th and above is unusual.',
       ' data-f-target="quality"'
     ) +
@@ -319,7 +319,7 @@ export function howSure(v, cfg, metrics, { compact = false } = {}) {
     ? v.set.map((cls) => `<span class="chip conf" data-testid="conformal-chip" title="${esc(classLabel(cls, cfg))}">${esc(cls)}</span>`).join('')
     : '<span class="chip empty" data-testid="conformal-chip-empty">∅ empty set</span>';
   const head =
-    `<div class="hs-head"><div class="hs-risk"><div class="bigp" data-testid="risk" title="${esc(isNum(aggProb(v, cfg)) ? Number(aggProb(v, cfg)).toFixed(4) : '')}">${v.risk === null ? '—' : fmtPct(aggProb(v, cfg))}</div><div class="sub">calibrated P(${esc(classLabel((cfg && cfg.aggressive_class) || 'Invasive', cfg))})</div></div>` +
+    `<div class="hs-head"><div class="hs-risk"><div class="bigp" data-testid="risk" title="${esc(isNum(aggProb(v, cfg)) ? exactProb(aggProb(v, cfg), 4) : '')}">${v.risk === null ? '—' : fmtPct(aggProb(v, cfg))}</div><div class="sub">calibrated P(${esc(classLabel((cfg && cfg.aggressive_class) || 'Invasive', cfg))})</div></div>` +
     `<div class="hs-sugg"><span class="sub">Suggested category</span><b>${esc(classLabel(v.top, cfg) || '—')}</b><span class="sub"><code>${esc(v.model || 'model unavailable')}</code>, temperature-calibrated</span></div></div>`;
   return (
     head +
@@ -410,7 +410,7 @@ export function summary(v) {
   const ps = s.sentences
     .map(
       (sent) =>
-        `<p class="sum-s">${esc(sent.text)}${sent.findings
+        `<p class="sum-s">${esc(sent.text)}${(sent.findings || [])
           .filter((f) => FINDING_ID.test(f))
           .map((f) => {
             const fd = v.findings.get(f);

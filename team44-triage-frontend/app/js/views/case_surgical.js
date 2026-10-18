@@ -2,10 +2,10 @@
 // on a specimen diagram and on the image (per-segment strips), per-margin scores against the threshold on a log-odds
 // axis, a reliability indicator that explains a "defer" suggestion, and the three calls with confirmation.
 // The pathologist makes the call; it goes to the surgeon screen and stops the timer. Everything here is simulated.
-import { CALL_TEXT, classLabel, esc, MARGINS, num, toView } from '../adapter.js';
+import { CALL_TEXT, classLabel, esc, MARGINS, num, ordinalPct, toView } from '../adapter.js';
 import { agentPanel } from './agent.js';
 import { activity, header } from './case_biopsy.js';
-import { pending, setRenderer } from './case_ui.js';
+import { keepOpen, pending, setRenderer } from './case_ui.js';
 import { cap, fmtLogit, marginBars, marginOverlay, marginStatus, specimenDiagram } from './heatmap.js';
 import { aggProb, checksOnly, fmtPct, howSure, summary } from './why.js';
 
@@ -29,7 +29,7 @@ const SUGGESTED = {
 function flagReasons(v, cfg) {
   const r = v.reliability;
   const out = [];
-  if (r.oodPct !== null && r.oodPct >= 0.9) out.push(`input unlike the reference images (OOD percentile ${r.oodPct.toFixed(2)})`);
+  if (r.oodPct !== null && r.oodPct >= 0.9) out.push(`input unlike the reference images (${ordinalPct(r.oodPct)} OOD percentile)`);
   if (v.agreement && v.agreement.conch_musk_same_top === false) out.push('the second model (MUSK) picks a different category');
   if (v.setSize !== 1) out.push(v.setSize ? `${v.setSize} categories in the conformal set` : 'an empty conformal set');
   if (v.degradation) out.push(`simulated ${v.degradation} artifact on this field`);
@@ -55,7 +55,7 @@ function reliabilityBlock(v, cfg, metrics) {
   }
   return (
     `<div class="rel-ok" data-testid="reliability-ok"><span class="ck-i" aria-hidden="true">✓</span><span><b>Reliability ${r.score === null ? '—' : r.score.toFixed(2)} · no flag</b>` +
-    `<span class="sub">${r.oodPct === null ? '' : `OOD percentile ${Math.round(r.oodPct * 100)}th · `}${typeof thr === 'number' ? `flag at ≤ ${(1 - thr).toFixed(2)}` : 'no flag threshold available'}</span></span>${gauge}</div>`
+    `<span class="sub">${r.oodPct === null ? '' : `OOD percentile ${ordinalPct(r.oodPct)} · `}${typeof thr === 'number' ? `flag at ≤ ${(1 - thr).toFixed(2)}` : 'no flag threshold available'}</span></span>${gauge}</div>`
   );
 }
 
@@ -70,7 +70,7 @@ function callPanel(v, ST) {
   const m = v.margin;
   const done = v.decision.marginCall;
   if (done)
-    return `<div class="verdict" data-testid="verdict" role="status"><b>${esc(callText(done))}</b> — sent to the surgeon at ${esc(new Date(done.at).toLocaleTimeString())}. Timer stopped.</div>`;
+    return `<div class="verdict" data-testid="verdict" role="status"><b>${esc(callText(done))}</b> — sent to the surgeon${done.at ? ` at ${esc(new Date(done.at).toLocaleTimeString())}` : ''}. Timer stopped.</div>`;
   const can = v.agent.allowed.includes('margin_call') && !ST.busy;
   const dis = can ? '' : ' disabled';
   const sug = m ? m.call : null;
@@ -90,7 +90,7 @@ function callPanel(v, ST) {
         const st = m ? marginStatus(m, name) : 'unknown';
         return `<label class="${st}"><input type="checkbox" data-pick="${name}" data-testid="margin-pick-${name}"${ST.marginPick.includes(name) ? ' checked' : ''}>${cap(name)}<span class="sub">${m && m.perMargin[name] !== undefined ? esc(fmtLogit(m.perMargin[name])) : ''}</span></label>`;
       }).join('') +
-      '<div class="btns"><button class="btn p dd" data-call="confirm" data-testid="call-confirm">Send: tumor at margin</button><button class="btn" data-call="cancel" data-testid="call-cancel">Cancel</button></div>' +
+      `<div class="btns"><button class="btn p dd" data-call="confirm" data-testid="call-confirm"${can && ST.marginPick.length ? '' : ' disabled'}>Send: tumor at margin</button><button class="btn" data-call="cancel" data-testid="call-cancel">Cancel</button></div>` +
       '<p class="sub">Sends “Tumor at the selected margin(s) — more tissue needed” to the surgeon and stops the timer.</p></div>';
   }
   if (p && (p.action === 'margin_clear' || p.action === 'margin_defer')) {
@@ -128,7 +128,8 @@ export function render(ST, ctx) {
     `<div class="lg-keys ms-keys"><span class="lg-key"><i class="sw-seg hot" aria-hidden="true"></i>Segment above threshold</span><span class="lg-key"><i class="sw-seg warm" aria-hidden="true"></i>Just below threshold</span><span class="lg-key"><i class="sw-seg cool" aria-hidden="true"></i>Below threshold</span></div>` +
     `<p class="sub" data-testid="margin-2d-note">${esc(ST.cfg.margin.note)}</p></div>`;
   h += `<div class="card" data-testid="summary"><div class="card-h"><h2>Summary</h2></div>${summary(v)}</div>`;
-  h += `<details class="card activity-card" data-testid="case-events"><summary>Activity <span>${(ST.events[v.id] || []).length} events</span></summary>${activity(ST.events[v.id])}</details>`;
+  const nEv = (ST.events[v.id] || []).length;
+  h += `<details class="card activity-card" data-testid="case-events" data-keep="activity"${keepOpen('activity')}><summary>Activity <span>${nEv} event${nEv === 1 ? '' : 's'}</span></summary>${activity(ST.events[v.id])}</details>`;
   h += '</div><div class="decision-column cv-side">';
   h +=
     `<div class="card cv-timer ${esc(t.state)}"><div class="tm-h"><span>Time since received</span><span class="sub">target ${num(ST.cfg.timer.red_min)} min · amber at ${num(ST.cfg.timer.amber_min)}</span></div>` +
@@ -147,7 +148,7 @@ export function render(ST, ctx) {
     reliabilityBlock(v, cfg, ST.metrics) +
     callPanel(v, ST) +
     '<p class="note">You make the call. It goes to the surgeon screen and stops the timer.</p></div>';
-  h += `<div class="card" data-testid="how-sure"><div class="card-h"><h2>Case-level read</h2><span class="sub">${esc(classLabel(v.top, cfg) || '')}${v.risk === null ? '' : ` · ${fmtPct(aggProb(v, cfg))} P(invasive)`}</span></div>${howSure(v, ST.cfg, ST.metrics, { compact: true })}<details class="cv-more"><summary>Agreement and quality checks</summary>${checksOnly(v, ST.cfg, ST.metrics)}</details></div>`;
+  h += `<div class="card" data-testid="how-sure"><div class="card-h"><h2>Case-level read</h2><span class="sub">${esc(classLabel(v.top, cfg) || '')}${v.risk === null ? '' : ` · ${fmtPct(aggProb(v, cfg))} P(invasive)`}</span></div>${howSure(v, ST.cfg, ST.metrics, { compact: true })}<details class="cv-more" data-keep="checks"${keepOpen('checks')}><summary>Agreement and quality checks</summary>${checksOnly(v, ST.cfg, ST.metrics)}</details></div>`;
   h += agentPanel(v, ST);
   return h + '</div></div></section>';
 }

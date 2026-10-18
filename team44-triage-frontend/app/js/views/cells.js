@@ -1,7 +1,7 @@
 // Cells tab (CELLS_SPEC §7.3): measured-cell summary, per-region composition and overlays, and every measured feature
 // against benign/normal reference cases. Automated segmentation, not pathologist-validated; wording: "measured
 // features associated with invasive carcinoma", never a causal claim about cells.
-import { cssColor, cssUrl, esc, humanize, num, signed } from '../adapter.js';
+import { cssColor, cssUrl, esc, humanize, num, ordinalPct, signed } from '../adapter.js';
 
 const isNum = (x) => x !== null && x !== undefined && Number.isFinite(Number(x));
 
@@ -14,7 +14,8 @@ const GROUPS = [
 ];
 
 function crop(v, t, assetUrl) {
-  const { w, h, tile } = v.image;
+  const [w, h, tile] = [num(v.image.w), num(v.image.h), num(v.image.tile)];
+  t = { idx: num(t.idx), x: num(t.x), y: num(t.y) };
   const size = `${(w / tile) * 100}% ${(h / tile) * 100}%`;
   const pos = `${w > tile ? (t.x / (w - tile)) * 100 : 0}% ${h > tile ? (t.y / (h - tile)) * 100 : 0}%`;
   return `<div class="crop cv-crop" role="img" aria-label="Region ${t.idx} of the display image, no overlay" style="background-image:url('${esc(cssUrl(assetUrl(v.image.src)))}');background-size:${size};background-position:${pos}"></div>`;
@@ -51,9 +52,11 @@ export function cellsTab(v, ST, assetUrl) {
   const cells = v.cells;
   const cfg = ST.cfg;
   if (!cells || cells.status !== 'ok') {
-    const unavailable = !cfg.cells.enabled
+    const unavailable = !(cfg.cells && cfg.cells.enabled)
       ? 'the cell module is disabled'
-      : v.reliability.qcTiles === 0
+      : cells && cells.status === 'failed'
+        ? 'automated nuclei segmentation did not complete for this case'
+        : v.reliability.qcTiles === 0
         ? 'no regions passed quality control'
         : 'no measured output is available for this case';
     return `<div class="card cv-cells" data-testid="cells-tab"><div class="card-h"><h2>Measured cells</h2></div><div class="note" data-testid="cells-disabled">Cell measurements are unavailable: ${unavailable}. The read and its explanation do not depend on them.</div></div>`;
@@ -79,7 +82,7 @@ export function cellsTab(v, ST, assetUrl) {
     const p = f.ref_percentile;
     return (
       `<div class="cs-stat"><span class="cs-k">${esc(title || label(id))}</span><b>${esc(fmtValue(f, meta[id] && meta[id].unit))}</b>` +
-      `<span class="sub">${isNum(p) ? `${Math.round(p * 100)}th percentile of benign/normal references` : 'no reference percentile'}</span></div>`
+      `<span class="sub">${isNum(p) ? `${ordinalPct(p)} percentile of benign/normal references` : 'no reference percentile'}</span></div>`
     );
   };
   const stats =
@@ -89,12 +92,13 @@ export function cellsTab(v, ST, assetUrl) {
     (feats.til_proximity && isNum(feats.til_proximity.value) ? stat('til_proximity') : stat('infl_fraction')) +
     '</div>';
 
+  const cnt = (ct, t) => num(ct.counts && ct.counts[t]);
   const bar = (ct) => {
     const n = total(ct);
     if (!n) return '<div class="sub">No nuclei counted.</div>';
-    return `<div class="comp-bar" role="img" aria-label="${esc(types.map((t) => `${typeName(t)} ${num(ct.counts[t])}`).join(', '))}">${types
-      .filter((t) => num(ct.counts[t]) > 0)
-      .map((t) => `<i style="flex:${num(ct.counts[t])};background:${cssColor(colors[t])}" title="${esc(typeName(t))}: ${num(ct.counts[t])}"></i>`)
+    return `<div class="comp-bar" role="img" aria-label="${esc(types.map((t) => `${typeName(t)} ${cnt(ct, t)}`).join(', '))}">${types
+      .filter((t) => cnt(ct, t) > 0)
+      .map((t) => `<i style="flex:${cnt(ct, t)};background:${cssColor(colors[t])}" title="${esc(typeName(t))}: ${cnt(ct, t)}"></i>`)
       .join('')}</div>`;
   };
   const tileById = new Map(v.tiles.map((t) => [t.idx, t]));
@@ -109,7 +113,7 @@ export function cellsTab(v, ST, assetUrl) {
       const counts = types
         .map(
           (type) =>
-            `<li><span><i class="sw" style="background:${cssColor(colors[type])}"></i>${esc(typeName(type))}</span><b>${num(ct.counts[type]).toLocaleString()}</b></li>`
+            `<li><span><i class="sw" style="background:${cssColor(colors[type])}"></i>${esc(typeName(type))}</span><b>${cnt(ct, type).toLocaleString()}</b></li>`
         )
         .join('');
       return (
