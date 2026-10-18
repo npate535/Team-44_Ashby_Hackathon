@@ -19,7 +19,8 @@ make demo                                                  # real/synthetic pipe
 | `sim.speed` | simulator clock speed (× wall time) |
 | `sim.max_replay_wall_s` | the last self-arriving case (the biopsy hero) arrives at most this many wall seconds after Start: the clock runs faster than `sim.speed` when the offsets need it (`sim.speed` reports the effective speed, `sim.base_speed` the setting); `null` = always `sim.speed` |
 | `sim.hold_surgical_for_injection` | `true`: surgical cases arrive only through `inject_surgical` |
-| `sim.or_rooms` | simulated OR rooms on the surgeon board (`OR-1…OR-n`, stable per case_id) |
+| `sim.after_arrivals_speed` | once every self-arriving case is in, the clock runs at this × wall time (1 = real time) so waits stay meaningful; `null` keeps the replay speed; reset restores it |
+| `sim.or_rooms` | simulated OR rooms on the surgeon board (`OR-1…OR-n`, stable per case_id; also in `GET /api/config` `sim.or_rooms`) |
 | `margin.timer` | surgical timer amber/red thresholds (minutes, wall clock) |
 | `aging.*` | aging guard (core.tiers) on the simulator clock |
 
@@ -45,7 +46,7 @@ client-side interpolation.
          "cases": 18, "arrived": 0, "pending": {"biopsy": 14, "surgical": {"normal": 2, "degraded": 1, "composite": 1}}},
  "server_time": 1792270000.0, "server_time_iso": "2026-10-17T20:46:40.000Z"}
 ```
-`open_cases` counts all arrived cases awaiting a decision, across lanes. `status` is `ok`, or `degraded` when no valid case loaded, any file was skipped, or referenced media is missing. `media` is `fixtures` (flat
+`open_cases` counts all arrived cases awaiting a decision, across lanes; `open_surgical` counts the simulated frozen sections among them. `status` is `ok`, or `degraded` when no valid case loaded, any file was skipped, or referenced media is missing. `media` is `fixtures` (flat
 fixtures folder) or `artifacts`. `skipped` lists invalid or duplicate case files, and surgical cases carrying stain
 orders (never served).
 
@@ -213,6 +214,12 @@ Results sent after a margin call (surgeon) or a sign-out (oncologist), newest fi
 ```
 Oncologist `orders` are only approved/edited orders (dismissed → `[]`).
 
+Every routed item also carries a read-only `report`, built at read time from the stored public case (so results routed
+before it existed gain it too; never ground truth): `lane`, `top_class`, static `tier` and flag `reasons`, `quality`
+(`reliability`, `reliability_flag`, `qc_tiles_kept`), `simulated`, `arrived_at`; for the oncologist the three
+strongest associated `features` (`id`, `label`, `contribution`, `direction`, `source`); for the surgeon the simulated
+`margin` read (`suggested_call`, `involved`, `per_margin`, `threshold`), `simulated_variant` and `degradation`.
+
 ## POST /api/sim/{start|pause|reset|inject_surgical}
 
 ```json
@@ -229,7 +236,8 @@ Oncologist `orders` are only approved/edited orders (dismissed → `[]`).
 ## GET /api/metrics
 
 Every `<artifacts>/eval/*.json` keyed by file stem, the figure files in that folder, unreadable files, and the
-registry of expected eval files (`core.schemas.EVAL_FILES`) so the UI can show "pending" for missing ones.
+registry of expected eval files (`core.schemas.EVAL_FILES`) so the UI can show "pending" for missing ones. Tonight's
+additions: `analytics` (chart-ready test-split aggregates from `eval/analytics.py`) and `qc` (the tile-QC fix).
 ```json
 {"eval": {"calibration": {"name": "calibration", "synthetic": true, "...": "payload as written by eval/"}},
  "figures": [{"file": "calibration.png", "url": "/eval/calibration.png"}],
@@ -266,7 +274,7 @@ concept and for cell overlays. Unknown item ids → 422; no items file → 409.
 
 | Path | Source |
 |---|---|
-| `/images/<file>`, `/cells/<file>` | `<artifacts>/images`, `<artifacts>/cells`; `fixtures/<file>` when the cases folder is `fixtures/` |
+| `/images/<file>`, `/cells/<file>` | `<artifacts>/images`, `<artifacts>/cells`; `fixtures/<file>` when the cases folder is `fixtures/`. `?w=64…1024` returns a downscaled JPEG thumbnail (also for `/spotcheck/`), cached in memory per file and mtime |
 | `/eval/<file>` | `<artifacts>/eval/<file>` (figures) |
 | `/spotcheck/<file>` | `<artifacts>/spotcheck/<file>` (crops) |
 | `/fixtures/<file>` | `fixtures/` media, and fixture case JSONs **in their public form** (no `eval_only`) for the frontend's `?mock=1` mode |
