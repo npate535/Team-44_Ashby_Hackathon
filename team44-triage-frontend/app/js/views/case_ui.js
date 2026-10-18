@@ -52,6 +52,9 @@ function resolveKey(k) {
   return all[k.idx] || all[0] || null;
 }
 let lastFocus = null;
+let kbInput = false; // last interaction was the keyboard (vs a pointer)
+document.addEventListener('keydown', () => (kbInput = true), true);
+document.addEventListener('pointerdown', () => (kbInput = false), true);
 // a decision control (order, sign out, margin call…) disappears or is disabled once the decision is sent: move
 // keyboard focus to the outcome (feedback / verdict) when it appears instead of dropping it on <body>
 const DECISION = /data-act|data-call|data-cv-confirm|confirm-action/;
@@ -94,7 +97,10 @@ function afterRender() {
     const ae = document.activeElement;
     if (!ae || ae === document.body) {
       const el = resolveKey(lastFocus);
-      if (el && !el.disabled) el.focus({ preventScroll: true });
+      // form controls get focus back only for keyboard users: a focused select/checkbox/slider makes app.js treat
+      // the page as "typing" (N = next case ignored, polls paused), which a mouse user never asked for
+      const formCtl = el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName);
+      if (el && !el.disabled && (!formCtl || kbInput)) el.focus({ preventScroll: true });
       else {
         focusOutcome = DECISION.test(lastFocus.sel);
         lastFocus = null;

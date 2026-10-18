@@ -26,6 +26,8 @@ export function activity(events) {
     if (e.type === 'arrived') return `Arrived${p.lane ? ` (${p.lane === 'surgical' ? 'simulated frozen section' : 'biopsy'})` : ''}`;
     if (e.type === 'agent_transition') return `Decision: ${ACTION_TEXT[e.action] || e.action} (${e.from} → ${e.to})`;
     if (e.type === 'routed') return `Routed to the ${p.to || 'next screen'}`;
+    if (e.type === 'injected') return 'Simulated frozen section received';
+    if (e.type === 'timer_started') return 'Frozen-section timer started';
     if (e.type === 'signed_out') return 'Signed out by the pathologist';
     if (e.type === 'margin_call')
       return `Margin call: ${CALL_WORDS[p.call] || p.call}${p.margins && p.margins.length ? ' · ' + p.margins.join(', ') : ''}`;
