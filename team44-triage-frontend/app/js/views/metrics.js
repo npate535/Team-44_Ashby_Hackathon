@@ -1484,7 +1484,7 @@ function scope(ST, ev) {
   const parts = [];
   if (isNum(n)) parts.push(`<b>${n}</b> held-out test images from <b>${esc(ng ?? '?')}</b> patient or pseudo-patient groups`);
   if (isNum(vx)) parts.push(`${vx} simulated degraded / composite variants kept out of headline numbers`);
-  parts.push('intervals are 95% cluster-bootstrap CIs over those groups');
+  parts.push(`intervals are 95% cluster-bootstrap CIs over ${isNum(n) ? 'those groups' : 'patient or pseudo-patient groups'}`);
   if (prod) parts.push(`production read: ${esc(modelName(prod))}`);
   const text = parts.join('; ');
   return `<p class="mx-scope">${text.charAt(0).toUpperCase() + text.slice(1)}.</p>`;

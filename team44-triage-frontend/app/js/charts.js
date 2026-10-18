@@ -294,7 +294,7 @@ export function forest({ width = 560, rows = [], x = {}, refs = [], aria = '', r
       ? `<circle class="cx-dot cx-hollow" cx="${r1(sx(p.est))}" cy="${r1(cy)}" r="5" style="stroke:${color}"/>`
       : `<circle class="cx-dot" cx="${r1(sx(p.est))}" cy="${r1(cy)}" r="5" style="fill:${color}"/>`;
     if (!narrow) g += textLines([vText(p)], W - VW + 4, cy + 4, { cls: p.emphasis ? 'cx-t cx-strong cx-num' : 'cx-t cx-num', weight: p.emphasis ? 600 : null });
-    marks += `<rect class="cx-hitrow" x="0" y="${r1(y)}" width="${W}" height="${r1(h)}"${tipAttr(p.tip || [vText(p), p.label + (p.sub ? ` (${p.sub})` : '')])}/>`;
+    marks += `<rect class="cx-hitrow" x="0" y="${r1(y)}" width="${W}" height="${r1(h)}"${tipAttr(p.tip || [vText(p), p.label + (p.sub ? ` · ${p.sub}` : '')])}/>`;
     y += h;
   });
   return svgOpen(W, H, aria) + g + marks + '</svg>';
