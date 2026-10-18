@@ -62,11 +62,11 @@ def test_key_from_environment_wins_over_env_file(tmp_path, monkeypatch):
 
 
 def test_model_is_first_preference_present_in_live_listing(tmp_path):
-    server = FakeServer(models=["gemma-4-31b-it", "ornith-1.0-35b", "glm-5.3"])
+    server = FakeServer(models=["ornith-1.0-35b", "gemma-4-31b-it", "glm-5.3"])
     client, _ = make_client(server, tmp_path)
-    assert client.model == "ornith-1.0-35b"
-    server2 = FakeServer(models=["gemma-4-31b-it"])
-    assert make_client(server2, tmp_path)[0].model == "gemma-4-31b-it"
+    assert client.model == "gemma-4-31b-it"          # settings llm.model_preference order wins, not listing order
+    server2 = FakeServer(models=["ornith-1.0-35b"])
+    assert make_client(server2, tmp_path)[0].model == "ornith-1.0-35b"
     with pytest.raises(lumen.LumenError, match="model_preference"):
         make_client(FakeServer(models=["glm-5.3"]), tmp_path)[0].pick_model()
 
