@@ -69,6 +69,7 @@ eval:
 	$(call run_step,eval,cells_eval)
 	$(call run_step,eval,benchmark_thunder)
 	$(call run_step,eval,figures)
+	$(call run_step,eval,analytics)
 	$(call run_step,eval,results_md)
 
 analyze: pipeline-laptop eval
