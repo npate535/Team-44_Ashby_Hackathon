@@ -84,6 +84,8 @@ EVAL_FILES: dict[str, str] = {
     "margin": "Task 11 · margin eval: benign FPR, composite exact-negative clear rate, echo stats, WSI windows",
     "cells": "Task 8 · cell-feature validation (CELLS_SPEC §8)",
     "spotcheck": "Task 6 · spot-check results recorded in the UI",
+    "analytics": "Dashboard · chart-ready test-split aggregates: ROC/PR curves, confusion, reliability bins, conformal "
+                 "set composition, tiers by class, queue-wait distributions",
 }
 
 # Patterns shared with core.contract (case IDs; media refs relative to the artifacts root).
