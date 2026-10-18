@@ -1,0 +1,175 @@
+{
+  "name": "finetune",
+  "created_utc": "2026-10-18T20:05:26Z",
+  "config_hash": "54f522670b9e3597a011a17410ba7d9d0cbfe705b7bfd2a92c565473ad712ebd",
+  "git_sha": "9210da8abbe0983186fffe6e6f88e41520020cc7",
+  "synthetic": false,
+  "model": "uni2h_ft",
+  "recipe": {
+    "crop": 512,
+    "scale_jitter": 0.2,
+    "min_tissue": 0.5,
+    "epochs": 10,
+    "crops_per_image": 24,
+    "batch": 32,
+    "accum": 2,
+    "lr_lora": 0.0002,
+    "lr_head": 0.001,
+    "wd_head": 0.0001,
+    "warmup": 0.05,
+    "label_smoothing": 0.1,
+    "grad_clip": 1.0,
+    "lora_r": 8,
+    "lora_alpha": 16,
+    "jitter": {
+      "brightness": 0.1,
+      "contrast": 0.1,
+      "saturation": 0.1,
+      "hue": 0.02
+    },
+    "eval_grid": "g512",
+    "eval_views": 8,
+    "seed": 44,
+    "min_epochs": 3,
+    "timing_batches": 6
+  },
+  "models": [
+    "uni2h_frz_lr",
+    "uni2h_ft",
+    "uni2h_ft_lr",
+    "uni2h_ftb",
+    "uni2h_ftcat_lr",
+    "uni2h_wise25_lr",
+    "uni2h_wise50_lr",
+    "uni2h_wise_lr"
+  ],
+  "protocol": "docs/ACCURACY_ROUND2.md: fold-wise LoRA on round 1's CV repeat 0, compared with the probes on the same folds by fold-calibrated log-loss",
+  "cv_repeat0": {
+    "uni2h_ft": {
+      "cv_log_loss_repeat0": 0.18733171856531647,
+      "se": 0.04603956078516945,
+      "config": {
+        "C": 0.0
+      },
+      "oof_accuracy": 0.9357798165137615,
+      "oof_balanced_accuracy": 0.931719659317786
+    },
+    "uni2h_ftb": {
+      "cv_log_loss_repeat0": 0.18703298318692724,
+      "se": 0.045591959681502196,
+      "config": {
+        "C": 0.0
+      },
+      "oof_accuracy": 0.9357798165137615,
+      "oof_balanced_accuracy": 0.931719659317786
+    },
+    "uni2h_ft_lr": {
+      "cv_log_loss_repeat0": 0.2754562743370552,
+      "se": 0.12818587326254408,
+      "config": {
+        "C": 0.0
+      },
+      "oof_accuracy": 0.9403669724770642,
+      "oof_balanced_accuracy": 0.9345392081899664
+    },
+    "uni2h_ftcat_lr": {
+      "cv_log_loss_repeat0": 0.3461654919233523,
+      "se": 0.1961645460710735,
+      "config": {
+        "C": 0.0
+      },
+      "oof_accuracy": 0.944954128440367,
+      "oof_balanced_accuracy": 0.9387058748566331
+    },
+    "uni2h_frz_lr": {
+      "cv_log_loss_repeat0": 0.27853623434752484,
+      "se": 0.1683558332211358,
+      "config": {
+        "C": 0.0
+      },
+      "oof_accuracy": 0.9495412844036697,
+      "oof_balanced_accuracy": 0.9462246718491143
+    },
+    "uni2h_wise_lr": {
+      "cv_log_loss_repeat0": 0.2766071544178802,
+      "se": 0.1293068429207202,
+      "config": {
+        "C": 0.0
+      },
+      "oof_accuracy": 0.9403669724770642,
+      "oof_balanced_accuracy": 0.9345392081899664
+    },
+    "uni2h_wise25_lr": {
+      "cv_log_loss_repeat0": 0.2863287549853243,
+      "se": 0.16430288421675515,
+      "config": {
+        "C": 0.0
+      },
+      "oof_accuracy": 0.9587155963302753,
+      "oof_balanced_accuracy": 0.956563017713776
+    },
+    "uni2h_wise50_lr": {
+      "cv_log_loss_repeat0": 0.27673165702291325,
+      "se": 0.14499628163697437,
+      "config": {
+        "C": 0.0
+      },
+      "oof_accuracy": 0.9541284403669725,
+      "oof_balanced_accuracy": 0.9506812582303216
+    },
+    "uni2h_lr": {
+      "cv_log_loss_repeat0": 0.1895285270671358,
+      "se": 0.06678052782858963,
+      "config": {
+        "C": 0.001
+      },
+      "oof_accuracy": 0.9541284403669725,
+      "oof_balanced_accuracy": 0.9490442207212948
+    },
+    "uni2h512_lr": {
+      "cv_log_loss_repeat0": 0.18387055564618207,
+      "se": 0.0909541027410029,
+      "config": {
+        "C": 0.001
+      },
+      "oof_accuracy": 0.963302752293578,
+      "oof_balanced_accuracy": 0.9576674737691687
+    }
+  },
+  "one_se": {
+    "best": "uni2h512_lr@C=0.001",
+    "best_loss": 0.18387055564618207,
+    "best_se": 0.0909541027410029,
+    "limit": 0.27482465838718495,
+    "eligible": [
+      "uni2h_ft@C=0",
+      "uni2h_ftb@C=0",
+      "uni2h_lr@C=0.001",
+      "uni2h512_lr@C=0.001"
+    ],
+    "chosen": "uni2h512_lr@C=0.001",
+    "rule": "one_se: simplest (settings risk_model.complexity, then smaller C) within 1 SE of the best"
+  },
+  "rule_choice": "uni2h512_lr",
+  "round_2b": {
+    "rule": "docs/ACCURACY_ROUND2.md round 2b: our lowest-CV-loss fine-tuned variant replaces production only if its CV log-loss is below the frozen comparator's (same folds, tiles, views, probe)",
+    "ours": "uni2h_ftb",
+    "ours_cv_log_loss": 0.18703298318692724,
+    "comparator": "uni2h_frz_lr",
+    "comparator_cv_log_loss": 0.27853623434752484,
+    "ours_wins": true
+  },
+  "adopted_as_production": false,
+  "temperatures_from_oof": {
+    "uni2h_ft": 0.5128211071939985,
+    "uni2h_ftb": 0.5124031385687993,
+    "uni2h_ft_lr": 1.3027924617998694,
+    "uni2h_ftcat_lr": 1.3135733887044523,
+    "uni2h_frz_lr": 0.7822744026900614,
+    "uni2h_wise_lr": 1.3031813489912731,
+    "uni2h_wise25_lr": 1.1235845982891928,
+    "uni2h_wise50_lr": 1.1658788688244888
+  },
+  "n_train": 218,
+  "note": "every fine-tuned model's test rows are in metrics.json per_model; production changes only through the recorded rules"
+}

@@ -404,19 +404,43 @@ def run(mode: str, cfg: Mapping[str, Any], root: Path, folds_arg: str | None, bu
     return summary
 
 
+B_VARIANTS = {"joint": "uni2h_ftb", "ft_lr": "uni2h_ft_lr", "cat_lr": "uni2h_ftcat_lr", "frozen_lr": "uni2h_frz_lr"}
+C_VARIANTS = {"wise_lr": "uni2h_wise_lr", "wise25_lr": "uni2h_wise25_lr", "wise50_lr": "uni2h_wise50_lr"}  # ftc.py
+B_OURS = ("uni2h_ftb", "uni2h_ft_lr", "uni2h_ftcat_lr")      # trained by us (fine-tuned backbone)
+B_COMPARATOR = "uni2h_frz_lr"                                # frozen UNI2-h, identical tiles / views / probe protocol
+
+
+def _fine_tune_outputs(d: Path, classes: Sequence[str]) -> dict[str, tuple[pd.DataFrame, pd.DataFrame]]:
+    """{model: (out-of-fold logits indexed by case_id with a fold column, final cal/test logits)} for every recipe
+    whose CV and final files both exist: recipe A (cv_oof.csv, final_logits.csv) and the variants of recipe B
+    (b/{cv,final}_variants.csv; ftb.py on Delta) and recipe C (c/{cv,final}_variants.csv; ftc.py, WiSE-FT)."""
+    out: dict[str, tuple[pd.DataFrame, pd.DataFrame]] = {}
+    if (d / "cv_oof.csv").is_file() and (d / "final_logits.csv").is_file():
+        out[ENCODER] = (pd.read_csv(d / "cv_oof.csv").set_index("case_id"),
+                        pd.read_csv(d / "final_logits.csv").set_index("case_id"))
+    for sub, variants in (("b", B_VARIANTS), ("c", C_VARIANTS)):
+        if not ((d / sub / "cv_variants.csv").is_file() and (d / sub / "final_variants.csv").is_file()):
+            continue
+        cv, fin = pd.read_csv(d / sub / "cv_variants.csv"), pd.read_csv(d / sub / "final_variants.csv")
+        for variant, name in variants.items():
+            a, b = cv[cv["variant"] == variant], fin[fin["variant"] == variant]
+            if len(a) and len(b):
+                out[name] = (a.set_index("case_id")[["fold", *classes]], b.set_index("case_id")[list(classes)])
+    return out
+
+
 def ingest(ctx: cli.StepContext) -> int:
     import importlib
 
     from core import calibration
 
     cfg, root = ctx.cfg, ctx.data_root
-    d = root / "finetune"
-    oof_path, fin_path = d / "cv_oof.csv", d / "final_logits.csv"
-    if not (oof_path.is_file() and fin_path.is_file()):
-        print(f"{STEP}: no fine-tune outputs in {d}; nothing to ingest")
+    classes = list(cfg["classes"])
+    models = _fine_tune_outputs(root / "finetune", classes)
+    if not models:
+        print(f"{STEP}: no fine-tune outputs in {root / 'finetune'}; nothing to ingest")
         return 0
     step05 = importlib.import_module("pipeline.05_risk_model")
-    classes = list(cfg["classes"])
     cidx = {c: i for i, c in enumerate(classes)}
     cases = rm.read_cases(root)
     labels = {r.case_id: cidx[r.label] for r in cases.itertuples()}
@@ -424,57 +448,72 @@ def ingest(ctx: cli.StepContext) -> int:
     ids = train["case_id"].tolist()
     y = np.array([labels[i] for i in ids])
     split0 = [rm.cv_splits(train, cfg)[0]]
-    oof = pd.read_csv(oof_path).set_index("case_id").loc[ids]
     fold = np.full(len(ids), -1)
     for k, held in enumerate(split0[0]):
         fold[held] = k
-    if not (fold == oof["fold"].to_numpy()).all():
-        raise SystemExit(f"{STEP}: cv_oof.csv folds differ from round 1's CV repeat 0")
-    logits = oof[classes].to_numpy(np.float64)
     bounds = cfg["calibration"]["temperature_bounds"]
-    ft = rm.CVResult(ENCODER, "black_box", {"C": 0.0}, logits[None],
-                     rm.fold_calibrated_losses(logits[None], y, split0, bounds), len(cfg["risk_model"]["complexity"]),
-                     int(E.encoder_spec(E.load_encoders_config(), ENCODER)["heads"]["probe"]["dim"]))
+    top_rank = len(cfg["risk_model"]["complexity"])
+    results: dict[str, rm.CVResult] = {}
+    temperatures: dict[str, float] = {}
+    pred = io.read_csv(schemas.predictions_csv(root), keep_default_na=False, na_values=[""])
+    for name, (oof, fin) in models.items():
+        oof = oof.loc[ids]
+        if not (fold == oof["fold"].to_numpy()).all():
+            raise SystemExit(f"{STEP}: {name} out-of-fold folds differ from round 1's CV repeat 0")
+        logits = oof[classes].to_numpy(np.float64)
+        results[name] = rm.CVResult(name, "black_box", {"C": 0.0}, logits[None],
+                                    rm.fold_calibrated_losses(logits[None], y, split0, bounds), top_rank, 0)
+        temperatures[name] = calibration.fit_temperature(logits, y, bounds)
+        raw = pd.concat([oof[classes], fin[classes]])
+        probs = pd.DataFrame(calibration.softmax(raw.to_numpy(np.float64), 1.0), index=raw.index, columns=classes)
+        for c in classes:
+            pred[schemas.prob_col(name, c)] = pred["case_id"].map(probs[c])
+    schemas.validate_frame(schemas.PREDICTIONS, pred)
+    io.write_csv(schemas.predictions_csv(root), pred)
+
     tiles = rm.read_tiles(root)
     rank = {part: i for i, n in enumerate(cfg["risk_model"]["complexity"]) for part in str(n).split("|")}
-    results = {ENCODER: ft}
     specs = cfg["risk_model"]["embedding_candidates"]
+    probes: dict[str, rm.CVResult] = {}
     for name in ("uni2h_lr", "uni2h512_lr"):
         fs = rm.embedding_features(root, name, specs[name], tiles, use_views=bool(cfg["risk_model"]["use_views"]))
         if fs is None:
             continue
         cand = step05.LRCandidate(name, "black_box", fs, cfg, rank[name])
         cand.run_cv(ids, labels, y, split0)
-        results[name], _ = rm.one_se_choice(cand.results, len(split0[0]))
-    chosen, info = rm.one_se_choice(list(results.values()), len(split0[0]))
-    temperature = calibration.fit_temperature(logits, y, bounds)
-    fin = pd.read_csv(fin_path).set_index("case_id")
-    raw = pd.concat([oof[classes], fin[classes]])
-    probs = pd.DataFrame(calibration.softmax(raw.to_numpy(np.float64), 1.0), index=raw.index, columns=classes)
-    pred = io.read_csv(schemas.predictions_csv(root), keep_default_na=False, na_values=[""])
-    for c in classes:
-        pred[schemas.prob_col(ENCODER, c)] = pred["case_id"].map(probs[c])
-    schemas.validate_frame(schemas.PREDICTIONS, pred)
-    io.write_csv(schemas.predictions_csv(root), pred)
+        probes[name], _ = rm.one_se_choice(cand.results, len(split0[0]))
+    one_se_pool = {n: r for n, r in {**results, **probes}.items() if n != B_COMPARATOR}
+    chosen, info = rm.one_se_choice(list(one_se_pool.values()), len(split0[0]))
 
     def row(r: rm.CVResult) -> dict[str, Any]:
         top = r.oof_logits[0].argmax(1)
         recall = [float(np.mean(top[y == k] == k)) for k in range(len(classes))]
         return {"cv_log_loss_repeat0": r.mean_loss, "se": r.se(len(split0[0])), "config": r.config,
-                "complexity": r.complexity, "oof_accuracy": float(np.mean(top == y)),
-                "oof_balanced_accuracy": float(np.mean(recall))}
+                "oof_accuracy": float(np.mean(top == y)), "oof_balanced_accuracy": float(np.mean(recall))}
 
-    summary = io.read_json(d / "cv_summary.json") if (d / "cv_summary.json").is_file() else {}
+    round_2b: dict[str, Any] = {}
+    ours = [n for n in B_OURS if n in results]
+    if ours and B_COMPARATOR in results:
+        best = min(ours, key=lambda n: results[n].mean_loss)
+        round_2b = {"rule": "docs/ACCURACY_ROUND2.md round 2b: our lowest-CV-loss fine-tuned variant replaces production "
+                            "only if its CV log-loss is below the frozen comparator's (same folds, tiles, views, probe)",
+                    "ours": best, "ours_cv_log_loss": results[best].mean_loss, "comparator": B_COMPARATOR,
+                    "comparator_cv_log_loss": results[B_COMPARATOR].mean_loss,
+                    "ours_wins": bool(results[best].mean_loss < results[B_COMPARATOR].mean_loss)}
     out = {**step05.envelope("finetune", cfg, ctx.synthetic),
-           "model": ENCODER, "recipe": dict(RECIPE), "protocol": "docs/ACCURACY_ROUND2.md: fold-wise LoRA on round 1's "
-           "CV repeat 0; same fold-calibrated log-loss and one-SE rule as the probes, compared on the same folds",
-           "cv_repeat0": {n: row(r) for n, r in results.items()}, "one_se": info, "rule_choice": chosen.name,
-           "adopted_as_production": False, "temperature_from_oof": temperature, "n_train": len(ids),
-           "n_final_reads": int(len(fin)), "gpu_summary": summary,
-           "note": "uni2h_ft test rows are reported in metrics.json per_model; production changes only through the rule"}
+           "model": ENCODER, "recipe": dict(RECIPE), "models": sorted(models),
+           "protocol": "docs/ACCURACY_ROUND2.md: fold-wise LoRA on round 1's CV repeat 0, compared with the probes on "
+                       "the same folds by fold-calibrated log-loss",
+           "cv_repeat0": {n: row(r) for n, r in {**results, **probes}.items()},
+           "one_se": info, "rule_choice": chosen.name, "round_2b": round_2b,
+           "adopted_as_production": False, "temperatures_from_oof": temperatures, "n_train": len(ids),
+           "note": "every fine-tuned model's test rows are in metrics.json per_model; production changes only through "
+                   "the recorded rules"}
     io.write_json(schemas.eval_json(ctx.artifacts_root, "finetune"), out)
-    print(f"{STEP}: ingested {len(ids)} out-of-fold + {len(fin)} final reads; repeat-0 CV log-loss "
-          + ", ".join(f"{n} {r.mean_loss:.3f}" for n, r in results.items()) + f"; rule picks {chosen.name}")
+    print(f"{STEP}: ingested {sorted(models)}; repeat-0 CV log-loss "
+          + ", ".join(f"{n} {r.mean_loss:.3f}" for n, r in {**results, **probes}.items())
+          + f"; one-SE picks {chosen.name}" + (f"; round 2b: {round_2b['ours']} "
+          f"{'beats' if round_2b['ours_wins'] else 'does not beat'} {B_COMPARATOR}" if round_2b else ""))
     return 0
 
 

@@ -2,7 +2,7 @@
 
 > Research prototype — not for clinical use. Every number below is quoted from the eval file named beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.
 
-Generated 2026-10-18T20:00:59Z from 19 eval files (git 00b68d1c612cfad9facda44f4d4fb3d614524736, 19b15557e966c050e4a0cc0df67c0546d00464a6, 4d8e886cc9bb14ce47c967e9cd7fff187aef6e90, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 7045b84ab1fb8b386c44e0e9a60a98e9f974c330, 825532a57ec4ed0637472c7e0625ab707982b912).
+Generated 2026-10-18T20:06:04Z from 20 eval files (git 00b68d1c612cfad9facda44f4d4fb3d614524736, 19b15557e966c050e4a0cc0df67c0546d00464a6, 4d8e886cc9bb14ce47c967e9cd7fff187aef6e90, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 7045b84ab1fb8b386c44e0e9a60a98e9f974c330, 825532a57ec4ed0637472c7e0625ab707982b912, 9210da8abbe0983186fffe6e6f88e41520020cc7).
 
 ## Tissue quality control (fixed in this run)
 
@@ -95,7 +95,15 @@ Source: `eval/thunder.json` · **same split, different protocol (published: whol
 | ours · hoptimus0_lr (evaluated model) | 78.2 [60.1, 87.4] | 78.6 [60.6, 88.9] |
 | ours · musk_lr (evaluated model) | 69.4 [55.8, 81.8] | 70.5 [57.5, 86.3] |
 | ours · uni2h512_lr (evaluated model) | 86.0 [69.2, 92.7] | 87.1 [69.1, 93.6] |
-| ours · uni2h_lr (evaluated model) | 83.0 [62.1, 92.8] | 83.5 [63.1, 93.8] |
+| ours · uni2h_frz_lr (evaluated model) | 85.8 [69.7, 93.0] | 87.1 [69.4, 94.5] |
+| ours · uni2h_ft (evaluated model) | 83.8 [65.5, 91.9] | 84.4 [66.3, 93.3] |
+| ours · uni2h_ft_lr (evaluated model) | 81.7 [61.6, 91.5] | 82.2 [62.0, 92.6] |
+| ours · uni2h_ftb (evaluated model) | 83.8 [64.0, 92.1] | 84.4 [65.3, 93.7] |
+| ours · uni2h_ftcat_lr (evaluated model) | 81.8 [62.0, 91.7] | 82.4 [63.8, 93.2] |
+| ours · uni2h_lr (evaluated model) | 83.0 [60.7, 92.3] | 83.5 [62.7, 93.8] |
+| ours · uni2h_wise25_lr (evaluated model) | 85.2 [69.4, 92.9] | 86.5 [68.0, 94.4] |
+| ours · uni2h_wise50_lr (evaluated model) | 84.4 [67.3, 92.9] | 85.7 [67.4, 94.7] |
+| ours · uni2h_wise_lr (evaluated model) | 81.7 [62.3, 91.4] | 82.2 [61.1, 92.5] |
 
 - Same split, different protocol: published THUNDER probes resize the whole image; we embed tiles with test-time augmentation and select models by grouped CV inside train.
 - Not compared with the 87% ICIAR 2018 challenge result, which used a different, hidden test set.
@@ -483,6 +491,10 @@ Exact contributions (`eval/tile_contrib.json`): constant plus region contributio
 - ablation · rows[21] · macro_f1: 0.33 [0.26, 0.39] (n 218, 49 groups)
 - ablation · rows[21] · macro_auroc: 0.62 [0.57, 0.67] (n 218, 49 groups)
 
+### `eval/finetune.json`
+
+(no estimate/CI blocks; see the file)
+
 ## Reviewed checks
 
 - Concept top-tile and cell-overlay spot check: **AI-reviewed, not a pathologist** (reviews by Claude Opus 5.5 (AI, not a pathologist) × 200; Codex UI verification (AI, no clinical assessment) × 1) · `eval/spotcheck.json`. Plausibility of the top-scoring tiles per concept (acceptable / reviewed; the rest unsure or not acceptable):
@@ -522,5 +534,3 @@ Exact contributions (`eval/tile_contrib.json`): constant plus region contributio
 - Concept scores are features associated with the classes (text-prompt and caption-consistent), not causes and not validated grade components; caption consistency measures caption co-mention, not tissue truth.
 - Stain rules are illustrative and require clinical review; the agent only drafts orders.
 - The queue simulation is a model with stated assumptions, not a measured workflow outcome.
-
-_Eval files not present at generation time: finetune._

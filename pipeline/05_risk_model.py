@@ -98,6 +98,49 @@ class LRCandidate:
                           source=repr(self.fs.source))
 
 
+class PrecomputedCandidate(LRCandidate):
+    """Logits made outside this step (pipeline/05c_finetune.py: LoRA fine-tuning trained fold by fold on Delta):
+    out-of-fold train logits from round 1's CV repeat 0 and final-model logits for calibration / test, read from
+    <data-root>/<dir>/{cv_variants,final_variants}.csv (risk_model.precomputed_candidates). The repeat-0 out-of-fold
+    logits stand in for every CV repeat (each is still out-of-fold for its own case). An identity linear map keeps the
+    LRCandidate interface; there are no degraded / composite / view-0 reads, so variant_fallback serves those."""
+
+    def __init__(self, name: str, oof: pd.DataFrame, final: pd.DataFrame, cfg: Mapping[str, Any], complexity: int,
+                 source: Mapping[str, Any]):
+        classes = list(cfg["classes"])
+        fs = rm.FeatureSet(name, "embedding", pd.concat([oof[classes], final[classes]]), classes, source=dict(source))
+        super().__init__(name, "black_box", fs, cfg, complexity)
+        self.oof = oof[classes]
+
+    def run_cv(self, train_ids: list[str], labels: Mapping[str, int], y: np.ndarray, splits) -> None:
+        logits = np.stack([self.oof.loc[train_ids].to_numpy(np.float64)] * len(splits))
+        bounds = self.cfg["calibration"]["temperature_bounds"]
+        self.results = [rm.CVResult(self.name, self.family, {"C": 0.0}, logits,
+                                    rm.fold_calibrated_losses(logits, y, splits, bounds), self.complexity,
+                                    len(self.fs.names))]
+
+    def fit_full(self, train_ids: list[str], labels: Mapping[str, int]) -> None:
+        k = len(self.cfg["classes"])
+        m = rm.LinearModel(self.cfg["classes"], 0.0, 1, None)
+        m.median, m.mean, m.scale = np.zeros(k), np.zeros(k), np.ones(k)
+        m.coef, m.intercept, m.names = np.eye(k), np.zeros(k), list(self.cfg["classes"])
+        self.model = m
+
+
+def precomputed_candidate(root: Path, name: str, spec: Mapping[str, Any], cfg: Mapping[str, Any],
+                          complexity: int) -> "PrecomputedCandidate | None":
+    d = root / spec["dir"]
+    cv_path, fin_path = d / "cv_variants.csv", d / "final_variants.csv"
+    if not (cv_path.is_file() and fin_path.is_file()):
+        return None
+    cv, fin = rm.read_csv(cv_path), rm.read_csv(fin_path)
+    cv, fin = cv[cv["variant"] == spec["variant"]], fin[fin["variant"] == spec["variant"]]
+    if cv.empty or fin.empty:
+        return None
+    return PrecomputedCandidate(name, cv.set_index("case_id"), fin.set_index("case_id"), cfg, complexity,
+                                {"precomputed": str(d), "variant": spec["variant"]})
+
+
 class ABMILCandidate:
     """Gated-attention MIL on one encoder's QC tile embeddings (train augmentation: per-view bags)."""
 
@@ -285,6 +328,12 @@ class RiskStep:
                     self.skipped[name] = f"embeddings missing: emb/{specs[name]['encoder']}/{specs[name]['set']}_{specs[name]['head']}"
                     continue
                 out.append(LRCandidate(name, "black_box", fs, cfg, self._rank(name)))
+            elif name in (rmc.get("precomputed_candidates") or {}):
+                pc = precomputed_candidate(self.root, name, rmc["precomputed_candidates"][name], cfg, self._rank(name))
+                if pc is None:
+                    self.skipped[name] = f"precomputed logits missing under {rmc['precomputed_candidates'][name]['dir']}"
+                    continue
+                out.append(pc)
             elif name not in ("abmil", "fusion_top3"):
                 self.skipped[name] = "no specification in risk_model.embedding_candidates"
         concepts = rm.concept_frame(self.root, cfg)
@@ -322,7 +371,8 @@ class RiskStep:
         for c in cands:
             c.run_cv(self.train_ids, self.labels, self.y_train, self.splits)
             c.chosen, _ = rm.one_se_choice(c.results, self.n_folds)
-        singles = sorted([c for c in cands if c.family == "black_box"], key=lambda c: c.chosen.mean_loss)
+        singles = sorted([c for c in cands if c.family == "black_box" and not isinstance(c, PrecomputedCandidate)],
+                         key=lambda c: c.chosen.mean_loss)   # ABMIL / fusion build on embedding probes only
         if "abmil" in cfg["model_choice"]["candidates"]:
             if not self.use_abmil:
                 self.skipped["abmil"] = "disabled with --no-abmil"

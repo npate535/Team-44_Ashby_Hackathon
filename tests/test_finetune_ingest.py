@@ -51,7 +51,7 @@ def test_ingest_adds_an_evaluated_model_and_never_changes_production(tmp_path):
     cols = [schemas.prob_col("uni2h_ft", c) for c in cfg["classes"]]
     pd.testing.assert_frame_equal(after[before.columns], before)       # production columns untouched
     clean = after[after.case_id.isin(set(train.case_id) | set(ev.case_id))]
-    np.testing.assert_allclose(clean[cols].sum(1), 1.0, atol=1e-9)
+    np.testing.assert_allclose(clean[cols].sum(axis=1), 1.0, atol=1e-9)
     assert after.loc[~after.case_id.isin(clean.case_id), cols].isna().all().all()   # no variant reads
     out = json.loads(schemas.eval_json(art, "finetune").read_text())
     assert out["model"] == "uni2h_ft" and out["adopted_as_production"] is False
@@ -64,3 +64,31 @@ def test_ingest_without_outputs_is_a_no_op(tmp_path):
     shutil.copytree(art0, art)
     assert step05c.main(["--data-root", str(root), "--artifacts-root", str(art), "--config", str(cfg_path)]) == 0
     assert not schemas.eval_json(art, "finetune").exists()
+
+
+def test_recipe_b_variants_are_ingested_and_judged_against_the_frozen_comparator(tmp_path):
+    root0, art0, cfg_path = after_05()
+    root, art = clone_root(root0, tmp_path / "data"), tmp_path / "art"
+    shutil.copytree(art0, art)
+    cfg = config.load_settings(cfg_path)
+    classes = list(cfg["classes"])
+    train, ev = _fake_outputs(root, cfg, np.random.default_rng(1))
+    a = pd.read_csv(root / "finetune" / "cv_oof.csv")
+    f = pd.read_csv(root / "finetune" / "final_logits.csv")
+    (root / "finetune" / "b").mkdir()
+    cv, fin = [], []
+    for k, variant in enumerate(("joint", "ft_lr", "cat_lr", "frozen_lr")):
+        cv.append(a.assign(variant=variant, **{c: a[c] * (1 + 0.1 * k) for c in classes}))
+        fin.append(f.assign(variant=variant))
+    pd.concat(cv)[["case_id", "fold", "variant", *classes]].to_csv(root / "finetune" / "b" / "cv_variants.csv", index=False)
+    pd.concat(fin)[["case_id", "split", "variant", *classes]].to_csv(root / "finetune" / "b" / "final_variants.csv",
+                                                                     index=False)
+    assert step05c.main(["--data-root", str(root), "--artifacts-root", str(art), "--config", str(cfg_path)]) == 0
+    after = pd.read_csv(schemas.predictions_csv(root), keep_default_na=False, na_values=[""])
+    for name in ("uni2h_ft", "uni2h_ftb", "uni2h_ft_lr", "uni2h_ftcat_lr", "uni2h_frz_lr"):
+        assert schemas.prob_col(name, classes[0]) in after.columns
+    out = json.loads(schemas.eval_json(art, "finetune").read_text())
+    r = out["round_2b"]
+    assert r["comparator"] == "uni2h_frz_lr" and r["ours"] in ("uni2h_ftb", "uni2h_ft_lr", "uni2h_ftcat_lr")
+    assert r["ours_wins"] == (r["ours_cv_log_loss"] < r["comparator_cv_log_loss"])
+    assert out["adopted_as_production"] is False

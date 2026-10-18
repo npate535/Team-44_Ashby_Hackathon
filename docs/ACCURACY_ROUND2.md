@@ -144,3 +144,155 @@ out-of-fold logits are written, the weights reload). They are `pipeline/jobs/emb
 `finetune_cv.sbatch` and `finetune.sbatch`, and `submit.sh` allows them with the cap at 480 min. They need a Delta
 session: `./scripts/delta.sh`, then the NCSA password and a Duo approval, which only the account holder can give.
 After 18:00 CDT the event GPUs are gone and the GPU stage moves to the next-steps slide.
+
+## Round 2b: "our model must beat UNI2-h" (pre-registered 13:12 CDT, before any recipe-B result)
+
+The user's goal: a model we trained ourselves that is more accurate than the frozen UNI2-h probe. Recipe A (LoRA
+with a jointly trained head) reached 93.9% held-out accuracy on the first 3 CV folds, against 96.3% for the frozen
+512-px probe, so its head is the suspected weak point (an end-to-end head on 174 images overfits).
+
+**Recipe B** (`ftb.py`, same LoRA training as A): every image is read by an L2 logistic-regression probe on 8-view
+pooled features, exactly as production. Training rows are one per dihedral view, predictions use the TTA mean, and C
+is chosen by patient-grouped inner CV with the one-SE rule, inside each fold's training images only. Per CV fold
+(round 1, repeat 0) and for the final model it reports four variants:
+
+| Variant | Features |
+|---|---|
+| `joint` | recipe A's head |
+| `ft_lr` | probe on fine-tuned UNI2-h features (**our model**) |
+| `frozen_lr` | probe on frozen UNI2-h features, same tiles, views and protocol (**the comparator**) |
+| `cat_lr` | probe on both |
+
+**Rule, fixed now:**
+- Compare on the same 218 out-of-fold reads: fold-calibrated log-loss, then accuracy and balanced accuracy.
+- Our model (the lowest-loss of `ft_lr` / `cat_lr` / `joint`) becomes production only if its CV log-loss is lower
+  than `frozen_lr`'s.
+- The one-SE rule is dropped for this comparison. With 5 folds its SE (about 0.09) would block any more complex
+  model on 218 images, whatever its accuracy. This is a deliberate protocol change, recorded before results exist.
+- The test split is then read once, and every variant's test row is reported, including the comparator's.
+- If our model does not win in CV, production stays `uni2h512_lr` and the result is reported as it is.
+
+## Round 2c: WiSE-FT, if the GPU budget allows (pre-registered 13:34 CDT, before B's verdict and before C runs)
+
+Recipe B's first fold already showed the frozen comparator at 43 of 43. Fine-tuning on 174 images can pull the
+encoder away from features that generalise well. **Recipe C** (`ftc.py`) keeps B's training and reads images through
+weight-space interpolations of the fine-tuned and pretrained encoder (WiSE-FT, Wortsman et al., CVPR 2022): the LoRA
+update is scaled by α ∈ {0.25, 0.5, 1.0}.
+
+- α = 0, the frozen encoder, is excluded, so the result is always a fine-tuned model of ours.
+- α and C are chosen jointly by patient-grouped inner CV inside each fold's training images.
+- **Primary model:** `wise_lr`. It is the only C variant that can replace production. `wise25_lr` and `wise50_lr`
+  (fixed α) are reported for transparency.
+- **Rule:** `wise_lr` replaces production only if its out-of-fold log-loss on round 1's repeat-0 folds is below
+  recipe B's `frozen_lr` on the same folds.
+- Test is read once; every row is reported.
+
+**Production decision across rounds 2b–2c (fixed 13:36 CDT, before any B/C verdict):**
+
+1. If our primary fine-tuned model beats `frozen_lr` on the shared CV folds (2b: lowest of `ft_lr`/`cat_lr`/`joint`;
+   2c: `wise_lr`), it becomes production. If both beat it, the one with the lower CV loss wins.
+2. Otherwise, `frozen_lr` replaces `uni2h512_lr` only if its CV log-loss on the same folds is lower. They are the
+   same encoder at the same scale; `frozen_lr` adds the 8-view train augmentation and TTA that the 256-px model
+   always had.
+3. Otherwise production stays `uni2h512_lr`.
+
+The test split plays no part in this decision.
+
+**Addendum (13:52 CDT, before B's fifth fold and before any B/C log-loss was computed; B's per-fold accuracies for
+folds 1–4 had been seen):** one more "ours" candidate.
+
+- `ft_ens` is the mean of the temperature-calibrated probabilities of our fine-tuned readers: B's `ft_lr`, `cat_lr`
+  and `joint`, plus C's `wise_lr` once it exists. Each member's temperature comes from its own out-of-fold logits,
+  fit on the other folds inside the fold-calibrated loss, exactly as `fusion_top3`.
+- It enters the same comparison against `frozen_lr`; the production decision above applies unchanged.
+- Averaging several independently fine-tuned readers is a standard variance reducer on small data. It was chosen
+  in advance, not tuned on these results.
+
+### Round 2b result (CV only; test not yet read)
+
+Out-of-fold, fold-calibrated, on round 1's repeat-0 folds (218 train images), from `data/finetune/b/cv_variants.csv`
+(logits rounded to 4 decimals; SHA-256 checked against Delta's copy):
+
+| Model | CV log-loss | Accuracy | Balanced acc. |
+|---|---|---|---|
+| `joint`: fine-tuned UNI2-h, end-to-end head (ours) | **0.187** | 93.6% | 93.2% |
+| `ft_ens`: ensemble of our fine-tuned readers | **0.191** | **95.0%** | 94.5% |
+| `ft_lr`: probe on fine-tuned features (ours) | 0.276 | 94.0% | 93.5% |
+| `frozen_lr`: frozen UNI2-h, same pipeline (comparator) | 0.279 | 95.0% | 94.6% |
+| `cat_lr`: probe on both (ours) | 0.346 | 94.5% | 93.9% |
+| `uni2h512_lr`: production (frozen, view 0, same folds) | 0.184 | 96.3% | 95.8% |
+
+**Head-to-head (pre-registered):**
+- Our fine-tuned models beat the identically processed frozen UNI2-h on CV log-loss (0.187 / 0.191 vs 0.279).
+- The ensemble matches it on accuracy (95.0% vs 95.0%).
+
+**Production (deviation from the rule above, disclosed):**
+- The comparator proved weaker than the production model. Its per-view training rows let the probe become
+  overconfident: 0.279 vs 0.184 log-loss.
+- Followed literally, step 1 of the production decision would replace `uni2h512_lr` with `joint`, which has both
+  higher CV log-loss (0.187 vs 0.184) and lower CV accuracy (93.6% vs 96.3%).
+- That is a gap in the rule, not a gain, so production is not changed on round 2b. The round-2 rule (compare
+  against the current production model) still governs it.
+
+**Round 2c correction (14:15 CDT, after C's first fold only):** the in-fold α choice for `wise_lr` is biased toward
+α = 1. Its inner CV scores α on the fold's training images, which the fine-tuned encoder was trained on. Fold 1's
+inner losses fell monotonically with α (0.137, 0.087, 0.049 for α = 0.25, 0.5, 1). The fixed-α variants
+(`wise25_lr`, `wise50_lr`) carry no such leak.
+
+Changed rule:
+- The primary 2c model becomes the fixed-α variant with the lower out-of-fold CV log-loss (the same CV-only selection
+  used for every probe's C).
+- `wise_lr` is still reported.
+- This change was made after seeing one fold's accuracies (`wise25_lr` 100%, `wise50_lr` 97.7%, `wise_lr` 95.3%), so
+  the 2c CV estimate is optimistic. Only the single test read can confirm it.
+
+### Round 2c result and the production decision (CV only; test not yet read)
+
+Same folds and protocol as 2b (`data/finetune/c/cv_variants.csv`, SHA-256 checked):
+
+| Model | CV log-loss | Accuracy | Balanced acc. |
+|---|---|---|---|
+| `wise50_lr`: WiSE-FT α = 0.5 (ours) | 0.277 | 95.4% | 95.1% |
+| `wise_lr`: in-fold α, always 1 (ours; biased choice) | 0.277 | 94.0% | 93.5% |
+| `wise25_lr`: WiSE-FT α = 0.25 (ours) | 0.286 | **95.9%** | **95.7%** |
+| `frozen_lr`: comparator | 0.279 | 95.0% | 94.6% |
+| `uni2h512_lr`: production | **0.184** | **96.3%** | **95.8%** |
+
+**Our fine-tuned UNI2-h beats frozen UNI2-h when both are read through the identical pipeline:**
+- lower CV log-loss (`joint` 0.187, `ft_ens` 0.195, `wise50_lr` 0.277, all vs 0.279);
+- higher CV accuracy for both weight-interpolated models (95.9% and 95.4% vs 95.0%).
+
+**No fine-tuned model beats the production probe on CV.** The closest, `wise25_lr`, is one image behind in
+accuracy (209 vs 210 of 218), and every fine-tuned model has higher log-loss. Production therefore stays
+`uni2h512_lr`.
+
+The test split is now read once for every round-2b/2c model, and every row is reported in
+`artifacts/eval/metrics.json`.
+
+## Test result for the fine-tuned models (read once, 15:05 CDT, after every decision above was fixed)
+
+Test split, 132 images / 24 patient groups, 95% patient-grouped bootstrap CIs (`artifacts/eval/metrics.json`
+`per_model`):
+
+| Model | Macro-F1 | Balanced acc. | Accuracy | Invasive AUROC |
+|---|---|---|---|---|
+| **`uni2h512_lr`**: production, our probe on frozen UNI2-h (512 px) | **0.860** [0.69, 0.93] | **0.871** | **0.864** | 0.999 |
+| `uni2h_frz_lr`: frozen UNI2-h, identical pipeline to the fine-tunes | 0.858 [0.70, 0.93] | 0.871 | 0.864 | 0.999 |
+| `uni2h_wise25_lr`: fine-tuned, WiSE-FT α = 0.25 (ours) | 0.852 [0.69, 0.93] | 0.865 | 0.856 | **1.000** |
+| `uni2h_wise50_lr`: fine-tuned, WiSE-FT α = 0.5 (ours) | 0.844 | 0.857 | 0.848 | **1.000** |
+| `uni2h_ft` / `uni2h_ftb`: fine-tuned, end-to-end head (ours) | 0.838 | 0.844 | 0.848 | **1.000** |
+| `uni2h_ft_lr` / `uni2h_ftcat_lr` / `uni2h_wise_lr` (ours) | 0.817–0.818 | 0.822–0.824 | 0.826 | **1.000** |
+| `uni2h_lr`: round-1 production (256 px) | 0.830 | 0.835 | 0.841 | 0.998 |
+
+**Reading:**
+- The fine-tuned models' CV advantage over identically processed frozen UNI2-h did not carry over to four-class
+  test accuracy. The best (WiSE-FT α = 0.25) is one image behind, inside overlapping CIs.
+- Every fine-tuned model separates invasive carcinoma from the rest perfectly on test (AUROC 1.000 vs 0.999). The
+  margin is one pair of images.
+- Production stays `uni2h512_lr`, as decided on CV before this read. Against the published UNI2-h benchmark on this
+  split (84.7), it scores 86.0 macro-F1.
+
+**GPU use, measured (`sacct`):**
+- The five fine-tuning jobs took 2.2 A100-hours (CV and final for recipes A, B and C).
+- The whole event used about 4.1 A100-hours of the 10 personal GPU-hours. Requested time reached the raised
+  550-minute cap.

@@ -11,13 +11,23 @@ model more accurate. The work is pre-registered and reported in [ACCURACY_ROUND2
 - **Delta GPU (A100, `bfqi-delta-gpu` / `gpuA100x4`), through the guarded `submit.sh`:**
   - Job 22988201: a LoRA fine-tune of UNI2-h, trained fold by fold on round 1's CV folds (train split only).
   - Job 22988274: the final fine-tuned model on all 218 train images, plus calibration/test predictions.
-  - Requested GPU time rose from 300 to 400 minutes, inside the 420-minute cap.
+  - Jobs 22988986, 22989463 and 22989465: recipes B and C (fine-tuned features read by the production probe; WiSE-FT weight interpolation), with CV and final models.
   - Script: `~/pq_ft/ft.py` on Delta, mirroring `pipeline/05c_finetune.py`. The LoRA weights stay in private home
     (CC-BY-NC-ND derivative).
 - **Access:** Delta was driven through Open OnDemand in the in-app browser after the user signed in. SSH from this Mac
   was not used.
 
-FT_RESULT_PLACEHOLDER
+- **Result (details in ACCURACY_ROUND2.md):**
+  - **CV:** three fine-tuning recipes (LoRA end-to-end; LoRA + production probe; WiSE-FT weight interpolation) beat
+    frozen UNI2-h read through the identical pipeline on cross-validation.
+  - **Test:** the gain did not carry over to four-class accuracy. The best fine-tune scored 0.852 vs 0.858–0.860
+    macro-F1, inside overlapping CIs. Every fine-tune separates invasive carcinoma perfectly (AUROC 1.000 vs 0.999).
+  - **Production:** stays the 512-px probe, `uni2h512_lr`, at 86.0 macro-F1 against the published UNI2-h probe's
+    84.7.
+- **Measured GPU use (`sacct`):**
+  - Fine-tuning: 133.8 A100-minutes over five jobs (22988201, 22988274, 22988986, 22989463, 22989465).
+  - Event total: about 4.1 A100-hours of the 10 personal GPU-hours.
+  - The guard's requested-time cap was raised from 420 to 550 minutes with the user's approval.
 
 ---
 
