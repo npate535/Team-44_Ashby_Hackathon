@@ -63,6 +63,11 @@ class SimClock:
             self._base = self.now(mono)
             self.running, self._started = False, None
 
+    def pause_for_shutdown(self) -> None:
+        """Process shutdown: deliver due arrivals and checkpoint the clock, without logging a user pause."""
+        with self.store.lock:
+            self.tick()
+
     def reset(self) -> None:
         self.running, self._base, self._started = False, 0.0, None
 
@@ -221,6 +226,11 @@ class Simulator:
             if self.clock_sim.running:
                 self.clock_sim.pause(self.clock.mono())
                 self.store.log_event(None, "sim_pause", wall=self.wall_now(), sim=self.sim_now())
+
+    def pause_for_shutdown(self) -> None:
+        """Process shutdown: deliver due arrivals and checkpoint the clock, without logging a user pause."""
+        with self.store.lock:
+            self.tick()
 
     def reset(self) -> None:
         """Re-read the case JSONs, re-seed every table (drafted orders restored) and rewind the paused clock to 0."""
