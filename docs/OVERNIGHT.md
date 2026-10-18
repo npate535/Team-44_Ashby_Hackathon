@@ -68,7 +68,7 @@ BACH_0167: {InSitu, Invasive} → tier 2 → drafted p63/calponin and ER/PR/HER2
 ### 3. Grounded LLM summaries that are actually grounded
 All 328 summaries were template fallbacks: `ornith-1.0-35b` spent its 1,500-token budget on hidden reasoning and
 returned empty replies. Summaries now come from `gemma-4-31b-it` via Lumen (one cached reply per case, 328 in all; 656 gemma replies were
-cached across the overnight prompt revisions; the live demo
+cached across overnight re-runs (distinct prompts); the live demo
 makes zero LLM calls). The number/citation validator was not enough: early outputs said "Margins are clear." for
 deferred reads and called scarce features "prominent" (a positive push was read as presence). Added:
 - concept findings carry a `level` (above / typical / below the training average, from the new `value_std`);
