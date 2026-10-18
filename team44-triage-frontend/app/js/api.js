@@ -61,6 +61,8 @@ export function createApi({base = ''} = {}) {
     routed: to => req('GET', `/api/routed?to=${q(to)}`),
     sim: (cmd, body) => req('POST', `/api/sim/${q(cmd)}`, body),
     metrics: () => req('GET', '/api/metrics'),
+    tcga: () => req('GET', '/api/tcga'),
+    async getTcgaCase(id) { return stamp(await req('GET', `/api/tcga/cases/${q(id)}`), Date.now()); },
     spotcheckItems: () => req('GET', '/api/spotcheck/items'),
     spotcheck: body => req('POST', '/api/spotcheck', body),
     // LLM interpretation: GET = cached or {status: 'none'}; POST generates (a model call can take a minute or two)

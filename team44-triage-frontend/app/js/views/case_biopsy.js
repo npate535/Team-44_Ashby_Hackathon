@@ -56,23 +56,28 @@ function glance(v, cfg) {
   );
 }
 
-export function header(v, cfg) {
+export function header(v, cfg, { backHref = null, backLabel = 'Back to worklist' } = {}) {
+  const back = backHref
+    ? `<a class="back" href="${esc(backHref)}" data-testid="back">${esc(backLabel)}</a>`
+    : `<button class="back" id="bk" data-testid="back">${esc(backLabel)}</button>`;
+  const when = v.external ? '' : ` · arrived sim +${mmss(v.arrivedSim)}`;
   return (
-    `<button class="back" id="bk" data-testid="back">Back to worklist</button>` +
+    `${back}` +
     `<div class="card cv-header"><div class="cv-head"><div class="cv-id"><h2 data-testid="case-title">${esc(v.id)} <span class="tier ${v.tierCls}" data-testid="tier-badge" title="${esc(v.tierNote)}">${esc(v.tierLabel)}</span></h2>` +
-    `<div class="sub">${esc(v.laneLabel)}${v.variantLabel ? ' · ' + esc(v.variantLabel) : ''} · ${esc(v.question)} · arrived sim +${mmss(v.arrivedSim)}${v.synthetic ? ' · <b>synthetic</b>' : ''}</div>${reasonBadges(v)}</div>` +
+    `<div class="sub">${esc(v.laneLabel)}${v.variantLabel ? ' · ' + esc(v.variantLabel) : ''} · ${esc(v.question)}${when}${v.synthetic ? ' · <b>synthetic</b>' : ''}</div>${reasonBadges(v)}</div>` +
     (cfg ? glance(v, cfg) : '') +
     '</div>'
   );
 }
 
-export function render(ST, ctx) {
+export function render(ST, ctx, opts = {}) {
   const c = ST.cases[ST.caseId];
   const v = toView(c, ctx.now, ST.cfg, ST.sim);
-  setRenderer(() => render(ST, { ...ctx, now: Date.now() }), ctx.assetUrl);
+  setRenderer(() => render(ST, { ...ctx, now: Date.now() }, opts), ctx.assetUrl);
+  const hideAgent = !!opts.hideAgent || !!v.external;
   let h =
     `<section class="cv cv-biopsy" data-testid="case-view" data-lane="biopsy" data-case-id="${esc(v.id)}">` +
-    header(v, ST.cfg) +
+    header(v, ST.cfg, opts) +
     `<div class="tabs" role="tablist" aria-label="Case sections"><button role="tab" id="tab-evidence" aria-controls="case-panel" data-tab="evidence" data-testid="tab-evidence" aria-selected="${ST.tab !== 'cells' && ST.tab !== 'interp'}"${ST.tab === 'cells' || ST.tab === 'interp' ? ' tabindex="-1"' : ''}>Image & findings</button>` +
     `<button role="tab" id="tab-cells" aria-controls="case-panel" data-tab="cells" data-testid="tab-cells" aria-selected="${ST.tab === 'cells'}"${ST.tab === 'cells' ? '' : ' tabindex="-1"'}>Cell evidence${v.cells.status === 'ok' ? ` <span class="tab-n">${(v.cells.tiles || []).length}</span>` : ''}</button>` +
     `<button role="tab" id="tab-interp" aria-controls="case-panel" data-tab="interp" data-testid="tab-interp" aria-selected="${ST.tab === 'interp'}"${ST.tab === 'interp' ? '' : ' tabindex="-1"'}>Plain-language summary${(ST.interp[v.id] || {}).status === 'ok' ? ' <span class="tab-n ai-dot" title="Ready">✓</span>' : ''}</button></div></div>`;
@@ -94,9 +99,11 @@ export function render(ST, ctx) {
   const n = (ST.events[v.id] || []).length;
   h += `<details class="card activity-card" data-testid="case-events" data-keep="activity"${keepOpen('activity')}><summary>Activity and decision history <span>${n} event${n === 1 ? '' : 's'}</span></summary>${activity(ST.events[v.id])}</details>`;
   h += '</div><div class="decision-column cv-side">';
-  h += agentPanel(v, ST);
+  if (!hideAgent) h += agentPanel(v, ST);
   h += `<div class="card" data-testid="how-sure"><div class="card-h"><h2>Prediction and confidence</h2></div>${howSure(v, ST.cfg, ST.metrics)}</div>`;
-  if (v.tier === 4) h += '<p class="note">Unflagged: read in arrival order. The model has not cleared this case.</p>';
+  if (v.external)
+    h += '<p class="note">External TCGA field — read-only. Not part of the arrival worklist.</p>';
+  else if (v.tier === 4) h += '<p class="note">Unflagged: read in arrival order. The model has not cleared this case.</p>';
   return h + '</div></div></div></section>';
 }
 

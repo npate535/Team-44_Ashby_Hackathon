@@ -91,6 +91,7 @@ EVAL_FILES: dict[str, str] = {
     "spotcheck": "Task 6 · spot-check results recorded in the UI",
     "analytics": "Dashboard · chart-ready test-split aggregates: ROC/PR curves, confusion, reliability bins, conformal "
                  "set composition, tiers by class, queue-wait distributions",
+    "external_tcga": "External · TCGA-BRCA generalization of the BACH-trained production probe (TCGA_TODO.md)",
 }
 
 # Patterns shared with core.contract (case IDs; media refs relative to the artifacts root).

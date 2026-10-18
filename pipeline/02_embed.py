@@ -122,7 +122,8 @@ def plan_chunks(rows: pd.DataFrame, chunk_rows: int, fingerprint: str = "") -> l
 
 
 def resolve_device(requested: str | None) -> str:
-    """cuda when available. Inside a Slurm GPU allocation a missing CUDA device is fatal (never a silent CPU run)."""
+    """cuda, else Apple MPS, else cpu. Inside a Slurm GPU allocation a missing CUDA device is fatal.
+    MPS uses the same full weights as CUDA (autocast only — never quantized)."""
     import torch
 
     gpu_job = bool(os.environ.get("SLURM_JOB_GPUS") or os.environ.get("SLURM_GPUS_ON_NODE"))
@@ -131,9 +132,13 @@ def resolve_device(requested: str | None) -> str:
             return "cuda"
         if gpu_job:
             raise CheckFailed("this Slurm job has GPUs allocated but torch sees no CUDA device")
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            return "mps"
         return "cpu"
     if requested.startswith("cuda") and not torch.cuda.is_available():
         raise CheckFailed(f"--device {requested} requested but torch sees no CUDA device")
+    if requested == "mps" and not (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
+        raise CheckFailed("--device mps requested but MPS is unavailable")
     return requested
 
 

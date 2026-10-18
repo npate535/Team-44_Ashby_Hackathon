@@ -402,6 +402,12 @@ export async function createMockApi() {
       }
       return { eval: {}, figures: [], errors: [], expected: {}, synthetic: true };
     },
+    async tcga() {
+      return { available: false, n: 0, items: [], model: null, synthetic: true };
+    },
+    async getTcgaCase() {
+      throw new ApiError(404, 'TCGA specimens are not included in fixture mode (?mock=1).');
+    },
     async spotcheckItems() {
       const items = [];
       for (const x of state.cases) {

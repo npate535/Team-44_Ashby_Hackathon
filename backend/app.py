@@ -51,7 +51,8 @@ _FILE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.\-]{0,127}$")
 FIGURE_SUFFIXES = (".png", ".svg", ".jpg", ".jpeg")
 # Static routes serve media only: case JSONs and eval JSONs go through the API (which strips ground truth).
 MEDIA_SUFFIXES = {"images": (".jpg", ".jpeg", ".png"), "cells": (".png", ".jpg", ".jpeg"), "eval": FIGURE_SUFFIXES,
-                  "spotcheck": (".png", ".jpg", ".jpeg"), "fixtures": (".jpg", ".jpeg", ".png", ".json")}
+                  "spotcheck": (".png", ".jpg", ".jpeg"), "fixtures": (".jpg", ".jpeg", ".png", ".json"),
+                  "tcga": (".jpg", ".jpeg", ".png")}
 
 
 def cell_feature_labels(cfg: Mapping[str, Any]) -> dict[str, Any]:
@@ -146,6 +147,8 @@ class Backend:
             if self.flat_media:
                 return schemas.fixture_media(self.fixtures_dir, f"{kind}/{name}")
             return self.artifacts_root / kind / name
+        if kind == "tcga":
+            return self.artifacts_root / "tcga" / "images" / name
         if kind == "eval":
             return schemas.eval_asset(self.artifacts_root, name)
         if kind == "spotcheck":
@@ -153,6 +156,48 @@ class Backend:
         if kind == "fixtures":
             return self.fixtures_dir / name
         raise db.NotFoundError(f"unknown media kind {kind!r}")
+
+    def tcga_index(self) -> dict[str, Any]:
+        """Browseable TCGA external specimens (artifacts/tcga/index.json from scripts/build_tcga_cases.py)."""
+        path = self.artifacts_root / "tcga" / "index.json"
+        if not path.is_file():
+            return {"available": False, "n": 0, "items": [], "model": None}
+        try:
+            data = io.read_json(path)
+        except (OSError, ValueError) as exc:
+            raise db.ServerDataError(f"tcga/index.json is unreadable: {exc}") from exc
+        items = data.get("items") or []
+        return {
+            "available": True,
+            "n": int(data.get("n") or len(items)),
+            "items": items,
+            "model": data.get("model"),
+            "n_patients": data.get("n_patients"),
+            "n_slides": data.get("n_slides"),
+            "n_crops": data.get("n_crops"),
+            "device": data.get("device"),
+            "quantized": data.get("quantized"),
+            "limitations": data.get("limitations") or [],
+        }
+
+    def tcga_case(self, case_id: str) -> dict[str, Any]:
+        """One TCGA specimen as a case-shaped public payload (no ground-truth labels)."""
+        if not _FILE_RE.fullmatch(case_id) or ".." in case_id:
+            raise db.NotFoundError(f"tcga case {case_id!r} not found")
+        path = self.artifacts_root / "tcga" / "cases" / f"{case_id}.json"
+        if not path.is_file():
+            raise db.NotFoundError(f"tcga case {case_id!r} not found")
+        try:
+            case = io.read_json(path)
+        except (OSError, ValueError) as exc:
+            raise db.ServerDataError(f"tcga case {case_id} is unreadable: {exc}") from exc
+        # Second guard: never ship eval ground truth even if a stale build left it in.
+        drop = GROUND_TRUTH_KEYS | {"label", "y", "group"}
+        out = {k: v for k, v in case.items() if k not in drop}
+        meta = out.get("tcga_meta")
+        if isinstance(meta, dict):
+            out["tcga_meta"] = {k: v for k, v in meta.items() if k not in drop}
+        return out
 
     # ---- runtime ----------------------------------------------------------------------------------------------------
     @property
@@ -664,6 +709,14 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
     def metrics() -> dict[str, Any]:
         return backend.metrics()
 
+    @app.get("/api/tcga")
+    def tcga_list() -> dict[str, Any]:
+        return backend.tcga_index()
+
+    @app.get("/api/tcga/cases/{case_id}")
+    def tcga_case(case_id: str) -> dict[str, Any]:
+        return backend.tcga_case(case_id)
+
     @app.get("/api/spotcheck/items")
     def spotcheck_items() -> dict[str, Any]:
         return backend.spotcheck_items()
@@ -699,7 +752,7 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
             path = backend.media_path(kind, name)
             if not path.is_file():
                 raise db.NotFoundError(f"{kind}/{name} not found")
-            if w is not None and kind in ("images", "cells", "spotcheck"):
+            if w is not None and kind in ("images", "cells", "spotcheck", "tcga"):
                 return Response(thumbnail(path, w), media_type="image/jpeg")
             # fixture cases for ?mock=1: public form only (no eval_only). Case-insensitive like the suffix check above:
             # on macOS/APFS /fixtures/demo_0001.JSON opens demo_0001.json and must not be served raw.
@@ -712,7 +765,7 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
         serve.__name__ = f"media_{kind}"
         return serve
 
-    for kind in ("images", "cells", "eval", "spotcheck", "fixtures"):
+    for kind in ("images", "cells", "eval", "spotcheck", "fixtures", "tcga"):
         app.get(f"/{kind}/{{name}}", include_in_schema=False)(media(kind))
 
     if frontend_dir is not None:

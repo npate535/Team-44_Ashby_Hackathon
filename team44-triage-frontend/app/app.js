@@ -12,6 +12,7 @@ import * as surgical from './js/views/case_surgical.js';
 import * as surgeon from './js/views/surgeon.js';
 import * as oncologist from './js/views/oncologist.js';
 import * as metrics from './js/views/metrics.js';
+import * as tcga from './js/views/tcga.js';
 import * as spotcheck from './js/views/spotcheck.js';
 import { animateScene, syncGlass } from './js/glass.js';
 
@@ -62,7 +63,8 @@ const ST = {
   routedPrimed: false,
   justDone: null,
   interp: {}, // AI interpretation per case id ('__results' = evaluation page): {status, data, error, startedAt}
-  interpRev: 0
+  interpRev: 0,
+  tcga: null // GET /api/tcga index (external specimens; not the arrival queue)
 };
 window.__PQ_ST__ = ST; // debugging + e2e introspection (no secrets or ground truth live here)
 let api = null;
@@ -105,8 +107,10 @@ function parseHash() {
   const h = location.hash.replace(/^#\/?/, '');
   const [route, id] = h.split('/');
   if (route === 'case' && id) return { route: 'case', caseId: decodeURIComponent(id) };
+  if (route === 'tcga')
+    return { route: 'tcga', caseId: id ? decodeURIComponent(id) : null };
   return {
-    route: ['worklist', 'surgeon', 'oncologist', 'metrics', 'spotcheck'].includes(route) ? route : 'worklist',
+    route: ['worklist', 'surgeon', 'oncologist', 'metrics', 'tcga', 'spotcheck'].includes(route) ? route : 'worklist',
     caseId: null
   };
 }
@@ -129,7 +133,8 @@ function onRoute() {
     window.scrollTo(0, 0);
   }
   document.querySelectorAll('nav [data-nav]').forEach((b) => {
-    const active = b.dataset.nav === (ST.route === 'case' ? 'worklist' : ST.route);
+    const active =
+      b.dataset.nav === (ST.route === 'case' ? 'worklist' : ST.route === 'tcga' ? 'tcga' : ST.route);
     if (active) b.setAttribute('aria-current', 'page');
     else b.removeAttribute('aria-current');
   });
@@ -195,7 +200,28 @@ async function refresh(force, seq) {
     }
   } else if (route === 'metrics' && (force || !ST.metrics)) evaluation = await api.metrics();
   else if (route === 'spotcheck' && (force || !ST.spot)) spot = await api.spotcheckItems();
-  else if (!ST.metrics && !ST.metricsAsked && !ST.mock) {
+  else if (route === 'tcga') {
+    if (force || !ST.tcga) {
+      try {
+        ST.tcga = await api.tcga();
+      } catch (err) {
+        if (!(err instanceof ApiError && err.status === 404)) throw err;
+        ST.tcga = { available: false, n: 0, items: [] };
+      }
+    }
+    if (caseId) {
+      const skipTcgaMissing = ST.notFound === caseId && ST.notFoundAt === 'tcga';
+      if (skipTcgaMissing) missing = true;
+      else if (!ST.cases[caseId] || force) {
+        try {
+          detail = await api.getTcgaCase(caseId);
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 404) missing = true;
+          else throw err;
+        }
+      }
+    }
+  } else if (!ST.metrics && !ST.metricsAsked && !ST.mock) {
     ST.metricsAsked = true; // once: the conformal method label + coverage shown in worklist/inbox copy
     evaluation = await api.metrics().catch(() => null);
   }
@@ -216,6 +242,13 @@ async function refresh(force, seq) {
         ST.interp[caseId] = interpretation;
         ST.interpRev++;
       }
+    }
+  } else if (route === 'tcga' && caseId) {
+    ST.notFound = missing ? caseId : null;
+    ST.notFoundAt = missing ? 'tcga' : null;
+    if (detail) {
+      ST.cases[caseId] = detail;
+      ST.events[caseId] = ST.events[caseId] || [];
     }
   }
   noticeRouted(toSurgeon || [], toOncologist || []);
@@ -289,13 +322,25 @@ function view() {
     if (!c) return '<div class="card" data-testid="state-loading"><h2>Loading case…</h2></div>';
     return (c.lane === 'surgical' ? surgical : biopsy).render(ST, ctx());
   }
-  return { worklist, surgeon, oncologist, metrics, spotcheck }[ST.route].render(ST, ctx());
+  return { worklist, surgeon, oncologist, metrics, tcga, spotcheck }[ST.route].render(ST, ctx());
 }
 
 function currentFp() {
   // Pages that do not read the queue redraw only for their own data: a running replay must not re-render the
   // dashboard (charts lose focus and tooltips) or the evidence review (images reload under the reviewer).
   if (ST.route === 'metrics') return ['metrics', ST.metricsRev || 0, ST.interpRev, !!ST.metrics].join('|');
+  if (ST.route === 'tcga') {
+    if (ST.caseId)
+      return [
+        'tcga-case',
+        ST.caseId,
+        ST.tab,
+        ST.notFound === ST.caseId ? 'missing' : !!ST.cases[ST.caseId],
+        JSON.stringify(ST.hm),
+        ST.interpRev
+      ].join('|');
+    return ['tcga', ST.tcga ? ST.tcga.n : 'none', !!(ST.tcga && ST.tcga.available)].join('|');
+  }
   if (ST.route === 'spotcheck')
     return [
       'spotcheck',
@@ -478,6 +523,7 @@ const PAGE = {
   surgeon: 'Operating rooms',
   oncologist: 'Oncology inbox',
   metrics: 'Model evaluation',
+  tcga: 'TCGA external',
   spotcheck: 'Evidence review'
 };
 
@@ -497,6 +543,11 @@ function pageDescription() {
     return `${n} result${n === 1 ? '' : 's'}${ST.inboxUnread ? ` · ${ST.inboxUnread} unread` : ''}`;
   }
   if (ST.route === 'metrics') return 'Held-out test split · 95% CIs';
+  if (ST.route === 'tcga') {
+    if (ST.caseId) return ST.caseId;
+    const n = ST.tcga && ST.tcga.n;
+    return n ? `${n} external specimens` : 'External generalization';
+  }
   return 'Model-highlighted regions';
 }
 
@@ -506,8 +557,11 @@ function updateShell() {
   const desc = pageDescription();
   $('#page-description').textContent = desc;
   $('#page-description').title = desc; // the header truncates it on narrower screens
-  document.title = `${ST.route === 'case' && ST.caseId ? ST.caseId + ' · ' : ''}${crumb} · Sepia`;
+  document.title = `${(ST.route === 'case' || ST.route === 'tcga') && ST.caseId ? ST.caseId + ' · ' : ''}${crumb} · Sepia`;
   $('.workspace').dataset.route = ST.route;
+  // TCGA external is a static specimen browser — hide arrival-replay chrome entirely.
+  const replay = $('.replay');
+  if (replay) replay.hidden = ST.route === 'tcga';
   $('#queue-count').textContent = ST.health?.open_cases ?? openItems(ST.items).length;
   const orOpen = (ST.health && ST.health.open_surgical) ?? null;
   const orEl = $('#or-count');
@@ -991,8 +1045,10 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (t.matches('tr.row')) {
-    if (ST.simBusy) return;
-    go('#/case/' + encodeURIComponent(t.dataset.caseId));
+    if (ST.simBusy && ST.route !== 'tcga') return;
+    const id = t.dataset.caseId;
+    if (!id) return;
+    go(ST.route === 'tcga' ? '#/tcga/' + encodeURIComponent(id) : '#/case/' + encodeURIComponent(id));
     return;
   }
   if (d.tab) {
@@ -1096,12 +1152,14 @@ document.addEventListener('keydown', (e) => {
   const r = e.target.closest && e.target.closest('tr.row');
   if (r && (e.key === 'Enter' || e.key === ' ')) {
     e.preventDefault();
-    if (ST.simBusy) return;
-    go('#/case/' + encodeURIComponent(r.dataset.caseId));
+    if (ST.simBusy && ST.route !== 'tcga') return;
+    const id = r.dataset.caseId;
+    if (!id) return;
+    go(ST.route === 'tcga' ? '#/tcga/' + encodeURIComponent(id) : '#/case/' + encodeURIComponent(id));
     return;
   }
   if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target) || $('#reset-dialog').open) return;
-  if (ST.route === 'worklist') {
+  if (ST.route === 'worklist' || (ST.route === 'tcga' && !ST.caseId)) {
     if (e.key === 'j' || e.key === 'ArrowDown') {
       if (e.key === 'ArrowDown' && !r) return; // plain page scrolling unless a row has focus
       e.preventDefault();
@@ -1114,11 +1172,11 @@ document.addEventListener('keydown', (e) => {
       moveRow(-1);
       return;
     }
-    if (e.key === '/') {
-      e.preventDefault();
-      $('#case-search')?.focus();
-      return;
-    }
+  }
+  if (ST.route === 'worklist' && e.key === '/') {
+    e.preventDefault();
+    $('#case-search')?.focus();
+    return;
   }
   if ((e.key === 'n' || e.key === 'N') && (ST.route === 'worklist' || ST.route === 'case')) {
     e.preventDefault();

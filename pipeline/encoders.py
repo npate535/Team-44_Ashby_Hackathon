@@ -216,19 +216,23 @@ class Encoder:
         return bool(self.spec["text_aligned"]) and self.text_fn is not None
 
     def autocast_context(self, enabled: bool = True) -> Any:
+        # Full-weight mixed precision on CUDA/MPS (bf16/fp16 autocast). Never weight-quantize.
         dtype = self.spec["autocast"]
-        if not enabled or dtype is None or not self.device.startswith("cuda"):
+        accel = self.device.startswith("cuda") or self.device == "mps"
+        if not enabled or dtype is None or not accel:
             return contextlib.nullcontext()
         import torch
 
-        return torch.autocast("cuda", dtype={"fp16": torch.float16, "bf16": torch.bfloat16}[dtype])
+        device_type = "cuda" if self.device.startswith("cuda") else "mps"
+        return torch.autocast(device_type, dtype={"fp16": torch.float16, "bf16": torch.bfloat16}[dtype])
 
     def embed(self, batch: Any, *, use_autocast: bool = True) -> dict[str, np.ndarray]:
         """{head: float32 ndarray [B, D]}; raises ValueError on a head/dimension mismatch."""
         import torch
 
+        non_blocking = self.device.startswith("cuda")
         with torch.inference_mode(), self.autocast_context(use_autocast):
-            out = self.forward(batch.to(self.device, non_blocking=True))
+            out = self.forward(batch.to(self.device, non_blocking=non_blocking))
         arrays = {h: v.float().cpu().numpy() if hasattr(v, "cpu") else np.asarray(v, dtype=np.float32)
                   for h, v in out.items()}
         check_head_dims(self.name, self.spec, arrays, n=int(batch.shape[0]))
@@ -476,19 +480,35 @@ def lora_weights_path(spec: Mapping[str, Any]) -> Path:
     return Path(str(spec["lora"]["weights"])).expanduser()
 
 
+def _timm_pretrained_source(spec: Mapping[str, Any]) -> str:
+    """Prefer a local HF snapshot (offline) so gated models load without a live token."""
+    from huggingface_hub import try_to_load_from_cache
+
+    repo = spec["repo"]
+    for filename in spec.get("files") or ("pytorch_model.bin", "config.json"):
+        path = try_to_load_from_cache(repo, filename)
+        if isinstance(path, str):
+            return f"local-dir:{Path(path).parent}"
+    return f"hf-hub:{repo}"
+
+
 def _load_timm(name: str, spec: Mapping[str, Any], device: str) -> Encoder:
     import timm
 
-    model = timm.create_model(f"hf-hub:{spec['repo']}", pretrained=True, **_timm_kwargs(spec))
+    model = timm.create_model(_timm_pretrained_source(spec), pretrained=True, **_timm_kwargs(spec))
     if spec.get("lora"):                       # fine-tuned variant (uni2h_ft): base weights + private LoRA adapters
         import torch
 
         add_lora(model, int(spec["lora"]["r"]), float(spec["lora"]["alpha"]))
-        state = torch.load(lora_weights_path(spec), map_location="cpu")
+        blob = torch.load(lora_weights_path(spec), map_location="cpu", weights_only=False)
+        # Delta ft.py saves {"state": {*.lora_* , head_ft.*}}; pipeline.05c saves {"lora": {*.lora_*}}.
+        raw = blob.get("lora") or {
+            k: v for k, v in (blob.get("state") or {}).items() if ".lora_" in k
+        }
         expected = set(lora_state(model))
-        if set(state["lora"]) != expected:
-            raise ValueError(f"{name}: LoRA weights do not match the model ({len(state['lora'])} vs {len(expected)} tensors)")
-        model.load_state_dict(state["lora"], strict=False)
+        if set(raw) != expected:
+            raise ValueError(f"{name}: LoRA weights do not match the model ({len(raw)} vs {len(expected)} tensors)")
+        model.load_state_dict(raw, strict=False)
     model = model.eval().to(device)
     output, registers = spec["output"], int(spec.get("register_tokens", 0))
 
@@ -550,8 +570,10 @@ def _revision(spec: Mapping[str, Any]) -> str:
 def encoder_info(name: str, spec: Mapping[str, Any], device: str, *, revision: str) -> dict[str, Any]:
     if spec["loader"] == "official_musk" and device.startswith("cuda"):
         dtype = "fp16"
+    elif device.startswith("cuda") or device == "mps":
+        dtype = spec["autocast"] or "fp32"
     else:
-        dtype = (spec["autocast"] or "fp32") if device.startswith("cuda") else "fp32"
+        dtype = "fp32"
     return {
         "encoder": name, "repo": spec.get("repo"), "model_card": spec["model_card"], "license": spec["license"],
         "revision": revision, "loader": spec["loader"], "spec": spec.get("spec"), "device": device,

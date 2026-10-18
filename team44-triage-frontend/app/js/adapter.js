@@ -288,14 +288,22 @@ export function toView(raw, nowMs, cfg, sim) {
     simulated: !!c.simulated,
     variant,
     synthetic: !!c.synthetic,
-    laneLabel: c.lane === 'surgical' ? 'Simulated frozen section' : 'Biopsy',
+    external: c.cohort === 'tcga',
+    laneLabel:
+      c.cohort === 'tcga'
+        ? 'TCGA-BRCA external'
+        : c.lane === 'surgical'
+          ? 'Simulated frozen section'
+          : 'Biopsy',
     variantLabel:
       variant === 'degraded'
         ? 'simulated artifact: ' + ((c.degradation && c.degradation.type) || 'degraded')
         : variant === 'composite'
           ? 'composite field (simulated)'
           : null,
-    question: c.lane === 'surgical' ? 'Margin status (simulated)' : 'Breast microscopy field (BACH)',
+    question:
+      c.specimen_question ||
+      (c.lane === 'surgical' ? 'Margin status (simulated)' : 'Breast microscopy field (BACH)'),
     room: rt.or_room || null,
     tier,
     tierLabel: info.label,
