@@ -175,7 +175,7 @@ export function agentPanel(v, ST) {
         ? 'Saving your decision…'
         : '';
   const approval =
-    `<div class="card cv-signout" data-testid="approval"><h2>Pathologist sign-out</h2><p class="note">The only place a diagnosis is made. The suggestion above is decision support.</p>` +
+    `<div class="card cv-signout" data-testid="approval"><h2>Pathologist sign-out</h2><p class="note">The diagnosis is recorded at sign-out. The suggestion above is decision support.</p>` +
     (signed
       ? `<div class="verdict" data-testid="verdict" role="status" tabindex="-1">Signed out, routed to the oncologist inbox at ${esc(new Date(signed).toLocaleTimeString())}</div>`
       : `<div class="btns">${btn('sign_out', 'Sign out…', ' p', true)}${!can('sign_out') && signReason ? `<span class="sub" data-testid="signout-reason">${esc(signReason)}</span>` : ''}</div>` +

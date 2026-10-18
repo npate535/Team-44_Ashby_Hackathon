@@ -12,7 +12,7 @@ export const TIER = {
   },
   2: { label: 'Likely invasive', cls: 't-2', note: 'Invasive is the top class or is in the conformal set' },
   3: { label: 'Low confidence', cls: 't-3', note: 'More than one class possible, or reliability flag' },
-  4: { label: 'Unflagged', cls: 't-4', note: 'Read in turn. Routine does not mean cleared.' }
+  4: { label: 'Unflagged', cls: 't-4', note: 'Read in arrival order; not cleared by the model' }
 };
 export const REASON = {
   aggressive_top: 'Invasive carcinoma suggested',

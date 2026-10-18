@@ -34,7 +34,7 @@ function activeCard(v) {
     `<div class="or-bar"><i class="${t.state === 'none' ? '' : esc(t.state)}" data-timer-bar="${esc(v.id)}" style="width:${Math.round((t.usedFrac || 0) * 100)}%"></i></div>` +
     `<div class="or-sub">Received ${esc(clock(v.arrivedAt))} · target ${esc(mmss(t.targetS || 1200))}</div>` +
     `<div class="or-await" data-testid="or-awaiting">Awaiting the pathologist’s margin call</div>` +
-    `<div class="or-ai">AI read: ${esc(suggestedCall(v.margin ? { suggested_call: v.margin.call, involved: v.margin.involved } : null))}${v.reliability.flag ? ' · <b>reliability flag</b>' : ''}</div>` +
+    `<div class="or-ai">Model read: ${esc(suggestedCall(v.margin ? { suggested_call: v.margin.call, involved: v.margin.involved } : null))}${v.reliability.flag ? ' · <b>reliability flag</b>' : ''}</div>` +
     `<a class="case-link" href="#/case/${encodeURIComponent(v.id)}">Open case</a>` +
     '</div>'
   );
@@ -60,7 +60,7 @@ function calledCard(v, r, fresh) {
     `<div class="or-meta"><span>Called ${esc(clock(r.at))} by the reading pathologist</span>` +
     (turnaround ? `<span>Turnaround <b class="timer stopped" data-testid="or-turnaround">${esc(turnaround)}</b> · timer stopped</span>` : '') +
     '</div>' +
-    (suggested ? `<div class="or-ai">AI read: ${esc(suggested)}${agreement}</div>` : '') +
+    (suggested ? `<div class="or-ai">Model read: ${esc(suggested)}${agreement}</div>` : '') +
     `<a class="case-link" href="#/case/${encodeURIComponent(r.case_id)}">Open case</a>` +
     '</div>'
   );

@@ -149,7 +149,7 @@ export function render(ST, ctx) {
       : '') +
     reliabilityBlock(v, cfg, ST.metrics) +
     callPanel(v, ST) +
-    '<p class="note">You make the call. It goes to the surgeon screen and stops the timer.</p></div>';
+    '<p class="note">The call is sent to the surgeon\'s screen and stops the timer.</p></div>';
   h += `<div class="card" data-testid="how-sure"><div class="card-h"><h2>Case-level read</h2><span class="sub">${esc(classLabel(v.top, cfg) || '')}${v.risk === null ? '' : ` · ${fmtPct(aggProb(v, cfg))} P(invasive)`}</span></div>${howSure(v, ST.cfg, ST.metrics, { compact: true })}<details class="cv-more" data-keep="checks"${keepOpen('checks')}><summary>Agreement and quality checks</summary>${checksOnly(v, ST.cfg, ST.metrics)}</details></div>`;
   h += agentPanel(v, ST);
   return h + '</div></div></section>';

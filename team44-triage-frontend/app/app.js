@@ -967,16 +967,6 @@ document.addEventListener('click', async (e) => {
     draw(true);
     return;
   }
-  if (d.flagQuick) {
-    ST.flagFilter = ST.flagFilter === d.flagQuick ? 'all' : d.flagQuick;
-    ST.tierFilter = null;
-    ST.status = 'open';
-    ST.search = '';
-    ST.ordersOnly = false;
-    ST.page = 0;
-    draw(true);
-    return;
-  }
   if (d.clearSearch !== undefined) {
     ST.search = '';
     ST.status = 'all';

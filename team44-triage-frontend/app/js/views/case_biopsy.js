@@ -6,7 +6,7 @@ import { agentPanel } from './agent.js';
 import { keepOpen, setRenderer } from './case_ui.js';
 import { cellsTab } from './cells.js';
 import { heatmap, heatmapControls, heatmapLegend } from './heatmap.js';
-import { evidenceBrief, interpretPanel } from './interpret.js';
+import { interpretPanel } from './interpret.js';
 import { aggProb, compared, fmtPct, howSure, summary, why } from './why.js';
 import { reasonBadges } from './worklist.js';
 
@@ -75,7 +75,7 @@ export function render(ST, ctx) {
     header(v, ST.cfg) +
     `<div class="tabs" role="tablist" aria-label="Case sections"><button role="tab" id="tab-evidence" aria-controls="case-panel" data-tab="evidence" data-testid="tab-evidence" aria-selected="${ST.tab !== 'cells' && ST.tab !== 'interp'}"${ST.tab === 'cells' || ST.tab === 'interp' ? ' tabindex="-1"' : ''}>Image & findings</button>` +
     `<button role="tab" id="tab-cells" aria-controls="case-panel" data-tab="cells" data-testid="tab-cells" aria-selected="${ST.tab === 'cells'}"${ST.tab === 'cells' ? '' : ' tabindex="-1"'}>Cell evidence${v.cells.status === 'ok' ? ` <span class="tab-n">${(v.cells.tiles || []).length}</span>` : ''}</button>` +
-    `<button role="tab" id="tab-interp" aria-controls="case-panel" data-tab="interp" data-testid="tab-interp" aria-selected="${ST.tab === 'interp'}"${ST.tab === 'interp' ? '' : ' tabindex="-1"'}>AI explanation${(ST.interp[v.id] || {}).status === 'ok' ? ' <span class="tab-n ai-dot" title="Ready">✓</span>' : ''}</button></div></div>`;
+    `<button role="tab" id="tab-interp" aria-controls="case-panel" data-tab="interp" data-testid="tab-interp" aria-selected="${ST.tab === 'interp'}"${ST.tab === 'interp' ? '' : ' tabindex="-1"'}>Plain-language summary${(ST.interp[v.id] || {}).status === 'ok' ? ' <span class="tab-n ai-dot" title="Ready">✓</span>' : ''}</button></div></div>`;
   if (ST.tab === 'cells') {
     return h + `<div id="case-panel" class="cv-tabpanel" role="tabpanel" aria-labelledby="tab-cells">${cellsTab(v, ST, ctx.assetUrl)}</div></section>`;
   }
@@ -83,7 +83,7 @@ export function render(ST, ctx) {
     return h + `<div id="case-panel" class="cv-tabpanel ai-tabpanel" role="tabpanel" aria-labelledby="tab-interp">${interpretPanel(ST, v.id, 'case')}</div></section>`;
   }
   const hm = ST.hm;
-  h += '<div id="case-panel" role="tabpanel" aria-labelledby="tab-evidence">' + evidenceBrief(ST, v);
+  h += '<div id="case-panel" role="tabpanel" aria-labelledby="tab-evidence">';
   h += '<div class="grid case-layout cv-grid"><div class="cv-main">';
   h += `<div class="card" data-testid="summary"><div class="card-h"><h2>Grounded summary</h2><span class="sub">Citations open the supporting evidence</span></div>${summary(v)}</div>`;
   h +=
@@ -96,7 +96,7 @@ export function render(ST, ctx) {
   h += '</div><div class="decision-column cv-side">';
   h += agentPanel(v, ST);
   h += `<div class="card" data-testid="how-sure"><div class="card-h"><h2>Prediction and confidence</h2></div>${howSure(v, ST.cfg, ST.metrics)}</div>`;
-  if (v.tier === 4) h += '<p class="note">Unflagged means read in turn. It does not mean cleared.</p>';
+  if (v.tier === 4) h += '<p class="note">Unflagged: read in arrival order. The model has not cleared this case.</p>';
   return h + '</div></div></div></section>';
 }
 

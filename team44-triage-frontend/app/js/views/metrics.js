@@ -148,7 +148,7 @@ function table(head, rows, { num = [] } = {}) {
     .join('')}</tbody></table></div>`;
 }
 /**
- * One figure: question-style title, computed takeaway, chart, population + source line, source-numbers table.
+ * One figure: descriptive title, computed takeaway, chart, population + source line, source-numbers table.
  * opts: {id, title, takeaway, chart, population, source, table:{head, rows, num}, notes:[...], wide, testid, caveat}
  */
 function figure(o) {
@@ -375,7 +375,7 @@ function figRoc(ST, ev, L) {
   const A = ev.analytics,
     M = ev.metrics;
   const curves = get(A, 'roc.invasive_vs_rest');
-  if (!curves || !curves.production) return missing('analytics', 'How well does the risk score separate invasive cases?', 'ROC curves');
+  if (!curves || !curves.production) return missing('analytics', 'ROC curve: invasive vs rest', 'ROC curves');
   const b = get(M, 'models.b') || get(A, 'models.b');
   const prodName = `Production read (${modelName(get(M, 'models.production') || get(A, 'models.production'))}, calibrated)`;
   const series = [{ name: prodName, color: C.COLOR[1], step: true, markers: 'hit', points: rocPoints(curves.production, prodName) }];
@@ -398,7 +398,7 @@ function figRoc(ST, ev, L) {
   const rows = Object.entries(curves).map(([name, c]) => [name === 'production' ? prodName : modelName(name), f2(c.auroc), String(c.n_pos), String(c.n_neg), String((c.fpr || []).length)]);
   return figure({
     id: 'roc',
-    title: 'How well does the risk score separate invasive cases?',
+    title: 'ROC curve: invasive vs rest',
     takeaway: take,
     chart,
     population: `held-out test split, ${curves.production.n_pos} invasive vs ${curves.production.n_neg} other images`,
@@ -411,7 +411,7 @@ function figConfusion(ST, ev, L) {
   const M = ev.metrics;
   const counts = (conf && conf.counts) || get(M, 'production.confusion.matrix');
   const classes = (conf && conf.classes) || get(M, 'production.confusion.classes') || ST.cfg.classes;
-  if (!Array.isArray(counts)) return missing('metrics', 'Where do the errors fall?', 'confusion matrix');
+  if (!Array.isArray(counts)) return missing('metrics', 'Confusion matrix', 'confusion matrix');
   const totals = counts.map((r) => sum(r));
   const norm = counts.map((r, i) => r.map((v) => (totals[i] ? v / totals[i] : null)));
   const chart = C.heatmap({
@@ -434,7 +434,7 @@ function figConfusion(ST, ev, L) {
   const take = `${classes.map((c, i) => `${shortClass(c)} ${counts[i][i]}/${totals[i]}`).join(', ')} correct. ${ii ? `${ii.insitu_called_invasive} of ${ii.n_insitu} in situ images were called invasive and ${ii.invasive_called_insitu} of ${ii.n_invasive} invasive images were called in situ. ` : ''}${worst && worst.v ? `The most frequent error is ${shortClass(classes[worst.i])} → ${shortClass(classes[worst.j])} (${worst.v}).` : ''}`;
   return figure({
     id: 'confusion',
-    title: 'Where do the errors fall?',
+    title: 'Confusion matrix',
     takeaway: take,
     chart: chart + C.scaleLegend({ caption: 'Shade = share of the row', lo: '0%', hi: '100%' }),
     population: `held-out test split, ${sum(totals)} images (rows = true class)`,
@@ -473,7 +473,7 @@ function figPr(ST, ev, L) {
   const bestAtFull = atFull.length ? Math.max(...atFull) : null;
   return figure({
     id: 'pr',
-    title: 'When every invasive case is flagged, how many flags are right?',
+    title: 'Precision–recall: invasive vs rest',
     takeaway: `Average precision ${fa(prod.average_precision)}${b && PR[b] ? ` (model B ${fa(PR[b].average_precision)})` : ''}. ${isNum(bestAtFull) ? `Flagging all ${prod.n_pos} invasive images, ${pc(bestAtFull)} of the flagged images are invasive at best.` : ''} The dashed line is the ${pc(prod.prevalence)} share of invasive images: a useless score would sit on it.`,
     chart,
     population: `held-out test split, ${prod.n_pos} invasive of ${prod.n} images`,
@@ -508,7 +508,7 @@ function figOvr(ST, ev, L) {
   return figure({
     id: 'ovr',
     wide: true,
-    title: 'Is each class separable on its own?',
+    title: 'One-vs-rest ROC by class',
     takeaway: `One-vs-rest AUROC is highest for ${shortClass(best[0])} (${f2(best[1].auroc)}) and lowest for ${shortClass(worst[0])} (${f2(worst[1].auroc)})${macro ? `; their average, the macro AUROC, is ${ciText(macro)}` : ''}.`,
     chart: C.multiples(panels, { cols }),
     population: 'held-out test split, production calibrated probabilities',
@@ -519,7 +519,7 @@ function figOvr(ST, ev, L) {
 function figModels(ST, ev, L) {
   const M = ev.metrics;
   const per = get(M, 'per_model');
-  if (!per) return missing('metrics', 'Which model should drive the worklist?', 'per-model metrics');
+  if (!per) return missing('metrics', 'Model comparison', 'per-model metrics');
   const prod = get(M, 'models.production'),
     b = get(M, 'models.b');
   const names = Object.keys(per);
@@ -543,7 +543,7 @@ function figModels(ST, ev, L) {
   return figure({
     id: 'models',
     wide: true,
-    title: 'How do the candidate models compare?',
+    title: 'Candidate models on the test split',
     takeaway: take,
     chart: `<div class="mx-pair">${C.multiples([
       { title: 'Four-class macro-F1', body: f1Chart },
@@ -582,7 +582,7 @@ function figSelection(ST, ev, L) {
   const p = get(MC, 'protocol') || {};
   return figure({
     id: 'selection',
-    title: 'Why this model? Selection inside the training split',
+    title: 'Model selection inside the training split',
     takeaway: `The lowest cross-validated log-loss was ${modelName(String(fam.best || '').split('@')[0])} (${C.fmtNum(fam.best_loss, 3)}); the one-SE rule picks the simplest candidate within one standard error (limit ${C.fmtNum(fam.limit, 3)}), which is ${modelName(prod)}. The test split was not used${p.test_split_used === false ? ' (recorded)' : ''}.`,
     chart,
     population: `${p.n_train ?? '?'} training images, ${p.n_train_groups ?? '?'} groups, ${p.folds ?? '?'}-fold grouped CV × ${p.repeats ?? '?'} repeats`,
@@ -592,7 +592,7 @@ function figSelection(ST, ev, L) {
 }
 function figThunder(ST, ev, L) {
   const TH = ev.thunder;
-  if (!TH || !TH.published) return missing('thunder', 'How does this compare with published benchmarks?', 'THUNDER comparison');
+  if (!TH || !TH.published) return missing('thunder', 'Comparison with published THUNDER results', 'THUNDER comparison');
   const rows = [{ header: true, label: 'Published THUNDER results (no interval reported)' }];
   for (const [kind, vals] of Object.entries(TH.published))
     for (const [m, v] of Object.entries(vals || {}))
@@ -621,7 +621,7 @@ function figThunder(ST, ev, L) {
     : '';
   return figure({
     id: 'thunder',
-    title: 'How does this compare with published benchmarks?',
+    title: 'Comparison with published THUNDER results',
     caveat: `Same split, different protocol: ${String(TH.label || '').replace(/^same split, different protocol\s*/i, '').replace(/^\(|\)$/g, '') || 'published probes resize the whole image; ours tiles the image'}. Not compared with the ICIAR 2018 challenge, which used a hidden test set.`,
     takeaway: pc_ && pubBest ? `Our production macro-F1 is ${ciText(pc_, { digits: 1, unit: '%' })}; the best published linear probe (${modelName(pubBest[0])}) is ${f1(pubBest[1])}%, which ${inside ? 'lies inside our interval' : 'lies outside our interval'}.${zsText}` : 'Published THUNDER results next to this project.',
     chart,
@@ -646,7 +646,7 @@ function figReliability(ST, ev, L) {
   const A = get(ev, 'analytics.reliability');
   const before = get(CAL, 'before.reliability_diagram.bins'),
     after = get(CAL, 'after.reliability_diagram.bins');
-  if (!after) return missing('calibration', 'Is the confidence honest?', 'reliability diagram');
+  if (!after) return missing('calibration', 'Calibration of top-class confidence', 'reliability diagram');
   const cols = L.two && A ? 2 : 1;
   const inner = L.full;
   const pw = cols === 2 ? L.panel(inner, 2) : Math.min(inner, 520);
@@ -680,7 +680,7 @@ function figReliability(ST, ev, L) {
     id: 'reliability',
     wide: true,
     testid: 'metrics-calibration',
-    title: 'Is the confidence honest?',
+    title: 'Calibration of top-class confidence',
     takeaway: take,
     chart: legendTop + C.multiples(panels, { cols }),
     population: `held-out test split, n = ${CAL.n} images, ${CAL.n_groups} groups; ${CAL.ece_bins}-bin equal-mass binning`,
@@ -722,7 +722,7 @@ function figRiskHist(ST, ev, L) {
   return figure({
     id: 'riskhist',
     wide: true,
-    title: `How is the risk score P(${k}) distributed in each true class?`,
+    title: `Distribution of P(${k}) by true class`,
     takeaway: takeParts.length ? takeParts.join('; ').replace(/^./, (m) => m.toUpperCase()) + '. In situ carcinoma is where scores spread out, which is why the worklist flags any case with Invasive in its set.' : '',
     chart: C.multiples(panels, { cols }),
     population: 'held-out test split, calibrated probabilities, grouped by true class',
@@ -743,7 +743,7 @@ function methodTag(k, tm) {
 }
 function figCoverage(ST, ev, L) {
   const CF = ev.conformal;
-  if (!CF || !CF.methods) return missing('conformal', 'Does the suggested set contain the true class 90% of the time?', 'coverage');
+  if (!CF || !CF.methods) return missing('conformal', 'Conformal coverage by method', 'coverage');
   const tm = tierMethod(ev);
   const target = CF.target_coverage ?? 1 - ST.cfg.alpha;
   const classes = ST.cfg.classes;
@@ -774,7 +774,7 @@ function figCoverage(ST, ev, L) {
   if (tm.postHoc) notes.push(`${methodName(tm.key)} replaced the pre-registered ${methodName(tm.preRegistered)} after the test results were seen, so its test coverage is optimistic.`);
   return figure({
     id: 'coverage',
-    title: `Does the suggested set contain the true class ${pc(target)} of the time?`,
+    title: `Conformal coverage against the ${pc(target)} target`,
     takeaway: take,
     chart,
     notes,
@@ -816,7 +816,7 @@ function figSetSize(ST, ev, L) {
   const skipped = order.filter((k) => !hist(k));
   return figure({
     id: 'setsize',
-    title: 'How many classes does each method suggest?',
+    title: 'Conformal set size by method',
     takeaway: (parts.length ? parts.join('; ') + '. ' : '') + 'An empty set means no class reached the threshold; the worklist treats it as low confidence (tier 3).',
     chart,
     notes: skipped.length ? [`No set-size counts in this run for ${skipped.map(methodName).join(', ')}.`] : [],
@@ -846,7 +846,7 @@ function figComposition(ST, ev, L) {
   const others = Object.entries(AC.methods).filter(([m]) => m !== key).map(([m, b]) => [m, (b.composition || []).filter((c) => isDiff(c.members)).reduce((a, c) => a + c.count, 0)]);
   return figure({
     id: 'composition',
-    title: 'Which differentials does the tier-driving set produce?',
+    title: 'Differentials in the tier-driving set',
     takeaway: `${methodName(key)} put both in situ and invasive carcinoma in the set for ${plural(diff, 'image')}: the ambiguity that drafts p63 / calponin.${others.length ? ` For comparison: ${others.map(([m, n]) => `${methodName(m)} ${n}`).join(', ')}.` : ''}`,
     chart,
     population: `held-out test split, n = ${AC.methods[key].n ?? sum(comp.map((x) => x.count))} images${AC.methods[key].column ? ` (predictions.csv ${AC.methods[key].column})` : ''}`,
@@ -867,7 +867,7 @@ function directionVerdict(c, k) {
 }
 function figConceptHeat(ST, ev, L) {
   const CB = ev.concepts_bach;
-  if (!CB || !CB.concepts) return missing('concepts_bach', 'Which concepts are associated with each class?', 'concept class means');
+  if (!CB || !CB.concepts) return missing('concepts_bach', 'Concept scores by class', 'concept class means');
   const classes = ST.cfg.classes;
   const k = ST.cfg.aggressive_class;
   const ids = Object.keys(CB.concepts);
@@ -905,12 +905,12 @@ function figConceptHeat(ST, ev, L) {
   const expOk = exp.filter((id) => CB.concepts[id].highest_as_expected).length;
   return figure({
     id: 'concepts',
-    title: 'Which named features are associated with each class?',
+    title: 'Named features by class',
     takeaway: `${okN} of ${checked} directional concepts move the expected way between invasive and other images${contradictions.length ? `; contradictions: ${contradictions.map((c) => (CB.concepts[c] && CB.concepts[c].label) || c).join(', ')}` : '; none contradicts its expected direction'}. ${exp.length ? `${expOk} of ${exp.length} concepts with an expected "highest class" peak there (e.g. ${CB.concepts[exp[0]].label} highest in ${shortClass(highest(exp[0]))}).` : ''} These are associations, not causes, and not Nottingham grades.`,
     chart: chart + C.scaleLegend({ kind: 'diverging', caption: 'Numbers: mean z-score. Shade: below or above that concept\'s average across classes', lo: 'lower', hi: 'higher' }) + `<p class="mx-glyph-key"><span class="mx-g mx-g-ok" aria-hidden="true"></span>as expected <span class="mx-g mx-g-bad" aria-hidden="true"></span>contradicts <span class="mx-g mx-g-neutral" aria-hidden="true"></span>context, no direction</p>`,
     population: `held-out test split, ${CB.n_cases} images, ${CB.n_groups} groups; feature: ${/__top3$/.test(CB.feature || '') ? 'mean of the 3 highest-scoring tiles' : CB.feature || 'case-level concept score'}`,
     source: lowSet.size ? ['eval/concepts_bach.json', 'eval/spotcheck.json'] : 'eval/concepts_bach.json',
-    notes: lowSet.size ? [`† Discount these rows: an AI spot check judged ${LOW_PLAUSIBILITY * 100}% or fewer of their top-scoring regions to show the feature (${[...lowSet].map((id) => (CB.concepts[id] && CB.concepts[id].label) || id).join(', ')}). See "Are the top-scoring regions what the feature names?" below.`] : [],
+    notes: lowSet.size ? [`† Discount these rows: an AI spot check judged ${LOW_PLAUSIBILITY * 100}% or fewer of their top-scoring regions to show the feature (${[...lowSet].map((id) => (CB.concepts[id] && CB.concepts[id].label) || id).join(', ')}). See "Spot check of top-scoring regions" below.`] : [],
     table: { head: ['Concept', ...classes.map(shortClass), 'Expected', 'Check'], rows: ids.map((id, i) => [CB.concepts[id].label || id, ...values[i].map((v) => (isNum(v) ? v.toFixed(2) : 'n/a')), CB.concepts[id].direction, verdicts[i].text]), num: classes.map((_, i) => i + 1) }
   });
 }
@@ -941,7 +941,7 @@ function figConceptDirection(ST, ev, L) {
   const parts = [describe('up', 'above'), describe('down', 'below')].filter(Boolean);
   return figure({
     id: 'direction',
-    title: 'Do the concepts point the way pathology expects?',
+    title: 'Concept direction against pathology expectation',
     takeaway: rows.length ? `Above 0.5 means the concept scores higher in invasive images, below 0.5 lower. ${parts.join('; ')}. The strongest association is ${strongest.label} (${ciShort(strongest)}).` : '',
     chart: chart + C.legend([{ name: 'As expected', color: C.COLOR[1], kind: 'dot' }, { name: 'Contradicts expected direction', color: C.COLOR[2], kind: 'dot' }, { name: 'Context only', color: C.COLOR.muted, kind: 'dot' }]),
     population: `held-out test split, ${CB.n_cases} images, ${CB.n_groups} groups`,
@@ -994,7 +994,7 @@ function figSpotcheck(ST, ev, L) {
     id: 'spotcheck',
     wide: true,
     side: true,
-    title: 'Are the top-scoring regions what the feature names?',
+    title: 'Spot check of top-scoring regions',
     caveat: `${ai ? 'AI-reviewed (not a pathologist)' : `Reviewed by: ${v.kinds.join(', ')}`}: a plausibility check of each concept's ${n} highest-scoring regions, not pathologist validation. Reviewers: ${v.reviewers.map((r) => (/\bAI\b/.test(r.name) ? r.name : `${r.name} (${r.kind})`)).join('; ')}.`,
     takeaway: `${high.length ? `${high.map(label).join(', ')}: at least 85% of top regions looked right. ` : ''}${low.length ? `${low.map((id) => `${label(id)} (${v.concepts[id].acceptable}/${v.concepts[id].n})`).join(', ')} rarely did, so explanations that cite these concepts should be discounted.` : 'No concept fell to 25% or below.'}`,
     chart,
@@ -1007,7 +1007,7 @@ function figSpotcheck(ST, ev, L) {
 function figNct(ST, ev, L) {
   const CO = ev.concepts;
   const nct = get(CO, 'nct.concepts');
-  if (!nct) return missing('concepts', 'Do the concept scores transfer to another organ?', 'NCT-CRC sanity check');
+  if (!nct) return missing('concepts', 'Cross-organ check (NCT-CRC-HE-100K)', 'NCT-CRC sanity check');
   const labels = get(CO, 'concepts') || {};
   const rows = [];
   const reversed = [];
@@ -1026,7 +1026,7 @@ function figNct(ST, ev, L) {
   return figure({
     id: 'nct',
     testid: 'metrics-concepts',
-    title: 'Do the concept scores behave sensibly on another organ?',
+    title: 'Cross-organ check (NCT-CRC-HE-100K)',
     caveat: 'Cross-organ sanity check on colorectal tiles (NCT-CRC-HE-100K): evidence that tissue-level concepts transfer, not breast validation.',
     takeaway: `Text-prompt scores reach AUROC ≥ 0.80 for ${good} of ${text.length} concepts${reversed.length ? `; reversed (below chance): ${reversed.join(', ')}` : ''}.${(ci(get(nct, 'pleomorphism.text'))?.est ?? 1) < 0.7 ? ' Pleomorphism is weak here, plausibly because colorectal tumour is not breast carcinoma.' : ''}`,
     chart: chart + C.legend([{ name: 'Text prompt score', color: C.COLOR[1], kind: 'dot' }, { name: 'Caption-trained concept vector', color: C.COLOR[3], kind: 'dot' }]),
@@ -1050,7 +1050,7 @@ function figCav(ST, ev, L) {
   const fail = rows.filter((r) => r.sub !== 'caption-consistent').map((r) => r.label);
   return figure({
     id: 'cav',
-    title: 'Are the learned concept vectors consistent with captions?',
+    title: 'Caption consistency of concept vectors',
     caveat: String(cav.label || 'Agreement with caption co-mentions, not tissue truth, not validation.'),
     takeaway: `${pass} of ${rows.length} concept vectors clear the ${isNum(min) ? f2(min) : ''} held-out AUROC bar${fail.length ? `; ${fail.join(', ')} did not, so its text prompt is used instead` : ''}. Captions mention a feature; they do not prove it is in the image.`,
     chart,
@@ -1062,7 +1062,7 @@ function figCav(ST, ev, L) {
 function figDeletion(ST, ev, L) {
   const D = ev.deletion;
   const models = get(D, 'models');
-  if (!models) return missing('deletion', 'Do the highlighted regions matter to the prediction?', 'deletion test');
+  if (!models) return missing('deletion', 'Deletion test of highlighted regions', 'deletion test');
   const prodName = get(ev, 'metrics.models.production');
   const name = prodName && models[prodName] ? prodName : Object.keys(models)[0];
   const m = models[name];
@@ -1101,7 +1101,7 @@ function figDeletion(ST, ev, L) {
   return figure({
     id: 'deletion',
     wide: true,
-    title: 'Do the highlighted regions matter to the prediction?',
+    title: 'Deletion test of highlighted regions',
     takeaway: take,
     chart: C.multiples(panels, { cols }) + C.legend([{ name: 'Mean drop', color: C.COLOR[3], kind: 'ring' }, { name: 'Difference vs random, interval excludes 0', color: C.COLOR[1], kind: 'dot' }, { name: 'Difference vs random, inconclusive', color: C.COLOR.muted, kind: 'dot' }]),
     population: `held-out test split, ${modelName(name)}; ${get(D, 'settings.n_random') ?? '?'} random ${n}-tile draws per image`,
@@ -1119,7 +1119,7 @@ function figDegradation(ST, ev, L) {
   const curve = get(REL, 'accuracy_vs_degradation.curve');
   // an artifact type with no readable severity point is left out (it would otherwise read "—" and win "hurts most")
   const types = curve && typeof curve === 'object' ? Object.keys(curve).filter((t) => curve[t] && Object.values(curve[t]).some((b) => ci(b))) : [];
-  if (!types.length) return missing('reliability', 'How does accuracy hold up on simulated frozen-section artifacts?', 'accuracy vs degradation');
+  if (!types.length) return missing('reliability', 'Accuracy under simulated frozen-section artifacts', 'accuracy vs degradation');
   const all = types.flatMap((t) => Object.values(curve[t]).map(ci).filter(Boolean)).flatMap((c) => [c.lo, c.hi, c.est]).filter(isNum);
   const ymin = Math.max(0, Math.floor(Math.min(...all) * 10) / 10),
     ymax = Math.min(1, Math.ceil(Math.max(...all) * 10) / 10);
@@ -1146,7 +1146,7 @@ function figDegradation(ST, ev, L) {
     id: 'degradation',
     wide: true,
     testid: 'metrics-reliability',
-    title: 'How does accuracy hold up on simulated frozen-section artifacts?',
+    title: 'Accuracy under simulated frozen-section artifacts',
     caveat: 'Simulated degradations of microscopy images (no frozen-section data was available). Shaded bands are 95% cluster-bootstrap intervals.',
     takeaway: `Four-class accuracy falls from ${pc(finals[0][2])} on clean single-view reads to ${finals.map(([t, v]) => `${pc(v)} (${lowerFirst(DEGRADE_LABEL[t] || t)})`).join(', ')} at the highest severity; ${lowerFirst(DEGRADE_LABEL[worst[0]] || worst[0])} hurts most. This drop is why degraded reads carry a reliability flag and can be deferred to permanent sections.`,
     chart: C.multiples(panels, { cols }),
@@ -1173,7 +1173,7 @@ function figReliabilityScore(ST, ev, L) {
   const flags = isNum(fr.clean) && isNum(fr.degraded) ? C.columns({ width: Math.min(L.two ? L.half : L.full, 320), height: 150, categories: ['Clean reads', 'Simulated degraded reads'], series: [{ name: 'Flagged', color: C.COLOR[1], values: [fr.clean, fr.degraded] }], y: { max: 1, label: 'Share flagged', format: (v) => pc(v), labelFormat: (v) => pc(v), tipFormat: (v) => pc(v, 1) }, aria: `Reliability flag rate: clean ${pc(fr.clean)}, degraded ${pc(fr.degraded)}` }) : '';
   return figure({
     id: 'relscore',
-    title: 'Does the reliability flag catch wrong reads?',
+    title: 'Reliability flag: error detection',
     takeaway: `The combined score ranks wrong reads above correct ones with AUROC ${ciText(comb)}. At the threshold chosen on calibration (target: catch ${pc(REL.target_error_recall)} of errors; ${pc(REL.error_recall_calibration)} there) it caught ${rec ? ciText(rec, { pct: true, digits: 0 }) : 'n/a'} of test-read errors — weaker on held-out data. It flags ${pc(fr.clean)} of clean and ${pc(fr.degraded)} of simulated degraded reads.`,
     chart: chart + (flags ? `<div class="cx-panel-title">Share of reads flagged</div>${flags}` : ''),
     population: `${REL.n_test_reads} test reads (clean + simulated degraded), ${REL.n_test_groups} groups`,
@@ -1183,7 +1183,7 @@ function figReliabilityScore(ST, ev, L) {
 }
 function figMargin(ST, ev, L) {
   const MG = ev.margin;
-  if (!MG) return missing('margin', 'Does the simulated margin read localize tumour?', 'margin evaluation');
+  if (!MG) return missing('margin', 'Simulated margin read', 'margin evaluation');
   const rows = [];
   const add = (label, b, color, sub) => {
     const c = ci(b);
@@ -1200,13 +1200,13 @@ function figMargin(ST, ev, L) {
   rows.push({ header: true, label: 'Annotated whole-slide windows' });
   add('Sensitivity (involved margins found)', get(MG, 'wsi_windows.sensitivity'), C.COLOR[3]);
   add('Specificity (clear margins kept clear)', get(MG, 'wsi_windows.specificity'), C.COLOR[3]);
-  rows.push({ header: true, label: 'Carcinoma test images: does it just echo the diagnosis?' });
+  rows.push({ header: true, label: 'Carcinoma test images (diagnosis-echo check)' });
   add('At least one margin called clear', get(MG, 'echo.p_at_least_one_clear_margin'), C.COLOR.muted);
   const chart = C.forest({ width: L.two ? L.half : L.full, rows, x: { min: 0, max: 1, label: 'Rate', format: (v) => pc(v) }, aria: 'Simulated margin read evaluation' });
   const g = (p) => ci(get(MG, p))?.est;
   return figure({
     id: 'margin',
-    title: 'Does the simulated margin read localize tumour?',
+    title: 'Simulated margin read',
     caveat: 'Simulation: image borders stand in for inked margins (top superior, bottom inferior, left medial, right lateral). Composite fields are synthetic constructions from test images.',
     takeaway: `On composite fields the read kept ${pc(g('composite.exact_negative_margin_clear_rate'))} of tumour-free margins clear and called the tumour-side margin involved ${pc(g('composite.tumor_side_margin_sensitivity'))} of the time; on annotated slide windows sensitivity was ${pc(g('wsi_windows.sensitivity'))} at ${pc(g('wsi_windows.specificity'))} specificity. The threshold is conservative (few false alarms on benign images, ${pc(g('benign_fpr.pooled_per_margin'))}) and misses many involved margins, so the surgeon-facing call stays with the pathologist.`,
     chart,
@@ -1243,7 +1243,7 @@ function figTiers(ST, ev, L) {
   const nonInvT2 = classes.reduce((a, c, i) => a + (i === ki ? 0 : counts[i][1]), 0);
   return figure({
     id: 'tiers',
-    title: 'Where do truly invasive cases land in the worklist?',
+    title: 'Worklist tier by true class',
     takeaway: ki >= 0 ? `${counts[ki][0] + counts[ki][1]} of ${totals[ki]} invasive test images land in tier 1 or 2 (${counts[ki][0]} through the simulated surgical lane); ${T.aggressive_not_flagged ?? counts[ki][2] + counts[ki][3]} would wait in tiers 3–4. ${nonInvT2} non-invasive images were sent to tier 2, the price of the safety rule.` : '',
     chart: chart + C.scaleLegend({ caption: 'Shade = share of the row', lo: '0%', hi: '100%' }),
     notes: L.full < 520 ? [`Tiers: ${tiers.map((t) => `${t} ${lowerFirst(tierLabel(t))}`).join(', ')}.`] : [],
@@ -1281,7 +1281,7 @@ function figReasons(ST, ev, L) {
   const topReason = (c) => Object.entries(by[c]).filter(([r]) => r !== 'surgical_frozen_section').sort((a, b) => b[1] - a[1])[0];
   return figure({
     id: 'reasons',
-    title: 'Why were cases flagged?',
+    title: 'Flag reasons by true class',
     takeaway: `${insituInSet} in situ images had Invasive in the suggested set, which the safety rule sends to tier 2 (tier 1 if they arrive in the simulated surgical lane). ${benignish.map((c) => {
       const t = topReason(c);
       return t ? `${shortClass(c)}: most often "${label(t[0]).toLowerCase()}" (${t[1]} of ${n[c] ?? '?'})` : '';
@@ -1295,7 +1295,7 @@ function figReasons(ST, ev, L) {
 function figQueue(ST, ev, L) {
   const Q = ev.queue_sim;
   const AQ = get(ev, 'analytics.queue');
-  if (!Q || !Q.results) return missing('queue_sim', 'What does prioritizing change for the reading day?', 'queue simulation');
+  if (!Q || !Q.results) return missing('queue_sim', 'Queue simulation: waiting time by policy', 'queue simulation');
   const policies = POLICY_ORDER.filter((p) => Q.results[p]).concat(Object.keys(Q.results).filter((p) => !POLICY_ORDER.includes(p)));
   const pname = (p) => (Q.policies && Q.policies[p]) || humanize(p);
   const color = (p) => (p === 'fifo' ? C.COLOR.muted : p === 'tiers' ? C.COLOR[1] : p === 'tiers_aging' ? C.COLOR[3] : C.COLOR[2]);
@@ -1335,7 +1335,7 @@ function figQueue(ST, ev, L) {
     id: 'queue',
     wide: true,
     testid: 'metrics-queue-sim',
-    title: 'What does prioritizing change for the reading day?',
+    title: 'Queue simulation: waiting time by policy',
     caveat: 'A simulation with stated assumptions, not a measured workflow outcome. Boxes span the middle 50% of simulated days; whiskers 95% of days; the line is the median and the diamond the mean.',
     takeaway: take,
     chart: `<div class="mx-pair">${C.multiples([
@@ -1353,7 +1353,7 @@ function figQueue(ST, ev, L) {
 function figCells(ST, ev, L) {
   const CE = ev.cells;
   const feats = get(CE, 'direction_checks.features');
-  if (!feats) return missing('cells', 'Do measured cell features differ between classes?', 'cell direction checks');
+  if (!feats) return missing('cells', 'Measured cell features by class', 'cell direction checks');
   const classes = ST.cfg.classes;
   const cols = L.full < 560 ? 1 : L.full < 900 ? 2 : 3;
   const pw = L.panel(L.full, cols);
@@ -1380,7 +1380,7 @@ function figCells(ST, ev, L) {
   return figure({
     id: 'cells',
     wide: true,
-    title: 'Do measured cell features differ between classes?',
+    title: 'Measured cell features by class',
     caveat: 'Automated nuclei segmentation and typing (HoVer-Net, PanNuke classes). Not pathologist-validated; cell types are model outputs.',
     takeaway: `Of ${directional} features with an expected direction (contrast: ${get(CE, 'direction_checks.contrast') || 'invasive vs benign'}), ${plural(counts.as_expected || 0, 'differs', 'differ')} as expected${name('as_expected').length ? ` (${name('as_expected').join(', ')})` : ''}, ${plural(counts.wrong_way || 0, 'goes', 'go')} the wrong way${name('wrong_way').length ? ` (${name('wrong_way').join(', ')})` : ''} and ${plural(counts.inconclusive || 0, 'is', 'are')} inconclusive. Measurements support, but do not drive, the production read.`,
     chart: C.multiples(panels, { cols }) + C.legend([{ name: shortClass(ST.cfg.aggressive_class), color: C.COLOR[2], kind: 'dot' }, { name: 'Other classes', color: C.COLOR[1], kind: 'dot' }]),
@@ -1394,7 +1394,7 @@ function figCells(ST, ev, L) {
 function figRetrieval(ST, ev, L) {
   const R = ev.retrieval;
   const p = ci(get(R, 'precision_at_k_test'));
-  if (!p) return missing('retrieval', 'Are the similar cases actually similar?', 'precision@k');
+  if (!p) return missing('retrieval', 'Retrieval precision of reference cases', 'precision@k');
   const rows = [{ label: 'All test images', est: p.est, lo: p.lo, hi: p.hi, color: C.COLOR[1], emphasis: true, value: ciShort(p, { pct: true, digits: 0 }) }];
   for (const [c, v] of Object.entries(R.per_class_precision_at_k_test || {})) if (isNum(v)) rows.push({ label: cls(c, ST), sub: 'no interval', est: v, color: C.COLOR[1], hollow: true, value: pc(v) });
   const chart = C.forest({ width: L.two ? L.half - 10 : L.full, rows, x: { min: 0, max: 1, label: `Share of the ${R.k} nearest training images with the same label`, format: (v) => pc(v) }, aria: 'Retrieval precision at k' });
@@ -1403,7 +1403,7 @@ function figRetrieval(ST, ev, L) {
     id: 'retrieval',
     wide: true,
     side: true,
-    title: 'Are the similar reference cases actually similar?',
+    title: 'Retrieval precision of reference cases',
     takeaway: `On average ${pc(p.est)} of each test image's ${R.k} nearest training images share its label (95% CI ${range(p.lo, p.hi, (v) => pc(v))}).${per.length >= 2 ? ` Best for ${per.slice(0, 2).map(([c, v]) => `${shortClass(c).toLowerCase()} (${pc(v)})`).join(' and ')}; weakest for ${per.slice(-2).map(([c, v]) => `${shortClass(c).toLowerCase()} (${pc(v)})`).join(' and ')}, so reference cases are context for the reader, not a vote.` : ''}`,
     chart,
     population: `held-out test split queries against a library of ${R.library || 'training cases'}; encoder ${R.encoder || ''}`,
@@ -1431,7 +1431,7 @@ function figDataQuality(ST, ev, L) {
   const grids = Object.keys(qp.old || {});
   return figure({
     id: 'dataquality',
-    title: 'Data quality: how much tissue passed QC?',
+    title: 'Tissue QC before and after the fix',
     takeaway: `A tissue-mask fix ${grids.length ? `raised the tile QC pass rate ${grids.map((g) => `${pc(qp.old[g])} → ${pc((qp.new || {})[g])} (${g})`).join(', ')} and ` : ''}${isNum(it.old) && isNum(it.new) ? `reduced images flagged "insufficient tissue" from ${it.old} to ${it.new}` : 'changed which images are flagged "insufficient tissue"'}${isNum(it.old) && it.old_by_class && isNum(it.old_by_class.Invasive) && it.old_by_class.Invasive * 2 > it.old ? `; ${it.old_by_class.Invasive} of the ${it.old} were invasive, so the bug mostly hid real tumour tissue` : ''}.`,
     chart,
     population: `all ${DQ.n_cases ?? ''} BACH images (every split), ${DQ.n_tiles ?? ''} tiles; tile-level QC, not a model result`,
@@ -1512,9 +1512,9 @@ export function render(ST, ctx) {
   h += nav();
   h += `<div class="mx-interp">${interpretPanel(ST, '__results', 'results')}</div>`;
   h += section('summary', 'Summary', 'The headline numbers, each with its uncertainty. The two workflow tiles come from a simulation, not measured clinical use.', safe(() => summaryTiles(ST, ev), 'metrics', 'Summary'));
-  h += section('classification', 'Classification', 'Does the model separate invasive carcinoma from everything else, and where does it go wrong?',
+  h += section('classification', 'Classification', 'Separation of invasive carcinoma from the other classes, error patterns, and model selection.',
     S(figRoc, 'analytics', 'ROC') + `<div class="mx-stack">${S(figConfusion, 'metrics', 'Confusion matrix') + S(figPr, 'analytics', 'Precision-recall')}</div>` + S(figOvr, 'analytics', 'One-vs-rest ROC') + S(figModels, 'metrics', 'Model comparison') + S(figSelection, 'model_choice', 'Model selection') + S(figThunder, 'thunder', 'Benchmark'));
-  h += section('confidence', 'Confidence', 'Do probabilities mean what they say, and how often does the suggested set contain the right answer?',
+  h += section('confidence', 'Confidence', 'Calibration of the probabilities and coverage of the conformal sets.',
     S(figReliability, 'calibration', 'Calibration') + S(figRiskHist, 'analytics', 'Risk histogram') + S(figCoverage, 'conformal', 'Coverage') + `<div class="mx-stack">${S(figSetSize, 'conformal', 'Set size') + S(figComposition, 'analytics', 'Set composition')}</div>`);
   h += section('explanations', 'Explanations', 'Named histologic features are associated with the classes. These checks test whether they behave like the criteria they are named after.',
     S(figConceptHeat, 'concepts_bach', 'Concept heatmap') + S(figConceptDirection, 'concepts_bach', 'Concept direction') + S(figSpotcheck, 'spotcheck', 'Spot check') + S(figNct, 'concepts', 'Cross-organ check') + S(figCav, 'concepts', 'Caption consistency') + S(figDeletion, 'deletion', 'Deletion test'));

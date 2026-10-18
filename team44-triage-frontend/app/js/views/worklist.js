@@ -180,7 +180,7 @@ function howPopover() {
     '<li><span class="tierno t1">1</span><div><b>Frozen section (simulated)</b>Always first. The timer runs from arrival; target 20 minutes, amber at 15.</div></li>' +
     '<li><span class="tierno t2">2</span><div><b>Likely invasive</b>Invasive is the top suggestion. <em>Safety rule:</em> if Invasive is anywhere in the 90% confidence set, the case is tier 2 even when it is not the top suggestion.</div></li>' +
     '<li><span class="tierno t3">3</span><div><b>Low confidence</b>More than one class in the confidence set, reliability flag raised, or too little tissue passed quality control.</div></li>' +
-    '<li><span class="tierno t4">4</span><div><b>Unflagged</b>Read in turn. Unflagged does not mean cleared.</div></li></ol>' +
+    '<li><span class="tierno t4">4</span><div><b>Unflagged</b>Read in arrival order. Unflagged cases have not been cleared by the model.</div></li></ol>' +
     '<p>Within a tier: higher calibrated P(Invasive) first, then earlier arrival. A tier 3 or 4 case that has waited 75% of its target moves up one tier (never above tier 2). Completed cases sink to the bottom.</p>' +
     '<p class="sub">Targets are illustrative, not validated: tier 2–3 within 24 h, tier 4 within 48 h (simulated clock).</p></div></details>'
   );
@@ -202,7 +202,7 @@ function toolbar(ST, views) {
     `<div class="seg" role="group" aria-label="Case status">${status('all', 'All')}${status('open', 'Open')}${status('done', 'Done')}</div>` +
     `<label class="sel"><span class="sr-only">Flag</span><select id="flag-filter" data-testid="flag-filter"><option value="all">All flags</option>${flagOpts}</select></label>` +
     `<label class="tog"><input type="checkbox" id="orders-only" data-testid="orders-only"${ST.ordersOnly ? ' checked' : ''}>Drafted orders</label>` +
-    `<div class="seg sort" role="group" aria-label="Sort order">${seg('sort', 'order', 'ai', 'AI priority', ST.order === 'ai')}${seg('sort', 'order', 'arrival', 'Arrival', ST.order === 'arrival')}</div>` +
+    `<div class="seg sort" role="group" aria-label="Sort order">${seg('sort', 'order', 'ai', 'Priority', ST.order === 'ai')}${seg('sort', 'order', 'arrival', 'Arrival', ST.order === 'arrival')}</div>` +
     howPopover() +
     '</div>'
   );
@@ -216,19 +216,6 @@ function head(ST) {
     `<th class="c-set" scope="col" title="${esc(conf.label)}: the classes the model cannot rule out">Confidence set</th><th class="c-flags" scope="col">Flags</th>` +
     '<th class="c-wait" scope="col" title="Waiting time against the tier target">Waiting</th><th class="c-next" scope="col">Next step</th></tr></thead>'
   );
-}
-
-function aiOverview(views, ST) {
-  const open = views.filter((v) => !v.done);
-  const uncertain = open.filter((v) => v.setSize !== 1).length;
-  const unreliable = open.filter((v) => v.reliability.flag).length;
-  const button = (flag, value, title, note) =>
-    `<button class="ai-signal" data-flag-quick="${flag}" aria-pressed="${ST.flagFilter === flag}" data-testid="ai-signal-${flag}"><span class="signal-value">${value}<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></svg></span><b>${title}</b><span>${note}</span></button>`;
-  return `<div class="review-intro"><div><p class="eyebrow">THE PATHOLOGY WORKSPACE</p><h2>Your review, in focus.</h2><p>Follow the evidence. See the uncertainty. Make the next call.</p></div><a class="evaluation-link" href="#/metrics">Explore model evaluation <span aria-hidden="true">↗</span></a></div>` +
-    `<section class="ai-overview" aria-label="AI transparency" data-testid="ai-overview"><div class="ai-overview-copy"><span class="section-kicker"><i class="ai-orbit" aria-hidden="true"></i> AI, with the evidence attached</span><h3>Understand what moves a case forward.</h3><p>Frozen → invasive in the confidence set → uncertain → unflagged. Waiting can raise priority. Open a case to inspect the explanation and supporting regions.</p><span class="ai-source">Cached model evidence · every decision stays with you</span></div>` +
-    button('any', open.filter((v) => matchesFlag(v, 'any')).length, 'Cases with flags', 'See the reasons for a closer look') +
-    button('uncertain', uncertain, 'Uncertain predictions', 'Multiple or no plausible categories') +
-    button('low_reliability', unreliable, 'Reliability flags', 'Review quality and model agreement') + '</section>';
 }
 
 export function filterViews(ST, allViews) {
@@ -265,7 +252,7 @@ export function render(ST, ctx) {
   // "Open next case" follows what is on screen: the first open row of the current filters and order.
   const firstOpen = views.find((v) => !v.done);
   const next = firstOpen ? ST.items.find((c) => c.case_id === firstOpen.id) : nextCase(ST.items, null);
-  let h = `<section class="wl" data-testid="worklist-view">` + aiOverview(allViews, ST) + compositionBlock(comp, ST, next);
+  let h = `<section class="wl" data-testid="worklist-view">` + compositionBlock(comp, ST, next);
   h += heldHint(ST.sim);
   h += toolbar(ST, allViews);
   if (!views.length) {

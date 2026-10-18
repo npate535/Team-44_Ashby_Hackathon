@@ -119,22 +119,10 @@ function skeleton(s) {
   return (
     '<div class="ai-loading" role="status" aria-live="polite">' +
     '<div class="ai-pulse" aria-hidden="true"><i></i><i></i><i></i></div>' +
-    `<div><b>Reading the evidence…</b><span class="sub">The model is weighing probabilities, the conformal set, reliability and the tissue features. This usually takes 1–2 minutes${secs ? ` · <span data-ai-elapsed="${s.startedAt}">${secs}</span> s` : ''}.</span></div>` +
+    `<div><b>Generating summary…</b><span class="sub">A language model is summarizing the probabilities, conformal set, reliability and tissue features. This usually takes 1–2 minutes${secs ? ` · <span data-ai-elapsed="${s.startedAt}">${secs}</span> s` : ''}.</span></div>` +
     '</div>' +
     '<div class="ai-skel" aria-hidden="true"><i style="width:38%"></i><i></i><i style="width:92%"></i><i style="width:30%"></i><i></i><i style="width:84%"></i><i style="width:66%"></i></div>'
   );
-}
-
-/** Always visible on the evidence screen; cached explanations are fetched without generating new text. */
-export function evidenceBrief(ST, v) {
-  const s = ST.interp[v.id] || { status: 'loading' };
-  const d = s.data || {};
-  const first = String(d.markdown || '').split('\n').find((line) => line.trim() && !/^\s*(#|\||[-*+]\s)/.test(line)) || '';
-  const preview = first.replace(/\*\*|`|\[(F\d+(?:\s*,\s*F\d+)*)\]/g, '').trim();
-  const status = { loading: 'Checking saved explanation', idle: 'Checking saved explanation', generating: 'Writing explanation', error: 'Explanation unavailable', none: 'Explanation not generated', ok: d.markdown ? `Saved explanation ready${!d.claims ? ' · claims not checked' : ''}` : 'Explanation not generated' }[s.status] || 'Explanation not generated';
-  const c = ST.cases[v.id];
-  const issues = (d.claims?.remaining || []).length + (d.verification?.unsupported || []).length;
-  return `<section class="evidence-brief" aria-label="AI evidence overview" data-testid="evidence-brief"><div class="brief-main"><span class="section-kicker"><i class="ai-orbit" aria-hidden="true"></i> AI EVIDENCE OVERVIEW</span><h3>See the reasoning. Keep the judgment.</h3><p>${esc(preview ? preview.slice(0, 260) + (preview.length > 260 ? '…' : '') : 'Explore the model suggestion, its uncertainty, and the tissue regions behind each finding. A plain-language explanation connects the evidence.')}</p><span class="brief-status" role="status">${esc(status)}${issues ? ` · ${issues} automatic check issue${issues === 1 ? '' : 's'} to review` : ''}${s.status === 'error' && s.error ? ` · ${esc(s.error)}` : ''}</span></div><div class="brief-actions"><button class="btn p" data-tab="interp" data-testid="open-explanation">${d.markdown ? 'Read AI explanation' : 'Open AI explanation'} <span aria-hidden="true">↗</span></button><button class="btn" data-tab="cells">Explore cell evidence <span aria-hidden="true">↗</span></button><span class="brief-model">Prediction: ${esc(c.prediction?.model || 'model unavailable')}<br>${v.cells.status === 'ok' ? 'Cell measurements available' : 'Cell measurements unavailable'} · <a href="#/metrics">See validation</a></span></div></section>`;
 }
 
 /**
@@ -170,7 +158,7 @@ export function interpretPanel(ST, key, scope = 'case') {
     body =
       '<div class="ai-empty">' +
       `<p>A language model restates the measured evidence for ${what} in plain language: how confident the call is, which tissue features the app measured, which of those explanation types have passed a validation test, where the evidence disagrees, and what to check on the slide.</p>` +
-      '<ul class="ai-points"><li><b>Confidence</b> calibrated probability, conformal set, reliability</li><li><b>Evidence</b> concepts and measured cells, by region</li><li><b>Validated?</b> deletion test, spot check, calibration</li></ul>' +
+      '<ul class="ai-points"><li><b>Confidence</b> calibrated probability, conformal set, reliability</li><li><b>Evidence</b> concepts and measured cells, by region</li><li><b>Validation</b> deletion test, spot check, calibration</li></ul>' +
       `${btn('generate', 'Generate interpretation', true)}<p class="sub">Uses only ${scope === 'results' ? 'docs/RESULTS.md' : "this case's evidence JSON (no ground truth)"}; the text is cached for the demo.</p></div>`;
   }
   const regen = s.status === 'ok' && d.markdown ? btn('regenerate', 'Regenerate', false) : '';

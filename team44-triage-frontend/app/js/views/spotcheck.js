@@ -78,7 +78,7 @@ export function render(ST, ctx) {
   const total = spot.items.length;
 
   let h = '<div class="sc" data-testid="spotcheck">';
-  h += `<section class="sc-intro"><div class="sc-intro-text"><h2>Do the highlighted regions show what they are named after?</h2>
+  h += `<section class="sc-intro"><div class="sc-intro-text"><h2>Concept region review</h2>
     <p>Each image is a region the model scored highest for one named feature (or a cell-segmentation overlay). Mark whether you see that feature. This is a qualitative check of the explanations, not a validation, and no diagnosis is shown here.</p>
     <p class="sc-fine">Your marks stay in this browser tab until you record them. Each record states who reviewed and whether the reviewer was a human or an AI; AI-reviewed checks are reported as such.</p></div>
     <div class="sc-total"><span class="sc-total-n">${done}<small> of ${total}</small></span><span class="sc-total-l">regions marked</span>${progressBar(done, total)}</div></section>`;

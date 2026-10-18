@@ -273,7 +273,7 @@ export function howSure(v, cfg, metrics, { compact = false } = {}) {
       ag.conch_musk_same_top === true ? 'ok' : ag.conch_musk_same_top === false ? 'warn' : 'na',
       'Second model (MUSK)',
       ag.conch_musk_same_top === true ? 'same top category' : ag.conch_musk_same_top === false ? 'different top category' : 'not available',
-      'Good: the independent MUSK probe picks the same top category.'
+      'The independent MUSK probe picks the same top category.'
     ) +
     check(
       nbFrac === null ? 'na' : nbFrac >= 0.8 ? 'ok' : 'warn',
