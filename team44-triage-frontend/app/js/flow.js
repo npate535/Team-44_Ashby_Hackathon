@@ -175,3 +175,12 @@ export function conformalInfo(metrics, cfg) {
     n: rep && Number.isInteger(rep.n) ? rep.n : null
   };
 }
+
+/** A model probability as text: never "100%" or "0%" (shown as ">99%" / "<1%"). */
+export function pctText(p) {
+  if (p === null || p === undefined || !Number.isFinite(Number(p))) return '—';
+  const x = Number(p);
+  if (x >= 0.995) return '>99%';
+  if (x < 0.005) return '<1%';
+  return Math.round(x * 100) + '%';
+}

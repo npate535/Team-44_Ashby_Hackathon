@@ -6,6 +6,7 @@ import { esc, num, toView } from '../adapter.js';
 import {
   composition,
   conformalInfo,
+  pctText,
   miniBar,
   nextAction,
   nextCase,
@@ -121,14 +122,15 @@ export function heldHint(sim) {
 // ---- pieces --------------------------------------------------------------------------------------------------------
 function row(v, ST, rank) {
   const isNew = !ST.seen.has(v.id) && !ST.firstLoad;
-  const pInv = v.risk === null ? '—' : v.risk + '%';
+  const pRaw = (v.probs.find((x) => x.cls === 'Invasive') || {}).p;
+  const pInv = pctText(pRaw ?? (v.risk === null ? null : v.risk / 100));
   const sugg =
     v.lane === 'surgical'
       ? `<span class="sugg surg">${esc(suggestedCall(v.margin ? { suggested_call: v.margin.call, involved: v.margin.involved } : null))}</span>`
       : `<span class="sugg${v.top === 'Invasive' ? ' inv' : ''}">${esc(suggestedLabel(v.top))}</span>`;
   const lane =
     v.lane === 'surgical'
-      ? `<span class="lane surg">Frozen${v.room ? ' · ' + esc(v.room) : ''}</span>${v.variant ? `<span class="variant">${esc(v.variant === 'degraded' ? 'degraded' : 'composite')}</span>` : ''}`
+      ? `<span class="lane surg">Frozen${v.room ? ' ' + esc(v.room) : ''}</span>${v.variant ? `<span class="variant">${esc(v.variant === 'degraded' ? 'degraded' : 'composite')}</span>` : ''}`
       : '<span class="lane bx">Biopsy</span>';
   const next = nextAction(v);
   const label = `${v.id}, tier ${v.tier} ${TIER_NAME[v.tier] || ''}, ${v.lane === 'surgical' ? 'frozen section' : 'biopsy'}`;

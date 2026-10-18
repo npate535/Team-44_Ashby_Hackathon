@@ -3,7 +3,7 @@
 // sentences and the disclaimer. Unread/read state is a per-viewer convenience (browser storage, never required).
 // Research prototype — not for clinical use. Ground truth is never fetched or rendered.
 import { esc, isLLM } from '../adapter.js';
-import { conformalInfo, routedKey, shortClass, suggestedLabel } from '../flow.js';
+import { conformalInfo, pctText, routedKey, shortClass, suggestedLabel } from '../flow.js';
 
 const ORDER_TYPE = { stain: 'Stains', recut: 'Recut', deeper_levels: 'Deeper levels', new_sample: 'New sample' };
 const AGENT_NOTE = {
@@ -74,7 +74,11 @@ function card(r, ST, conf) {
     : '<span class="chip empty">None</span>';
   const sentences = ((r.summary && r.summary.sentences) || []).map((x) => `<li>${esc(x.text)}</li>`).join('');
   const gen = r.summary && r.summary.generator;
-  const genText = isLLM(gen) ? `Written by ${esc(gen.slice(6))} from structured findings only` : 'Template summary from structured findings';
+  // generator: "template" | "lumen:<model>" | "lumen:<model>+template" (some sentences from the template fallback)
+  const model = isLLM(gen) ? String(gen).slice(6).split('+')[0] : null;
+  const genText = model
+    ? `Written by ${esc(model)} from structured findings only${String(gen).includes('+template') ? ', with template sentences' : ''}`
+    : 'Template summary from structured findings';
   const q = rep.quality || {};
   const quality = q.reliability_flag
     ? '<span class="qflag">Reliability flag raised on this read</span>'
@@ -90,7 +94,7 @@ function card(r, ST, conf) {
     '</header>' +
     '<div class="rep-grid">' +
     `<section class="rep-cell"><h3>Suggested category</h3><p class="rep-cat${top === 'Invasive' ? ' inv' : ''}" data-testid="inbox-category">${esc(suggestedLabel(top))}</p>` +
-    `<p class="rep-sub">P(Invasive) <b>${pInv === null ? '—' : Math.round(pInv * 100) + '%'}</b>, calibrated</p></section>` +
+    `<p class="rep-sub">P(Invasive) <b>${pctText(pInv)}</b>, calibrated</p></section>` +
     `<section class="rep-cell"><h3>${esc(conf.label)}</h3><p class="chips">${chips}</p>` +
     `<p class="rep-sub">${set.length > 1 ? 'More than one category cannot be ruled out.' : set.length === 1 ? 'One category in the set.' : 'No category reached the threshold.'}${conf.coverage !== null ? ` Held-out coverage ${Math.round(conf.coverage * 100)}%${conf.n ? ` (n = ${conf.n})` : ''}.` : ''}</p></section>` +
     `<section class="rep-cell"><h3>Key associated features</h3>${features(rep)}</section>` +

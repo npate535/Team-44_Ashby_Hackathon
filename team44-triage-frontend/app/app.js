@@ -152,7 +152,11 @@ async function refresh(force, seq) {
     missing = false,
     evaluation = null,
     spot = null;
-  if (route === 'case' && caseId) {
+  // After a 404 the case is not asked for again until the route or the replay (arrivals, reset) changes.
+  const arrivals = wl.sim ? `${wl.sim.arrived}|${wl.sim.sim_time_s > 0}` : '';
+  const skipMissing = route === 'case' && ST.notFound === caseId && ST.notFoundAt === arrivals;
+  if (route === 'case' && caseId && skipMissing) missing = true;
+  else if (route === 'case' && caseId) {
     try {
       [detail, events] = await Promise.all([api.getCase(caseId), api.events(caseId)]);
       if (!ST.metrics) evaluation = await api.metrics();
@@ -174,6 +178,7 @@ async function refresh(force, seq) {
   ST.synthetic = wl.synthetic || health.synthetic || ST.items.some((c) => c.synthetic);
   if (route === 'case') {
     ST.notFound = missing ? caseId : null;
+    ST.notFoundAt = missing ? arrivals : null;
     if (detail) {
       ST.cases[caseId] = detail;
       ST.events[caseId] = events;
