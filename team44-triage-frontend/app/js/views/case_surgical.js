@@ -2,12 +2,12 @@
 // on a specimen diagram and on the image (per-segment strips), per-margin scores against the threshold on a log-odds
 // axis, a reliability indicator that explains a "defer" suggestion, and the three calls with confirmation.
 // The pathologist makes the call; it goes to the surgeon screen and stops the timer. Everything here is simulated.
-import { CALL_TEXT, classLabel, esc, MARGINS, num, pct, toView } from '../adapter.js';
+import { CALL_TEXT, classLabel, esc, MARGINS, num, toView } from '../adapter.js';
 import { agentPanel } from './agent.js';
 import { activity, header } from './case_biopsy.js';
 import { pending, setRenderer } from './case_ui.js';
 import { cap, fmtLogit, marginBars, marginOverlay, marginStatus, specimenDiagram } from './heatmap.js';
-import { checksOnly, howSure, summary } from './why.js';
+import { aggProb, checksOnly, fmtPct, howSure, summary } from './why.js';
 
 export function callText(call) {
   if (!call) return '';
@@ -147,7 +147,7 @@ export function render(ST, ctx) {
     reliabilityBlock(v, cfg, ST.metrics) +
     callPanel(v, ST) +
     '<p class="note">You make the call. It goes to the surgeon screen and stops the timer.</p></div>';
-  h += `<div class="card" data-testid="how-sure"><div class="card-h"><h2>Case-level read</h2><span class="sub">${esc(classLabel(v.top, cfg) || '')}${v.risk === null ? '' : ` · ${pct(v.risk / 100)} P(invasive)`}</span></div>${howSure(v, ST.cfg, ST.metrics, { compact: true })}<details class="cv-more"><summary>Agreement and quality checks</summary>${checksOnly(v, ST.cfg, ST.metrics)}</details></div>`;
+  h += `<div class="card" data-testid="how-sure"><div class="card-h"><h2>Case-level read</h2><span class="sub">${esc(classLabel(v.top, cfg) || '')}${v.risk === null ? '' : ` · ${fmtPct(aggProb(v, cfg))} P(invasive)`}</span></div>${howSure(v, ST.cfg, ST.metrics, { compact: true })}<details class="cv-more"><summary>Agreement and quality checks</summary>${checksOnly(v, ST.cfg, ST.metrics)}</details></div>`;
   h += agentPanel(v, ST);
   return h + '</div></div></section>';
 }

@@ -114,7 +114,7 @@ export function cellsTab(v, ST, assetUrl) {
         .join('');
       return (
         `<figure class="cv-cell-fig${ST.cellsTile === ct.idx ? ' flash' : ''}" data-testid="cells-tile" data-tile="${num(ct.idx)}">${img}` +
-        `<figcaption><b>Region ${num(ct.idx)}</b><span class="sub">${total(ct).toLocaleString()} nuclei${t && isNum(t.risk) ? ` · tile P(Invasive) ${Number(t.risk).toFixed(2)}` : ''}</span></figcaption>` +
+        `<figcaption><b>Region ${num(ct.idx)}</b><span class="sub">${total(ct).toLocaleString()} nuclei${t && isNum(t.risk) ? ` · tile P(Invasive) ${Number(t.risk) >= 0.995 ? '>0.99' : Number(t.risk) < 0.005 ? '<0.01' : Number(t.risk).toFixed(2)}` : ''}</span></figcaption>` +
         `${bar(ct)}<ul class="cell-counts">${counts}</ul></figure>`
       );
     })

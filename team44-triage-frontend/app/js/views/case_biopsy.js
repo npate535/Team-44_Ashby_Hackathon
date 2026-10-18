@@ -6,7 +6,7 @@ import { agentPanel } from './agent.js';
 import { setRenderer } from './case_ui.js';
 import { cellsTab } from './cells.js';
 import { heatmap, heatmapControls, heatmapLegend } from './heatmap.js';
-import { compared, howSure, summary, why } from './why.js';
+import { aggProb, compared, fmtPct, howSure, summary, why } from './why.js';
 import { reasonBadges } from './worklist.js';
 
 const ACTION_TEXT = {
@@ -46,7 +46,7 @@ function glance(v, cfg) {
   return (
     '<dl class="cv-glance" aria-label="Read at a glance">' +
     `<div><dt>Suggested</dt><dd><b>${esc(classLabel(v.top, cfg) || '—')}</b></dd></div>` +
-    `<div><dt>P(${esc(classLabel((cfg && cfg.aggressive_class) || 'Invasive', cfg))})</dt><dd><b>${v.risk === null ? '—' : v.risk + '%'}</b> calibrated</dd></div>` +
+    `<div><dt>P(${esc(classLabel((cfg && cfg.aggressive_class) || 'Invasive', cfg))})</dt><dd><b title="${esc(v.risk === null ? '' : Number(aggProb(v, cfg)).toFixed(4))}">${v.risk === null ? '—' : fmtPct(aggProb(v, cfg))}</b> calibrated</dd></div>` +
     `<div><dt>Conformal set</dt><dd class="chips">${chips}</dd></div>` +
     `<div><dt>Reliability</dt><dd>${r.score === null ? '—' : `<b>${r.score.toFixed(2)}</b>`}${r.flag ? ' <span class="pill warn">flag</span>' : ' no flag'}</dd></div>` +
     '</dl>'

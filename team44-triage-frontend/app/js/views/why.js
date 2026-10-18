@@ -3,6 +3,13 @@
 // Wording rule (plan §6.4): "features associated with", never causes, never a Nottingham grade; the model suggests.
 import { classLabel, coverageStatus, esc, FINDING_ID, humanize, num, pct, signed, thumbUrl } from '../adapter.js';
 
+/** A model probability as a percentage that never reads 100% or 0% (exact value goes in tooltips). */
+export const fmtPct = (p) => (!isNum(p) ? '—' : Number(p) >= 0.995 ? '>99%' : Number(p) < 0.005 ? '<1%' : Math.round(Number(p) * 100) + '%');
+export const aggProb = (v, cfg) => {
+  const agg = (cfg && cfg.aggressive_class) || 'Invasive';
+  const row = v.probs.find((x) => x.cls === agg);
+  return row ? row.p : v.risk === null ? null : v.risk / 100;
+};
 const NEGLIGIBLE = 0.05; // |contribution| below this reads as "barely moves" (settings findings.min_abs_contribution)
 const isNum = (x) => x !== null && x !== undefined && Number.isFinite(Number(x));
 const sz = (x) => (x > 0 ? '+' : x < 0 ? '−' : '±') + Math.abs(x).toFixed(2);
@@ -220,7 +227,7 @@ function probChart(v, cfg) {
         `<div class="pc-row${inSet ? ' in' : ''}${top ? ' top' : ''}${p.cls === agg ? ' agg' : ''}" title="${esc(tip)}" data-testid="prob-${esc(p.cls)}">` +
         `<span class="pc-lbl">${esc(p.label)}${top ? '<span class="pc-tag">suggested</span>' : ''}</span>` +
         `<span class="pc-track" aria-hidden="true"><i style="width:${w.toFixed(1)}%"></i></span>` +
-        `<span class="pc-val">${pct(p.p)}</span>` +
+        `<span class="pc-val">${fmtPct(p.p)}</span>` +
         `<span class="pc-set">${inSet ? '<span class="pc-in" aria-label="in the set">in set</span>' : '<span class="pc-out" aria-hidden="true">·</span>'}</span></div>`
       );
     })
@@ -309,7 +316,7 @@ export function howSure(v, cfg, metrics, { compact = false } = {}) {
     ? v.set.map((cls) => `<span class="chip conf" data-testid="conformal-chip" title="${esc(classLabel(cls, cfg))}">${esc(cls)}</span>`).join('')
     : '<span class="chip empty" data-testid="conformal-chip-empty">∅ empty set</span>';
   const head =
-    `<div class="hs-head"><div class="hs-risk"><div class="bigp" data-testid="risk">${v.risk === null ? '—' : v.risk + '%'}</div><div class="sub">calibrated P(${esc(classLabel((cfg && cfg.aggressive_class) || 'Invasive', cfg))})</div></div>` +
+    `<div class="hs-head"><div class="hs-risk"><div class="bigp" data-testid="risk" title="${esc(isNum(aggProb(v, cfg)) ? Number(aggProb(v, cfg)).toFixed(4) : '')}">${v.risk === null ? '—' : fmtPct(aggProb(v, cfg))}</div><div class="sub">calibrated P(${esc(classLabel((cfg && cfg.aggressive_class) || 'Invasive', cfg))})</div></div>` +
     `<div class="hs-sugg"><span class="sub">Suggested category</span><b>${esc(classLabel(v.top, cfg) || '—')}</b><span class="sub"><code>${esc(v.model || 'model unavailable')}</code>, temperature-calibrated</span></div></div>`;
   return (
     head +
@@ -391,8 +398,11 @@ function findingTitle(f) {
 export function summary(v) {
   const s = v.summary;
   if (!s || !s.sentences.length) return '<div class="note">No summary.</div>';
+  const gen = s.isLLM ? s.generator.slice(6) : '';
+  const model = gen.split('+')[0];
+  const plusTemplate = /\+template\b/.test(gen);
   const badge = s.isLLM
-    ? `<span class="badge llm" data-testid="summary-generator">LLM-written from findings · ${esc(s.generator.slice(6))}</span>`
+    ? `<span class="badge llm" data-testid="summary-generator" title="Written by ${esc(model)} from the structured findings only; every sentence cites findings and was checked against them.">LLM-written from findings · ${esc(model)}${plusTemplate ? ' · + required template sentence' : ''}</span>`
     : '<span class="badge" data-testid="summary-generator">Template, from findings</span>';
   const ps = s.sentences
     .map(
