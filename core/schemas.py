@@ -83,6 +83,7 @@ EVAL_FILES: dict[str, str] = {
     "thunder": "Task 11 · comparison with published THUNDER probes (same split, different protocol)",
     "deletion": "Task 11 · deletion-test faithfulness",
     "queue_sim": "Task 11 · FIFO vs tiers vs tiers+aging queue simulation",
+    "deferral": "Round 3 · deferral (risk-coverage) curve: accuracy on kept test reads as the least reliable are deferred",
     "margin": "Task 11 · margin eval: benign FPR, composite exact-negative clear rate, echo stats, WSI windows",
     "cells": "Task 8 · cell-feature validation (CELLS_SPEC §8)",
     "spotcheck": "Task 6 · spot-check results recorded in the UI",

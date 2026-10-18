@@ -69,6 +69,7 @@ eval:
 	$(call run_step,eval,conformal_resplit)
 	$(call run_step,eval,deletion_test)
 	$(call run_step,eval,queue_sim)
+	$(call run_step,eval,deferral)
 	$(call run_step,eval,margin_eval)
 	$(call run_step,eval,cells_eval)
 	$(call run_step,eval,benchmark_thunder)

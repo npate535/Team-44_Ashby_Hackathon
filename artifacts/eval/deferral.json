@@ -1,0 +1,869 @@
+{
+  "name": "deferral",
+  "created_utc": "2026-10-18T19:34:34Z",
+  "config_hash": "54f522670b9e3597a011a17410ba7d9d0cbfe705b7bfd2a92c565473ad712ebd",
+  "git_sha": "00b68d1c612cfad9facda44f4d4fb3d614524736",
+  "synthetic": false,
+  "git_dirty": false,
+  "pre_registration": "docs/VALIDATION_ROUND3.md section 2",
+  "production_model": "uni2h512_lr",
+  "fractions": [
+    0.0,
+    0.05,
+    0.1,
+    0.15,
+    0.2,
+    0.25,
+    0.3,
+    0.35,
+    0.4,
+    0.45,
+    0.5
+  ],
+  "protocol": {
+    "populations": {
+      "clean_test": "the clean held-out test images",
+      "all_test_reads": "clean test reads plus the simulated degraded variants (blur, JPEG, stain shift, resampling); composites excluded"
+    },
+    "scoring": "each read's predicted class is `top` in predictions.csv, from the model that produced it; the models and their read counts are listed per population in populations.<name>.scoring and models_by_read_type; truth is the source case's label",
+    "rankings": {
+      "reliability": "lowest reliability score (reliability.csv) deferred first",
+      "top_prob": "lowest calibrated top-class probability deferred first",
+      "set_size": "largest conformal tier set (set_tier_size) deferred first, ties by lowest top-class probability",
+      "random": "mean over 1000 random orders, seed 20261018",
+      "ties": "read ID"
+    },
+    "deferred_count": "floor(fraction x n_reads)",
+    "statistics": {
+      "accuracy": "four-class accuracy on kept reads",
+      "errors_deferred_share": "share of all errors in the population that were deferred (null when there are no errors)",
+      "invasive_missed_kept": "kept reads truly Invasive and called non-invasive",
+      "insitu_overcalled_kept": "kept reads truly InSitu and called Invasive"
+    },
+    "interval": "95% patient-grouped percentile bootstrap (settings.bootstrap; groups = cases.csv group); the 20% deferral rule is re-applied within each resample"
+  },
+  "populations": {
+    "clean_test": {
+      "n_reads": 132,
+      "n_groups": 24,
+      "n_errors": 18,
+      "models": {
+        "uni2h512_lr": 132
+      },
+      "models_by_read_type": {
+        "clean": {
+          "uni2h512_lr": 132
+        }
+      },
+      "scoring": "Clean reads: 132 by uni2h512_lr.",
+      "variants": {
+        "clean": 132
+      },
+      "rankings": {
+        "reliability": [
+          {
+            "fraction": 0.0,
+            "kept": 132,
+            "accuracy": 0.8636363636363636,
+            "errors_deferred_share": 0.0,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 3
+          },
+          {
+            "fraction": 0.05,
+            "kept": 126,
+            "accuracy": 0.8650793650793651,
+            "errors_deferred_share": 0.05555555555555555,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 3
+          },
+          {
+            "fraction": 0.1,
+            "kept": 119,
+            "accuracy": 0.865546218487395,
+            "errors_deferred_share": 0.1111111111111111,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 3
+          },
+          {
+            "fraction": 0.15,
+            "kept": 113,
+            "accuracy": 0.8672566371681416,
+            "errors_deferred_share": 0.16666666666666666,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 3
+          },
+          {
+            "fraction": 0.2,
+            "kept": 106,
+            "accuracy": 0.8584905660377359,
+            "errors_deferred_share": 0.16666666666666666,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 3
+          },
+          {
+            "fraction": 0.25,
+            "kept": 99,
+            "accuracy": 0.8787878787878788,
+            "errors_deferred_share": 0.3333333333333333,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 2
+          },
+          {
+            "fraction": 0.3,
+            "kept": 93,
+            "accuracy": 0.8817204301075269,
+            "errors_deferred_share": 0.3888888888888889,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 1
+          },
+          {
+            "fraction": 0.35,
+            "kept": 86,
+            "accuracy": 0.8837209302325582,
+            "errors_deferred_share": 0.4444444444444444,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 1
+          },
+          {
+            "fraction": 0.4,
+            "kept": 80,
+            "accuracy": 0.8875,
+            "errors_deferred_share": 0.5,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 1
+          },
+          {
+            "fraction": 0.45,
+            "kept": 73,
+            "accuracy": 0.8767123287671232,
+            "errors_deferred_share": 0.5,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 1
+          },
+          {
+            "fraction": 0.5,
+            "kept": 66,
+            "accuracy": 0.8787878787878788,
+            "errors_deferred_share": 0.5555555555555556,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 0
+          }
+        ],
+        "top_prob": [
+          {
+            "fraction": 0.0,
+            "kept": 132,
+            "accuracy": 0.8636363636363636,
+            "errors_deferred_share": 0.0,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 3
+          },
+          {
+            "fraction": 0.05,
+            "kept": 126,
+            "accuracy": 0.8809523809523809,
+            "errors_deferred_share": 0.16666666666666666,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 3
+          },
+          {
+            "fraction": 0.1,
+            "kept": 119,
+            "accuracy": 0.8823529411764706,
+            "errors_deferred_share": 0.2222222222222222,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 3
+          },
+          {
+            "fraction": 0.15,
+            "kept": 113,
+            "accuracy": 0.8938053097345132,
+            "errors_deferred_share": 0.3333333333333333,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 3
+          },
+          {
+            "fraction": 0.2,
+            "kept": 106,
+            "accuracy": 0.9150943396226415,
+            "errors_deferred_share": 0.5,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 1
+          },
+          {
+            "fraction": 0.25,
+            "kept": 99,
+            "accuracy": 0.9090909090909091,
+            "errors_deferred_share": 0.5,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 1
+          },
+          {
+            "fraction": 0.3,
+            "kept": 93,
+            "accuracy": 0.9247311827956989,
+            "errors_deferred_share": 0.6111111111111112,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 0
+          },
+          {
+            "fraction": 0.35,
+            "kept": 86,
+            "accuracy": 0.9418604651162791,
+            "errors_deferred_share": 0.7222222222222222,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 0
+          },
+          {
+            "fraction": 0.4,
+            "kept": 80,
+            "accuracy": 0.9375,
+            "errors_deferred_share": 0.7222222222222222,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 0
+          },
+          {
+            "fraction": 0.45,
+            "kept": 73,
+            "accuracy": 0.9315068493150684,
+            "errors_deferred_share": 0.7222222222222222,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 0
+          },
+          {
+            "fraction": 0.5,
+            "kept": 66,
+            "accuracy": 0.9242424242424242,
+            "errors_deferred_share": 0.7222222222222222,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 0
+          }
+        ],
+        "set_size": [
+          {
+            "fraction": 0.0,
+            "kept": 132,
+            "accuracy": 0.8636363636363636,
+            "errors_deferred_share": 0.0,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 3
+          },
+          {
+            "fraction": 0.05,
+            "kept": 126,
+            "accuracy": 0.8809523809523809,
+            "errors_deferred_share": 0.16666666666666666,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 3
+          },
+          {
+            "fraction": 0.1,
+            "kept": 119,
+            "accuracy": 0.8907563025210085,
+            "errors_deferred_share": 0.2777777777777778,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 3
+          },
+          {
+            "fraction": 0.15,
+            "kept": 113,
+            "accuracy": 0.8938053097345132,
+            "errors_deferred_share": 0.3333333333333333,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 3
+          },
+          {
+            "fraction": 0.2,
+            "kept": 106,
+            "accuracy": 0.9056603773584906,
+            "errors_deferred_share": 0.4444444444444444,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 2
+          },
+          {
+            "fraction": 0.25,
+            "kept": 99,
+            "accuracy": 0.898989898989899,
+            "errors_deferred_share": 0.4444444444444444,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 2
+          },
+          {
+            "fraction": 0.3,
+            "kept": 93,
+            "accuracy": 0.9032258064516129,
+            "errors_deferred_share": 0.5,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 1
+          },
+          {
+            "fraction": 0.35,
+            "kept": 86,
+            "accuracy": 0.9302325581395349,
+            "errors_deferred_share": 0.6666666666666666,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 0
+          },
+          {
+            "fraction": 0.4,
+            "kept": 80,
+            "accuracy": 0.9375,
+            "errors_deferred_share": 0.7222222222222222,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 0
+          },
+          {
+            "fraction": 0.45,
+            "kept": 73,
+            "accuracy": 0.9315068493150684,
+            "errors_deferred_share": 0.7222222222222222,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 0
+          },
+          {
+            "fraction": 0.5,
+            "kept": 66,
+            "accuracy": 0.9242424242424242,
+            "errors_deferred_share": 0.7222222222222222,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 0
+          }
+        ],
+        "random": [
+          {
+            "fraction": 0.0,
+            "kept": 132,
+            "accuracy": 0.8636363636363634,
+            "errors_deferred_share": 0.0,
+            "invasive_missed_kept": 0.0,
+            "insitu_overcalled_kept": 3.0
+          },
+          {
+            "fraction": 0.05,
+            "kept": 126,
+            "accuracy": 0.8637380952380954,
+            "errors_deferred_share": 0.04616666666666667,
+            "invasive_missed_kept": 0.0,
+            "insitu_overcalled_kept": 2.876
+          },
+          {
+            "fraction": 0.1,
+            "kept": 119,
+            "accuracy": 0.863495798319328,
+            "errors_deferred_share": 0.09755555555555558,
+            "invasive_missed_kept": 0.0,
+            "insitu_overcalled_kept": 2.727
+          },
+          {
+            "fraction": 0.15,
+            "kept": 113,
+            "accuracy": 0.8632654867256637,
+            "errors_deferred_share": 0.1416111111111111,
+            "invasive_missed_kept": 0.0,
+            "insitu_overcalled_kept": 2.597
+          },
+          {
+            "fraction": 0.2,
+            "kept": 106,
+            "accuracy": 0.8630283018867924,
+            "errors_deferred_share": 0.1933888888888889,
+            "invasive_missed_kept": 0.0,
+            "insitu_overcalled_kept": 2.452
+          },
+          {
+            "fraction": 0.25,
+            "kept": 99,
+            "accuracy": 0.8631111111111109,
+            "errors_deferred_share": 0.24711111111111111,
+            "invasive_missed_kept": 0.0,
+            "insitu_overcalled_kept": 2.291
+          },
+          {
+            "fraction": 0.3,
+            "kept": 93,
+            "accuracy": 0.8636236559139784,
+            "errors_deferred_share": 0.2953888888888889,
+            "invasive_missed_kept": 0.0,
+            "insitu_overcalled_kept": 2.143
+          },
+          {
+            "fraction": 0.35,
+            "kept": 86,
+            "accuracy": 0.8631046511627907,
+            "errors_deferred_share": 0.34594444444444444,
+            "invasive_missed_kept": 0.0,
+            "insitu_overcalled_kept": 1.988
+          },
+          {
+            "fraction": 0.4,
+            "kept": 80,
+            "accuracy": 0.8629125000000001,
+            "errors_deferred_share": 0.39072222222222225,
+            "invasive_missed_kept": 0.0,
+            "insitu_overcalled_kept": 1.852
+          },
+          {
+            "fraction": 0.45,
+            "kept": 73,
+            "accuracy": 0.8631917808219177,
+            "errors_deferred_share": 0.4451666666666667,
+            "invasive_missed_kept": 0.0,
+            "insitu_overcalled_kept": 1.665
+          },
+          {
+            "fraction": 0.5,
+            "kept": 66,
+            "accuracy": 0.864,
+            "errors_deferred_share": 0.5013333333333334,
+            "invasive_missed_kept": 0.0,
+            "insitu_overcalled_kept": 1.502
+          }
+        ]
+      }
+    },
+    "all_test_reads": {
+      "n_reads": 1716,
+      "n_groups": 24,
+      "n_errors": 488,
+      "models": {
+        "cb_text": 1452,
+        "uni2h512_lr": 132,
+        "uni2h_lr": 132
+      },
+      "models_by_read_type": {
+        "clean": {
+          "uni2h512_lr": 132
+        },
+        "simulated_degraded": {
+          "cb_text": 1452,
+          "uni2h_lr": 132
+        }
+      },
+      "scoring": "Clean reads: 132 by uni2h512_lr. Simulated degraded reads: 1,452 by cb_text (concept-bottleneck model), 132 by uni2h_lr.",
+      "variants": {
+        "blur1": 132,
+        "blur2": 132,
+        "blur3": 132,
+        "clean": 132,
+        "jpeg1": 132,
+        "jpeg2": 132,
+        "jpeg3": 132,
+        "resample1": 132,
+        "resample2": 132,
+        "resample3": 132,
+        "stain1": 132,
+        "stain2": 132,
+        "stain3": 132
+      },
+      "rankings": {
+        "reliability": [
+          {
+            "fraction": 0.0,
+            "kept": 1716,
+            "accuracy": 0.7156177156177156,
+            "errors_deferred_share": 0.0,
+            "invasive_missed_kept": 10,
+            "insitu_overcalled_kept": 15
+          },
+          {
+            "fraction": 0.05,
+            "kept": 1631,
+            "accuracy": 0.7265481299816063,
+            "errors_deferred_share": 0.0860655737704918,
+            "invasive_missed_kept": 9,
+            "insitu_overcalled_kept": 15
+          },
+          {
+            "fraction": 0.1,
+            "kept": 1545,
+            "accuracy": 0.7404530744336569,
+            "errors_deferred_share": 0.17827868852459017,
+            "invasive_missed_kept": 9,
+            "insitu_overcalled_kept": 12
+          },
+          {
+            "fraction": 0.15,
+            "kept": 1459,
+            "accuracy": 0.7361206305688828,
+            "errors_deferred_share": 0.21106557377049182,
+            "invasive_missed_kept": 9,
+            "insitu_overcalled_kept": 8
+          },
+          {
+            "fraction": 0.2,
+            "kept": 1373,
+            "accuracy": 0.7458120903131829,
+            "errors_deferred_share": 0.2848360655737705,
+            "invasive_missed_kept": 8,
+            "insitu_overcalled_kept": 8
+          },
+          {
+            "fraction": 0.25,
+            "kept": 1287,
+            "accuracy": 0.7668997668997669,
+            "errors_deferred_share": 0.38524590163934425,
+            "invasive_missed_kept": 8,
+            "insitu_overcalled_kept": 8
+          },
+          {
+            "fraction": 0.3,
+            "kept": 1202,
+            "accuracy": 0.7745424292845258,
+            "errors_deferred_share": 0.444672131147541,
+            "invasive_missed_kept": 8,
+            "insitu_overcalled_kept": 7
+          },
+          {
+            "fraction": 0.35,
+            "kept": 1116,
+            "accuracy": 0.803763440860215,
+            "errors_deferred_share": 0.5512295081967213,
+            "invasive_missed_kept": 8,
+            "insitu_overcalled_kept": 6
+          },
+          {
+            "fraction": 0.4,
+            "kept": 1030,
+            "accuracy": 0.8242718446601942,
+            "errors_deferred_share": 0.6290983606557377,
+            "invasive_missed_kept": 8,
+            "insitu_overcalled_kept": 5
+          },
+          {
+            "fraction": 0.45,
+            "kept": 944,
+            "accuracy": 0.8453389830508474,
+            "errors_deferred_share": 0.7008196721311475,
+            "invasive_missed_kept": 5,
+            "insitu_overcalled_kept": 5
+          },
+          {
+            "fraction": 0.5,
+            "kept": 858,
+            "accuracy": 0.8776223776223776,
+            "errors_deferred_share": 0.7848360655737705,
+            "invasive_missed_kept": 1,
+            "insitu_overcalled_kept": 2
+          }
+        ],
+        "top_prob": [
+          {
+            "fraction": 0.0,
+            "kept": 1716,
+            "accuracy": 0.7156177156177156,
+            "errors_deferred_share": 0.0,
+            "invasive_missed_kept": 10,
+            "insitu_overcalled_kept": 15
+          },
+          {
+            "fraction": 0.05,
+            "kept": 1631,
+            "accuracy": 0.7314530962599632,
+            "errors_deferred_share": 0.10245901639344263,
+            "invasive_missed_kept": 9,
+            "insitu_overcalled_kept": 14
+          },
+          {
+            "fraction": 0.1,
+            "kept": 1545,
+            "accuracy": 0.7475728155339806,
+            "errors_deferred_share": 0.20081967213114754,
+            "invasive_missed_kept": 9,
+            "insitu_overcalled_kept": 14
+          },
+          {
+            "fraction": 0.15,
+            "kept": 1459,
+            "accuracy": 0.7614804660726525,
+            "errors_deferred_share": 0.28688524590163933,
+            "invasive_missed_kept": 5,
+            "insitu_overcalled_kept": 12
+          },
+          {
+            "fraction": 0.2,
+            "kept": 1373,
+            "accuracy": 0.7771303714493809,
+            "errors_deferred_share": 0.3729508196721312,
+            "invasive_missed_kept": 4,
+            "insitu_overcalled_kept": 11
+          },
+          {
+            "fraction": 0.25,
+            "kept": 1287,
+            "accuracy": 0.7933177933177933,
+            "errors_deferred_share": 0.45491803278688525,
+            "invasive_missed_kept": 4,
+            "insitu_overcalled_kept": 11
+          },
+          {
+            "fraction": 0.3,
+            "kept": 1202,
+            "accuracy": 0.8078202995008319,
+            "errors_deferred_share": 0.5266393442622951,
+            "invasive_missed_kept": 2,
+            "insitu_overcalled_kept": 9
+          },
+          {
+            "fraction": 0.35,
+            "kept": 1116,
+            "accuracy": 0.8306451612903226,
+            "errors_deferred_share": 0.6127049180327869,
+            "invasive_missed_kept": 2,
+            "insitu_overcalled_kept": 7
+          },
+          {
+            "fraction": 0.4,
+            "kept": 1030,
+            "accuracy": 0.8524271844660194,
+            "errors_deferred_share": 0.6885245901639344,
+            "invasive_missed_kept": 2,
+            "insitu_overcalled_kept": 5
+          },
+          {
+            "fraction": 0.45,
+            "kept": 944,
+            "accuracy": 0.861228813559322,
+            "errors_deferred_share": 0.7315573770491803,
+            "invasive_missed_kept": 2,
+            "insitu_overcalled_kept": 4
+          },
+          {
+            "fraction": 0.5,
+            "kept": 858,
+            "accuracy": 0.8787878787878788,
+            "errors_deferred_share": 0.7868852459016393,
+            "invasive_missed_kept": 0,
+            "insitu_overcalled_kept": 3
+          }
+        ],
+        "set_size": [
+          {
+            "fraction": 0.0,
+            "kept": 1716,
+            "accuracy": 0.7156177156177156,
+            "errors_deferred_share": 0.0,
+            "invasive_missed_kept": 10,
+            "insitu_overcalled_kept": 15
+          },
+          {
+            "fraction": 0.05,
+            "kept": 1631,
+            "accuracy": 0.7345187001839363,
+            "errors_deferred_share": 0.11270491803278689,
+            "invasive_missed_kept": 9,
+            "insitu_overcalled_kept": 14
+          },
+          {
+            "fraction": 0.1,
+            "kept": 1545,
+            "accuracy": 0.7475728155339806,
+            "errors_deferred_share": 0.20081967213114754,
+            "invasive_missed_kept": 9,
+            "insitu_overcalled_kept": 13
+          },
+          {
+            "fraction": 0.15,
+            "kept": 1459,
+            "accuracy": 0.7607950651130911,
+            "errors_deferred_share": 0.2848360655737705,
+            "invasive_missed_kept": 9,
+            "insitu_overcalled_kept": 13
+          },
+          {
+            "fraction": 0.2,
+            "kept": 1373,
+            "accuracy": 0.7793153678077204,
+            "errors_deferred_share": 0.3790983606557377,
+            "invasive_missed_kept": 7,
+            "insitu_overcalled_kept": 13
+          },
+          {
+            "fraction": 0.25,
+            "kept": 1287,
+            "accuracy": 0.7948717948717948,
+            "errors_deferred_share": 0.45901639344262296,
+            "invasive_missed_kept": 4,
+            "insitu_overcalled_kept": 11
+          },
+          {
+            "fraction": 0.3,
+            "kept": 1202,
+            "accuracy": 0.8078202995008319,
+            "errors_deferred_share": 0.5266393442622951,
+            "invasive_missed_kept": 3,
+            "insitu_overcalled_kept": 9
+          },
+          {
+            "fraction": 0.35,
+            "kept": 1116,
+            "accuracy": 0.8270609318996416,
+            "errors_deferred_share": 0.6045081967213115,
+            "invasive_missed_kept": 3,
+            "insitu_overcalled_kept": 8
+          },
+          {
+            "fraction": 0.4,
+            "kept": 1030,
+            "accuracy": 0.8368932038834952,
+            "errors_deferred_share": 0.6557377049180327,
+            "invasive_missed_kept": 3,
+            "insitu_overcalled_kept": 5
+          },
+          {
+            "fraction": 0.45,
+            "kept": 944,
+            "accuracy": 0.8495762711864406,
+            "errors_deferred_share": 0.7090163934426229,
+            "invasive_missed_kept": 1,
+            "insitu_overcalled_kept": 4
+          },
+          {
+            "fraction": 0.5,
+            "kept": 858,
+            "accuracy": 0.8648018648018648,
+            "errors_deferred_share": 0.7622950819672131,
+            "invasive_missed_kept": 1,
+            "insitu_overcalled_kept": 4
+          }
+        ],
+        "random": [
+          {
+            "fraction": 0.0,
+            "kept": 1716,
+            "accuracy": 0.7156177156177156,
+            "errors_deferred_share": 0.0,
+            "invasive_missed_kept": 10.0,
+            "insitu_overcalled_kept": 15.0
+          },
+          {
+            "fraction": 0.05,
+            "kept": 1631,
+            "accuracy": 0.7156008583690987,
+            "errors_deferred_share": 0.04947745901639344,
+            "invasive_missed_kept": 9.499,
+            "insitu_overcalled_kept": 14.291
+          },
+          {
+            "fraction": 0.1,
+            "kept": 1545,
+            "accuracy": 0.7155533980582525,
+            "errors_deferred_share": 0.0994467213114754,
+            "invasive_missed_kept": 9.006,
+            "insitu_overcalled_kept": 13.598
+          },
+          {
+            "fraction": 0.15,
+            "kept": 1459,
+            "accuracy": 0.715435915010281,
+            "errors_deferred_share": 0.1492233606557377,
+            "invasive_missed_kept": 8.514,
+            "insitu_overcalled_kept": 12.86
+          },
+          {
+            "fraction": 0.2,
+            "kept": 1373,
+            "accuracy": 0.715326292789512,
+            "errors_deferred_share": 0.1990635245901639,
+            "invasive_missed_kept": 7.985,
+            "insitu_overcalled_kept": 12.135
+          },
+          {
+            "fraction": 0.25,
+            "kept": 1287,
+            "accuracy": 0.7151025641025642,
+            "errors_deferred_share": 0.24864139344262295,
+            "invasive_missed_kept": 7.526,
+            "insitu_overcalled_kept": 11.393
+          },
+          {
+            "fraction": 0.3,
+            "kept": 1202,
+            "accuracy": 0.7152512479201332,
+            "errors_deferred_share": 0.29863114754098363,
+            "invasive_missed_kept": 6.991,
+            "insitu_overcalled_kept": 10.63
+          },
+          {
+            "fraction": 0.35,
+            "kept": 1116,
+            "accuracy": 0.7152051971326165,
+            "errors_deferred_share": 0.3487069672131147,
+            "invasive_missed_kept": 6.493,
+            "insitu_overcalled_kept": 9.85
+          },
+          {
+            "fraction": 0.4,
+            "kept": 1030,
+            "accuracy": 0.7152135922330096,
+            "errors_deferred_share": 0.3989139344262295,
+            "invasive_missed_kept": 6.036,
+            "insitu_overcalled_kept": 9.111
+          },
+          {
+            "fraction": 0.45,
+            "kept": 944,
+            "accuracy": 0.7151260593220339,
+            "errors_deferred_share": 0.4489323770491803,
+            "invasive_missed_kept": 5.548,
+            "insitu_overcalled_kept": 8.346
+          },
+          {
+            "fraction": 0.5,
+            "kept": 858,
+            "accuracy": 0.7151748251748252,
+            "errors_deferred_share": 0.4992213114754098,
+            "invasive_missed_kept": 5.025,
+            "insitu_overcalled_kept": 7.577
+          }
+        ]
+      }
+    }
+  },
+  "headline": {
+    "population": "all_test_reads",
+    "fraction": 0.2,
+    "ranking": "reliability",
+    "deferred": 343,
+    "kept": 1373,
+    "accuracy_kept": {
+      "estimate": 0.7458120903131829,
+      "lo": 0.6274577584888795,
+      "hi": 0.899319578882955,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 1716,
+      "n_groups": 24
+    },
+    "accuracy_all": {
+      "estimate": 0.7156177156177156,
+      "lo": 0.5816899209243707,
+      "hi": 0.851403558685112,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 1716,
+      "n_groups": 24
+    },
+    "accuracy_random_20": 0.715326292789512,
+    "gain_vs_all": {
+      "estimate": 0.030194374695467263,
+      "lo": 0.004289884492481806,
+      "hi": 0.09183133963196514,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 1716,
+      "n_groups": 24
+    },
+    "gain_vs_all_note": "accuracy_kept minus accuracy_all on the same resamples; reported in addition to the pre-registered headline, not part of it"
+  },
+  "notes": [
+    "Degraded variants are simulated frozen-section artifacts applied to microscopy images; no real frozen sections were available.",
+    "Deferred reads are sent to closer review; this measures accuracy on the reads kept, not a clinical outcome."
+  ]
+}

@@ -21,7 +21,8 @@ from core import cli, config, io, schemas
 from eval.figures import ci_blocks
 
 STEP = "eval_results_md"
-OWN = ("qc", "metrics", "calibration", "conformal", "conformal_resplit", "thunder", "queue_sim", "margin")
+OWN = ("qc", "metrics", "calibration", "conformal", "conformal_resplit", "thunder", "queue_sim", "deferral",
+       "margin")
 FOREIGN = ("model_choice", "concepts", "concepts_bach", "zeroshot", "reliability", "retrieval", "deletion", "cells",
            "finetune", "spotcheck")
 
@@ -224,6 +225,45 @@ def section_queue(q: Mapping[str, Any]) -> list[str]:
     return out + [""] + [f"- {n}" for n in q["notes"]] + [""]
 
 
+def section_deferral(d: Mapping[str, Any]) -> list[str]:
+    pop_names = {"all_test_reads": "All test reads (clean + simulated degraded)", "clean_test": "Clean test images"}
+    rank_names = {"reliability": "Reliability score", "top_prob": "Top-class probability",
+                  "set_size": "Conformal set size", "random": "Random (mean of orders)"}
+    h = d["headline"]
+    pct = lambda v: "n/a" if v is None else _num(100 * v, 1, "%")                       # noqa: E731
+    count = lambda v: "n/a" if v is None else (str(v) if float(v).is_integer() else _num(v, 1))  # noqa: E731
+    share = lambda v: _num(100 * v, 0, "%")                                              # noqa: E731
+    gain = h.get("gain_vs_all") or {}
+    out = ["## Deferral (risk–coverage) curve", "",
+           f"Source: `eval/deferral.json` · pre-registered in {d.get('pre_registration', 'docs/VALIDATION_ROUND3.md')} "
+           f"· production model `{d.get('production_model')}`. Each read is scored by the model that produced it in "
+           "predictions.csv (counts per population below). Reads are deferred to closer review in ranking order; "
+           "accuracy is four-class accuracy on the kept reads.", "",
+           f"- **Headline.** {pop_names.get(h['population'], h['population'])}, {share(h['fraction'])} deferred by "
+           f"reliability score ({h.get('deferred')} of {d['populations'][h['population']]['n_reads']} reads): "
+           f"accuracy on kept reads {fmt(h['accuracy_kept'], pct=True)}, against "
+           f"{fmt(h['accuracy_all'], pct=True)} with no deferral and {pct(h['accuracy_random_20'])} for random "
+           f"deferral of {share(h['fraction'])}."]
+    if gain.get("estimate") is not None:
+        out.append(f"- Paired change, kept minus all (in addition to the pre-registered headline): "
+                   f"{_num(100 * gain['estimate'], 1)} points [{_num(100 * gain['lo'], 1)}, {_num(100 * gain['hi'], 1)}].")
+    out += ["", "Each cell: accuracy on kept reads · share of all errors deferred · invasive reads called non-invasive "
+            "among kept reads · in situ reads called invasive among kept reads (random: means over orders)."]
+    for key, pop in d["populations"].items():
+        ranks = list(pop["rankings"])
+        out += ["", f"### {pop_names.get(key, key)} ({pop['n_reads']} reads, {pop['n_groups']} groups)", "",
+                f"Scoring models: {pop.get('scoring') or ', '.join(f'{n:,} by {m}' for m, n in pop['models'].items())}",
+                "",
+                "| Deferred | Kept | " + " | ".join(rank_names.get(r, r) for r in ranks) + " |",
+                "|---|---|" + "---|" * len(ranks)]
+        for i, base in enumerate(pop["rankings"][ranks[0]]):
+            cells = [f"{pct(row['accuracy'])} · {pct(row['errors_deferred_share'])} · "
+                     f"{count(row['invasive_missed_kept'])} · {count(row['insitu_overcalled_kept'])}"
+                     for row in (pop["rankings"][r][i] for r in ranks)]
+            out.append(f"| {share(base['fraction'])} | {base['kept']} | " + " | ".join(cells) + " |")
+    return out + [""] + [f"- {n}" for n in d.get("notes", [])] + [""]
+
+
 def section_margin(m: Mapping[str, Any]) -> list[str]:
     ci = m.get("threshold_ci") if isinstance(m.get("threshold_ci"), Mapping) else {}
     threshold = fmt({**ci, "estimate": m["threshold"]}, digits=5)    # P near 1: 0.99982, not 1.000
@@ -322,7 +362,8 @@ def build(art: Path, cfg: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
     lines += [f"Generated {io.utc_now()} from {len(present)} eval files (git {', '.join(sha) or 'n/a'}).", ""]
     renderers = {"qc": section_qc, "metrics": section_metrics, "calibration": section_calibration, "conformal": section_conformal,
                  "conformal_resplit": section_conformal_resplit,
-                 "thunder": section_thunder, "queue_sim": section_queue, "margin": section_margin}
+                 "thunder": section_thunder, "queue_sim": section_queue, "margin": section_margin,
+                 "deferral": section_deferral}
     for name in OWN:
         if name in present:
             lines += renderers[name](present[name])

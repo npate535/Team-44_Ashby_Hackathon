@@ -2,7 +2,7 @@
 
 > Research prototype — not for clinical use. Every number below is quoted from the eval file named beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.
 
-Generated 2026-10-18T19:20:52Z from 17 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 4d8e886cc9bb14ce47c967e9cd7fff187aef6e90, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 825532a57ec4ed0637472c7e0625ab707982b912).
+Generated 2026-10-18T19:40:48Z from 18 eval files (git 00b68d1c612cfad9facda44f4d4fb3d614524736, 19b15557e966c050e4a0cc0df67c0546d00464a6, 4d8e886cc9bb14ce47c967e9cd7fff187aef6e90, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 825532a57ec4ed0637472c7e0625ab707982b912).
 
 ## Tissue quality control (fixed in this run)
 
@@ -126,6 +126,54 @@ Assumptions: arrivals: Poisson, 6 per hour for 8 h; cases drawn uniformly with r
 - A simulation with stated assumptions, not a measured workflow outcome.
 - At the configured aging targets (tier 1: 20 min, tier 2: 1440 min, tier 3: 1440 min, tier 4: 2880 min) no case waits long enough to be promoted within a 8 h day, so tiers and tiers_aging coincide: the aging guard has NO measured effect here and must not be claimed to protect unflagged cases.
 - tiers_aging_day_scale is a sensitivity run with illustrative day-scale aging targets (settings queue_sim.aging_scenarios), not the configured system: 2.8% of reads promoted; unflagged mean wait 45.2 -> 44.9 min vs plain tiers.
+
+## Deferral (risk–coverage) curve
+
+Source: `eval/deferral.json` · pre-registered in docs/VALIDATION_ROUND3.md section 2 · production model `uni2h512_lr`. Each read is scored by the model that produced it in predictions.csv (counts per population below). Reads are deferred to closer review in ranking order; accuracy is four-class accuracy on the kept reads.
+
+- **Headline.** All test reads (clean + simulated degraded), 20% deferred by reliability score (343 of 1716 reads): accuracy on kept reads 74.6% [62.7%, 89.9%] (n 1716, 24 groups), against 71.6% [58.2%, 85.1%] (n 1716, 24 groups) with no deferral and 71.5% for random deferral of 20%.
+- Paired change, kept minus all (in addition to the pre-registered headline): 3.0 points [0.4, 9.2].
+
+Each cell: accuracy on kept reads · share of all errors deferred · invasive reads called non-invasive among kept reads · in situ reads called invasive among kept reads (random: means over orders).
+
+### Clean test images (132 reads, 24 groups)
+
+Scoring models: Clean reads: 132 by uni2h512_lr.
+
+| Deferred | Kept | Reliability score | Top-class probability | Conformal set size | Random (mean of orders) |
+|---|---|---|---|---|---|
+| 0% | 132 | 86.4% · 0.0% · 0 · 3 | 86.4% · 0.0% · 0 · 3 | 86.4% · 0.0% · 0 · 3 | 86.4% · 0.0% · 0.0 · 3.0 |
+| 5% | 126 | 86.5% · 5.6% · 0 · 3 | 88.1% · 16.7% · 0 · 3 | 88.1% · 16.7% · 0 · 3 | 86.4% · 4.6% · 0.0 · 2.9 |
+| 10% | 119 | 86.6% · 11.1% · 0 · 3 | 88.2% · 22.2% · 0 · 3 | 89.1% · 27.8% · 0 · 3 | 86.3% · 9.8% · 0.0 · 2.7 |
+| 15% | 113 | 86.7% · 16.7% · 0 · 3 | 89.4% · 33.3% · 0 · 3 | 89.4% · 33.3% · 0 · 3 | 86.3% · 14.2% · 0.0 · 2.6 |
+| 20% | 106 | 85.8% · 16.7% · 0 · 3 | 91.5% · 50.0% · 0 · 1 | 90.6% · 44.4% · 0 · 2 | 86.3% · 19.3% · 0.0 · 2.5 |
+| 25% | 99 | 87.9% · 33.3% · 0 · 2 | 90.9% · 50.0% · 0 · 1 | 89.9% · 44.4% · 0 · 2 | 86.3% · 24.7% · 0.0 · 2.3 |
+| 30% | 93 | 88.2% · 38.9% · 0 · 1 | 92.5% · 61.1% · 0 · 0 | 90.3% · 50.0% · 0 · 1 | 86.4% · 29.5% · 0.0 · 2.1 |
+| 35% | 86 | 88.4% · 44.4% · 0 · 1 | 94.2% · 72.2% · 0 · 0 | 93.0% · 66.7% · 0 · 0 | 86.3% · 34.6% · 0.0 · 2.0 |
+| 40% | 80 | 88.8% · 50.0% · 0 · 1 | 93.8% · 72.2% · 0 · 0 | 93.8% · 72.2% · 0 · 0 | 86.3% · 39.1% · 0.0 · 1.9 |
+| 45% | 73 | 87.7% · 50.0% · 0 · 1 | 93.2% · 72.2% · 0 · 0 | 93.2% · 72.2% · 0 · 0 | 86.3% · 44.5% · 0.0 · 1.7 |
+| 50% | 66 | 87.9% · 55.6% · 0 · 0 | 92.4% · 72.2% · 0 · 0 | 92.4% · 72.2% · 0 · 0 | 86.4% · 50.1% · 0.0 · 1.5 |
+
+### All test reads (clean + simulated degraded) (1716 reads, 24 groups)
+
+Scoring models: Clean reads: 132 by uni2h512_lr. Simulated degraded reads: 1,452 by cb_text (concept-bottleneck model), 132 by uni2h_lr.
+
+| Deferred | Kept | Reliability score | Top-class probability | Conformal set size | Random (mean of orders) |
+|---|---|---|---|---|---|
+| 0% | 1716 | 71.6% · 0.0% · 10 · 15 | 71.6% · 0.0% · 10 · 15 | 71.6% · 0.0% · 10 · 15 | 71.6% · 0.0% · 10.0 · 15.0 |
+| 5% | 1631 | 72.7% · 8.6% · 9 · 15 | 73.1% · 10.2% · 9 · 14 | 73.5% · 11.3% · 9 · 14 | 71.6% · 4.9% · 9.5 · 14.3 |
+| 10% | 1545 | 74.0% · 17.8% · 9 · 12 | 74.8% · 20.1% · 9 · 14 | 74.8% · 20.1% · 9 · 13 | 71.6% · 9.9% · 9.0 · 13.6 |
+| 15% | 1459 | 73.6% · 21.1% · 9 · 8 | 76.1% · 28.7% · 5 · 12 | 76.1% · 28.5% · 9 · 13 | 71.5% · 14.9% · 8.5 · 12.9 |
+| 20% | 1373 | 74.6% · 28.5% · 8 · 8 | 77.7% · 37.3% · 4 · 11 | 77.9% · 37.9% · 7 · 13 | 71.5% · 19.9% · 8.0 · 12.1 |
+| 25% | 1287 | 76.7% · 38.5% · 8 · 8 | 79.3% · 45.5% · 4 · 11 | 79.5% · 45.9% · 4 · 11 | 71.5% · 24.9% · 7.5 · 11.4 |
+| 30% | 1202 | 77.5% · 44.5% · 8 · 7 | 80.8% · 52.7% · 2 · 9 | 80.8% · 52.7% · 3 · 9 | 71.5% · 29.9% · 7.0 · 10.6 |
+| 35% | 1116 | 80.4% · 55.1% · 8 · 6 | 83.1% · 61.3% · 2 · 7 | 82.7% · 60.5% · 3 · 8 | 71.5% · 34.9% · 6.5 · 9.8 |
+| 40% | 1030 | 82.4% · 62.9% · 8 · 5 | 85.2% · 68.9% · 2 · 5 | 83.7% · 65.6% · 3 · 5 | 71.5% · 39.9% · 6.0 · 9.1 |
+| 45% | 944 | 84.5% · 70.1% · 5 · 5 | 86.1% · 73.2% · 2 · 4 | 85.0% · 70.9% · 1 · 4 | 71.5% · 44.9% · 5.5 · 8.3 |
+| 50% | 858 | 87.8% · 78.5% · 1 · 2 | 87.9% · 78.7% · 0 · 3 | 86.5% · 76.2% · 1 · 4 | 71.5% · 49.9% · 5.0 · 7.6 |
+
+- Degraded variants are simulated frozen-section artifacts applied to microscopy images; no real frozen sections were available.
+- Deferred reads are sent to closer review; this measures accuracy on the reads kept, not a clinical outcome.
 
 ## Simulated margin read
 

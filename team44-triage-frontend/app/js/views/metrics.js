@@ -1252,6 +1252,81 @@ function figReliabilityScore(ST, ev, L) {
     table: { head: ['Signal', 'Error AUROC [95% CI]'], rows: rows.map((r) => [r.label, ciShort(r)]) }
   });
 }
+function figDeferral(ST, ev, L) {
+  const DF = ev.deferral;
+  const title = 'Accuracy on kept reads as the least reliable reads are deferred';
+  const H = DF && DF.headline;
+  const pops = (DF && DF.populations) || {};
+  const head = H && pops[H.population];
+  const kept = ci(H && H.accuracy_kept),
+    all = ci(H && H.accuracy_all);
+  if (!head || !kept || !all) return missing('deferral', title, 'deferral curve');
+  const POP = { all_test_reads: 'All test reads (clean + simulated degraded)', clean_test: 'Clean test images' };
+  const RANK = { reliability: 'Reliability score', top_prob: 'Top-class probability', set_size: 'Conformal set size', random: 'Random order' };
+  const popColor = { all_test_reads: C.COLOR[1], clean_test: C.COLOR[2] };
+  const order = ['all_test_reads', 'clean_test'].filter((k) => pops[k] && pops[k].rankings).concat(Object.keys(pops).filter((k) => !['all_test_reads', 'clean_test'].includes(k) && pops[k] && pops[k].rankings));
+  const rowsOf = (k, r) => (get(pops, [k, 'rankings', r]) || []).filter((x) => x && isNum(x.fraction) && isNum(x.accuracy));
+  const at = (k, r, f) => rowsOf(k, r).find((x) => Math.abs(x.fraction - f) < 1e-9);
+  const pts = (k, r) => rowsOf(k, r).filter((x) => x.fraction <= 0.5 + 1e-9).map((x) => ({ x: x.fraction, y: x.accuracy, tip: [`accuracy on kept reads ${pc(x.accuracy, 1)}`, `${POP[k] || humanize(k)}, ${RANK[r] || humanize(r)}: ${pc(x.fraction)} deferred, ${x.kept} kept`] }));
+  const series = [];
+  for (const k of order) {
+    const color = popColor[k] || C.COLOR[3];
+    series.push({ name: `${POP[k] || humanize(k)}: reliability ranking`, color, points: pts(k, 'reliability') });
+    series.push({ name: `${POP[k] || humanize(k)}: random deferral`, color, dash: true, markers: 'hit', points: pts(k, 'random') });
+  }
+  const ys = series.flatMap((s) => s.points.map((p) => p.y));
+  const w = L.two ? L.half : L.full;
+  const chart = ys.length
+    ? C.lineChart({ width: w, height: 280, x: { min: 0, max: 0.5, label: 'Share of reads deferred (least reliable first)', ticks: [0, 0.1, 0.2, 0.3, 0.4, 0.5], format: (v) => pc(v) }, y: { min: Math.max(0, Math.floor(Math.min(...ys) * 20) / 20), max: Math.min(1, Math.ceil(Math.max(...ys) * 20) / 20), label: 'Accuracy on kept reads', format: (v) => pc(v) }, series, refs: isNum(H.fraction) ? [{ kind: 'v', value: H.fraction, label: 'pre-registered headline' }] : [], aria: 'Accuracy on kept reads versus share of reads deferred, by population; random deferral dashed' })
+    : '';
+  const f = H.fraction;
+  const verb = (a, b) => (a > b + 1e-9 ? 'raised' : a < b - 1e-9 ? 'lowered' : 'left');
+  const nAll = head.n_reads;
+  const nDef = isNum(H.deferred) ? H.deferred : null;
+  const sentences = [
+    `Deferring the ${pc(f)} of ${POP[H.population] ? lowerFirst(POP[H.population]) : 'reads'} with the lowest reliability score${nDef !== null && isNum(nAll) ? ` (${C.fmtNum(nDef, 0)} of ${C.fmtNum(nAll, 0)})` : ''} ${verb(kept.est, all.est)} accuracy on the kept reads from ${ciText(all, { pct: true })} to ${ciText(kept, { pct: true })}${verb(kept.est, all.est) === 'left' ? ' unchanged' : ''}; deferring ${pc(f)} at random keeps it at ${pc(H.accuracy_random_20, 1)} on average.`
+  ];
+  const alt = ['top_prob', 'set_size'].map((r) => [r, at(H.population, r, f)]).filter(([, x]) => x);
+  if (alt.length) sentences.push(`At the same ${pc(f)}, accuracy on kept reads was ${alt.map(([r, x]) => `${pc(x.accuracy, 1)} when ranking by ${lowerFirst(RANK[r])}`).join(' and ')}.`);
+  const cl = at('clean_test', 'reliability', f),
+    c0 = at('clean_test', 'reliability', 0);
+  if (H.population !== 'clean_test' && cl && c0) sentences.push(`On the ${pops.clean_test.n_reads} clean test images alone, reliability deferral ${verb(cl.accuracy, c0.accuracy)} accuracy ${verb(cl.accuracy, c0.accuracy) === 'left' ? `at ${pc(c0.accuracy, 1)}` : `from ${pc(c0.accuracy, 1)} to ${pc(cl.accuracy, 1)}`}.`);
+  const gain = ci(H.gain_vs_all);
+  const notes = [];
+  if (gain && isNum(gain.lo) && isNum(gain.hi)) notes.push(`Paired change in accuracy, kept minus all reads (reported in addition to the pre-registered headline): ${minus(C.fmtNum(gain.est * 100, 1))} points (95% CI ${range(gain.lo * 100, gain.hi * 100, (v) => C.fmtNum(v, 1))}).`);
+  const i0 = (k) => at(k, 'reliability', 0);
+  for (const k of order) {
+    const a = i0(k),
+      b = at(k, 'reliability', f);
+    if (a && b && isNum(a.invasive_missed_kept) && isNum(b.invasive_missed_kept)) notes.push(`${POP[k] || humanize(k)}: invasive reads called non-invasive among kept reads ${a.invasive_missed_kept} → ${b.invasive_missed_kept}; in situ reads called invasive ${a.insitu_overcalled_kept} → ${b.insitu_overcalled_kept}; share of errors deferred ${pc(b.errors_deferred_share)} at ${pc(f)}.`);
+  }
+  const fmtCount = (v) => (isNum(v) ? (Number.isInteger(v) ? String(v) : C.fmtNum(v, 1)) : '—');
+  const rows = [];
+  for (const k of order) for (const r of Object.keys(pops[k].rankings)) for (const x of rowsOf(k, r)) rows.push([POP[k] || humanize(k), RANK[r] || humanize(r), pc(x.fraction), String(x.kept), pc(x.accuracy, 1), isNum(x.errors_deferred_share) ? pc(x.errors_deferred_share) : '—', fmtCount(x.invasive_missed_kept), fmtCount(x.insitu_overcalled_kept)]);
+  // which model scored the reads, with counts, straight from the JSON (degraded reads may come from another model)
+  const MODEL_NOTE = { cb_text: 'concept-bottleneck model' };
+  const byCount = (o) => Object.entries(o || {}).filter(([, n]) => isNum(n)).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+  const scoring = (p) => {
+    const seen = new Set();
+    const list = (o) => byCount(o).map(([m, n]) => { const note = MODEL_NOTE[m] && !seen.has(m) ? ` (${MODEL_NOTE[m]})` : ''; seen.add(m); return `${C.fmtNum(n, 0)} by ${m}${note}`; }).join(', ');
+    const bt = p.models_by_read_type;
+    if (bt && typeof bt === 'object') return [['clean', 'clean reads'], ['simulated_degraded', 'simulated degraded reads']].filter(([k]) => byCount(bt[k]).length).map(([k, l]) => `${l} ${list(bt[k])}`).join('; ');
+    return byCount(p.models).length ? `scored ${list(p.models)}` : '';
+  };
+  const popText2 = order.map((k) => { const sc = scoring(pops[k]); return `${POP[k] || humanize(k)}: ${C.fmtNum(pops[k].n_reads, 0)} reads, ${pops[k].n_groups} patient / pseudo-patient groups${sc ? ` (${sc})` : ''}`; }).join('; ');
+  return figure({
+    id: 'deferral',
+    testid: 'metrics-deferral',
+    title,
+    caveat: 'Degraded reads are simulated frozen-section artifacts. The ranking, fractions and headline were pre-registered before the analysis was run. Random deferral (dashed) is the mean of 1,000 random orders.',
+    takeaway: sentences.join(' '),
+    chart,
+    notes,
+    population: `${popText2}. Each read is scored by the model that produced it`,
+    source: 'eval/deferral.json',
+    table: { head: ['Population', 'Ranking', 'Deferred', 'Kept', 'Accuracy', 'Errors deferred', 'Invasive missed (kept)', 'In situ called invasive (kept)'], rows, num: [2, 3, 4, 5, 6, 7] }
+  });
+}
 function figMargin(ST, ev, L) {
   const MG = ev.margin;
   if (!MG) return missing('margin', 'Simulated margin read', 'margin evaluation');
@@ -1590,7 +1665,7 @@ export function render(ST, ctx) {
   h += section('explanations', 'Explanations', 'Named histologic features are associated with the classes. These checks test whether they behave like the criteria they are named after.',
     S(figConceptHeat, 'concepts_bach', 'Concept heatmap') + S(figConceptDirection, 'concepts_bach', 'Concept direction') + S(figSpotcheck, 'spotcheck', 'Spot check') + S(figNct, 'concepts', 'Cross-organ check') + S(figCav, 'concepts', 'Caption consistency') + S(figDeletion, 'deletion', 'Deletion test'));
   h += section('reliability', 'Frozen-section reliability (simulated)', 'Frozen sections were simulated by degrading microscopy images and by building half-tumour composite fields.',
-    S(figDegradation, 'reliability', 'Accuracy vs degradation') + S(figReliabilityScore, 'reliability', 'Reliability score') + S(figMargin, 'margin', 'Margin read'));
+    S(figDegradation, 'reliability', 'Accuracy vs degradation') + S(figReliabilityScore, 'reliability', 'Reliability score') + S(figDeferral, 'deferral', 'Deferral') + S(figMargin, 'margin', 'Margin read'));
   h += section('workflow', 'Workflow', 'Where cases land in the worklist, and what prioritizing them costs the rest of the queue in a simulated reading day.',
     S(figTiers, 'analytics', 'Tiers') + S(figReasons, 'analytics', 'Flag reasons') + S(figQueue, 'queue_sim', 'Queue simulation'));
   h += section('cells', 'Cell measurements', 'Automated nuclei measurements by class, checked against the direction pathology expects.', S(figCells, 'cells', 'Cells'));

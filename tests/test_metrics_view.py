@@ -151,3 +151,55 @@ def test_resplit_missing_file_gives_standard_card(payloads):
     assert 'data-testid="metrics-missing-conformal_resplit"' in html
     assert "Not available in this run: <code>eval/conformal_resplit.json</code>" in html
     assert "random re-splits:" not in html                                   # the tile drops the re-split line
+
+
+DEFERRAL_TITLE = "Accuracy on kept reads as the least reliable reads are deferred"
+
+
+@pytest.fixture(scope="module")
+def deferral_json(tmp_path_factory):
+    from eval import deferral as DF
+    from tests.test_deferral import write_deferral_root
+    tmp = tmp_path_factory.mktemp("deferral")
+    write_deferral_root(tmp / "data", CFG)
+    return io.read_json(DF.run(D.make_ctx(CFG, tmp / "data", tmp / "art", step="eval_deferral")))
+
+
+def test_deferral_figure_renders_from_its_json(payloads, deferral_json):
+    p, cfg, tmp = payloads
+    payload = copy.deepcopy(p["full"])
+    payload["eval"]["deferral"] = deferral_json
+    html = _render(payload, cfg, tmp)["html"]
+    assert 'data-testid="metrics-deferral"' in html and DEFERRAL_TITLE in html
+    fig = html[html.index('id="fig-deferral"'):]
+    fig = fig[:fig.index("</figure>")]
+    assert fig.count("cx-line") >= 4 and "cx-dash" in fig                  # reliability x 2 populations, random dashed
+    h = deferral_json["headline"]
+    pct = lambda v: f"{100 * v:.1f}%"                                       # noqa: E731
+    assert pct(h["accuracy_kept"]["estimate"]) in fig and pct(h["accuracy_all"]["estimate"]) in fig
+    assert pct(h["accuracy_random_20"]) in fig and "simulated" in fig and "eval/deferral.json" in fig
+    assert str(h["deferred"]) in fig
+    from tests.test_deferral import model_lines
+    pop_line = fig[fig.index('class="mx-pop"'):]
+    for pop in deferral_json["populations"].values():                    # every scoring model with its count
+        assert len(pop["models"]) >= 1 and all(line in pop_line for line in model_lines(pop))
+    assert len(deferral_json["populations"]["all_test_reads"]["models"]) >= 2
+    assert "cb_text (concept-bottleneck model)" in pop_line
+    for junk in ("NaN", "undefined", "[object Object]", "Infinity"):
+        assert junk not in fig, junk
+    # the figure sits in the frozen-section reliability section, after the reliability-score figure
+    sec = html[html.index('id="mx-reliability"'):html.index('id="mx-workflow"')]
+    assert 'id="fig-deferral"' in sec
+    if 'id="fig-relscore"' in sec:                                           # absent when reliability.json is
+        assert sec.index('id="fig-relscore"') < sec.index('id="fig-deferral"')
+
+
+@pytest.mark.parametrize("value", ["absent", None, {"name": "deferral", "populations": {}, "headline": None}])
+def test_deferral_figure_degrades_to_the_missing_card(payloads, value):
+    p, cfg, tmp = payloads
+    payload = copy.deepcopy(p["full"])
+    if value != "absent":
+        payload["eval"]["deferral"] = value
+    html = _render(payload, cfg, tmp)["html"]
+    assert 'data-testid="metrics-missing-deferral"' in html and 'data-testid="metrics-deferral"' not in html
+    assert "undefined" not in html and "NaN" not in html
