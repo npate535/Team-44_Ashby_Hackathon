@@ -260,7 +260,12 @@ class _Server:
         body = json.loads(request.content)
         findings = json.loads(body["messages"][1]["content"])["findings"]
         f1 = findings[0]
-        sentences = [{"text": f"Suggested category with calibrated probability {f1['data']['p']:.2f}.", "findings": ["F1"]},
+        names = {"Normal": "normal breast tissue", "Benign": "a benign lesion", "InSitu": "in situ carcinoma",
+                 "Invasive": "invasive carcinoma"}
+        others = [names[c] for c in f1["data"]["set"] if c != f1["data"]["top"]]
+        rest = f"; {' and '.join(others)} cannot be excluded" if others else ""
+        sentences = [{"text": f"Suggested category: {names[f1['data']['top']]} (calibrated probability "
+                              f"{f1['data']['p']:.2f}){rest}.", "findings": ["F1"]},
                      {"text": "Image quality was reviewed by the reliability check.",
                       "findings": [f["id"] for f in findings if f["kind"] == "quality"]}]
         return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps({"sentences": sentences})},
