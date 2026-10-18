@@ -92,3 +92,20 @@ def test_top_concept_picks_largest_positive_sum():
     assert deletion.top_concept(contrib, "a") == "x"
     neg = contrib.assign(contribution=[-1.0, -1.0, -0.5, 9.0])
     assert deletion.top_concept(neg, "a") is None
+
+
+def test_embedding_reader_matches_production_when_all_tiles_fail_qc(monkeypatch, tmp_path):
+    index = pd.DataFrame({"case_id": ["A", "A", "B", "B"], "grid": "g512",
+                          "tile_idx": [0, 1, 0, 1], "view": -1,
+                          "degrade_type": "", "degrade_severity": 0})
+    x = np.array([[2.0], [6.0], [10.0], [100.0]], dtype=np.float32)
+    qc = index[["case_id", "grid", "tile_idx"]].assign(qc_pass=[False, False, True, False])
+    monkeypatch.setattr(deletion.rm, "load_emb", lambda *a, **kw: (x, index))
+    reader = deletion.Reader.__new__(deletion.Reader)
+    reader.kind = "lr_embedding"
+    reader._load_embedding(tmp_path, {"encoder": "conch", "set": "bach512", "head": "probe"}, qc, {"A", "B"})
+    pooled = deletion.rm.pool_tiles(x, index, qc).frame()
+    for cid in ("A", "B"):
+        np.testing.assert_allclose(reader.tiles[cid][1].mean(0), pooled.loc[cid].to_numpy())
+    assert reader.qc_tiles("A").tolist() == [0, 1]
+    assert reader.qc_tiles("B").tolist() == [0]

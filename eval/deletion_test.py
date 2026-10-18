@@ -77,13 +77,14 @@ class Reader:
 
     def _load_embedding(self, root, spec: Mapping[str, str], tiles: pd.DataFrame, wanted: set[str]) -> None:
         x, idx = rm.load_emb(root, spec["encoder"], spec["set"], spec["head"])
-        q = tiles[tiles.qc_pass][rm.TILE_KEY]
-        idx = idx.reset_index().merge(q, on=rm.TILE_KEY)
-        idx = idx[idx.case_id.isin(wanted)]
+        selected = idx.case_id.isin(wanted).to_numpy()
+        idx = idx.loc[selected].reset_index(drop=True)
+        if idx.empty:
+            raise ValueError("no embedding rows available for the requested deletion cases")
         self.grid = str(idx.grid.iloc[0])
-        self.tiles: dict[str, tuple[np.ndarray, np.ndarray]] = {}
-        for cid, part in idx.groupby("case_id"):
-            self.tiles[cid] = (part.tile_idx.astype(int).to_numpy(), x[part["index"].to_numpy()])
+        # Use the production QC rule, including its all-tiles fallback when no tile passes.
+        ids, bags, tile_ids = rm.tile_bags(x[selected], idx, tiles)
+        self.tiles = {cid: (t, bag) for cid, t, bag in zip(ids, tile_ids, bags)}
 
     def _load_concepts(self, root, tiles: pd.DataFrame, wanted: set[str]) -> None:
         cfg = self.cfg

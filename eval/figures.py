@@ -142,7 +142,7 @@ def fig_conformal(data: Mapping[str, Any], path: Path, dpi: int) -> Path:
     ax2.set_xlabel("Mean prediction-set size (classes)", color=INK2)
     fs = data.get("finite_sample") or {}
     if fs.get("sd") is not None:
-        fig.text(0.5, 0.06, f"Coverage given the {fs['n_calibration']} calibration cases ~ Beta({fs['beta'][0]}, "
+        fig.text(0.5, 0.06, f"Under exchangeability: random calibration-set coverage ~ Beta({fs['beta'][0]}, "
                  f"{fs['beta'][1]}), SD {fs['sd']:.3f}", ha="center", fontsize=8, color=INK2)
     return _finish(fig, f"Conformal prediction sets at alpha = {data['alpha']} (test n = {data['n']})",
                    bool(data.get("synthetic")), path, dpi)

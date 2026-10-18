@@ -15,7 +15,7 @@ make demo                                                  # real/synthetic pipe
 | `PATHQUEUE_ARTIFACTS_ROOT` | artifacts root (default `artifacts/`): `cases/`, `images/`, `cells/`, `eval/`, `spotcheck/` |
 | `PATHQUEUE_CASES_DIR` | cases folder override (repo-relative allowed). When it is the flat `fixtures/` folder, `images/<f>` and `cells/<f>` resolve to `fixtures/<f>` |
 | `PATHQUEUE_DEV_CORS=1` | allow `http://localhost:*` origins (frontend served elsewhere) |
-| `backend.db_file` | SQLite file under the artifacts root, re-seeded at every start and every reset |
+| `backend.db_file` | SQLite file under the artifacts root; restored on restart and re-seeded only by explicit reset |
 | `sim.speed` | simulator clock speed (× wall time) |
 | `sim.max_replay_wall_s` | the last self-arriving case (the biopsy hero) arrives at most this many wall seconds after Start: the clock runs faster than `sim.speed` when the offsets need it (`sim.speed` reports the effective speed, `sim.base_speed` the setting); `null` = always `sim.speed` |
 | `sim.hold_surgical_for_injection` | `true`: surgical cases arrive only through `inject_surgical` |
@@ -45,7 +45,7 @@ client-side interpolation.
          "cases": 18, "arrived": 0, "pending": {"biopsy": 14, "surgical": {"normal": 2, "degraded": 1, "composite": 1}}},
  "server_time": 1792270000.0, "server_time_iso": "2026-10-17T20:46:40.000Z"}
 ```
-`status` is `ok`, or `degraded` when no valid case loaded or any file was skipped. `media` is `fixtures` (flat
+`open_cases` counts all arrived cases awaiting a decision, across lanes. `status` is `ok`, or `degraded` when no valid case loaded, any file was skipped, or referenced media is missing. `media` is `fixtures` (flat
 fixtures folder) or `artifacts`. `skipped` lists invalid or duplicate case files, and surgical cases carrying stain
 orders (never served).
 
@@ -276,3 +276,9 @@ File names must match `[A-Za-z0-9][A-Za-z0-9_.-]*` (no paths) and carry a media 
 `.svg` for `/eval`): JSON is only ever served through the API, so it is always ground-truth free. Anything else is
 404. Every response carries `Cache-Control: no-store` (local demo; avoids stale ES modules). A malformed server-side
 file (e.g. an `eval/spotcheck.json` without `reviews`) returns 500 with a `detail` naming it.
+
+### Workspace integrity and restart behavior
+
+`GET /api/health` also returns `assets: {referenced, available, missing, models}`. `missing` lists referenced images/overlays that are unavailable, including references and contrast cases. `models` lists the prediction model IDs in the loaded cases. Health is `degraded` for empty case sets, rejected JSONs, or missing referenced media. These checks establish artifact availability, not accuracy or clinical validity.
+
+The SQLite workspace is restored on service restart, with the arrival replay paused at its last checkpoint. Decisions, order edits, arrivals, surgical timers, routed results, and the event history remain intact. A changed set of case payloads refuses startup against the saved database, preserving prior review evidence. Use a separate artifact root or intentionally archive the old database before starting with different model outputs. Explicit simulator reset remains the only normal route that reseeds the workspace; the UI asks the reviewer to confirm that destructive reset.

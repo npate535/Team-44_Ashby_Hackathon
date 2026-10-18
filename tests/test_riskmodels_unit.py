@@ -34,16 +34,23 @@ def test_pool_tiles_uses_qc_tiles_and_falls_back_when_none_pass():
     assert p.qc_fallback == ["B"]
 
 
-def test_pool_tiles_degraded_rows_get_variant_ids_and_source_qc():
+@pytest.mark.parametrize("qualified", [False, True])
+def test_pool_tiles_degraded_rows_get_variant_ids_and_source_qc(qualified):
     idx = index_frame([{"case_id": "A", "tile_idx": 0, "degrade_type": "blur", "degrade_severity": 2},
                        {"case_id": "A", "tile_idx": 1, "degrade_type": "blur", "degrade_severity": 2},
                        {"case_id": "A", "tile_idx": 0, "degrade_type": "jpeg", "degrade_severity": 1}])
+    if qualified:
+        idx["case_id"] = ["A_FSIM_blur2", "A_FSIM_blur2", "A_FSIM_jpeg1"]
     x = np.array([[2.0], [100.0], [5.0]], dtype=np.float32)
     qc = pd.DataFrame({"case_id": ["A", "A"], "grid": "g512", "tile_idx": [0, 1], "qc_pass": [True, False]})
     p = rm.pool_tiles(x, idx, qc)
     f = p.frame()
     assert f.loc["A_FSIM_blur2", 0] == 2.0 and f.loc["A_FSIM_jpeg1", 0] == 5.0
     assert set(p.keys.variant) == {"blur2", "jpeg1"} and set(p.keys.source_case_id) == {"A"}
+    ids, bags, tile_ids = rm.tile_bags(x, idx, qc)
+    assert ids == ["A_FSIM_blur2", "A_FSIM_jpeg1"]
+    assert [b[:, 0].tolist() for b in bags] == [[2.0], [5.0]]
+    assert [t.tolist() for t in tile_ids] == [[0], [0]]
 
 
 def test_pool_tiles_by_view_and_composite():
@@ -232,3 +239,10 @@ def test_fold_calibrated_losses_are_out_of_sample_and_fix_overconfidence():
     assert np.mean(cal) < np.mean(raw)
     assert rm.fold_calibrated_losses(good[None], y, splits, None) == pytest.approx(
         [calibration.nll(calibration.softmax(good[h], 1.0), y[h]) for h in splits[0]])
+
+
+def test_degraded_index_rejects_conflicting_identity():
+    idx = index_frame([{"case_id": "A_FSIM_blur2", "tile_idx": 0,
+                        "degrade_type": "jpeg", "degrade_severity": 1}])
+    with pytest.raises(ValueError, match="contradicts degradation metadata"):
+        rm.pool_tiles(np.ones((1, 2), dtype=np.float32), idx, None)

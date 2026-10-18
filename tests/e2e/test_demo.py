@@ -211,3 +211,70 @@ def test_mock_mode_runs_without_the_api(page, api, roles):
     pg.click(tid("sim-inject-surgical"))
     expect(pg.locator(ROW).first).to_have_attribute("data-lane", "surgical")
     page.assert_no_ground_truth()
+
+
+def test_queue_search_and_status_filters(page, api, roles):
+    pg = page.page
+    pg._base = page.base
+    start_and_wait_for_biopsies(pg, api, roles)
+    hero = roles['hero_biopsy']
+    total = pg.locator('#queue-count').inner_text()
+    pg.click('[data-lane-filter=surgical]')
+    expect(pg.locator('#queue-count')).to_have_text(total)
+    pg.click('[data-lane-filter=all]')
+    pg.fill('#case-search', hero)
+    expect(pg.locator(ROW)).to_have_count(1)
+    expect(pg.locator(ROW)).to_have_attribute('data-case-id', hero)
+    pg.wait_for_timeout(2300)
+    expect(pg.locator('#case-search')).to_have_value(hero)
+    assert pg.locator('#case-search').evaluate('(el) => document.activeElement === el')
+    pg.fill('#case-search', '<no such case>')
+    expect(pg.locator(tid('state-empty'))).to_contain_text('No matching cases')
+    pg.click('[data-clear-search]')
+    expect(pg.locator('#case-search')).to_have_value('')
+    assert pg.locator(ROW).count() > 1
+    pg.click('[data-status-filter=done]')
+    expect(pg.locator(ROW)).to_have_count(0)
+    pg.click('[data-clear-search]')
+    pg.click('[data-status-filter=open]')
+    assert pg.locator(ROW).count() > 1
+    page.assert_no_horizontal_scroll()
+
+
+def test_evidence_chart_style_and_navigation(page, api, roles):
+    pg = page.page
+    pg._base = page.base
+    start_and_wait_for_biopsies(pg, api, roles)
+    pg.locator(f"{ROW}[data-case-id='{roles['hero_biopsy']}']").press('Enter')
+    expect(pg.locator(tid('case-view'))).to_be_visible()
+    # Icon strokes must not leak into the charts' small coordinate systems.
+    assert pg.locator('.why-row svg rect').first.evaluate('(el) => getComputedStyle(el).stroke') == 'none'
+    expect(pg.locator('#breadcrumb')).to_have_text('Case review')
+    expect(pg.locator(tid('nav-worklist'))).to_have_attribute('aria-current', 'page')
+    pg.click(tid('nav-surgeon'))
+    expect(pg.locator('#breadcrumb')).to_have_text('Operating rooms')
+    expect(pg.locator(tid('nav-surgeon'))).to_have_attribute('aria-current', 'page')
+    pg.click(tid('nav-worklist'))
+    expect(pg.locator('#page-title')).to_have_text('Every case. A clearer next step.')
+    page.assert_no_horizontal_scroll()
+
+
+def test_replay_pause_resume_and_reset_guard(page, api, roles):
+    pg = page.page
+    pg._base = page.base
+    start_and_wait_for_biopsies(pg, api, roles)
+    pg.click(tid('sim-pause'))
+    expect(pg.locator(tid('sim-clock'))).to_contain_text('paused')
+    expect(pg.locator(tid('sim-pause'))).to_have_text('Resume replay')
+    pg.click(tid('sim-pause'))
+    expect(pg.locator(tid('sim-clock'))).to_contain_text('running')
+    count = pg.locator(ROW).count()
+    pg.click(tid('sim-reset'))
+    expect(pg.locator('#reset-dialog')).to_be_visible()
+    pg.get_by_role('button', name='Keep reviewing').click()
+    expect(pg.locator('#reset-dialog')).to_be_hidden()
+    assert pg.locator(ROW).count() == count
+    pg.click(tid('sim-reset'))
+    pg.click('[data-reset-confirm]')
+    expect(pg.locator('#reset-dialog')).to_be_hidden()
+    expect(pg.locator(tid('state-empty'))).to_be_visible()

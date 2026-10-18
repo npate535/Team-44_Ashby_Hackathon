@@ -295,8 +295,10 @@ def beta_note(n_cal: int, alpha: float) -> dict[str, Any]:
     mean = a / (a + b)
     sd = math.sqrt(a * b / ((a + b) ** 2 * (a + b + 1)))
     return {"n_calibration": n_cal, "k": k, "beta": [a, b], "mean": mean, "sd": sd,
-            "note": f"Coverage given this calibration set is ~Beta({a}, {b}) (mean {mean:.3f}, SD {sd:.3f}); the "
-                    f"1 - alpha = {1 - alpha:.2f} guarantee holds on average over calibration sets."}
+            "note": f"Under exchangeability and continuous scores, coverage conditional on a random calibration "
+                    f"set follows ~Beta({a}, {b}) (mean {mean:.3f}, SD {sd:.3f}); the "
+                    f"1 - alpha = {1 - alpha:.2f} guarantee is marginal over calibration sets, "
+                    "not a guarantee for this test cohort. Compare the observed held-out coverage with the target."}
 
 
 def conformal_payload(df: pd.DataFrame, preds: pd.DataFrame, cfg: Mapping[str, Any],

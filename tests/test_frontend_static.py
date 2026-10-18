@@ -135,3 +135,22 @@ def test_adapter_logic_with_node():
 def test_every_module_parses(path):
     res = subprocess.run(["node", "--check", str(APP / path)], capture_output=True, text=True, timeout=30)
     assert res.returncode == 0, res.stderr
+
+
+@pytest.mark.skipif(shutil.which('node') is None, reason='node not installed')
+def test_coverage_display_requires_matching_model_and_valid_aggregate():
+    script = f"""
+    import {{coverageStatus}} from {json.dumps((APP / 'js/adapter.js').as_uri())};
+    const payload = {{eval: {{metrics: {{models: {{production: 'actual_model'}}}}, conformal: {{
+      drives_tiers: 'lac_marginal', n: 132, target_coverage: 0.9,
+      methods: {{lac_marginal: {{coverage: {{estimate: 0.71}}}}}}
+    }}}}}};
+    const result = coverageStatus(payload, 'actual_model');
+    if (!result.belowTarget || result.n !== 132 || result.coverage !== 0.71) throw Error('invalid coverage');
+    if (coverageStatus(payload, 'another_model') !== null) throw Error('mismatched model');
+    payload.eval.conformal.methods.lac_marginal.coverage.estimate = '0.71';
+    if (coverageStatus(payload, 'actual_model') !== null) throw Error('invalid value accepted');
+    if (coverageStatus(null, 'actual_model') !== null) throw Error('missing report accepted');
+    """
+    res = subprocess.run(['node', '--input-type=module', '-e', script], capture_output=True, text=True, timeout=30)
+    assert res.returncode == 0, res.stderr
