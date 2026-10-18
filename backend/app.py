@@ -277,8 +277,46 @@ class Backend:
                 item["at"] = iso(at)
                 if to_role == "surgeon":
                     item["or_room"] = self.or_room(item["case_id"])
+                row = self.store.row(item["case_id"])
+                if row is not None:
+                    item["report"] = self.routed_report(row, json.loads(row["public_json"]), to_role)
                 out.append(item)
             return out
+
+    def routed_report(self, row: Mapping[str, Any], case: Mapping[str, Any], to_role: str) -> dict[str, Any]:
+        """Read-only context for a routed result, derived from the stored public case (never ground truth).
+
+        Oncologist: suggested category, the static tier and flag reasons, the strongest associated features
+        (concepts by |contribution|) and the quality read. Surgeon: the simulated margin read behind the call.
+        Built at read time, so results routed before this existed gain it too (restart/replay safe).
+        """
+        pred = case["prediction"]
+        probs = list(pred["probs"])
+        top = pred["classes"][probs.index(max(probs))] if probs else None
+        quality = case["quality"]
+        report: dict[str, Any] = {
+            "lane": case["lane"],
+            "top_class": top,
+            "tier": case["flag"]["tier"],
+            "reasons": list(case["flag"]["reasons"]),
+            "quality": {"reliability": quality.get("reliability"), "reliability_flag": quality["reliability_flag"],
+                        "qc_tiles_kept": quality["qc_tiles_kept"]},
+            "simulated": bool(case.get("simulated")),
+            "arrived_at": iso(row["arrived_wall"]),
+        }
+        if to_role == "oncologist":
+            concepts = sorted(case.get("concepts") or [], key=lambda k: -abs(float(k.get("contribution") or 0.0)))
+            report["features"] = [{"id": k["id"], "label": k["label"], "contribution": k["contribution"],
+                                   "direction": k.get("direction"), "source": k.get("source") or "text"}
+                                  for k in concepts[:3]]
+        else:
+            margin = case.get("margin") or {}
+            report["margin"] = {"suggested_call": margin.get("suggested_call"), "involved": margin.get("involved") or [],
+                                "per_margin": margin.get("per_margin") or {}, "threshold": margin.get("threshold")}
+            report["simulated_variant"] = case.get("simulated_variant")
+            degradation = case.get("degradation")
+            report["degradation"] = dict(degradation) if isinstance(degradation, Mapping) else None
+        return report
 
     def decide(self, case_id: str, action: str, payload: Mapping[str, Any]) -> dict[str, Any]:
         with self.store.lock:
@@ -316,7 +354,7 @@ class Backend:
             "cells": {"enabled": bool(cfg["cells"]["enabled"]), "types": list(cfg["cells"]["types"]),
                       "overlay_colors": dict(cfg["cells"]["overlay_colors"])},
             "sim": {"speed": cfg["sim"]["speed"], "hold_surgical_for_injection": self.sim.hold_surgical,
-                    "variants": list(VARIANTS)},
+                    "variants": list(VARIANTS), "or_rooms": self.or_rooms},
             "flag_reasons": list(contract.FLAG_REASONS),
             "synthetic": self.synthetic,
         }
@@ -439,6 +477,7 @@ class Backend:
 
     def health(self) -> dict[str, Any]:
         wall = self.sim.wall_now()
+        rows = self.store.rows()
         loaded = len(self.sim.loaded.cases)
         assets = self.artifact_status()
         return {
@@ -448,7 +487,8 @@ class Backend:
             "artifacts_root": str(self.artifacts_root),
             "media": "fixtures" if self.flat_media else "artifacts",
             "loaded": loaded,
-            "open_cases": sum(not db.is_done(row) for row in self.store.rows()),
+            "open_cases": sum(not db.is_done(row) for row in rows),
+            "open_surgical": sum(row["lane"] == "surgical" and not db.is_done(row) for row in rows),
             "skipped": self.sim.loaded.skipped,
             "synthetic": self.synthetic,
             "sim": self.sim.status(),
@@ -498,6 +538,16 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
     app = FastAPI(title="PathQueue demo API", version=contract.SCHEMA_VERSION,
                   description="Research prototype — not for clinical use. See docs/API.md.")
     app.state.backend = backend
+
+    def checkpoint_on_shutdown() -> None:
+        # A stop while the replay runs keeps the clock up to the stop (not only to the last API tick); restore is
+        # still paused. Decisions are already committed per request.
+        try:
+            backend.sim.pause_for_shutdown()
+        except Exception:                        # noqa: BLE001 - shutdown must not raise
+            log.exception("could not checkpoint the simulator clock at shutdown")
+
+    app.router.on_shutdown.append(checkpoint_on_shutdown)
 
     if (source.get(ENV_DEV_CORS) or "").strip() == "1":
         app.add_middleware(CORSMiddleware, allow_origin_regex=r"^http://(localhost|127\.0\.0\.1)(:\d+)?$",
