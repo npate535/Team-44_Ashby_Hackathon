@@ -1232,7 +1232,17 @@ function figDeferral(ST, ev, L) {
   const fmtCount = (v) => (isNum(v) ? (Number.isInteger(v) ? String(v) : C.fmtNum(v, 1)) : '—');
   const rows = [];
   for (const k of order) for (const r of Object.keys(pops[k].rankings)) for (const x of rowsOf(k, r)) rows.push([POP[k] || humanize(k), RANK[r] || humanize(r), pc(x.fraction), String(x.kept), pc(x.accuracy, 1), isNum(x.errors_deferred_share) ? pc(x.errors_deferred_share) : '—', fmtCount(x.invasive_missed_kept), fmtCount(x.insitu_overcalled_kept)]);
-  const popText2 = order.map((k) => `${POP[k] || humanize(k)}: ${C.fmtNum(pops[k].n_reads, 0)} reads, ${pops[k].n_groups} patient / pseudo-patient groups`).join('; ');
+  // which model scored the reads, with counts, straight from the JSON (degraded reads may come from another model)
+  const MODEL_NOTE = { cb_text: 'concept-bottleneck model' };
+  const byCount = (o) => Object.entries(o || {}).filter(([, n]) => isNum(n)).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+  const scoring = (p) => {
+    const seen = new Set();
+    const list = (o) => byCount(o).map(([m, n]) => { const note = MODEL_NOTE[m] && !seen.has(m) ? ` (${MODEL_NOTE[m]})` : ''; seen.add(m); return `${C.fmtNum(n, 0)} by ${m}${note}`; }).join(', ');
+    const bt = p.models_by_read_type;
+    if (bt && typeof bt === 'object') return [['clean', 'clean reads'], ['simulated_degraded', 'simulated degraded reads']].filter(([k]) => byCount(bt[k]).length).map(([k, l]) => `${l} ${list(bt[k])}`).join('; ');
+    return byCount(p.models).length ? `scored ${list(p.models)}` : '';
+  };
+  const popText2 = order.map((k) => { const sc = scoring(pops[k]); return `${POP[k] || humanize(k)}: ${C.fmtNum(pops[k].n_reads, 0)} reads, ${pops[k].n_groups} patient / pseudo-patient groups${sc ? ` (${sc})` : ''}`; }).join('; ');
   return figure({
     id: 'deferral',
     testid: 'metrics-deferral',
@@ -1241,7 +1251,7 @@ function figDeferral(ST, ev, L) {
     takeaway: sentences.join(' '),
     chart,
     notes,
-    population: `${popText2}; each read scored by the model that produced it`,
+    population: `${popText2}. Each read is scored by the model that produced it`,
     source: 'eval/deferral.json',
     table: { head: ['Population', 'Ranking', 'Deferred', 'Kept', 'Accuracy', 'Errors deferred', 'Invasive missed (kept)', 'In situ called invasive (kept)'], rows, num: [2, 3, 4, 5, 6, 7] }
   });

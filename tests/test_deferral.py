@@ -117,6 +117,7 @@ def write_deferral_root(root, cfg):
     ids = D.write_eval_root(root, cfg)
     preds = io.read_csv(schemas.predictions_csv(root))
     preds["set_tier_size"] = preds["set_size"].clip(lower=1)
+    preds.loc[preds["case_id"] == ids["variant"], "model"] = "uni2h_lr"   # degraded reads may use another model
     io.write_csv(schemas.predictions_csv(root), preds)
     rel = io.read_csv(schemas.reliability_csv(root))
     vid = ids["variant"]
@@ -163,3 +164,28 @@ def test_results_md_section_quotes_the_headline_and_every_statistic(tmp_path):
     assert text.count("| 50% |") == 2 and "nan" not in text.lower()
     md, info = R.build(tmp_path / "art", CFG)
     assert "## Deferral" in md and "deferral" in info["present"]
+
+
+def model_lines(pop):
+    """'<count> by <model>' for every model that scored reads in a population (counts with thousands separators)."""
+    return [f"{n:,} by {m}" for m, n in pop["models"].items()]
+
+
+def test_scoring_sentence_lists_every_model_with_its_count(tmp_path):
+    from eval import results_md as R
+    root = tmp_path / "data"
+    write_deferral_root(root, CFG)
+    d = io.read_json(DF.run(D.make_ctx(CFG, root, tmp_path / "art", step="eval_deferral")))
+    allr = d["populations"]["all_test_reads"]
+    assert allr["models"] == {"cb_text": 48, "uni2h_lr": 1}
+    assert allr["models_by_read_type"] == {"clean": {"cb_text": 48}, "simulated_degraded": {"uni2h_lr": 1}}
+    assert allr["scoring"] == ("Clean reads: 48 by cb_text (concept-bottleneck model). "
+                               "Simulated degraded reads: 1 by uni2h_lr.")
+    assert "fallback" not in str(d["protocol"])
+    text = "\n".join(R.section_deferral(d))
+    for pop in d["populations"].values():
+        assert pop["scoring"] in text
+        for line in model_lines(pop):
+            assert line in text
+    assert DF.scoring_sentence({"clean": {"m": 1316}, "simulated_degraded": {"cb_text": 1452, "x": 2}}) == (
+        "Clean reads: 1,316 by m. Simulated degraded reads: 1,452 by cb_text (concept-bottleneck model), 2 by x.")

@@ -135,6 +135,12 @@ def test_deferral_figure_renders_from_its_json(payloads, deferral_json):
     assert pct(h["accuracy_kept"]["estimate"]) in fig and pct(h["accuracy_all"]["estimate"]) in fig
     assert pct(h["accuracy_random_20"]) in fig and "simulated" in fig and "eval/deferral.json" in fig
     assert str(h["deferred"]) in fig
+    from tests.test_deferral import model_lines
+    pop_line = fig[fig.index('class="mx-pop"'):]
+    for pop in deferral_json["populations"].values():                    # every scoring model with its count
+        assert len(pop["models"]) >= 1 and all(line in pop_line for line in model_lines(pop))
+    assert len(deferral_json["populations"]["all_test_reads"]["models"]) >= 2
+    assert "cb_text (concept-bottleneck model)" in pop_line
     for junk in ("NaN", "undefined", "[object Object]", "Infinity"):
         assert junk not in fig, junk
     # the figure sits in the frozen-section reliability section, after the reliability-score figure

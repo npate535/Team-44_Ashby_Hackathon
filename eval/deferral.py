@@ -5,7 +5,7 @@
 Every analysis choice is fixed by docs/VALIDATION_ROUND3.md section 2 (pre-registered before any result):
   * Reads. Population (a) clean_test: the clean test images. Population (b) all_test_reads: clean test reads plus the
     simulated degraded variants (blur, JPEG, stain shift, resampling); composites are excluded. Each read is scored
-    with the model that produced it in predictions.csv (`top`, as in the app); its true label is its source case's
+    with the model that produced it in predictions.csv (`top`); its true label is its source case's
     label in cases.csv. Reads are joined to reliability.csv on read ID; any unmatched read is an error.
   * Rankings (what is deferred first). reliability: lowest reliability score first (primary). top_prob: lowest
     calibrated top-class probability first. set_size: largest conformal tier set first (the set the app shows), ties
@@ -184,14 +184,41 @@ def load_reads(cfg: Mapping[str, Any], root: Path) -> pd.DataFrame:
     return build_reads(load_cases(cfg, root), load_predictions(cfg, root), io.read_csv(rel_path), cfg)
 
 
+MODEL_NOTES = {"cb_text": "concept-bottleneck model"}     # plain names for model IDs a reader may not know
+
+
+def _counts(series: pd.Series) -> dict[str, int]:
+    return {str(k): int(v) for k, v in series.value_counts().sort_index().items()}
+
+
+def scoring_sentence(by_type: Mapping[str, Mapping[str, int]]) -> str:
+    """'Clean reads: 132 by m. Simulated degraded reads: 1,452 by cb_text (concept-bottleneck model), 132 by x.'
+    Models in descending count, then by ID; each model is glossed (MODEL_NOTES) where it first appears."""
+    seen: set[str] = set()
+    parts = []
+    for key, label in (("clean", "Clean reads"), ("simulated_degraded", "Simulated degraded reads")):
+        counts = by_type.get(key) or {}
+        if not counts:
+            continue
+        items = []
+        for model, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])):
+            note = f" ({MODEL_NOTES[model]})" if model in MODEL_NOTES and model not in seen else ""
+            seen.add(model)
+            items.append(f"{n:,} by {model}{note}")
+        parts.append(f"{label}: {', '.join(items)}.")
+    return " ".join(parts)
+
+
 def population_block(reads: pd.DataFrame, fractions: Sequence[float] = FRACTIONS) -> dict[str, Any]:
     correct = reads["correct"].to_numpy(bool)
     flags = {k: reads[k].to_numpy(bool) for k in FLAGS}
     keys = ranking_keys(reads)
+    by_type = {k: _counts(reads.loc[mask, "model"]) for k, mask in
+               (("clean", reads["clean"]), ("simulated_degraded", ~reads["clean"])) if mask.any()}
     rankings = {name: risk_coverage(correct, keys[name], fractions, flags) for name in RANKINGS}
     rankings["random"] = random_risk_coverage(correct, fractions, flags)
     return {"n_reads": int(len(reads)), "n_groups": int(reads["group"].nunique()), "n_errors": int((~correct).sum()),
-            "models": {str(k): int(v) for k, v in reads["model"].value_counts().sort_index().items()},
+            "models": _counts(reads["model"]), "models_by_read_type": by_type, "scoring": scoring_sentence(by_type),
             "variants": {str(k): int(v) for k, v in reads["variant"].value_counts().sort_index().items()},
             "rankings": rankings}
 
@@ -250,9 +277,9 @@ def run(ctx: cli.StepContext) -> Path:
             "populations": {"clean_test": "the clean held-out test images",
                             "all_test_reads": "clean test reads plus the simulated degraded variants (blur, JPEG, "
                                               "stain shift, resampling); composites excluded"},
-            "scoring": "each read's predicted class is `top` in predictions.csv, from the model that produced it "
-                       "(production model for clean reads, fallback model for simulated variants), as in the app; "
-                       "truth is the source case's label",
+            "scoring": "each read's predicted class is `top` in predictions.csv, from the model that produced it; "
+                       "the models and their read counts are listed per population in populations.<name>.scoring "
+                       "and models_by_read_type; truth is the source case's label",
             "rankings": {"reliability": "lowest reliability score (reliability.csv) deferred first",
                          "top_prob": "lowest calibrated top-class probability deferred first",
                          "set_size": "largest conformal tier set (set_tier_size) deferred first, ties by lowest "

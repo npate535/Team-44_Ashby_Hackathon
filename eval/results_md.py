@@ -194,9 +194,9 @@ def section_deferral(d: Mapping[str, Any]) -> list[str]:
     gain = h.get("gain_vs_all") or {}
     out = ["## Deferral (risk–coverage) curve", "",
            f"Source: `eval/deferral.json` · pre-registered in {d.get('pre_registration', 'docs/VALIDATION_ROUND3.md')} "
-           f"· production model `{d.get('production_model')}`; simulated degraded reads are scored by the model that "
-           "produced them. Reads are deferred to closer review in ranking order; accuracy is four-class accuracy on "
-           "the kept reads.", "",
+           f"· production model `{d.get('production_model')}`. Each read is scored by the model that produced it in "
+           "predictions.csv (counts per population below). Reads are deferred to closer review in ranking order; "
+           "accuracy is four-class accuracy on the kept reads.", "",
            f"- **Headline.** {pop_names.get(h['population'], h['population'])}, {share(h['fraction'])} deferred by "
            f"reliability score ({h.get('deferred')} of {d['populations'][h['population']]['n_reads']} reads): "
            f"accuracy on kept reads {fmt(h['accuracy_kept'], pct=True)}, against "
@@ -210,6 +210,8 @@ def section_deferral(d: Mapping[str, Any]) -> list[str]:
     for key, pop in d["populations"].items():
         ranks = list(pop["rankings"])
         out += ["", f"### {pop_names.get(key, key)} ({pop['n_reads']} reads, {pop['n_groups']} groups)", "",
+                f"Scoring models: {pop.get('scoring') or ', '.join(f'{n:,} by {m}' for m, n in pop['models'].items())}",
+                "",
                 "| Deferred | Kept | " + " | ".join(rank_names.get(r, r) for r in ranks) + " |",
                 "|---|---|" + "---|" * len(ranks)]
         for i, base in enumerate(pop["rankings"][ranks[0]]):
