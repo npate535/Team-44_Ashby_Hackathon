@@ -455,6 +455,26 @@ class RiskStep:
         row.update({schemas.cal_prob_col(k): float(v) for k, v in zip(self.classes, pcal)})
         return row
 
+    def add_aps_and_tier_sets(self, df: pd.DataFrame) -> None:
+        """set_aps, set_tier and set_tier_size columns of a frame of rows_for() rows (in place)."""
+        cfg = self.cfg
+        # randomized APS: one call on the whole matrix per model, fit seed for q-hat, seed + 1 for the sets
+        seed = int(cfg["conformal"]["seed"])
+        df["set_aps"] = ""
+        for model, part in df.groupby("model"):
+            p = part[[schemas.cal_prob_col(k) for k in self.classes]].to_numpy()
+            sets = conformal.aps_sets(p, self.conf[model]["qhat_aps"], seed + 1, bool(cfg["conformal"]["aps_randomized"]))
+            df.loc[part.index, "set_aps"] = [schemas.format_set(conformal.set_labels(s, self.classes), self.classes)
+                                             for s in sets]
+        # tier-driving set (settings conformal.method x mode; argmax added to empty rows when conformal.nonempty)
+        source = conformal.tier_set_source(cfg)
+        pcal = df[[schemas.cal_prob_col(k) for k in self.classes]].to_numpy()
+        tier = np.array([[k in schemas.parse_set(v) for k in self.classes] for v in df[source]], dtype=bool)
+        if bool(cfg["conformal"].get("nonempty", False)):
+            tier = conformal.nonempty_sets(tier, pcal)
+        df["set_tier"] = [schemas.format_set(conformal.set_labels(t, self.classes), self.classes) for t in tier]
+        df["set_tier_size"] = tier.sum(axis=1).astype(int)
+
     def write_predictions(self) -> None:
         cfg = self.cfg
         prod = self.production
@@ -488,22 +508,7 @@ class RiskStep:
         for i, rid in enumerate(self.train_ids):           # OOF probabilities are already temperature-scaled
             rows.append(self.rows_for(rid, prod, np.empty(0), "train", calibrated=oof_cal[i]))
         df = pd.DataFrame(rows)
-        # randomized APS: one call on the whole matrix per model, fit seed for q-hat, seed + 1 for the sets
-        seed = int(cfg["conformal"]["seed"])
-        df["set_aps"] = ""
-        for model, part in df.groupby("model"):
-            p = part[[schemas.cal_prob_col(k) for k in self.classes]].to_numpy()
-            sets = conformal.aps_sets(p, self.conf[model]["qhat_aps"], seed + 1, bool(cfg["conformal"]["aps_randomized"]))
-            df.loc[part.index, "set_aps"] = [schemas.format_set(conformal.set_labels(s, self.classes), self.classes)
-                                             for s in sets]
-        # tier-driving set (settings conformal.method x mode; argmax added to empty rows when conformal.nonempty)
-        source = conformal.tier_set_source(cfg)
-        pcal = df[[schemas.cal_prob_col(k) for k in self.classes]].to_numpy()
-        tier = np.array([[k in schemas.parse_set(v) for k in self.classes] for v in df[source]], dtype=bool)
-        if bool(cfg["conformal"].get("nonempty", False)):
-            tier = conformal.nonempty_sets(tier, pcal)
-        df["set_tier"] = [schemas.format_set(conformal.set_labels(t, self.classes), self.classes) for t in tier]
-        df["set_tier_size"] = tier.sum(axis=1).astype(int)
+        self.add_aps_and_tier_sets(df)
         # uncalibrated probabilities of every evaluated model; OOF means for train rows
         for model, c in self.cands.items():
             cols = [schemas.prob_col(model, k) for k in self.classes]
@@ -562,6 +567,10 @@ class RiskStep:
                     row.update({schemas.prob_col(model, k): float(x) for k, x in zip(self.classes, p)})
             rows.append(row)
         df = pd.DataFrame(rows)
+        if len(df):
+            # 06 reads set_tier_size from here for its clean fit reads and from predictions.csv for every other read:
+            # both files must carry the same tier set, or the combiner's set_size means LAC in fit and the tier set in use
+            self.add_aps_and_tier_sets(df)
         io.write_csv(self.root / "predictions_view0.csv", df)
 
     # -- contributions -------------------------------------------------------------------------------------------------

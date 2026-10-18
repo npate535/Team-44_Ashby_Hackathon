@@ -7,7 +7,8 @@ Features per read (settings reliability.features):
     nearest TTA-averaged train tiles (CONCH align; settings reliability.ood_reference), as a percentile among clean
     calibration cases read the same way (TTA reads vs clean-calibration TTA distances; view-0 reads vs clean-
     calibration view-0 distances).
-  * set_size: size of the read's tier-driving conformal set (predictions.csv set_tier_size; set_size = LAC when absent).
+  * set_size: size of the read's tier-driving conformal set (set_tier_size, when predictions.csv and
+    predictions_view0.csv both carry it; else the LAC set_size for every read, so fit and use agree).
   * conch_musk_disagree: 1 when the production model's top class differs from the agreement model's (MUSK) top.
 Combiner: standardized logistic regression P(error) fit on the calibration split, clean view-0 reads + degraded reads
 (view 0, ruling M9: like-for-like single-view reads). The flag threshold is the largest p_error that still flags
@@ -153,13 +154,17 @@ def run(ctx: cli.StepContext) -> dict[str, Any]:
     cal_ids = sorted(c for c in d_tta.index if split[c] == "calibration")
     ref_tta, ref_v0 = d_tta.loc[cal_ids].to_numpy(), d_v0.loc[[c for c in cal_ids if c in d_v0.index]].to_numpy()
 
+    # one set-size definition for every read: the combiner is fit on view-0 reads (predictions_view0.csv) and applied
+    # to predictions.csv reads, so the tier set is used only when both files carry it (else LAC everywhere)
+    size_col = "set_tier_size" if "set_tier_size" in pred.columns and "set_tier_size" in v0.columns else "set_size"
+
     def feats(rows: pd.DataFrame, dist: pd.Series, reference: np.ndarray) -> pd.DataFrame:
         ids = [i for i in rows.index if i in dist.index]
         r = rows.loc[ids]
         agree = pd.to_numeric(r["agree_top"], errors="coerce")
         out = pd.DataFrame({"ood_distance": dist.loc[ids].to_numpy(),
                             "ood_percentile": percentile(dist.loc[ids].to_numpy(), reference),
-                            "set_size": r["set_tier_size" if "set_tier_size" in r.columns else "set_size"].astype(int).to_numpy(),
+                            "set_size": r[size_col].astype(int).to_numpy(),
                             "conch_musk_disagree": np.where(agree.isna(), 0, 1 - agree.fillna(1)).astype(int),
                             "agree_known": agree.notna().astype(int).to_numpy(),
                             "top": r["top"].to_numpy()}, index=pd.Index(ids, name="case_id"))
@@ -208,7 +213,7 @@ def run(ctx: cli.StepContext) -> dict[str, Any]:
     prov = io.provenance(cfg, synthetic=ctx.synthetic)
     doc = {"name": "reliability", "created_utc": prov["created_utc"], "config_hash": prov["config_hash"],
            "git_sha": prov["git_sha"], "synthetic": bool(ctx.synthetic), **report,
-           "combiner": {"features": names, "dropped_features": dropped, "coef": comb.clf.coef_[0].tolist(), "intercept": float(comb.clf.intercept_[0]),
+           "combiner": {"features": names, "dropped_features": dropped, "set_size_column": size_col, "coef": comb.clf.coef_[0].tolist(), "intercept": float(comb.clf.intercept_[0]),
                         "fit_on": "calibration split: clean view-0 reads + degraded reads (view 0, ruling M9)",
                         "n_fit": int(len(fit)), "n_fit_errors": int(y_fit.sum())},
            "threshold": threshold, "target_error_recall": float(rcfg["target_error_recall"]),

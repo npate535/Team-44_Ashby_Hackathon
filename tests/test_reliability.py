@@ -73,3 +73,32 @@ def test_eval_json(run06):
     assert doc["error_recall_calibration"] >= cfg["reliability"]["target_error_recall"]
     if doc["accuracy_vs_degradation"]["clean_read"] != "view0":     # concept production without view-0 features
         assert doc["model_a_curve"]["clean_read"] == "view0"
+
+
+def test_set_size_feature_has_one_definition_for_fit_and_use(run06):
+    root, art, _ = run06
+    doc = json.loads(schemas.eval_json(art, "reliability").read_text())
+    assert doc["combiner"]["set_size_column"] == "set_tier_size"      # 05 writes it to both prediction files
+    rel = pd.read_csv(schemas.reliability_csv(root), keep_default_na=False, na_values=[""])
+    pred = pd.read_csv(schemas.predictions_csv(root), keep_default_na=False, na_values=[""]).set_index("case_id")
+    clean = rel[rel.variant == "clean"].set_index("case_id")
+    assert (clean.set_size == pred.loc[clean.index, "set_tier_size"]).all()
+
+
+def test_set_size_falls_back_to_lac_everywhere_when_view0_lacks_the_tier_set(run06, tmp_path):
+    root0, art0, cfg = run06
+    root, art = tmp_path / "data", tmp_path / "art"
+    clone_root(root0, root)
+    shutil.copytree(art0, art)
+    v0_path = root / step06.VIEW0_PRED
+    v0 = pd.read_csv(v0_path, keep_default_na=False, na_values=[""])
+    v0.drop(columns=["set_tier", "set_tier_size"]).to_csv(v0_path, index=False)      # a pre-fix 05 output
+    cfg_path = after_05()[2]
+    assert step06.main(["--data-root", str(root), "--artifacts-root", str(art), "--config", str(cfg_path),
+                        "--force"]) == 0
+    doc = json.loads(schemas.eval_json(art, "reliability").read_text())
+    assert doc["combiner"]["set_size_column"] == "set_size"
+    rel = pd.read_csv(schemas.reliability_csv(root), keep_default_na=False, na_values=[""])
+    pred = pd.read_csv(schemas.predictions_csv(root), keep_default_na=False, na_values=[""]).set_index("case_id")
+    clean = rel[rel.variant == "clean"].set_index("case_id")
+    assert (clean.set_size == pred.loc[clean.index, "set_size"]).all()
