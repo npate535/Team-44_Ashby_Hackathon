@@ -151,6 +151,8 @@ class Concept(_Model):
     caption_consistent: Optional[bool] = None   # concept vector passed held-out AUROC (not "validated")
     value_std: Optional[float] = None  # case value standardized against train cases (SD units): the concept model's
                                        # input; sign = above (+) / below (-) the average training case
+    frac_std: Optional[float] = None   # the concept's second input, share of regions above concepts.z_threshold,
+                                       # standardized against train cases (SD units); the push sums both inputs
 
 
 class Tile(_Model):

@@ -59,6 +59,7 @@ export interface Concept {
   components?: ConceptComponents | null;
   caption_consistent?: boolean | null;
   value_std?: number | null;
+  frac_std?: number | null;
 }
 
 export interface Tile {

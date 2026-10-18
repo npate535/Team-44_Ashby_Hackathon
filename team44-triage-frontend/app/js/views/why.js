@@ -35,7 +35,10 @@ export function levelOf(r, cells) {
     }
     return { word: '', cls: 'none', short: '', long: '', tip: 'no reference percentile available' };
   }
-  const tip = isNum(r.value) ? `Mean score of its 3 strongest regions (tile z): ${sz(Number(r.value))}` : '';
+  const tip = [
+    isNum(r.value) ? `Mean score of its 3 strongest regions (tile z): ${sz(Number(r.value))}` : '',
+    isNum(r.fracStd) ? `Share of regions above threshold: ${sz(Number(r.fracStd))} SD vs training cases` : '',
+  ].filter(Boolean).join(' · ');
   if (isNum(r.valueStd)) {
     const v = Number(r.valueStd);
     const word = v >= 0.5 ? 'Above typical' : v <= -0.5 ? 'Below typical' : 'Typical';
@@ -182,7 +185,7 @@ export function why(v, hm, cfg, metrics) {
     levelNote +
     `<div class="why-key" aria-hidden="true"><span>Feature</span><span>Level in this case</span><span class="axis"><span>← away</span><span>push on the invasive score</span><span>toward →</span></span></div>` +
     groups +
-    '<p class="sub why-foot">Level: the case feature in standard deviations from the average training case (the concept model\'s input); typical = within ±0.5 SD. Measured cell features use the percentile against benign/normal reference cases. Push: the concept model\'s learned weights × this case\'s standardized features for that criterion (the 3-strongest-region mean shown as the level, plus the share of regions above threshold), so the push need not follow the level\'s sign. Hover a row for the mean tile z of its 3 strongest regions. Associated features, not causes; not a Nottingham grade. Select a row to outline its regions on the image.</p>'
+    '<p class="sub why-foot">Level: the case feature in standard deviations from the average training case (the concept model\'s input); typical = within ±0.5 SD. Measured cell features use the percentile against benign/normal reference cases. Push: the concept model\'s learned weights × this case\'s standardized features for that criterion (the 3-strongest-region mean shown as the level, plus the share of regions above threshold), so the push need not follow the level\'s sign. Hover a row for the mean tile z of its 3 strongest regions and the standardized share of regions above threshold. Associated features, not causes; not a Nottingham grade. Select a row to outline its regions on the image.</p>'
   );
 }
 

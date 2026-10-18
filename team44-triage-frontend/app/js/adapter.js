@@ -186,6 +186,7 @@ export function whyRows(c, cfg) {
     label: k.label,
     value: k.value,
     valueStd: k.value_std ?? null, // optional: case feature standardized against training cases
+    fracStd: k.frac_std ?? null, // optional: share of regions above threshold, standardized against training cases
     contribution: k.contribution,
     spread: k.spread,
     tiles: k.top_tiles || [],

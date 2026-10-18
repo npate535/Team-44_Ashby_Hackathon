@@ -22,7 +22,8 @@ Cases written (artifacts root):
 Blocks follow core.contract exactly (fixtures/demo_0001.json, demo_0002.json):
   quality      qc_tiles_kept = QC-passing g512 tiles; ood_percentile, reliability, flag from reliability.csv
   prediction   calibrated probs (pcal__<class>), risk, settings alpha, tier set (predictions.csv set_tier, else set_lac)
-  concepts     per concept: value (case_features c__top<k>), value_std (contributions.csv <c>__top<k> value_std),
+  concepts     per concept: value (case_features c__top<k>), value_std / frac_std (contributions.csv value_std of
+               <c>__top<k> / <c>__frac),
                contribution = sum of its contributions.csv rows,
                expected direction/label (concept bank), spread (c__spread), top_tiles (top-k tiles by z with
                z >= concepts.z_threshold, at least one), source/components/caption_consistent; measured cell
@@ -433,9 +434,10 @@ def concept_blocks(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], qc: S
             "contribution": round(sum_contrib(rows, f"{spec.case_id} {cid}"), 3), "direction": by_id[cid].direction,
             "top_tiles": _top_tiles(ctile, qc, ci, cfg) if qc else [], "source": source,
         }
-        std_row = rows[rows["feature"] == top_col]
-        if not std_row.empty and not is_missing(std_row["value_std"].iloc[0]):
-            entry["value_std"] = round(float(std_row["value_std"].iloc[0]), 3)
+        for key, feature in (("value_std", top_col), ("frac_std", f"{cid}__frac")):
+            std_row = rows[rows["feature"] == feature]
+            if not std_row.empty and not is_missing(std_row["value_std"].iloc[0]):
+                entry[key] = round(float(std_row["value_std"].iloc[0]), 3)
         spread = feats.get(f"{cid}__spread") if feats is not None else None
         if is_missing(spread) and qc:
             spread = float(np.mean([float(ctile[t]["spread"][ci]) for t in qc]))
