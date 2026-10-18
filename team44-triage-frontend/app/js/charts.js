@@ -294,7 +294,7 @@ export function forest({ width = 560, rows = [], x = {}, refs = [], aria = '', r
       ? `<circle class="cx-dot cx-hollow" cx="${r1(sx(p.est))}" cy="${r1(cy)}" r="5" style="stroke:${color}"/>`
       : `<circle class="cx-dot" cx="${r1(sx(p.est))}" cy="${r1(cy)}" r="5" style="fill:${color}"/>`;
     if (!narrow) g += textLines([vText(p)], W - VW + 4, cy + 4, { cls: p.emphasis ? 'cx-t cx-strong cx-num' : 'cx-t cx-num', weight: p.emphasis ? 600 : null });
-    marks += `<rect class="cx-hitrow" x="0" y="${r1(y)}" width="${W}" height="${r1(h)}"${tipAttr(p.tip || [vText(p), p.label + (p.sub ? ` (${p.sub})` : '')])}/>`;
+    marks += `<rect class="cx-hitrow" x="0" y="${r1(y)}" width="${W}" height="${r1(h)}"${tipAttr(p.tip || [vText(p), p.label + (p.sub ? ` · ${p.sub}` : '')])}/>`;
     y += h;
   });
   return svgOpen(W, H, aria) + g + marks + '</svg>';
@@ -320,8 +320,12 @@ export function heatmap({ width = 560, rows = [], cols = [], values = [], text =
   const rowLines = rows.map((r) => wrap(r, labelMax, FONT));
   const L = Math.ceil(Math.min(labelMax, Math.max(...rowLines.flat().map((l) => textWidth(l)))) + 12) + (flags ? 18 : 0);
   const cw = (width - L - 4) / cols.length;
-  const colLines = cols.map((c) => wrap(c, cw - 4, FONT - 0.5));
-  const headH = Math.max(...colLines.map((l) => l.length)) * (FONT * 1.2) + 10 + (colLabel ? 16 : 0);
+  // narrow columns: shrink the header font (down to 9px) before any word would be hard-split ("Invas-ive")
+  const longest = Math.max(...cols.flatMap((c) => String(c).split(/\s+/).map((w) => w.length)));
+  let colFont = FONT - 0.5;
+  while (colFont > 9 && longest * colFont * CHAR > cw - 4) colFont -= 0.5;
+  const colLines = cols.map((c) => wrap(c, cw - 4, colFont));
+  const headH = Math.max(...colLines.map((l) => l.length)) * (colFont * 1.2) + 10 + (colLabel ? 16 : 0);
   const rh = Math.max(cellH, ...rowLines.map((l) => l.length * FONT * 1.25 + 10));
   const H = headH + rows.length * rh + (rowLabel ? 4 : 2);
   const flat = values.flat().filter(isNum);
@@ -329,7 +333,7 @@ export function heatmap({ width = 560, rows = [], cols = [], values = [], text =
   let g = '';
   if (colLabel) g += textLines([colLabel], L + (width - L) / 2, 11, { anchor: 'middle', cls: 'cx-axis-label' });
   cols.forEach((c, j) => {
-    g += textLines(colLines[j], L + cw * j + cw / 2, headH - 8 - (colLines[j].length - 1) * FONT * 1.2, { anchor: 'middle', size: FONT - 0.5, cls: 'cx-t' });
+    g += textLines(colLines[j], L + cw * j + cw / 2, headH - 8 - (colLines[j].length - 1) * colFont * 1.2, { anchor: 'middle', size: colFont, cls: 'cx-t', lh: 1.2 });
   });
   let marks = '';
   rows.forEach((r, i) => {
@@ -445,13 +449,15 @@ function barPath(x, y, w, h) {
 export function stackedRows({ width = 560, rows = [], aria = '', legendItems = null, unit = '' }) {
   rows = rows.filter((r) => r && r.parts && r.parts.some((p) => isNum(p.value) && p.value > 0));
   if (!rows.length) return '';
-  const labelMax = Math.min(width * 0.32, 200);
+  const labelMax = Math.min(Math.max(width * 0.32, 120), 200);
   const lines = rows.map((r) => wrap(r.label, labelMax));
   const L = Math.ceil(Math.min(labelMax, Math.max(...lines.flat().map((l) => textWidth(l)))) + 12);
   const R = 8,
-    rh = 34,
     T = 4;
-  const H = T + rows.length * rh + 22;
+  // a row grows with its wrapped label (phones wrap long concept names onto 2-3 lines; never overlap the next row)
+  const heights = lines.map((l) => Math.max(34, l.length * FONT * 1.25 + 12));
+  const tops = heights.map((_, i) => T + heights.slice(0, i).reduce((a, b) => a + b, 0));
+  const H = T + heights.reduce((a, b) => a + b, 0) + 22;
   const pw = width - L - R;
   let g = '',
     marks = '';
@@ -460,7 +466,8 @@ export function stackedRows({ width = 560, rows = [], aria = '', legendItems = n
     g += `<line class="cx-grid" x1="${r1(x)}" x2="${r1(x)}" y1="${T}" y2="${H - 22}"/><text class="cx-tick" x="${r1(x)}" y="${H - 7}" text-anchor="${t === 1 ? 'end' : t === 0 ? 'start' : 'middle'}" font-size="${FONT}">${t * 100}%</text>`;
   }
   rows.forEach((r, i) => {
-    const y = T + i * rh;
+    const y = tops[i],
+      rh = heights[i];
     const total = r.parts.reduce((a, p) => a + (isNum(p.value) ? p.value : 0), 0);
     g += textLines(lines[i], L - 8, y + rh / 2 - ((lines[i].length - 1) * FONT * 1.25) / 2 + 4, { anchor: 'end', cls: 'cx-t' });
     let acc = 0;
@@ -470,7 +477,7 @@ export function stackedRows({ width = 560, rows = [], aria = '', legendItems = n
       const x = L + (acc / total) * pw,
         w = (v / total) * pw;
       const share = v / total;
-      marks += `<g class="cx-seg"${tipAttr([`${fmtNum(v, 0)}${unit} (${fmtPct(share)})`, `${p.name} · ${r.label}`])}><rect x="${r1(x + (acc ? 1 : 0))}" y="${r1(y + 6)}" width="${r1(Math.max(0.5, w - (acc ? 2 : 0)))}" height="${rh - 12}" rx="2" style="fill:${p.color || COLOR[k + 1]}"/>`;
+      marks += `<g class="cx-seg"${tipAttr([`${fmtNum(v, 0)}${unit} (${fmtPct(share)})`, `${p.name} · ${r.label}`])}><rect x="${r1(x + (acc ? 1 : 0))}" y="${r1(y + rh / 2 - 11)}" width="${r1(Math.max(0.5, w - (acc ? 2 : 0)))}" height="22" rx="2" style="fill:${p.color || COLOR[k + 1]}"/>`;
       const lab = `${fmtNum(v, 0)}`;
       if (w > textWidth(lab) + 10) marks += `<text x="${r1(x + w / 2)}" y="${r1(y + rh / 2 + 4)}" text-anchor="middle" font-size="${FONT}" class="${p.onStrong ? 'cx-on-indigo' : 'cx-on-weak'} cx-num">${esc(lab)}</text>`;
       marks += '</g>';

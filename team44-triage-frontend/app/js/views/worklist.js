@@ -21,7 +21,7 @@ const TIER_NOTE = {
   1: 'Simulated frozen sections from the OR · 20-minute target',
   2: 'Invasive suggested, or Invasive in the confidence set',
   3: 'Ambiguous confidence set, low reliability, or too little tissue',
-  4: 'Read in arrival order · unflagged does not mean cleared'
+  4: 'Higher P(Invasive) first, then arrival · unflagged does not mean cleared'
 };
 
 // Flag tags shown in the Flags column. aggressive_top is carried by the Suggested column itself.
@@ -116,7 +116,7 @@ export function heldHint(sim) {
   const p = sim.pending.surgical || {};
   const total = (p.normal || 0) + (p.degraded || 0) + (p.composite || 0);
   if (!total) return '';
-  return `<p class="held-hint" data-testid="held-surgical">${total} simulated frozen sections are waiting in the operating rooms. Send one with the <b>Frozen section</b> buttons in the header.</p>`;
+  return `<p class="held-hint" data-testid="held-surgical">${total} simulated frozen section${total === 1 ? ' is' : 's are'} waiting in the operating rooms. Send one with the <b>Frozen section</b> buttons in the header.</p>`;
 }
 
 // ---- pieces --------------------------------------------------------------------------------------------------------
@@ -124,20 +124,21 @@ function row(v, ST, rank) {
   const isNew = !ST.seen.has(v.id) && !ST.firstLoad;
   const pRaw = (v.probs.find((x) => x.cls === 'Invasive') || {}).p;
   const pInv = pctText(pRaw ?? (v.risk === null ? null : v.risk / 100));
+  const surgCall = v.lane === 'surgical' ? suggestedCall(v.margin ? { suggested_call: v.margin.call, involved: v.margin.involved } : null) : '';
   const sugg =
     v.lane === 'surgical'
-      ? `<span class="sugg surg">${esc(suggestedCall(v.margin ? { suggested_call: v.margin.call, involved: v.margin.involved } : null))}</span>`
-      : `<span class="sugg${v.top === 'Invasive' ? ' inv' : ''}">${esc(suggestedLabel(v.top))}</span>`;
+      ? `<span class="sugg surg" title="${esc(surgCall)}">${esc(surgCall)}</span>`
+      : `<span class="sugg${v.top === 'Invasive' ? ' inv' : ''}" title="${esc(suggestedLabel(v.top))}">${esc(suggestedLabel(v.top))}</span>`;
   const lane =
     v.lane === 'surgical'
-      ? `<span class="lane surg">Frozen${v.room ? ' ' + esc(v.room) : ''}</span>${v.variant ? `<span class="variant">${esc(v.variant === 'degraded' ? 'degraded' : 'composite')}</span>` : ''}`
+      ? `<span class="lane surg">Frozen${v.room ? ' ' + esc(v.room) : ''}</span>${v.variant ? `<span class="variant" title="${esc(v.variantLabel || v.variant)}">${esc(v.variant === 'degraded' ? 'degraded' : 'composite')}</span>` : ''}`
       : '<span class="lane bx">Biopsy</span>';
   const next = nextAction(v);
   const label = `${v.id}, tier ${v.tier} ${TIER_NAME[v.tier] || ''}, ${v.lane === 'surgical' ? 'frozen section' : 'biopsy'}`;
   return (
     `<tr class="row tr-${num(v.tier)}${isNew ? ' new' : ''}${v.done ? ' done' : ''}" tabindex="0" aria-label="${esc(label)}" data-testid="worklist-row" data-case-id="${esc(v.id)}" data-tier="${num(v.tier)}" data-lane="${esc(v.lane)}" data-done="${v.done}" data-reasons="${esc(codes(v).join(' '))}" data-rank="${rank}">` +
     `<td class="c-tier"><span class="tierno t${num(v.tier)}" data-testid="tier-badge" title="Tier ${num(v.tier)} · ${esc(v.tierLabel)}">${num(v.tier)}</span></td>` +
-    `<td class="c-case"><div class="wl-cc"><b class="cid" title="${esc(v.id)}">${esc(v.id)}</b>${v.lane === 'surgical' ? `<span class="lane-inline">Frozen${v.room ? ' ' + esc(v.room) : ''}</span>` : ''}${isNew ? '<span class="newtag">New</span>' : ''}</div></td>` +
+    `<td class="c-case"><div class="wl-cc"><b class="cid" title="${esc(v.id)}">${esc(v.id)}</b>${v.lane === 'surgical' ? `<span class="lane-inline" title="${esc(`Simulated frozen section${v.room ? ' from ' + v.room : ''}${v.variantLabel ? ' · ' + v.variantLabel : ''}`)}">Frozen${v.room ? ' ' + esc(v.room) : ''}</span>` : ''}${isNew ? '<span class="newtag">New</span>' : ''}</div></td>` +
     `<td class="c-lane">${lane}</td>` +
     `<td class="c-sugg">${sugg}</td>` +
     `<td class="c-p"><span class="pnum${v.risk >= 50 ? ' hi' : ''}">${pInv}</span>${v.risk === null ? '' : miniBar(v.risk / 100, v.risk >= 50 ? 'hi' : '')}</td>` +

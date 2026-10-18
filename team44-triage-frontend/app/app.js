@@ -81,6 +81,9 @@ function toast(msg, opts = {}) {
       : `<button class="toast-act" data-toast-next>${esc(opts.action.label)}</button>`
     : '';
   el.innerHTML = `<div class="toast-msg"><b>${esc(msg)}</b>${opts.sub ? `<span>${esc(opts.sub)}</span>` : ''}</div>${action}<button class="toast-x" aria-label="Dismiss notification">×</button>`;
+  // the same notice twice (N pressed again on a clear queue, a repeated rejection) replaces the first one
+  el.dataset.key = `${msg}|${opts.sub || ''}`;
+  for (const old of [...box.children]) if (old.dataset.key === el.dataset.key) old.remove();
   box.prepend(el);
   while (box.children.length > 2) box.lastElementChild.remove();
   const ttl = opts.ttl || (opts.action ? 6500 : 4000);
@@ -123,6 +126,14 @@ function onRoute() {
     if (active) b.setAttribute('aria-current', 'page');
     else b.removeAttribute('aria-current');
   });
+  // phones: the sidebar is a horizontally scrolling tab strip; keep the current page's tab in view
+  const strip = document.querySelector('.sidebar nav');
+  const cur = strip && strip.querySelector('[aria-current=page]');
+  if (cur && strip.scrollWidth > strip.clientWidth) {
+    const s = strip.getBoundingClientRect(),
+      c = cur.getBoundingClientRect();
+    if (c.left < s.left || c.right > s.right) strip.scrollLeft += c.left - s.left - 16;
+  }
   lastFp = null;
   if (!api || !ST.cfg) return;
   draw();
@@ -159,7 +170,8 @@ async function refresh(force, seq) {
   else if (route === 'case' && caseId) {
     try {
       [detail, events] = await Promise.all([api.getCase(caseId), api.events(caseId)]);
-      if (!ST.metrics) evaluation = await api.metrics();
+      // optional context (held-out coverage line): a failing /api/metrics must not mark the case missing or offline
+      if (!ST.metrics) evaluation = await api.metrics().catch(() => null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) missing = true;
       else throw err;
@@ -172,6 +184,7 @@ async function refresh(force, seq) {
   }
   if (seq !== pollSeq) return;
   ST.items = wl.items || [];
+  ST.itemsFor = JSON.stringify(worklistQuery(route)); // which query these items answer (the OR board asks for one lane)
   ST.loadedOnce = true;
   ST.sim = wl.sim || ST.sim;
   ST.health = health;
@@ -187,7 +200,10 @@ async function refresh(force, seq) {
   noticeRouted(toSurgeon || [], toOncologist || []);
   ST.routed.surgeon = toSurgeon || [];
   ST.routed.oncologist = toOncologist || [];
-  if (evaluation) ST.metrics = evaluation;
+  if (evaluation) {
+    ST.metrics = evaluation;
+    ST.metricsRev = (ST.metricsRev || 0) + 1; // "Reload results" with changed numbers redraws the dashboard
+  }
   if (spot) ST.spot = spot;
 }
 
@@ -220,17 +236,19 @@ async function poll(force = false) {
     if (ST.fail >= 2) toast('Connection to the local service restored', { tone: 'ok' });
     ST.fail = 0;
     ST.staleSince = null;
+    ST.lastOk = new Date();
   } catch (err) {
     if (seq !== pollSeq) return;
     ST.fail += 1;
-    if (!ST.staleSince) ST.staleSince = new Date();
+    if (!ST.staleSince) ST.staleSince = ST.lastOk || new Date(); // the screen shows data from the last good poll
     if (!(err instanceof ApiError) || err.status === 0 || err.status >= 500) console.warn('poll failed', err);
   }
+  const base = ST.cfg ? ST.cfg.poll_ms : 2000;
+  // Background screens keep synchronizing, with a lower polling frequency. Scheduled before drawing: a view that
+  // throws on unexpected data must not stop the poll loop for good.
+  pollTimer = setTimeout(poll, document.hidden ? base * 5 : ST.fail >= 5 ? base * 2.5 : base);
   showOffline();
   draw();
-  const base = ST.cfg ? ST.cfg.poll_ms : 2000;
-  // Background screens keep synchronizing, with a lower polling frequency.
-  pollTimer = setTimeout(poll, document.hidden ? base * 5 : ST.fail >= 5 ? base * 2.5 : base);
 }
 
 function showOffline() {
@@ -254,8 +272,29 @@ function view() {
 }
 
 function currentFp() {
+  // Pages that do not read the queue redraw only for their own data: a running replay must not re-render the
+  // dashboard (charts lose focus and tooltips) or the evidence review (images reload under the reviewer).
+  if (ST.route === 'metrics') return ['metrics', ST.metricsRev || 0, !!ST.metrics].join('|');
+  if (ST.route === 'spotcheck')
+    return [
+      'spotcheck',
+      ST.spot ? ST.spot.items.length : 'none',
+      JSON.stringify(ST.spotDraft),
+      ST.spotResult || '',
+      ST.spotGroup || '',
+      ST.metricsRev || 0
+    ].join('|');
+  if (ST.route === 'oncologist')
+    return [
+      'oncologist',
+      JSON.stringify(ST.routed.oncologist.map(routedKey)),
+      [...ST.inboxRead].length,
+      ST.inboxOpen || '',
+      ST.metricsRev || 0
+    ].join('|');
   const sim = ST.sim || {};
   const parts = [
+    ST.metricsRev || 0,
     ST.route,
     ST.caseId,
     ST.order,
@@ -307,21 +346,42 @@ function currentFp() {
     parts.push((ST.events[ST.caseId] || []).length, ST.metrics?.eval?.conformal?.created_utc || '');
   }
   if (ST.route === 'surgeon')
-    parts.push(JSON.stringify(ST.routed.surgeon.map((r) => r.id)), [...ST.freshCalls].join());
-  if (ST.route === 'oncologist')
-    parts.push(JSON.stringify(ST.routed.oncologist.map((r) => r.id)), [...ST.inboxRead].length, ST.inboxOpen || '');
-  if (ST.route === 'metrics')
-    parts.push(
-      ST.metrics ? Object.keys(ST.metrics.eval || {}).join() + (ST.metrics.figures || []).length : 'none'
-    );
-  if (ST.route === 'spotcheck')
-    parts.push(
-      ST.spot ? ST.spot.items.length : 'none',
-      JSON.stringify(ST.spotDraft),
-      ST.spotResult || '',
-      ST.spotGroup || ''
-    );
+    parts.push(JSON.stringify(ST.routed.surgeon.map(routedKey)), [...ST.freshCalls].join());
   return parts.join('|');
+}
+
+// Stable identity of a focusable element across re-renders (volatile attributes such as data-state are left out).
+const FOCUS_ATTRS = [
+  'id', 'data-testid', 'data-case-id', 'data-sort', 'data-lane-filter', 'data-status-filter', 'data-tier-filter',
+  'data-inbox-key', 'data-inbox-read', 'data-act', 'data-call', 'data-tab', 'data-f', 'data-why', 'data-page',
+  'data-pick', 'data-edit-seq', 'data-edit-item', 'data-hm', 'data-cells', 'data-spot-item', 'data-spot-verdict',
+  'data-spot-group', 'data-next-case', 'data-mx-open', 'href'
+];
+function focusKey(el) {
+  const app = $('#app');
+  if (!el || el === app || !app.contains(el)) return null;
+  const tag = el.tagName.toLowerCase();
+  const attrs = FOCUS_ATTRS.filter((a) => el.hasAttribute(a)).map((a) => `[${a}="${CSS.escape(el.getAttribute(a))}"]`);
+  // anonymous controls (e.g. a <summary>) and repeated links are told apart by their position among the matches
+  const sel = tag + attrs.join('');
+  try {
+    return { sel, index: Math.max(0, [...app.querySelectorAll(sel)].indexOf(el)) };
+  } catch (_) {
+    return null;
+  }
+}
+function findFocus(key) {
+  try {
+    const list = $('#app').querySelectorAll(key.sel);
+    return list[key.index] || list[0] || null;
+  } catch (_) {
+    return null;
+  }
+}
+function detailsKey(el) {
+  const owner = el.parentElement && el.parentElement.closest('[data-room], [data-case-id], [data-inbox-key], [id]');
+  const ownerId = owner ? owner.dataset.room || owner.dataset.caseId || owner.dataset.inboxKey || owner.id : '';
+  return `${el.className}|${el.dataset.mxOpen || el.dataset.testid || ''}|${ownerId}`;
 }
 
 function draw(forceRender = false) {
@@ -346,20 +406,33 @@ function draw(forceRender = false) {
   const y = window.scrollY;
   const searchFocused = active && active.id === 'case-search';
   const caret = searchFocused ? active.selectionStart : null;
-  const focusedRow = active && active.matches && active.matches('tr.row') ? active.dataset.caseId : null;
-  const openHow = !!document.querySelector('details.how[open]');
-  $('#app').innerHTML = view();
+  // Keyboard position survives the poll's re-render: the focused control (row, filter, tab, inbox card...) is found
+  // again by its identifying attributes, and open <details> stay open.
+  const focusSel = focusKey(active);
+  const openDetails = [...$('#app').querySelectorAll('details[open]')].map(detailsKey);
+  let html;
+  try {
+    html = view();
+  } catch (err) {
+    console.error('view failed to render', err);
+    html = `<div class="card" data-testid="state-render-error"><h2>This page could not be drawn</h2><p>${esc(err && err.message ? err.message : err)}. The data keeps refreshing in the background; other pages still work.</p></div>`;
+  }
+  $('#app').innerHTML = html;
   if (searchFocused && $('#case-search')) {
     $('#case-search').focus({ preventScroll: true });
     $('#case-search').setSelectionRange(caret, caret);
+  } else if (focusSel) {
+    const el = findFocus(focusSel);
+    (el || $('#app')).focus({ preventScroll: true });
   }
-  if (focusedRow) {
-    const el = document.querySelector(`tr.row[data-case-id="${CSS.escape(focusedRow)}"]`);
-    if (el) el.focus({ preventScroll: true });
-  }
-  if (openHow && $('details.how')) $('details.how').open = true;
+  if (openDetails.length)
+    $('#app')
+      .querySelectorAll('details')
+      .forEach((el) => {
+        if (openDetails.includes(detailsKey(el))) el.open = true;
+      });
   window.scrollTo(0, y);
-  if (ST.route === 'worklist' && ST.loadedOnce) {
+  if (ST.route === 'worklist' && ST.loadedOnce && ST.itemsFor === JSON.stringify(worklistQuery('worklist'))) {
     // arrivals after the first rendered data animate in; whatever was there on load does not
     ST.items.forEach((c) => ST.seen.add(c.case_id));
     ST.firstLoad = false;
@@ -399,14 +472,16 @@ function pageDescription() {
     const n = ST.routed.oncologist.length;
     return `${n} result${n === 1 ? '' : 's'}${ST.inboxUnread ? ` · ${ST.inboxUnread} unread` : ''}`;
   }
-  if (ST.route === 'metrics') return 'Held-out test split · bootstrap 95% intervals';
-  return 'Independent review of model-highlighted regions';
+  if (ST.route === 'metrics') return 'Held-out test split · 95% CIs';
+  return 'Model-highlighted regions';
 }
 
 function updateShell() {
   const crumb = PAGE[ST.route] || PAGE.worklist;
   $('#breadcrumb').textContent = crumb;
-  $('#page-description').textContent = pageDescription();
+  const desc = pageDescription();
+  $('#page-description').textContent = desc;
+  $('#page-description').title = desc; // the header truncates it on narrower screens
   document.title = `${ST.route === 'case' && ST.caseId ? ST.caseId + ' · ' : ''}${crumb} · PathQueue`;
   $('.workspace').dataset.route = ST.route;
   $('#queue-count').textContent = ST.health?.open_cases ?? openItems(ST.items).length;
@@ -453,13 +528,14 @@ function updateReplay() {
   const box = $('.replay');
   const start = $('[data-testid=sim-start]');
   const pp = $('#pp');
-  const loaded = !!(h && h.loaded);
+  // offline: the commands would fail, and the replay state on screen is stale
+  const loaded = !!(h && h.loaded) && ST.fail < 2;
   if (!sim) {
     start.disabled = true;
     return;
   }
   const fresh = !sim.running && !(sim.sim_time_s > 0);
-  box.dataset.state = sim.running ? 'running' : fresh ? 'ready' : 'paused';
+  box.dataset.state = ST.fail >= 2 ? 'paused' : sim.running ? 'running' : fresh ? 'ready' : 'paused';
   start.hidden = !fresh;
   start.disabled = !loaded || ST.simBusy;
   pp.hidden = fresh;
@@ -537,11 +613,12 @@ function tickClock() {
   }
   const sim = ST.sim;
   if (!sim) return;
-  const since = sim._fetched_ms && sim.running ? ((Date.now() - sim._fetched_ms) / 1000) * sim.speed : 0;
+  const offline = ST.fail >= 2;
+  const since = sim._fetched_ms && sim.running && !offline ? ((Date.now() - sim._fetched_ms) / 1000) * (Number(sim.speed) || 1) : 0;
   const fresh = !sim.running && !(sim.sim_time_s > 0);
-  const state = sim.running ? 'Replay running' : fresh ? 'Replay ready' : 'Replay paused';
+  const state = offline ? 'Replay status unknown' : sim.running ? 'Replay running' : fresh ? 'Replay ready' : 'Replay paused';
   $('#sim').innerHTML =
-    `<i class="rs-dot" aria-hidden="true"></i><b>${state}</b><span class="rs-t">+${mmss(sim.sim_time_s + since)}</span><span class="rs-x">×${Number(sim.speed.toFixed(1))}</span>${ST.mock ? '<span class="rs-x">mock</span>' : ''}` +
+    `<i class="rs-dot" aria-hidden="true"></i><b>${state}</b><span class="rs-t">+${mmss((Number(sim.sim_time_s) || 0) + since)}</span><span class="rs-x">×${Number((Number(sim.speed) || 1).toFixed(1))}</span>${ST.mock ? '<span class="rs-x">mock</span>' : ''}` +
     `<span class="sr-only"> · simulator ${sim.running ? 'running' : 'paused'}</span>`;
 }
 
@@ -560,7 +637,7 @@ function renderCasebar() {
   const pos = queuePosition(ST.items, ST.caseId);
   const open = openItems(ST.items).length;
   const next = nextCase(ST.items, ST.caseId);
-  const nextTier = next ? tierInfo(next.runtime ? next.runtime.tier : next.flag.tier, ST.cfg) : null;
+  const nextTier = next ? tierInfo(next.runtime ? next.runtime.tier : (next.flag || {}).tier ?? 4, ST.cfg) : null;
   let status;
   if (done && c.lane === 'surgical') {
     const call = c.runtime.decision.margin_call;
@@ -656,7 +733,12 @@ async function simCommand(cmd, variant) {
   if (ST.simBusy) return;
   ST.simBusy = true;
   updateReplay();
-  const res = await act(() => api.sim(cmd, cmd === 'inject_surgical' ? { variant } : undefined));
+  const res = await act(async () => {
+    const out = await api.sim(cmd, cmd === 'inject_surgical' ? { variant } : undefined);
+    // Leave a case view before the follow-up poll: the reset case no longer exists (no 404 + "not found" flash).
+    if (cmd === 'reset') clearReplayState();
+    return out;
+  });
   ST.simBusy = false;
   updateShell();
   if (res && cmd === 'inject_surgical' && res.injected) {
@@ -670,18 +752,26 @@ async function simCommand(cmd, variant) {
     });
   }
   if (res && cmd === 'start') toast('Replay started', { sub: 'Biopsies arrive over the next minute or two.' });
-  if (res && cmd === 'reset') {
-    ST.page = 0;
-    ST.cases = {};
-    ST.events = {};
-    ST.routed = { surgeon: [], oncologist: [] };
-    ST.seen = new Set();
-    ST.firstLoad = true;
-    ST.tierFilter = null;
-    toast('Replay reset', { sub: 'Decisions and routed results from the last replay were cleared.' });
-    if (ST.route === 'case') go('#/worklist');
-  }
+  if (res && cmd === 'reset') toast('Replay reset', { sub: 'Decisions and routed results from the last replay were cleared.' });
   return res;
+}
+
+function clearReplayState() {
+  ST.page = 0;
+  ST.cases = {};
+  ST.events = {};
+  ST.routed = { surgeon: [], oncologist: [] };
+  ST.items = [];
+  ST.seen = new Set();
+  ST.firstLoad = true;
+  ST.tierFilter = null;
+  ST.freshCalls.clear();
+  ST.inboxOpen = null;
+  ST.justDone = null;
+  if (ST.route === 'case') {
+    location.hash = '#/worklist';
+    onRoute(); // synchronously: the hashchange event fires after the follow-up poll has started
+  }
 }
 
 function findingClick(fid) {

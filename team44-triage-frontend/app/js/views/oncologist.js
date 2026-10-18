@@ -39,7 +39,8 @@ function features(rep) {
       .map((f) => {
         const toward = Number(f.contribution) > 0;
         const dir = f.direction === 'context' ? 'context feature' : toward ? 'toward invasive' : 'away from invasive';
-        return `<li><span>${esc(f.label)}</span><span class="dir ${toward ? 'up' : 'down'}">${esc(dir)}</span></li>`;
+        const tone = f.direction === 'context' ? 'ctx' : toward ? 'up' : 'down';
+        return `<li><span>${esc(f.label)}</span><span class="dir ${tone}">${esc(dir)}</span></li>`;
       })
       .join('') +
     '</ul>'
@@ -54,7 +55,7 @@ function orders(r) {
     placed
       .map(
         (o) =>
-          `<li data-testid="inbox-order"><span class="otype">${esc(ORDER_TYPE[o.type] || o.type)}</span><b>${esc(o.items.join(', '))}</b><span class="ostatus">Ordered</span></li>`
+          `<li data-testid="inbox-order"><span class="otype">${esc(ORDER_TYPE[o.type] || o.type)}</span><b>${esc((o.items || []).join(', '))}</b><span class="ostatus">Ordered</span></li>`
       )
       .join('') +
     `</ul><p class="rep-note">${esc(AGENT_NOTE[r.agent_status] || '')}</p>`
