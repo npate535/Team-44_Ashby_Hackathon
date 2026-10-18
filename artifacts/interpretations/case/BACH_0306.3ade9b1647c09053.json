@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0306",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "3ade9b1647c09053",
+ "markdown": "## Bottom line\n**Suggests Benign (94%)** \u00b7 Confident \u00b7 Read in turn\nConformal prediction isolates Benign at 90% coverage [F1], with unflagged tier-4 priority and 0% invasive risk.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Benign 94%, InSitu 4%, Normal 1%, Invasive 0% | Strong Benign lead; zero invasive risk |\n| Conformal set | Benign (alpha = 0.10; 90% test coverage) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability; 64th OOD percentile; 12/12 regions [F6] | Typical input; passes quality control |\n| CONCH\u2013MUSK agreement | Agree on top class | Two independent foundation models concur |\n| Similar cases | 2/5 Benign (40%), 2/5 InSitu, 1/5 Normal [F5] | Mixed neighbors; InSitu cases nearby |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 8, 9, 10) \u00b7 \u2193 invasive \u00b7 Above-typical score (-1.30 contribution), but 0/20 AI spot check [F2] \u00b7 Unreliable\n- **Frequent mitotic figures** (region 9) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.32 contribution); weak concept, 0/20 spot check [F3] \u00b7 Unreliable\n- **Atypical cells confined within ducts** (region 2) \u00b7 \u2191 invasive \u00b7 Below-typical score (+0.30 contribution); 12/20 AI spot check [F4] \u00b7 Weak\n- **Benign fibrous stroma or fat** (regions 0, 10) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.22 contribution); 20/20 AI spot check \u00b7 Validated\n- **Immune cell fraction** (regions 1, 10, 11) \u00b7 context \u00b7 22% nuclei (100th reference percentile); insufficient tumor nuclei flagged [F7] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful to classifier (3-region deletion drop +0.0114, 95% CI 0.0021\u20130.0197 excludes 0); region risks here are 0\u20130.001.\n- **Concepts**: Unverified (deletion 95% CI -0.0088\u20130.0064 includes 0); top drivers **normal lobules** and **frequent mitotic figures** are Unreliable (0/20).\n\n## Could be wrong if\n- An in situ lesion is present, matching two of five nearest neighbors (contrast case BACH_0043, 91% similarity, InSitu).\n- Region 3 contains stromal invasion (validated score 0.88) or unsampled regions hold atypia missed by HoVer-Net.\n\n## Check on the slide\n1. **Regions 8, 9, 10**: Confirm benign lobules and stroma; exclude nuclear pleomorphism driving the BACH_0043 InSitu contrast.\n2. **Regions 2, 3**: Inspect ducts and stroma where validated invasion (score 0.88) and duct-confinement concepts localize.\n3. **Regions 1, 10, 11**: Verify dense inflammation (22% nuclei) and dead cells (3% [F8]) with few neoplastic nuclei.",
+ "verification": {
+  "checked": 37,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:26:20-0500",
+ "elapsed_s": 105.4,
+ "usage": {
+  "inputTokens": 37340,
+  "outputTokens": 785,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 98824,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Benign (94%)** \u00b7 Confident \u00b7 Read in turn\nConformal prediction isolates Benign at 90% coverage [F1], with unflagged tier-4 priority and 0% invasive risk.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Benign 94%, InSitu 4%, Normal 1%, Invasive 0% | Strong Benign lead; zero invasive risk |\n| Conformal set | Benign (alpha = 0.10; 90% test coverage) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability; 64th OOD percentile; 12/12 regions [F6] | Typical input; passes quality control |\n| CONCH\u2013MUSK agreement | Agree on top class (Benign) | Two independent foundation models concur |\n| Similar cases | 2/5 Benign (40%), 2/5 InSitu, 1/5 Normal [F5] | Mixed neighbors; InSitu cases nearby |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 8, 9, 10) \u00b7 \u2193 invasive \u00b7 Above-typical score (-1.30 contribution), but 0/20 AI spot check [F2] \u00b7 Unreliable\n- **Frequent mitotic figures** (region 9) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.32 contribution); weak concept, 0/20 spot check [F3] \u00b7 Unreliable\n- **Atypical cells confined within ducts** (region 2) \u00b7 \u2191 invasive \u00b7 Below-typical score (+0.30 contribution); 12/20 AI spot check [F4] \u00b7 Weak\n- **Benign fibrous stroma or fat** (regions 0, 10) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.22 contribution); 20/20 AI spot check \u00b7 Validated\n- **Immune cell fraction** (regions 1, 10, 11) \u00b7 context \u00b7 22% nuclei (100th reference percentile); insufficient tumor nuclei flagged [F7] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful to classifier (3-region deletion drop +0.0114, 95% CI 0.0021\u20130.0197 excludes 0); region risks here are 0\u20130.001.\n- **Concepts**: Unverified (deletion 95% CI -0.0088\u20130.0064 includes 0); top drivers **normal lobules** and **frequent mitotic figures** are Unreliable (0/20).\n\n## Could be wrong if\n- An in situ lesion is present, matching two of five nearest neighbors (contrast case BACH_0043, 91% similarity, InSitu).\n- Region 3 contains stromal invasion (validated score 0.88) or unsampled regions hold atypia missed by HoVer-Net.\n\n## Check on the slide\n1. **Regions 8, 9, 10**: Confirm benign lobules and stroma; exclude nuclear pleomorphism driving the BACH_0043 InSitu contrast.\n2. **Regions 2, 3**: Inspect ducts and stroma where validated invasion (score 0.88) and duct-confinement concepts localize.\n3. **Regions 1, 10, 11**: Verify dense inflammation (22% nuclei) and dead cells (3% [F8]) with few neoplastic nuclei.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "The CONCH\u2013MUSK row names Benign, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

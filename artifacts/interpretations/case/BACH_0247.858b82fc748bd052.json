@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0247",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "858b82fc748bd052",
+ "markdown": "## Bottom line\n**Suggests Normal (92%)** \u00b7 Ambiguous: Normal vs Benign \u00b7 Careful review\nInvasive risk is 0%, but the 90% conformal set includes Benign [F1] (simulated frozen section).\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 92%, Benign 7%, InSitu 1%, Invasive 0% | Normal lead; 0% invasive |\n| Conformal set | Normal, Benign (90% target) | Cannot exclude Benign |\n| Reliability / OOD | 97% reliability; 56th percentile [F6] | Typical input; unflagged |\n| CONCH\u2013MUSK agreement | Same top class | Independent models agree |\n| Similar cases | 5/5 Normal (91%\u201394%) [F5]; Benign 88% | 5/5 Normal; Benign close |\n\n## Tissue evidence\n- **Normal lobules (two-layered)** (regions 0, 10, 11) \u00b7 \u2193 invasive \u00b7 High score (-0.62) [F2]; 0/20 spot check \u00b7 Unreliable\n- **Frequent mitotic figures** (region 10) \u00b7 \u2193 invasive \u00b7 Low score (-0.33) [F3]; 0/20 spot check \u00b7 Unreliable\n- **Duct-confined atypical cells** (region 2) \u00b7 \u2191 invasive \u00b7 Low score (+0.30) [F4]; 12/20 spot check \u00b7 Weak\n- **HoVer-Net nuclei** (regions 3, 7, 8) \u00b7 context \u00b7 Area 40.3 \u00b5m\u00b2 (0th percentile) [F7]; immune 7% (91st) [F8] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful in deletion test (drop +0.0114 vs random; 95% CI 0.0021\u20130.0197 excludes 0).\n- **Concepts**: Unproven in deletion test (CI -0.0088\u20130.0064 includes 0); uses unreliable normal_lobules, mitoses, necrosis.\n\n## Could be wrong if\n- Tissue is Benign (in 90% conformal set; 88% match to Benign contrast BACH_0266).\n- Region 8 (risk 0.003, validated invasion 1.03) or 7 (19 neoplastic nuclei) holds focal disease.\n\n## Check on the slide\n1. **Regions 6, 10**: Check tubules and lymphocytes distinguishing Normal from Benign contrast BACH_0266.\n2. **Regions 7, 8**: Review where validated invasion peaks (1.03) with 19 neoplastic-labeled nuclei.\n3. **Regions 0, 2, 11**: Confirm two-layered lobules, ductal cells, and clear surgical margins [F11].",
+ "verification": {
+  "checked": 36,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:20:30-0500",
+ "elapsed_s": 166.4,
+ "usage": {
+  "inputTokens": 39487,
+  "outputTokens": 656,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 163118,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

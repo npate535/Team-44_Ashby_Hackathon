@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0225",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "72f8308bfe9c793a",
+ "markdown": "## Bottom line\n**Suggests Invasive (56%)** \u00b7 Unreliable input \u00b7 Defer to expert\nFlagged frozen-section quality, a 56% vs 44% InSitu split, and deferred margins [F10] warrant a recut or deeper levels.\n\n## Confidence\n| Signal | Value | Reading |\n| --- | --- | --- |\n| Top probabilities | Invasive 56%, InSitu 44% [F1] (ECE 5%) | Near-even Invasive vs InSitu split |\n| Conformal set | {Invasive} at \u03b1=0.10 (90% test coverage) | Single class; dataset-level guarantee only |\n| Reliability / OOD | 0.44 (flagged) / 100th percentile [F6] | Out-of-distribution; suspect input quality |\n| CONCH\u2013MUSK agreement | Disagree on top class | Independent backbones split on call |\n| Similar cases | 4/5 Invasive [F5]; closest InSitu (86%) | Nearest match is InSitu (BACH_0160) |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (region 7) \u00b7 \u2191 invasive \u00b7 Scarce (-0.40, +0.82 contribution) [F2]; 0/20 AI spot check \u00b7 Unreliable\n- **Gland / tubule formation** (region 7) \u00b7 \u2191 invasive \u00b7 Scarce (-0.82, +0.72 contribution) [F3]; caption check inconsistent \u00b7 Weak\n- **Benign fibrous stroma or fat** (region 7) \u00b7 \u2191 invasive \u00b7 Scarce (-0.02, +0.43 contribution) [F4]; 20/20 AI spot check \u00b7 Validated\n- **Tumor necrosis** (regions 2, 3, 9) \u00b7 \u2191 invasive \u00b7 Elevated (+1.64, +0.33 contribution); 3/20 AI spot check \u00b7 Unreliable\n- **Nuclear size and variation** (regions 3, 5, 8) \u00b7 context \u00b7 Mean 38.5 \u00b5m\u00b2 (0th percentile) [F7]; CV 95th percentile [F8] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top 3 risk regions drops invasive probability above random (+0.011, 95% CI +0.002 to +0.020).\n- **Concepts**: Unverified (deletion 95% CI -0.009 to +0.006 includes 0) and leans on Unreliable `normal_lobules` (0/20) and `necrosis` (3/20).\n\n## Could be wrong if\n- Out-of-distribution frozen-section artifacts drove the read; drafted orders request a recut H&E or deeper levels before margin calls.\n- High-risk regions represent InSitu (44% probability; closest match `BACH_0160` is InSitu, differing in stromal invasion and lymphocytes).\n\n## Check on the slide\n1. **Regions 5, 3, 8**: Highest heatmap risk (64%, 49%, 35%) with 30\u201348 segmented neoplastic nuclei and pleomorphic size variation.\n2. **Region 10 and regions 2, 3**: Distinguish stromal invasion (region 10, Validated) from duct-confined atypia (regions 2, 3, Weak).\n3. **Region 7**: Inspect why embedding concepts scored scarce lobules, tubules, and stroma here despite 4% region risk.",
+ "verification": {
+  "checked": 41,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:16:51-0500",
+ "elapsed_s": 98.1,
+ "usage": {
+  "inputTokens": 33301,
+  "outputTokens": 10275,
+  "cacheReadTokens": 6020,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 94027,
+ "key": "primary",
+ "markdown_original": "## Bottom line\n**Suggests Invasive (56%)** \u00b7 Unreliable input \u00b7 Defer to expert\nFlagged frozen-section quality, a 56% vs 44% InSitu split, and deferred margins [F10] warrant a recut or deeper levels.\n\n## Confidence\n| Signal | Value | Reading |\n| --- | --- | --- |\n| Top probabilities | Invasive 56%, InSitu 44% [F1] (ECE 5%) | Near-even Invasive vs InSitu split |\n| Conformal set | {Invasive} at \u03b1=0.10 (90% test coverage) | Single class; dataset-level guarantee only |\n| Reliability / OOD | 0.44 (flagged) / 100th percentile [F6] | Out-of-distribution; suspect input quality |\n| CONCH\u2013MUSK agreement | Disagree on top class | Independent backbones split on call |\n| Similar cases | 4/5 Invasive [F5]; closest InSitu (86%) | Nearest match is InSitu (BACH_0160) |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (region 7) \u00b7 \u2191 invasive \u00b7 Scarce (-0.40, +0.82 contribution) [F2]; 0/20 AI spot check \u00b7 Unreliable\n- **Gland / tubule formation** (region 7) \u00b7 \u2191 invasive \u00b7 Scarce (-0.82, +0.72 contribution) [F3]; caption check inconsistent \u00b7 Validated\n- **Benign fibrous stroma or fat** (region 7) \u00b7 \u2191 invasive \u00b7 Scarce (-0.02, +0.43 contribution) [F4]; 20/20 AI spot check \u00b7 Validated\n- **Tumor necrosis** (regions 2, 3, 9) \u00b7 \u2191 invasive \u00b7 Elevated (+1.64, +0.33 contribution); 3/20 AI spot check \u00b7 Unreliable\n- **Nuclear size and variation** (regions 3, 5, 8) \u00b7 context \u00b7 Mean 38.5 \u00b5m\u00b2 (0th percentile) [F7]; CV 95th percentile [F8] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top 3 risk regions drops invasive probability above random (+0.011, 95% CI +0.002 to +0.020).\n- **Concepts**: Unverified (deletion 95% CI -0.009 to +0.006 includes 0) and leans on Unreliable `normal_lobules` (0/20) and `necrosis` (3/20).\n\n## Could be wrong if\n- Out-of-distribution frozen-section artifacts drove the read; drafted orders request a recut H&E or deeper levels before margin calls.\n- High-risk regions represent InSitu (44% probability; closest match `BACH_0160` is InSitu, differing in stromal invasion and lymphocytes).\n\n## Check on the slide\n1. **Regions 5, 3, 8**: Highest heatmap risk (64%, 49%, 35%) with 30\u201348 segmented neoplastic nuclei and pleomorphic size variation.\n2. **Region 10 and regions 2, 3**: Distinguish stromal invasion (region 10, Validated) from duct-confined atypia (regions 2, 3, Weak).\n3. **Region 7**: Inspect why embedding concepts scored scarce lobules, tubules, and stroma here despite 4% region risk.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

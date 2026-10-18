@@ -1,0 +1,34 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0283",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "7f1d31888b37a8a6",
+ "markdown": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Careful review\nFlagged (tier 2) for invasive carcinoma [F1]; confirm invasion before releasing drafted ER, PR, HER2, Ki-67 orders.\n\n## Confidence\n| Signal | Value | Reading |\n| - | - | - |\n| Top probabilities | Invasive 100%, InSitu 0%, Benign 0%, Normal 0% | Strong separation; ECE 5% (n=132) |\n| Conformal set | {Invasive} (alpha 10%, 90% coverage) | Dataset guarantee, not case probability |\n| Reliability / OOD | 98% reliability; 68th OOD percentile [F6] | Typical input; no quality flag |\n| CONCH\u2013MUSK agreement | Same top class | Independent foundation models concur |\n| Similar cases | 5/5 Invasive (84%\u201389% similarity) [F5] | All nearest reference cases match |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 1, 3, 8) \u00b7 \u2191 invasive \u00b7 Above-typical score (+1.35 contribution; 19/20 AI spot check) [F2] \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 1, 7, 9) \u00b7 \u2191 invasive \u00b7 Above-typical score (+0.91 contribution; 18/20 AI spot check) [F3] \u00b7 Validated\n- **Gland / tubule formation** (region 10) \u00b7 \u2191 invasive \u00b7 Below-typical score (-1.10) favors invasion (+0.86; caption-inconsistent) [F4] \u00b7 Weak\n- **Nuclear size and variation** (regions 1, 4, 5) \u00b7 context \u00b7 Mean 74.2 \u00b5m\u00b2, CV 0.65 (93rd percentile) [F7] [F8] \u00b7 Measured\n- **Frequent mitotic figures** (regions 1, 2, 5) \u00b7 \u2191 invasive \u00b7 Positive score (+0.43 contribution), but 0/20 AI spot check \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful; deleting 3 top-risk regions beat random deletion (+0.0114, 95% CI +0.0021 to +0.0197, n=132).\n- **Concepts**: Unproven (+0.0008 vs random, 95% CI -0.0088 to +0.0064); ignore unreliable normal_lobules (0/20), mitoses (0/20), necrosis (3/20).\n\n## Could be wrong if\n- In situ carcinoma mimics invasion (contrast InSitu case BACH_0155 has 74% similarity; duct_confined is weak, 12/20).\n- Calibration and 90% conformal coverage rely on 132 test patches (24 patients; coverage CI 76%\u201398%).\n\n## Check on the slide\n1. **Regions 1, 3, 8**: Verify stromal invasion before releasing drafted ER, PR, HER2, Ki-67 orders.\n2. **Regions 1, 4, 5, 7, 9**: Confirm nuclear enlargement and pleomorphism in top concept and HoVer-Net regions.\n3. **Regions 0, 10**: Inspect duct boundaries and tubule formation to exclude in situ carcinoma.",
+ "verification": {
+  "checked": 47,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:24:35-0500",
+ "elapsed_s": 212.5,
+ "usage": {
+  "inputTokens": 31562,
+  "outputTokens": 12932,
+  "cacheReadTokens": 6016,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 116311,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Careful review\nFlagged (tier 2) for invasive carcinoma [F1]; confirm invasion before releasing drafted ER, PR, HER2, Ki-67 orders.\n\n## Confidence\n| Signal | Value | Reading |\n| - | - | - |\n| Top probabilities | Invasive 100%, InSitu 0%, Benign 0%, Normal 0% | Strong separation; ECE 5% (n=132) |\n| Conformal set | {Invasive} (alpha 10%, 90% coverage) | Dataset guarantee, not case probability |\n| Reliability / OOD | 98% reliability; 68th OOD percentile [F6] | Typical input; no quality flag |\n| CONCH\u2013MUSK agreement | Agree on Invasive | Independent foundation models concur |\n| Similar cases | 5/5 Invasive (84%\u201389% similarity) [F5] | All nearest reference cases match |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 1, 3, 8) \u00b7 \u2191 invasive \u00b7 Above-typical score (+1.35 contribution; 19/20 AI spot check) [F2] \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 1, 7, 9) \u00b7 \u2191 invasive \u00b7 Above-typical score (+0.91 contribution; 18/20 AI spot check) [F3] \u00b7 Validated\n- **Gland / tubule formation** (region 10) \u00b7 \u2191 invasive \u00b7 Below-typical score (-1.10) favors invasion (+0.86; caption-inconsistent) [F4] \u00b7 Validated\n- **Nuclear size and variation** (regions 1, 4, 5) \u00b7 context \u00b7 Mean 74.2 \u00b5m\u00b2, CV 0.65 (93rd percentile) [F7] [F8] \u00b7 Measured\n- **Frequent mitotic figures** (regions 1, 2, 5) \u00b7 \u2191 invasive \u00b7 Positive score (+0.43 contribution), but 0/20 AI spot check \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful; deleting 3 top-risk regions beat random deletion (+0.0114, 95% CI +0.0021 to +0.0197, n=132).\n- **Concepts**: Unproven (+0.0008 vs random, 95% CI -0.0088 to +0.0064); ignore unreliable normal_lobules (0/20), mitoses (0/20), necrosis (3/20).\n\n## Could be wrong if\n- In situ carcinoma mimics invasion (contrast InSitu case BACH_0155 has 74% similarity; duct_confined is weak, 12/20).\n- Calibration and 90% conformal coverage rely on 132 test patches (24 patients; coverage CI 76%\u201398%).\n\n## Check on the slide\n1. **Regions 1, 3, 8**: Verify stromal invasion before releasing drafted ER, PR, HER2, Ki-67 orders.\n2. **Regions 1, 4, 5, 7, 9**: Confirm nuclear enlargement and pleomorphism in top concept and HoVer-Net regions.\n3. **Regions 0, 10**: Inspect duct boundaries and tubule formation to exclude in situ carcinoma.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed).",
+   "The CONCH\u2013MUSK row names Invasive, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

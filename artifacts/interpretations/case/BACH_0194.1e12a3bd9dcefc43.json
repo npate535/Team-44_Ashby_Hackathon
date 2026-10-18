@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0194",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "1e12a3bd9dcefc43",
+ "markdown": "## Bottom line\n**Suggests InSitu (91%)** \u00b7 Unreliable input \u00b7 Careful review\nFlagged Tier 3 for out-of-distribution quality, foundation-model disagreement, and mostly Benign neighbors.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 91%, Benign 7%, Invasive 2% [F1] | Strong InSitu score, low invasion |\n| Conformal set | {InSitu} at 90% coverage | Single class at dataset guarantee |\n| Reliability / OOD | 44% reliability (flagged); 100th-percentile OOD [F6] | Suspect input; atypical of training |\n| CONCH\u2013MUSK agreement | Disagree (false) | Independent foundation models disagree |\n| Similar cases | 1/5 InSitu (20%), 3/5 Benign [F5] | Nearest neighbors mostly Benign |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 3) \u00b7 \u2193 invasive \u00b7 Below-typical (-0.32, contrib -0.80) opposes invasion [F2] \u00b7 Validated\n- **Atypical cells confined within ducts** (regions 6, 9, 11) \u00b7 \u2193 invasive \u00b7 High score (+1.53, contrib -0.76) favors InSitu [F3] \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 3) \u00b7 \u2191 invasive \u00b7 Low (-0.23, contrib +0.70); 0/20 spot-check, unreliable [F4] \u00b7 Unreliable\n- **HoVer-Net nuclei** (regions 3, 5, 9) \u00b7 context \u00b7 92% tumor fraction [F7], 4058/mm\u00b2 density [F8], 51 \u00b5m\u00b2 size [F9] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful; removing top-risk regions drops invasive score above random (+0.011, 95% CI 0.002\u20130.020).\n- **Concepts**: Unproven (+0.001 vs random, 95% CI -0.009\u20130.006); leans on unreliable normal_lobules (0/20) and necrosis (3/20).\n\n## Could be wrong if\n- Small-nucleated proliferation is Benign (like 84%-similar BACH_0330), separated mainly by unreliable necrosis and normal_lobules.\n- Out-of-distribution quality caused model disagreement or obscured focal stromal invasion.\n\n## Check on the slide\n1. **Regions 6, 9, 11**: Confirm duct-confined atypia versus benign hyperplasia, especially highest-risk region 9 (risk 3%).\n2. **Regions 5, 9**: Verify dense, small nuclei (51 \u00b5m\u00b2); check regions 9, 10, 11 for necrosis.\n3. **Region 3**: Inspect stroma (31 connective, 36 neoplastic; 0% benign epithelium [F10]); consider recut, deeper levels, ER.",
+ "verification": {
+  "checked": 34,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:15:57-0500",
+ "elapsed_s": 128.3,
+ "usage": {
+  "inputTokens": 31906,
+  "outputTokens": 13528,
+  "cacheReadTokens": 6020,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 125213,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

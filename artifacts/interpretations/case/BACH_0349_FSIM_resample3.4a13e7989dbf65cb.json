@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0349_FSIM_resample3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "4a13e7989dbf65cb",
+ "markdown": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Careful review\nTier 1 surgical frozen section with single-class conformal set [F1], model agreement, and suggested superior/inferior margin involvement [F7].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 100%, InSitu 0%, Benign 0%, Normal 0% | Concentrated on invasive carcinoma |\n| Conformal set | {Invasive} (alpha 0.1, 90% coverage) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability, 96% OOD, 12/12 regions [F6] | Unflagged; high OOD percentile |\n| CONCH\u2013MUSK agreement | Same top class (true) | Independent foundation models agree |\n| Similar cases | 5/5 Invasive (100%, similarity 0.77\u20130.86) [F5] | All nearest reference cases match |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 3, 4, 11) \u00b7 context \u00b7 Above typical (1.35); lowers score (-1.07) [F2] \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 8) \u00b7 \u2191 invasive \u00b7 Below typical (-0.68); scarcity raises score (+1.02) [F3] \u00b7 Unreliable\n- **Frequent mitotic figures** (regions 0, 1, 4) \u00b7 \u2191 invasive \u00b7 Above typical (+1.93); raises score (+1.00) [F4] \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (region 7) \u00b7 \u2191 invasive \u00b7 Below typical (-1.03); scarcity raises score (+0.91) \u00b7 Validated\n- **Tumor infiltrating stroma** (regions 0, 4, 5) \u00b7 \u2191 invasive \u00b7 Above typical (+1.07); raises score (+0.74) \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful across dataset (deletion drop +0.0114; 95% CI 0.0021\u20130.0197 excludes 0); all 12 case regions score 1.0.\n- **Concepts**: Unproven faithfulness (deletion CI -0.0088\u20130.0064 includes 0); leans on Unreliable normal lobules (0/20), mitoses (0/20), necrosis (3/20).\n\n## Could be wrong if\n- **In situ mimicry**: Contrast case BACH_0253 is InSitu (0.74 similarity), differing in benign stroma and Unreliable normal lobules.\n- **Frozen-section artifact**: Severity-3 resample degradation and 96% OOD percentile distort morphology (reliability AUROC 70% on simulated frozen sections).\n\n## Check on the slide\n1. **Regions 0, 1, 4, 5**: Confirm stromal invasion and pleomorphism (Validated); verify mitoses directly (concept is Unreliable).\n2. **Regions 6, 7, 8**: Rule out duct-confined in situ carcinoma (contrast BACH_0253); normal-lobule score is Unreliable.\n3. **Regions 0\u20133, 8\u201311**: Inspect superior and inferior margins (108 um strips) for tumor; frozen-section stains not drafted.",
+ "verification": {
+  "checked": 36,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:31:11-0500",
+ "elapsed_s": 154.9,
+ "usage": {
+  "inputTokens": 42344,
+  "outputTokens": 14722,
+  "cacheReadTokens": 36546,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 147156,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Careful review\nTier 1 surgical frozen section with single-class conformal set [F1], model agreement, and suggested superior/inferior margin involvement [F7].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 100%, InSitu 0%, Benign 0%, Normal 0% | Concentrated on invasive carcinoma |\n| Conformal set | {Invasive} (alpha 0.1, 90% coverage) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability, 96% OOD, 12/12 regions [F6] | Unflagged; high OOD percentile |\n| CONCH\u2013MUSK agreement | Agree on Invasive (true) | Independent foundation models agree |\n| Similar cases | 5/5 Invasive (100%, similarity 0.77\u20130.86) [F5] | All nearest reference cases match |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 3, 4, 11) \u00b7 context \u00b7 Above typical (1.35); lowers score (-1.07) [F2] \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 8) \u00b7 \u2191 invasive \u00b7 Below typical (-0.68); scarcity raises score (+1.02) [F3] \u00b7 Unreliable\n- **Frequent mitotic figures** (regions 0, 1, 4) \u00b7 \u2191 invasive \u00b7 Above typical (+1.93); raises score (+1.00) [F4] \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (region 7) \u00b7 \u2191 invasive \u00b7 Below typical (-1.03); scarcity raises score (+0.91) \u00b7 Validated\n- **Tumor infiltrating stroma** (regions 0, 4, 5) \u00b7 \u2191 invasive \u00b7 Above typical (+1.07); raises score (+0.74) \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful across dataset (deletion drop +0.0114; 95% CI 0.0021\u20130.0197 excludes 0); all 12 case regions score 1.0.\n- **Concepts**: Unproven faithfulness (deletion CI -0.0088\u20130.0064 includes 0); leans on Unreliable normal lobules (0/20), mitoses (0/20), necrosis (3/20).\n\n## Could be wrong if\n- **In situ mimicry**: Contrast case BACH_0253 is InSitu (0.74 similarity), differing in benign stroma and Unreliable normal lobules.\n- **Frozen-section artifact**: Severity-3 resample degradation and 96% OOD percentile distort morphology (reliability AUROC 70% on simulated frozen sections).\n\n## Check on the slide\n1. **Regions 0, 1, 4, 5**: Confirm stromal invasion and pleomorphism (Validated); verify mitoses directly (concept is Unreliable).\n2. **Regions 6, 7, 8**: Rule out duct-confined in situ carcinoma (contrast BACH_0253); normal-lobule score is Unreliable.\n3. **Regions 0\u20133, 8\u201311**: Inspect superior and inferior margins (108 um strips) for tumor; frozen-section stains not drafted.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "The CONCH\u2013MUSK row names Invasive, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

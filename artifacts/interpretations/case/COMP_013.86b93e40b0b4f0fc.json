@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_013",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "86b93e40b0b4f0fc",
+ "markdown": "## Bottom line\n**Suggests Normal (61%)** \u00b7 Ambiguous: Normal vs InSitu \u00b7 Careful review\n- InSitu (38%) remains in the 90% conformal set on this simulated frozen section, with 0% invasive risk [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Normal 61%, InSitu 38%, Benign 1%, Invasive 0% | Split between Normal and InSitu |\n| Conformal set | Normal, InSitu (90% target; 90% test coverage, n=132) | Cannot rule out InSitu |\n| Reliability / OOD | 96% reliability, 90th OOD percentile, 12 tiles kept [F6] | Unflagged input; modest error AUROC (0.70) |\n| CONCH\u2013MUSK agreement | Agree on top class (true) | Independent backbones match top call |\n| Similar cases | 5/5 Normal (87%\u201389%); contrast Benign (84%) [F5] | Nearest neighbors all labeled Normal |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 0, 4, 8) \u00b7 \u2193 invasive \u00b7 Strongest score (-1.24), but 0/20 AI spot-check makes it unreliable [F2] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (regions 2, 3, 6) \u00b7 context \u00b7 Above-typical score (-0.88); 8/20 AI spot-check, differs from Benign contrast [F3] \u00b7 Weak\n- **Frequent mitotic figures** (regions 2, 3, 7) \u00b7 \u2191 invasive \u00b7 Above-typical score (+0.33), but 0/20 AI spot-check makes it unreliable [F4] \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 8, 10) \u00b7 \u2193 invasive \u00b7 Modest pull away from invasion (-0.23); 20/20 AI spot-check \u00b7 Validated\n- **Tumor infiltrating stroma** (region 4) \u00b7 \u2191 invasive \u00b7 Small pull toward invasion (+0.19); 19/20 AI spot-check \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful to classifier; deleting top 3 risk regions drops invasive score above random (+0.011, CI 0.002\u20130.020, n=132).\n- **Concepts**: Unverified versus random deletion (+0.001, CI -0.009\u20130.006); case leans on unreliable normal_lobules and mitoses (both 0/20 spot-check).\n\n## Could be wrong if\n- True InSitu (38% probability) or ductal atypia is present, as flagged by the drafted deeper-levels order.\n- Simulated composite frozen-section artifacts mislead the classifier (ECE 5%, CI 4%\u201322% across 24 patients; HoVer-Net cells disabled).\n\n## Check on the slide\n1. **Regions 7, 4, 1**: Highest heatmap risk tiles (0.007, 0.006, 0.004); verify region 4 lacks stromal invasion.\n2. **Regions 2, 3, 6**: Check ducts and lymphocytes for InSitu (38%); review drafted deeper-levels order (stains blocked).\n3. **Regions 0, 4, 8**: Confirm normal lobules directly (unreliable concept); check clear call on inferior/lateral margins (65%/64%) [F7].",
+ "verification": {
+  "checked": 48,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:37:00-0500",
+ "elapsed_s": 103.3,
+ "usage": {
+  "inputTokens": 38556,
+  "outputTokens": 814,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 97199,
+ "key": "backup",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

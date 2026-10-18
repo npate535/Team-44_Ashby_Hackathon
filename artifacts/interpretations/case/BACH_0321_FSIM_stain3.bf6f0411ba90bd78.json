@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0321_FSIM_stain3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "bf6f0411ba90bd78",
+ "markdown": "## Bottom line\n**Suggests Benign (96%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set [F1], high reliability, and clear frozen-section margins [F7] despite severity-3 stain degradation.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 96%, Normal 2%, InSitu 2%, Invasive 0% | Strongly favors benign (0% invasive) |\n| Conformal set | {Benign} (alpha 0.1, 90% coverage) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability, 76% OOD [F6] | Unflagged despite severity-3 stain degradation |\n| CONCH\u2013MUSK agreement | True (same top class) | Independent foundation models concur |\n| Similar cases | 4/5 Benign (80%, 88%\u201392% similarity) [F5] | Neighbors support benign call |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 4, 8, 9) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.59) [F2]; unreliable (0/20 spot check) \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 0, 3, 4) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.55) [F3]; 20/20 spot check \u00b7 Validated\n- **Gland / tubule formation** (regions 2, 10, 11) \u00b7 \u2193 invasive \u00b7 Above-typical text score (-0.55, caption-inconsistent) [F4]; 18/20 spot check \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful on test set (`risk_minus_random` +0.0114, CI 0.0021\u20130.0197 excludes 0); case tile risks 0\u20130.001.\n- **Concepts**: Unproven faithfulness (`concept_minus_random` CI -0.0088\u20130.0064 includes 0); uses unreliable normal lobules and mitoses (0/20).\n\n## Could be wrong if\n- Severity-3 stain degradation on simulated frozen section masks atypia or invasion (error AUROC 0.70, test n=132).\n- Superior-lateral corner (32% margin probability) harbors lesion, or tissue is Normal like contrast `BACH_0207` (91% similar).\n\n## Check on the slide\n1. **Region 8**: Inspect nonzero risk tile (0.001), top invasion score (0.66), and unreliable lobule/mitosis calls.\n2. **Region 3**: Check superior-lateral margin corner (`x=1792, y=0`) where involvement probability reaches 32%.\n3. **Regions 2, 5, 10, 11**: Confirm benign tubules (`2, 10, 11`) and region `5` duct-confined atypia (0.90).",
+ "verification": {
+  "checked": 37,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:28:45-0500",
+ "elapsed_s": 164.2,
+ "usage": {
+  "inputTokens": 38437,
+  "outputTokens": 693,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 157612,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Benign (96%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set [F1], high reliability, and clear frozen-section margins [F7] despite severity-3 stain degradation.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 96%, Normal 2%, InSitu 2%, Invasive 0% | Strongly favors benign (0% invasive) |\n| Conformal set | {Benign} (alpha 0.1, 90% coverage) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability, 76% OOD [F6] | Unflagged despite severity-3 stain degradation |\n| CONCH\u2013MUSK agreement | True (same top class) | Independent foundation models concur |\n| Similar cases | 4/5 Benign (80%, 88%\u201392% similarity) [F5] | Neighbors support benign call |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 4, 8, 9) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.59) [F2]; unreliable (0/20 spot check) \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 0, 3, 4) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.55) [F3]; 20/20 spot check \u00b7 Validated\n- **Gland / tubule formation** (regions 2, 10, 11) \u00b7 \u2193 invasive \u00b7 Above-typical text score (-0.55, caption-inconsistent) [F4]; 18/20 spot check \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful on test set (`risk_minus_random` +0.0114, CI 0.0021\u20130.0197 excludes 0); case tile risks 0\u20130.001.\n- **Concepts**: Unproven faithfulness (`concept_minus_random` CI -0.0088\u20130.0064 includes 0); uses unreliable normal lobules and mitoses (0/20).\n\n## Could be wrong if\n- Severity-3 stain degradation on simulated frozen section masks atypia or invasion (error AUROC 0.70, test n=132).\n- Superior-lateral corner (32% margin probability) harbors lesion, or tissue is Normal like contrast `BACH_0207` (91% similar).\n\n## Check on the slide\n1. **Region 8**: Inspect nonzero risk tile (0.001), top invasion score (0.66), and unreliable lobule/mitosis calls.\n2. **Region 3**: Check superior-lateral margin corner (`x=1792, y=0`) where involvement probability reaches 32%.\n3. **Regions 2, 5, 10, 11**: Confirm benign tubules (`2, 10, 11`) and region `5` duct-confined atypia (0.90).",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

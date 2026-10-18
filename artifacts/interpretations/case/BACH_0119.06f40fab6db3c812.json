@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0119",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "06f40fab6db3c812",
+ "markdown": "## Bottom line\n**Suggests Benign (99%)** \u00b7 Confident \u00b7 Read in turn\nModels agree on Benign with 0% invasive risk [F1], though 4 of 5 similar cases are Normal [F5].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Benign 99%, Normal 1%, Invasive 0% | Strong Benign call; zero invasive risk |\n| Conformal set | {Benign} (\u03b1 = 0.1, 90% coverage) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability; 36th OOD percentile (12/12 regions) [F6] | Typical image quality and appearance |\n| CONCH\u2013MUSK agreement | Agree on top class | Independent models match top call |\n| Similar cases | 1/5 Benign, 4/5 Normal (89%\u201391% similarity) | Mostly Normal neighbors; check overlap |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 0, 7, 8) \u00b7 \u2193 invasive \u00b7 Above-typical score (-1.464); 0/20 AI spot check is unreliable [F2] \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 0, 4, 7) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.358) pushes away from invasive (20/20 check) [F3] \u00b7 Validated\n- **Atypical cells confined within ducts** (region 1) \u00b7 \u2191 invasive \u00b7 Below-typical score (-0.461) slightly raises invasive score (+0.351) [F4] \u00b7 Weak\n- **Tumor infiltrating stroma** (region 11) \u00b7 \u2191 invasive \u00b7 Mildly elevated (+0.177) in top-risk region; separates from Normal neighbor \u00b7 Validated\n- **HoVer-Net cell measurements** (regions 0, 8, 11) \u00b7 context \u00b7 92nd-percentile TIL proximity [F7], 4th-percentile epithelium [F8]; sparse tumor nuclei \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top 3 risk regions drops invasive probability more than random (95% CI 0.0021\u20130.0197).\n- **Concepts**: Unproven faithfulness (deletion 95% CI -0.0088\u20130.0064 spans 0), relying heavily on unreliable normal lobules (0/20 AI check).\n\n## Could be wrong if\n- Tissue is Normal rather than Benign, matching 4 of 5 nearest reference cases (89%\u201391% similarity).\n- Region 11 contains focal atypia or invasion (4% tile risk, 15 neoplastic nuclei, sparse tumor nuclei flag).\n\n## Check on the slide\n1. **Region 11**: Inspect 15 segmented neoplastic nuclei, 4% tile risk, and stromal infiltration score (row 2, col 3).\n2. **Regions 0, 4, 7, 8**: Verify benign fibrous stroma, fat, and lobular architecture versus Normal breast tissue.\n3. **Region 1**: Confirm absence of duct-confined atypia driving the minor positive score shift (row 0, col 1).",
+ "verification": {
+  "checked": 33,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:07:37-0500",
+ "elapsed_s": 108.0,
+ "usage": {
+  "inputTokens": 37413,
+  "outputTokens": 738,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 104954,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

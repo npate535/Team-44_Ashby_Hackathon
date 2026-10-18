@@ -1,0 +1,34 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_055",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "5983d369e0cad166",
+ "markdown": "## Bottom line\n**Suggests Benign (64%)** \u00b7 Ambiguous: Benign vs Invasive \u00b7 Careful review\nInvasive (25%) and in situ (8%) carcinoma remain in the conformal set on this simulated frozen section [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Benign 64%, Invasive 25%, InSitu 8%, Normal 3% (ECE 5%) | Favors benign, sizable invasive risk |\n| Conformal set | Benign, InSitu, Invasive (alpha 10%, test coverage 90%, n=132) | Cannot exclude in situ or invasive |\n| Reliability / OOD | 94% reliability, 76th percentile OOD, 12/12 tiles kept [F6] (AUROC 70%) | Image quality typical, unflagged |\n| CONCH\u2013MUSK agreement | Agree on top class | Models agree on top class |\n| Similar cases | 2/5 Benign (40%) [F5]; top match InSitu (85% similarity) | Mixed neighbors weaken benign call |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 1, 2, 3) \u00b7 \u2193 invasive \u00b7 Strongest benign score (-0.87) [F2], but 0/20 AI spot-check \u00b7 Unreliable\n- **Frequent mitotic figures** (regions 8, 9, 10) \u00b7 \u2191 invasive \u00b7 Strongest invasive score (+0.81) [F3], but 0/20 AI spot-check \u00b7 Unreliable\n- **Tumor infiltrating stroma** (regions 10, 11) \u00b7 \u2191 invasive \u00b7 Credible invasive score (+0.58) [F4]; 19/20 AI spot-check \u00b7 Validated\n- **Gland / tubule formation** (regions 0, 1, 2) \u00b7 \u2193 invasive \u00b7 Text-only benign score (-0.29), caption-inconsistent; 18/20 AI spot-check \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top-3 risk regions drops invasive probability above random (95% CI +0.002 to +0.020, n=132).\n- **Concepts**: Faithfulness unproven (95% CI -0.009 to +0.006 includes 0); top drivers normal lobules and mitoses are unreliable (0/20).\n\n## Could be wrong if\n- Focal invasive or in situ carcinoma in high-risk regions 4 and 7\u201311 is diluted by benign regions 0\u20133.\n- Top neighbor BACH_0339 is InSitu (85% similarity); drafted deeper levels may uncover atypia or DCIS (stains blocked).\n\n## Check on the slide\n1. **Regions 10, 11**: Highest heatmap risk (100%); inspect for stromal invasion and nuclear pleomorphism.\n2. **Regions 4, 7, 8, 9**: High heatmap risk (52%\u201396%) with validated nuclear pleomorphism in 8, 9.\n3. **Regions 4, 7\u201311**: Check called inferior (538 um), lateral (323 um), medial (215 um) margins [F7]; deeper levels drafted.",
+ "verification": {
+  "checked": 41,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:42:38-0500",
+ "elapsed_s": 116.9,
+ "usage": {
+  "inputTokens": 38720,
+  "outputTokens": 756,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 109113,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Benign (64%)** \u00b7 Ambiguous: Benign vs Invasive \u00b7 Careful review\nInvasive (25%) and in situ (8%) carcinoma remain in the conformal set on this simulated frozen section [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Benign 64%, Invasive 25%, InSitu 8%, Normal 3% (ECE 5%) | Favors benign, sizable invasive risk |\n| Conformal set | Benign, InSitu, Invasive (alpha 10%, test coverage 90%, n=132) | Cannot exclude in situ or invasive |\n| Reliability / OOD | 94% reliability, 76th percentile OOD, 12/12 tiles kept [F6] (AUROC 70%) | Image quality typical, unflagged |\n| CONCH\u2013MUSK agreement | Agree on top class (Benign) | Cross-model support for Benign |\n| Similar cases | 2/5 Benign (40%) [F5]; top match InSitu (85% similarity) | Mixed neighbors weaken benign call |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 1, 2, 3) \u00b7 \u2193 invasive \u00b7 Strongest benign score (-0.87) [F2], but 0/20 AI spot-check \u00b7 Unreliable\n- **Frequent mitotic figures** (regions 8, 9, 10) \u00b7 \u2191 invasive \u00b7 Strongest invasive score (+0.81) [F3], but 0/20 AI spot-check \u00b7 Unreliable\n- **Tumor infiltrating stroma** (regions 10, 11) \u00b7 \u2191 invasive \u00b7 Credible invasive score (+0.58) [F4]; 19/20 AI spot-check \u00b7 Validated\n- **Gland / tubule formation** (regions 0, 1, 2) \u00b7 \u2193 invasive \u00b7 Text-only benign score (-0.29), caption-inconsistent; 18/20 AI spot-check \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top-3 risk regions drops invasive probability above random (95% CI +0.002 to +0.020, n=132).\n- **Concepts**: Faithfulness unproven (95% CI -0.009 to +0.006 includes 0); top drivers normal lobules and mitoses are unreliable (0/20).\n\n## Could be wrong if\n- Focal invasive or in situ carcinoma in high-risk regions 4 and 7\u201311 is diluted by benign regions 0\u20133.\n- Top neighbor BACH_0339 is InSitu (85% similarity); drafted deeper levels may uncover atypia or DCIS (stains blocked).\n\n## Check on the slide\n1. **Regions 10, 11**: Highest heatmap risk (100%); inspect for stromal invasion and nuclear pleomorphism.\n2. **Regions 4, 7, 8, 9**: High heatmap risk (52%\u201396%) with validated nuclear pleomorphism in 8, 9.\n3. **Regions 4, 7\u201311**: Check called inferior (538 um), lateral (323 um), medial (215 um) margins [F7]; deeper levels drafted.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed).",
+   "The CONCH\u2013MUSK row names Benign, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

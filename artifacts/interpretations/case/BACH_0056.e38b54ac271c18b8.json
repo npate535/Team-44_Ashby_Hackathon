@@ -1,0 +1,31 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0056",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "e38b54ac271c18b8",
+ "markdown": "## Bottom line\n**Suggests Benign (86%)** \u00b7 Ambiguous: Benign vs InSitu \u00b7 Careful review\nFlagged (tier 3) because the 90% prediction set includes both Benign and InSitu [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Benign 86%, InSitu 13%, Normal 1%, Invasive 0% | Favors benign; negligible invasive risk |\n| Conformal set | Benign, InSitu (alpha 10%) | Cannot exclude in situ carcinoma |\n| Reliability / OOD | 96% reliability / 90th percentile OOD [F6] | Atypical OOD; passes quality control |\n| CONCH\u2013MUSK agreement | True (same top class) | Independent models match top class |\n| Similar cases | 2/5 Benign, 2/5 Normal, 1/5 InSitu [F5] | Reference neighbors are split |\n\n## Tissue evidence\n- **Frequent mitotic figures** (regions 1, 5, 6) \u00b7 \u2191 invasive \u00b7 Above-typical score (+0.40 contribution), 0/20 AI spot check [F2] \u00b7 Unreliable\n- **Tumor infiltrating stroma** (region 3) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.40 contribution) pushes away from invasion [F3] \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (regions 2, 3) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.39 contribution), 0/20 AI spot check [F4] \u00b7 Unreliable\n- **Atypical cells confined within ducts** (regions 1, 6, 10) \u00b7 \u2193 invasive \u00b7 Elevated score (-0.36 contribution) favors duct-confined growth \u00b7 Weak\n- **Tumor cell fraction and density** (regions 0, 5, 11) \u00b7 context \u00b7 86% neoplastic nuclei (100th percentile) [F7]; 3659/mm\u00b2 (97th percentile) [F8] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful; deleting top-risk regions drops invasive probability more than random (95% CI 0.0021 to 0.0197, n=132).\n- **Concepts**: Unproven (deletion 95% CI -0.0088 to 0.0064 includes 0); mitoses and normal lobules are Unreliable (0/20 spot check).\n\n## Could be wrong if\n- In situ carcinoma (13% probability, inside the conformal set) is present in regions 1, 5, 6, or 10.\n- High neoplastic cell counts in region 5 (231 nuclei; 48% tile risk) reflect true atypical or in situ proliferation.\n\n## Check on the slide\n1. **Region 5**: Inspect the highest-risk tile (48% risk, 231 neoplastic nuclei) for architectural atypia, mitoses, or necrosis.\n2. **Regions 1, 6, 10**: Review duct-confined epithelium; consider drafted CK5/6, ER stains and deeper levels for atypia vs in situ.\n3. **Regions 0, 5, 11**: Check whether HoVer-Net neoplastic calls and 92nd-percentile immune proximity [F9] represent benign hyperplasia.",
+ "verification": {
+  "checked": 33,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:01:18-0500",
+ "elapsed_s": 97.2,
+ "usage": {
+  "inputTokens": 37734,
+  "outputTokens": 753,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 60422,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Benign (86%)** \u00b7 Ambiguous: Benign vs InSitu \u00b7 Careful review\nFlagged (tier 3) because the 90% prediction set includes both Benign and InSitu [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Benign 86%, InSitu 13%, Normal 1%, Invasive 0% | Favors benign; negligible invasive risk |\n| Conformal set | Benign, InSitu (alpha 10%) | Cannot exclude in situ carcinoma |\n| Reliability / OOD | 96% reliability / 90th percentile OOD [F6] | Typical image; passes quality control |\n| CONCH\u2013MUSK agreement | True (same top class) | Independent models match top class |\n| Similar cases | 2/5 Benign, 2/5 Normal, 1/5 InSitu [F5] | Reference neighbors are split |\n\n## Tissue evidence\n- **Frequent mitotic figures** (regions 1, 5, 6) \u00b7 \u2191 invasive \u00b7 Above-typical score (+0.40 contribution), 0/20 AI spot check [F2] \u00b7 Unreliable\n- **Tumor infiltrating stroma** (region 3) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.40 contribution) pushes away from invasion [F3] \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (regions 2, 3) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.39 contribution), 0/20 AI spot check [F4] \u00b7 Unreliable\n- **Atypical cells confined within ducts** (regions 1, 6, 10) \u00b7 \u2193 invasive \u00b7 Elevated score (-0.36 contribution) favors duct-confined growth \u00b7 Weak\n- **Tumor cell fraction and density** (regions 0, 5, 11) \u00b7 context \u00b7 86% neoplastic nuclei (100th percentile) [F7]; 3659/mm\u00b2 (97th percentile) [F8] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful; deleting top-risk regions drops invasive probability more than random (95% CI 0.0021 to 0.0197, n=132).\n- **Concepts**: Unproven (deletion 95% CI -0.0088 to 0.0064 includes 0); mitoses and normal lobules are Unreliable (0/20 spot check).\n\n## Could be wrong if\n- In situ carcinoma (13% probability, inside the conformal set) is present in regions 1, 5, 6, or 10.\n- High neoplastic cell counts in region 5 (231 nuclei; 48% tile risk) reflect true atypical or in situ proliferation.\n\n## Check on the slide\n1. **Region 5**: Inspect the highest-risk tile (48% risk, 231 neoplastic nuclei) for architectural atypia, mitoses, or necrosis.\n2. **Regions 1, 6, 10**: Review duct-confined epithelium; consider drafted CK5/6, ER stains and deeper levels for atypia vs in situ.\n3. **Regions 0, 5, 11**: Check whether HoVer-Net neoplastic calls and 92nd-percentile immune proximity [F9] represent benign hyperplasia.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

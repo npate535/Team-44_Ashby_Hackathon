@@ -1,0 +1,790 @@
+{
+  "schema_version": "1.0",
+  "synthetic": false,
+  "case_id": "BACH_0011",
+  "lane": "biopsy",
+  "simulated": false,
+  "simulated_variant": null,
+  "degradation": null,
+  "source_case_ids": [],
+  "arrived_offset_s": 3369.5,
+  "image": {
+    "display": "images/BACH_0011.jpg",
+    "width": 2048,
+    "height": 1536,
+    "tile_size": 512,
+    "grid": [
+      3,
+      4
+    ]
+  },
+  "quality": {
+    "qc_tiles_kept": 12,
+    "ood_percentile": 0.98,
+    "reliability": 0.977,
+    "reliability_flag": false
+  },
+  "prediction": {
+    "model": "uni2h_lr",
+    "classes": [
+      "Normal",
+      "Benign",
+      "InSitu",
+      "Invasive"
+    ],
+    "probs": [
+      0.0002,
+      0.9941,
+      0.0057,
+      0.0
+    ],
+    "risk_score": 0.0,
+    "conformal_alpha": 0.1,
+    "conformal_set": [
+      "Benign"
+    ]
+  },
+  "concepts": [
+    {
+      "id": "invasion",
+      "label": "Tumor infiltrating stroma",
+      "value": -0.281,
+      "contribution": -0.772,
+      "direction": "up",
+      "spread": 0.601,
+      "top_tiles": [
+        0
+      ],
+      "source": "cav",
+      "components": {
+        "text_z": -1.239,
+        "cav_z": 0.951
+      },
+      "caption_consistent": true,
+      "value_std": -1.423,
+      "frac_std": -0.431
+    },
+    {
+      "id": "mitoses",
+      "label": "Frequent mitotic figures",
+      "value": -0.325,
+      "contribution": -0.332,
+      "direction": "up",
+      "spread": 1.029,
+      "top_tiles": [
+        7
+      ],
+      "source": "cav",
+      "components": {
+        "text_z": -0.192,
+        "cav_z": -0.458
+      },
+      "caption_consistent": true,
+      "value_std": -1.112,
+      "frac_std": -0.51
+    },
+    {
+      "id": "duct_confined",
+      "label": "Atypical cells confined within ducts",
+      "value": 1.125,
+      "contribution": -0.312,
+      "direction": "down",
+      "spread": 0.374,
+      "top_tiles": [
+        1,
+        3,
+        9
+      ],
+      "source": "cav",
+      "components": {
+        "text_z": 0.511,
+        "cav_z": 1.843
+      },
+      "caption_consistent": true,
+      "value_std": 0.922,
+      "frac_std": 0.663
+    },
+    {
+      "id": "tubules",
+      "label": "Gland / tubule formation",
+      "value": 1.16,
+      "contribution": -0.285,
+      "direction": "down",
+      "spread": 0.628,
+      "top_tiles": [
+        2,
+        10
+      ],
+      "source": "text",
+      "components": {
+        "text_z": 1.16,
+        "cav_z": null
+      },
+      "caption_consistent": false,
+      "value_std": 0.742,
+      "frac_std": -0.044
+    },
+    {
+      "id": "benign_stroma_fat",
+      "label": "Benign fibrous stroma or fat",
+      "value": 0.424,
+      "contribution": 0.215,
+      "direction": "down",
+      "spread": 0.326,
+      "top_tiles": [
+        4
+      ],
+      "source": "cav",
+      "components": {
+        "text_z": 0.296,
+        "cav_z": 1.127
+      },
+      "caption_consistent": true,
+      "value_std": -0.158,
+      "frac_std": -0.712
+    },
+    {
+      "id": "normal_lobules",
+      "label": "Normal lobules with two-layered epithelium",
+      "value": 0.877,
+      "contribution": -0.188,
+      "direction": "down",
+      "spread": 0.275,
+      "top_tiles": [
+        7
+      ],
+      "source": "cav",
+      "components": {
+        "text_z": 0.183,
+        "cav_z": 1.574
+      },
+      "caption_consistent": true,
+      "value_std": 0.509,
+      "frac_std": -0.299
+    },
+    {
+      "id": "pleomorphism",
+      "label": "Marked nuclear pleomorphism",
+      "value": -0.536,
+      "contribution": -0.152,
+      "direction": "up",
+      "spread": 1.114,
+      "top_tiles": [
+        0
+      ],
+      "source": "cav",
+      "components": {
+        "text_z": -0.628,
+        "cav_z": -0.409
+      },
+      "caption_consistent": true,
+      "value_std": -1.374,
+      "frac_std": -0.506
+    },
+    {
+      "id": "necrosis",
+      "label": "Tumor necrosis",
+      "value": 1.13,
+      "contribution": 0.144,
+      "direction": "up",
+      "spread": 0.753,
+      "top_tiles": [
+        0,
+        8
+      ],
+      "source": "cav",
+      "components": {
+        "text_z": 0.334,
+        "cav_z": 1.927
+      },
+      "caption_consistent": true,
+      "value_std": 0.789,
+      "frac_std": 0.19
+    },
+    {
+      "id": "lymphocytes",
+      "label": "Dense lymphocytic infiltrate (TILs)",
+      "value": 0.502,
+      "contribution": 0.09,
+      "direction": "context",
+      "spread": 1.182,
+      "top_tiles": [
+        0
+      ],
+      "source": "cav",
+      "components": {
+        "text_z": 1.001,
+        "cav_z": 0.252
+      },
+      "caption_consistent": true,
+      "value_std": -0.05,
+      "frac_std": -0.486
+    }
+  ],
+  "tiles": [
+    {
+      "idx": 0,
+      "row": 0,
+      "col": 0,
+      "x": 0,
+      "y": 0,
+      "risk": 0.091,
+      "concepts": {
+        "tubules": -1.56,
+        "pleomorphism": -0.43,
+        "mitoses": -1.28,
+        "invasion": 0.48,
+        "duct_confined": -1.21,
+        "normal_lobules": -0.47,
+        "benign_stroma_fat": -0.26,
+        "lymphocytes": 0.76,
+        "necrosis": 1.04
+      },
+      "attention": null
+    },
+    {
+      "idx": 1,
+      "row": 0,
+      "col": 1,
+      "x": 512,
+      "y": 0,
+      "risk": 0.0,
+      "concepts": {
+        "tubules": 0.46,
+        "pleomorphism": -1.03,
+        "mitoses": -1.08,
+        "invasion": -1.79,
+        "duct_confined": 1.02,
+        "normal_lobules": 0.1,
+        "benign_stroma_fat": 0.2,
+        "lymphocytes": 0.09,
+        "necrosis": 0.15
+      },
+      "attention": null
+    },
+    {
+      "idx": 2,
+      "row": 0,
+      "col": 2,
+      "x": 1024,
+      "y": 0,
+      "risk": 0.0,
+      "concepts": {
+        "tubules": 1.36,
+        "pleomorphism": -0.88,
+        "mitoses": -0.51,
+        "invasion": -1.56,
+        "duct_confined": 0.59,
+        "normal_lobules": 0.28,
+        "benign_stroma_fat": 0.15,
+        "lymphocytes": -0.14,
+        "necrosis": -0.15
+      },
+      "attention": null
+    },
+    {
+      "idx": 3,
+      "row": 0,
+      "col": 3,
+      "x": 1536,
+      "y": 0,
+      "risk": 0.0,
+      "concepts": {
+        "tubules": 0.83,
+        "pleomorphism": -1.52,
+        "mitoses": -0.8,
+        "invasion": -1.76,
+        "duct_confined": 1.13,
+        "normal_lobules": -0.32,
+        "benign_stroma_fat": -0.48,
+        "lymphocytes": 0.02,
+        "necrosis": 0.24
+      },
+      "attention": null
+    },
+    {
+      "idx": 4,
+      "row": 1,
+      "col": 0,
+      "x": 0,
+      "y": 512,
+      "risk": 0.023,
+      "concepts": {
+        "tubules": -1.48,
+        "pleomorphism": -0.58,
+        "mitoses": -1.47,
+        "invasion": -0.11,
+        "duct_confined": -0.44,
+        "normal_lobules": -0.17,
+        "benign_stroma_fat": 0.58,
+        "lymphocytes": 0.42,
+        "necrosis": 0.99
+      },
+      "attention": null
+    },
+    {
+      "idx": 5,
+      "row": 1,
+      "col": 1,
+      "x": 512,
+      "y": 512,
+      "risk": 0.0,
+      "concepts": {
+        "tubules": 0.18,
+        "pleomorphism": -1.47,
+        "mitoses": -0.88,
+        "invasion": -1.69,
+        "duct_confined": 0.96,
+        "normal_lobules": -0.52,
+        "benign_stroma_fat": -0.15,
+        "lymphocytes": 0.32,
+        "necrosis": 0.66
+      },
+      "attention": null
+    },
+    {
+      "idx": 6,
+      "row": 1,
+      "col": 2,
+      "x": 1024,
+      "y": 512,
+      "risk": 0.0,
+      "concepts": {
+        "tubules": 0.91,
+        "pleomorphism": -0.97,
+        "mitoses": -0.37,
+        "invasion": -1.24,
+        "duct_confined": 0.69,
+        "normal_lobules": 0.67,
+        "benign_stroma_fat": 0.03,
+        "lymphocytes": 0.04,
+        "necrosis": 0.18
+      },
+      "attention": null
+    },
+    {
+      "idx": 7,
+      "row": 1,
+      "col": 3,
+      "x": 1536,
+      "y": 512,
+      "risk": 0.0,
+      "concepts": {
+        "tubules": 0.8,
+        "pleomorphism": -1.0,
+        "mitoses": -0.1,
+        "invasion": -1.38,
+        "duct_confined": 0.67,
+        "normal_lobules": 1.12,
+        "benign_stroma_fat": 0.21,
+        "lymphocytes": -0.12,
+        "necrosis": -0.14
+      },
+      "attention": null
+    },
+    {
+      "idx": 8,
+      "row": 2,
+      "col": 0,
+      "x": 0,
+      "y": 1024,
+      "risk": 0.0,
+      "concepts": {
+        "tubules": -1.33,
+        "pleomorphism": -1.75,
+        "mitoses": -1.3,
+        "invasion": -1.21,
+        "duct_confined": 0.55,
+        "normal_lobules": -0.16,
+        "benign_stroma_fat": 0.07,
+        "lymphocytes": -0.67,
+        "necrosis": 1.36
+      },
+      "attention": null
+    },
+    {
+      "idx": 9,
+      "row": 2,
+      "col": 1,
+      "x": 512,
+      "y": 1024,
+      "risk": 0.0,
+      "concepts": {
+        "tubules": 0.85,
+        "pleomorphism": -1.24,
+        "mitoses": -1.31,
+        "invasion": -1.77,
+        "duct_confined": 1.23,
+        "normal_lobules": 0.17,
+        "benign_stroma_fat": 0.25,
+        "lymphocytes": -0.44,
+        "necrosis": -0.1
+      },
+      "attention": null
+    },
+    {
+      "idx": 10,
+      "row": 2,
+      "col": 2,
+      "x": 1024,
+      "y": 1024,
+      "risk": 0.0,
+      "concepts": {
+        "tubules": 1.21,
+        "pleomorphism": -1.35,
+        "mitoses": -1.21,
+        "invasion": -1.36,
+        "duct_confined": 0.52,
+        "normal_lobules": -0.08,
+        "benign_stroma_fat": 0.44,
+        "lymphocytes": 0.21,
+        "necrosis": -0.07
+      },
+      "attention": null
+    },
+    {
+      "idx": 11,
+      "row": 2,
+      "col": 3,
+      "x": 1536,
+      "y": 1024,
+      "risk": 0.0,
+      "concepts": {
+        "tubules": 0.89,
+        "pleomorphism": -0.6,
+        "mitoses": -0.75,
+        "invasion": -1.65,
+        "duct_confined": 0.83,
+        "normal_lobules": 0.83,
+        "benign_stroma_fat": 0.21,
+        "lymphocytes": 0.05,
+        "necrosis": -0.09
+      },
+      "attention": null
+    }
+  ],
+  "similar_cases": [
+    {
+      "case_id": "BACH_0202",
+      "label": "Benign",
+      "similarity": 0.889,
+      "image": "images/BACH_0202.jpg"
+    },
+    {
+      "case_id": "BACH_0123",
+      "label": "Benign",
+      "similarity": 0.847,
+      "image": "images/BACH_0123.jpg"
+    },
+    {
+      "case_id": "BACH_0019",
+      "label": "Benign",
+      "similarity": 0.842,
+      "image": "images/BACH_0019.jpg"
+    },
+    {
+      "case_id": "BACH_0049",
+      "label": "Benign",
+      "similarity": 0.835,
+      "image": "images/BACH_0049.jpg"
+    },
+    {
+      "case_id": "BACH_0327",
+      "label": "Benign",
+      "similarity": 0.83,
+      "image": "images/BACH_0327.jpg"
+    }
+  ],
+  "contrast_case": {
+    "case_id": "BACH_0033",
+    "label": "Normal",
+    "similarity": 0.767,
+    "differs_most_in": [
+      "necrosis",
+      "duct_confined"
+    ],
+    "image": "images/BACH_0033.jpg"
+  },
+  "agreement": {
+    "conch_musk_same_top": true,
+    "neighbor_agreement": 1.0
+  },
+  "margin": null,
+  "cells": {
+    "status": "ok",
+    "model": "hovernet_fast-pannuke",
+    "mpp_model": 0.25,
+    "tiles": [
+      {
+        "idx": 0,
+        "overlay": "cells/BACH_0011_0_overlay.png",
+        "counts": {
+          "neoplastic": 2,
+          "inflammatory": 0,
+          "connective": 0,
+          "dead": 0,
+          "epithelial": 1
+        }
+      },
+      {
+        "idx": 3,
+        "overlay": "cells/BACH_0011_3_overlay.png",
+        "counts": {
+          "neoplastic": 32,
+          "inflammatory": 0,
+          "connective": 15,
+          "dead": 1,
+          "epithelial": 12
+        }
+      },
+      {
+        "idx": 4,
+        "overlay": "cells/BACH_0011_4_overlay.png",
+        "counts": {
+          "neoplastic": 1,
+          "inflammatory": 0,
+          "connective": 0,
+          "dead": 0,
+          "epithelial": 0
+        }
+      }
+    ],
+    "features": {
+      "neo_fraction": {
+        "value": 0.5469,
+        "unit": "",
+        "ref_percentile": 0.895,
+        "contribution": null
+      },
+      "neo_density": {
+        "value": 252.868,
+        "unit": "per mm²",
+        "ref_percentile": 0.539,
+        "contribution": null
+      },
+      "nuc_area_mean": {
+        "value": 35.7653,
+        "unit": "µm²",
+        "ref_percentile": 0.0,
+        "contribution": null
+      },
+      "nuc_area_cv": {
+        "value": 0.7981,
+        "unit": "",
+        "ref_percentile": 1.0,
+        "contribution": null
+      },
+      "nuc_shape_cv": {
+        "value": 0.1446,
+        "unit": "",
+        "ref_percentile": 0.875,
+        "contribution": null
+      },
+      "infl_fraction": {
+        "value": 0.0,
+        "unit": "",
+        "ref_percentile": 0.086,
+        "contribution": null
+      },
+      "til_proximity": {
+        "value": null,
+        "unit": "",
+        "ref_percentile": null,
+        "contribution": null
+      },
+      "dead_fraction": {
+        "value": 0.0156,
+        "unit": "",
+        "ref_percentile": 0.875,
+        "contribution": null
+      },
+      "epi_fraction": {
+        "value": 0.2031,
+        "unit": "",
+        "ref_percentile": 0.316,
+        "contribution": null
+      }
+    },
+    "flags": {
+      "insufficient_tumor_nuclei": false
+    }
+  },
+  "flag": {
+    "flagged": false,
+    "tier": 4,
+    "reasons": []
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "kind": "prediction",
+      "data": {
+        "top": "Benign",
+        "p": 0.994,
+        "set": [
+          "Benign"
+        ],
+        "confidence": 0.9,
+        "risk": 0.0
+      }
+    },
+    {
+      "id": "F2",
+      "kind": "concept",
+      "data": {
+        "concept": "invasion",
+        "label": "Tumor infiltrating stroma",
+        "contribution": -0.772,
+        "tiles": [
+          0
+        ],
+        "value": -0.281,
+        "direction": "up",
+        "level": "below_typical"
+      }
+    },
+    {
+      "id": "F3",
+      "kind": "concept",
+      "data": {
+        "concept": "mitoses",
+        "label": "Frequent mitotic figures",
+        "contribution": -0.332,
+        "tiles": [
+          7
+        ],
+        "value": -0.325,
+        "direction": "up",
+        "level": "below_typical"
+      }
+    },
+    {
+      "id": "F4",
+      "kind": "concept",
+      "data": {
+        "concept": "duct_confined",
+        "label": "Atypical cells confined within ducts",
+        "contribution": -0.312,
+        "tiles": [
+          1,
+          3,
+          9
+        ],
+        "value": 1.125,
+        "direction": "down",
+        "level": "above_typical"
+      }
+    },
+    {
+      "id": "F5",
+      "kind": "retrieval",
+      "data": {
+        "agree": 5,
+        "of": 5,
+        "label": "Benign"
+      }
+    },
+    {
+      "id": "F6",
+      "kind": "quality",
+      "data": {
+        "reliability_flag": false,
+        "reliability": 0.98,
+        "ood_percentile": 0.98,
+        "qc_tiles_kept": 12,
+        "min_tiles_kept": 3
+      }
+    },
+    {
+      "id": "F7",
+      "kind": "cells",
+      "data": {
+        "feature": "nuc_area_mean",
+        "label": "Nuclear size",
+        "value": 35.7653,
+        "unit": "µm²",
+        "ref_percentile": 0.0,
+        "tiles": [
+          0,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": "F8",
+      "kind": "cells",
+      "data": {
+        "feature": "nuc_area_cv",
+        "label": "Variation in nuclear size",
+        "value": 0.7981,
+        "unit": "",
+        "ref_percentile": 1.0,
+        "tiles": [
+          0,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": "F9",
+      "kind": "cells",
+      "data": {
+        "feature": "infl_fraction",
+        "label": "Immune cell fraction",
+        "value": 0.0,
+        "unit": "",
+        "ref_percentile": 0.086,
+        "tiles": [
+          0,
+          3,
+          4
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "generator": "lumen:gemma-4-31b-it",
+    "sentences": [
+      {
+        "text": "A benign lesion is suggested.",
+        "findings": [
+          "F1"
+        ]
+      },
+      {
+        "text": "Scarce tumor infiltrating stroma and scarce mitotic figures push the read away from invasive carcinoma.",
+        "findings": [
+          "F2",
+          "F3"
+        ]
+      },
+      {
+        "text": "5 of 5 most similar reference cases share the suggested category.",
+        "findings": [
+          "F5"
+        ]
+      },
+      {
+        "text": "No benign reference case has a lower nuclear size.",
+        "findings": [
+          "F7"
+        ]
+      }
+    ]
+  },
+  "agent": {
+    "status": "none",
+    "orders": [],
+    "blocked": []
+  },
+  "eval_only": {
+    "true_label": "Benign",
+    "split": "test",
+    "group": "p14",
+    "source_case_ids": [
+      "BACH_0011"
+    ]
+  }
+}

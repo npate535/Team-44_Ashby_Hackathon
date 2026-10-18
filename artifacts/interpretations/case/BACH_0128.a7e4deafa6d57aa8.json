@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0128",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "a7e4deafa6d57aa8",
+ "markdown": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Careful review\nFlagged Tier 2 for invasive risk [F1]; ER, PR, HER2, Ki-67 stains are drafted pending confirmation.\n\n## Confidence\n| Signal | Value | Reading |\n| --- | --- | --- |\n| Top probabilities | Invasive 100%, InSitu 0%, Benign 0%, Normal 0% | Strong invasive score; test ECE 5% |\n| Conformal set | {Invasive} (alpha 10%, test coverage 90%) | Single class at 90% coverage |\n| Reliability / OOD | 98% reliability, 54th OOD percentile, 12/12 tiles [F6] | Typical image, no quality flag |\n| CONCH\u2013MUSK agreement | True (same top class) | Independent foundation models concur |\n| Similar cases | 5/5 Invasive (86%\u201392% similarity) [F5]; contrast InSitu (84%) | Unanimous neighbors; close InSitu contrast |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 2, 3, 5) \u00b7 \u2191 invasive \u00b7 Above typical (+1.47, contrib +1.48); 19/20 AI spot check [F2] \u00b7 Validated\n- **Benign fibrous stroma or fat** (region 8) \u00b7 \u2191 invasive \u00b7 Below typical (-1.08, contrib +0.94); scarcity favors invasion; 20/20 check [F3] \u00b7 Validated\n- **Dense lymphocytic infiltrate (TILs)** (regions 3, 4, 6) \u00b7 context \u00b7 Above typical (+1.24, contrib -0.85); descriptive only; 8/20 spot check [F4] \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 4) \u00b7 \u2191 invasive \u00b7 Below typical (-0.33, contrib +0.77); unreliable 0/20 AI spot check \u00b7 Unreliable\n- **Frequent mitotic figures** (regions 3, 4, 6) \u00b7 \u2191 invasive \u00b7 Above typical (+1.57, contrib +0.76); weak, unreliable 0/20 spot check \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful on test set (top-3 deletion drop +0.0114 vs random, 95% CI +0.0021 to +0.0197 excludes 0).\n- **Concepts**: Deletion CI includes 0 (-0.0088 to +0.0064, unverified); leans on unreliable normal lobules (0/20), mitoses (0/20), necrosis (3/20).\n\n## Could be wrong if\n- Atypical epithelium remains duct-confined (region 9), matching InSitu contrast case BACH_0253 (84% similarity) despite scarce benign stroma.\n- Saturated tile risk across all 12 regions and failed HoVer-Net cell segmentation mask focal non-invasive features.\n\n## Check on the slide\n1. **Regions 2, 3, 5**: Confirm true stromal infiltration before approving drafted ER, PR, HER2, Ki-67 stain orders.\n2. **Regions 3, 4, 6**: Assess dense TILs and mitotic figures directly, since mitoses and lobule concepts are unreliable.\n3. **Regions 8, 9, 10**: Evaluate duct confinement (region 9) and stroma (region 8) to rule out InSitu carcinoma.",
+ "verification": {
+  "checked": 43,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:07:57-0500",
+ "elapsed_s": 117.9,
+ "usage": {
+  "inputTokens": 36642,
+  "outputTokens": 793,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 113828,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

@@ -1,0 +1,31 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0110",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "5ff26de29fa64ff1",
+ "markdown": "## Bottom line\n**Suggests Normal (100%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set, 0% invasive risk, full model agreement, and tier-4 routine priority [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| --- | --- | --- |\n| Top probabilities | Normal 100%, Benign 0%, InSitu 0%, Invasive 0% | Near-certain Normal; 5% test ECE |\n| Conformal set | Normal (10% alpha, 90% test coverage) | Single class at 90% guarantee |\n| Reliability / OOD | 98% reliability, 68th OOD percentile, 12/12 regions [F6] | Typical input; all regions kept |\n| CONCH\u2013MUSK agreement | True (same top class) | Independent foundation models agree |\n| Similar cases | 5/5 Normal (90\u201392% similarity) [F5] | All nearest reference cases match |\n\n## Tissue evidence\n- **Benign fibrous stroma or fat** (regions 4, 10, 11) \u00b7 \u2193 invasive \u00b7 Above-typical score (1.34, contribution -0.59) opposes invasion [F2] \u00b7 Validated\n- **Gland / tubule formation** (regions 3, 5, 6) \u00b7 \u2193 invasive \u00b7 Above-typical text score (1.42, contribution -0.55) opposes invasion [F3] \u00b7 Weak\n- **Dense lymphocytic infiltrate (TILs)** (region 6) \u00b7 context \u00b7 Above-typical score (0.99); AI spot check 8/20 [F4] \u00b7 Weak\n- **Atypical cells confined within ducts** (region 11) \u00b7 \u2191 invasive \u00b7 Low score (-0.53, contribution +0.37); spot check 12/20 \u00b7 Weak\n- **Dead cell fraction** (regions 3, 9, 10) \u00b7 context \u00b7 8% (97th percentile, 9 cells); wrong validation direction [F7] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful in validation (removing top-3 risk regions drops invasive score by 0.0114 vs random, 95% CI 0.0021\u20130.0197).\n- **Concepts**: Unproven classifier faithfulness (deletion CI -0.0088\u20130.0064 includes 0); minimal weight on unreliable `mitoses` (0/20), `necrosis` (3/20), `normal_lobules` (0/20).\n\n## Could be wrong if\n- Focal in situ disease mimics contrast case `BACH_0117` (InSitu, 86% similarity), differing in `duct_confined` and `tubules` (`caption_consistent=false`).\n- Focal atypia is missed across unsampled regions (`insufficient_tumor_nuclei` flag; 12 neoplastic-labeled nuclei in region 3).\n\n## Check on the slide\n1. **Regions 8, 9**: Check stroma and nuclei where `pleomorphism` (0.67), `invasion` (0.54), and tile risk (0.003) peak.\n2. **Regions 3, 5, 6**: Confirm benign tubules and inspect the 12 neoplastic-labeled nuclei in region 3.\n3. **Regions 4, 10, 11**: Verify benign stroma/fat, exclude ductal atypia in 11, and check 6 dead cells in 10.",
+ "verification": {
+  "checked": 38,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:05:48-0500",
+ "elapsed_s": 102.9,
+ "usage": {
+  "inputTokens": 37290,
+  "outputTokens": 801,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 94571,
+ "key": "primary",
+ "markdown_original": "## Bottom line\n**Suggests Normal (100%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set, 0% invasive risk, full model agreement, and tier-4 routine priority [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| --- | --- | --- |\n| Top probabilities | Normal 100%, Benign 0%, InSitu 0%, Invasive 0% | Near-certain Normal; 5% test ECE |\n| Conformal set | Normal (10% alpha, 90% test coverage) | Single class at 90% guarantee |\n| Reliability / OOD | 98% reliability, 68th OOD percentile, 12/12 regions [F6] | Typical input; all regions kept |\n| CONCH\u2013MUSK agreement | True (same top class) | Independent foundation models agree |\n| Similar cases | 5/5 Normal (90\u201392% similarity) [F5] | All nearest reference cases match |\n\n## Tissue evidence\n- **Benign fibrous stroma or fat** (regions 4, 10, 11) \u00b7 \u2193 invasive \u00b7 Above-typical score (1.34, contribution -0.59) opposes invasion [F2] \u00b7 Validated\n- **Gland / tubule formation** (regions 3, 5, 6) \u00b7 \u2193 invasive \u00b7 Above-typical text score (1.42, contribution -0.55) opposes invasion [F3] \u00b7 Validated\n- **Dense lymphocytic infiltrate (TILs)** (region 6) \u00b7 context \u00b7 Above-typical score (0.99); AI spot check 8/20 [F4] \u00b7 Weak\n- **Atypical cells confined within ducts** (region 11) \u00b7 \u2191 invasive \u00b7 Low score (-0.53, contribution +0.37); spot check 12/20 \u00b7 Weak\n- **Dead cell fraction** (regions 3, 9, 10) \u00b7 context \u00b7 8% (97th percentile, 9 cells); wrong validation direction [F7] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful in validation (removing top-3 risk regions drops invasive score by 0.0114 vs random, 95% CI 0.0021\u20130.0197).\n- **Concepts**: Unproven classifier faithfulness (deletion CI -0.0088\u20130.0064 includes 0); minimal weight on unreliable `mitoses` (0/20), `necrosis` (3/20), `normal_lobules` (0/20).\n\n## Could be wrong if\n- Focal in situ disease mimics contrast case `BACH_0117` (InSitu, 86% similarity), differing in `duct_confined` and `tubules` (`caption_consistent=false`).\n- Focal atypia is missed across unsampled regions (`insufficient_tumor_nuclei` flag; 12 neoplastic-labeled nuclei in region 3).\n\n## Check on the slide\n1. **Regions 8, 9**: Check stroma and nuclei where `pleomorphism` (0.67), `invasion` (0.54), and tile risk (0.003) peak.\n2. **Regions 3, 5, 6**: Confirm benign tubules and inspect the 12 neoplastic-labeled nuclei in region 3.\n3. **Regions 4, 10, 11**: Verify benign stroma/fat, exclude ductal atypia in 11, and check 6 dead cells in 10.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

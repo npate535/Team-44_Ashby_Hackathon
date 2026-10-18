@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0161_FSIM_blur3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "ec67ddf2745abe28",
+ "markdown": "## Bottom line\n**Suggests InSitu (82%)** \u00b7 Unreliable input \u00b7 Careful review\nSevere blur on this simulated frozen section flagged reliability; recut, deeper levels, and margin deferral [F7] are drafted.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | InSitu 82%, Invasive 13%, Benign 5%, Normal 0% [F1] | Favors InSitu; 13% invasive risk |\n| Conformal set | {InSitu} at 90% target (test 90%, CI 76%\u201398%, n=132) | Dataset-level guarantee, not case probability |\n| Reliability / OOD | Reliability 44% (flagged), OOD 96th percentile (error AUROC 0.70) [F6] | Suspect input; atypical blurred image |\n| CONCH\u2013MUSK agreement | False (top-class disagreement) | Independent foundation models disagree |\n| Similar cases | 60% (3/5) InSitu (80%\u201381%); top 2 Benign (82%\u201384%) [F5] | Mixed neighbors; closest two Benign |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (region 6) \u00b7 context \u00b7 Typical level (+0.27 invasive push [F2]); AI spot check 8/20 \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 7) \u00b7 \u2191 invasive \u00b7 Typical score pushes toward invasive (+0.163 [F3]); 0/20 AI spot check \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 7, 11) \u00b7 \u2193 invasive \u00b7 High score pulls against invasion (-0.161 [F4]); 20/20 AI spot check \u00b7 Validated\n- **Marked nuclear pleomorphism** (region 7) \u00b7 \u2193 invasive \u00b7 Low score (-0.34 SD) reduces invasive risk (-0.133); 18/20 spot check \u00b7 Validated\n- **Frequent mitotic figures** (region 6) \u00b7 \u2193 invasive \u00b7 Average score pulls against invasion (-0.123); 0/20 AI spot check \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top 3 risk regions drops invasive probability vs random (+0.0114, 95% CI 0.0021\u20130.0197, n=132).\n- **Concepts**: Unverified for classifier faithfulness (+0.0008, CI -0.0088\u20130.0064 includes 0); relies on unreliable normal lobules and mitoses (0/20 spot-checked).\n\n## Could be wrong if\n- Severe blur (severity 3) masks benign mimicry; the two closest reference cases (84%, 82% similarity) are Benign.\n- Blurred frozen artifacts obscure focal stromal invasion in high-risk region 9 (55% risk) or misdirect discordant foundation models.\n\n## Check on the slide\n1. **Regions 9, 8, 2, 3**: Inspect highest-risk heatmap tiles (55% in region 9; 15%\u201318% others) for invasion.\n2. **Regions 7, 11, 5**: Check duct confinement, pleomorphism, and stroma versus Benign contrast case BACH_0330.\n3. **Region 6**: Verify TILs and mitoses; consider drafted recut H&E, deeper levels, and permanent margins.",
+ "verification": {
+  "checked": 47,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:09:58-0500",
+ "elapsed_s": 115.3,
+ "usage": {
+  "inputTokens": 38636,
+  "outputTokens": 798,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 111298,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

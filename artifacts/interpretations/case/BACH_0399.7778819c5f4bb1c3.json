@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0399",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "7778819c5f4bb1c3",
+ "markdown": "## Bottom line\n**Suggests InSitu (73%)** \u00b7 Unreliable input \u00b7 Careful review\nFlagged (Tier 2): out-of-distribution input (19% reliability) [F6] and conformal set spans Benign, InSitu, and Invasive [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | InSitu 73%, Invasive 14%, Benign 13%, Normal 0% | Favors InSitu; 14% invasive risk |\n| Conformal set | Benign, InSitu, Invasive (alpha 10%, 90% coverage) | Cannot exclude Benign or Invasive |\n| Reliability / OOD | 19% reliability, 100th percentile OOD (12 tiles kept) | Flagged suspect out-of-distribution input |\n| CONCH\u2013MUSK agreement | Disagree on top class | Independent foundation models disagree |\n| Similar cases | 3/5 InSitu (60%) [F5]; top 2 Invasive (86%, 84%) | Mixed; closest neighbors are Invasive |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 5, 9, 10) \u00b7 context \u00b7 Above typical [F2]; negative weight (-0.71) pulls away from invasive \u00b7 Weak\n- **Benign fibrous stroma or fat** (regions 4) \u00b7 \u2191 invasive \u00b7 Below typical [F3]; scarcity pushes score toward invasive (+0.70) \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (regions 4) \u00b7 \u2191 invasive \u00b7 Below typical [F4]; pushes toward invasive (+0.45), unreliable (0/20 spot check) \u00b7 Unreliable\n- **Tumor infiltrating stroma** (regions 9) \u00b7 \u2193 invasive \u00b7 Below-average stromal invasion score (-0.31) pulls away from invasive \u00b7 Validated\n- **Tumor cell fraction and pleomorphism** (regions 2, 9, 11) \u00b7 context \u00b7 73% neoplastic cells (97th percentile) [F7]; size variation 95th percentile [F10] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top-3 risk regions drops invasive probability above random (95% CI +0.002 to +0.020).\n- **Concepts**: Unproven faithfulness (CI -0.009 to +0.006 includes 0); leans on unreliable normal lobules (0/20), necrosis (3/20), mitoses (0/20).\n\n## Could be wrong if\n- High-risk regions (9, 11, 2, 1) harbor stromal invasion matching the two closest Invasive neighbors (86%, 84% similarity).\n- Out-of-distribution quality distorts embeddings, or weak lymphocyte scoring masks invasion despite 0% measured immune cells [F12].\n\n## Check on the slide\n1. **Regions 9, 11, 2, 1**: Inspect highest-risk foci (84%\u2013100% risk) for stromal invasion; consider drafted p63 and calponin.\n2. **Regions 2, 8, 9, 11**: Evaluate duct-confined atypia (41 \u00b5m\u00b2 nuclei [F9], 2447/mm\u00b2 density [F8]) with ER, CK5/6, deeper levels.\n3. **Regions 5, 9, 10**: Verify true TILs versus artifact (0 immune cells counted in region 9); consider drafted H&E recut.",
+ "verification": {
+  "checked": 37,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:35:28-0500",
+ "elapsed_s": 127.9,
+ "usage": {
+  "inputTokens": 32350,
+  "outputTokens": 11971,
+  "cacheReadTokens": 6016,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 120538,
+ "key": "backup",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

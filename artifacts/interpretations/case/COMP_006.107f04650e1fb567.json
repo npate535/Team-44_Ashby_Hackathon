@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_006",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "107f04650e1fb567",
+ "markdown": "## Bottom line\n**Suggests Invasive (53%)** \u00b7 Unreliable input \u00b7 Defer to expert\nTop-row regions drive risk, but flagged reliability, three-class conformal set, and frozen margins require deferral [F7].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 53%, InSitu 31%, Benign 15%, Normal 2% [F1] | Split between Invasive and InSitu |\n| Conformal set | Benign, InSitu, Invasive (90% coverage, ECE 5%) | Cannot separate three classes |\n| Reliability / OOD | 19% reliability (flagged), 100th percentile OOD (AUROC 70%) [F6] | Suspect out-of-distribution input |\n| CONCH\u2013MUSK agreement | False | Foundation models disagree |\n| Similar cases | 0/5 Invasive (5/5 InSitu, 83%\u201387% similarity) [F5] | Neighbors favor InSitu |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 8, 9, 11) \u00b7 context \u00b7 Strongest weight (-1.21, opposes invasive) [F2]; 8/20 AI spot-check \u00b7 Weak\n- **Tumor infiltrating stroma** (regions 0, 2, 3) \u00b7 \u2191 invasive \u00b7 Top driver (+1.11) [F3]; 19/20 AI spot-check \u00b7 Validated\n- **Frequent mitotic figures** (regions 0, 2, 3) \u00b7 \u2191 invasive \u00b7 Unreliable score (+0.51), weak, 0/20 AI spot-check [F4] \u00b7 Unreliable\n- **Tumor necrosis** (regions 1, 5, 6) \u00b7 \u2191 invasive \u00b7 Unreliable score (+0.35), 3/20 AI spot-check \u00b7 Unreliable\n- **Marked nuclear pleomorphism** (regions 0, 2, 3) \u00b7 \u2191 invasive \u00b7 Pushes invasive (+0.33); 18/20 AI spot-check \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful; removing top 3 risk regions drops risk above random (+0.0114, 95% CI 0.0021\u20130.0197, n=132).\n- **Concepts**: Unproven (+0.0008 vs random, 95% CI -0.0088\u20130.0064); leans on unreliable mitoses (0/20) and unreliable necrosis (3/20).\n\n## Could be wrong if\n- Lesion is InSitu (31%) or Benign (15%), matching 5/5 nearest neighbors (83%\u201387% similarity; contrast BACH_0063).\n- Composite frozen-section artifact or out-of-distribution input (100th percentile, 19% reliability) distorted high-risk regions 0\u20133.\n\n## Check on the slide\n1. **Regions 0, 1, 2, 3**: Verify stromal invasion and pleomorphism versus InSitu; defer simulated frozen margins.\n2. **Regions 1, 5, 6**: Check for true necrosis versus artifact, given the unreliable necrosis score (3/20).\n3. **Regions 8, 9, 10, 11**: Inspect low-risk regions for TILs and in situ atypia; consider drafted recut/deeper levels.",
+ "verification": {
+  "checked": 42,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:36:38-0500",
+ "elapsed_s": 138.8,
+ "usage": {
+  "inputTokens": 38671,
+  "outputTokens": 775,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 130008,
+ "key": "backup",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

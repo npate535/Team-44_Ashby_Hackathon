@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_039",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "a606fe58b5ddfc4a",
+ "markdown": "## Bottom line\n**Suggests InSitu (94%)** \u00b7 Confident \u00b7 Careful review\nSingle-class InSitu prediction [F1] with 1% invasive risk, prioritized as a tier-1 surgical frozen section with positive margins.\n\n## Confidence\n| Signal | Value | Reading |\n| --- | --- | --- |\n| Top probabilities | InSitu 94%, Benign 3%, Normal 2%, Invasive 1% | Clear InSitu call; low invasive risk |\n| Conformal set | {InSitu} (90% target and test coverage) | Single class at dataset-level guarantee |\n| Reliability / OOD | 98% reliability, 100% OOD (12/12 regions) [F6] | Atypical, reliable input; no quality flag |\n| CONCH\u2013MUSK agreement | Agree | Independent models match top class |\n| Similar cases | 5/5 InSitu (81%\u201382% similarity) [F5] | Unanimous neighbor support for InSitu |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 0, 2, 3) \u00b7 context \u00b7 Above-typical score (+1.65, contribution -1.25); descriptive only, 8/20 spot check [F2] \u00b7 Weak\n- **Frequent mitotic figures** (regions 4, 8, 9) \u00b7 \u2191 invasive \u00b7 Score +2.10 (+0.64 contribution); unreliable concept with 0/20 spot check [F3] \u00b7 Unreliable\n- **Atypical cells confined within ducts** (regions 5, 8, 9) \u00b7 \u2193 invasive \u00b7 Above-typical score (+1.36, contribution -0.36) opposes invasion; 12/20 spot check [F4] \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (regions 10, 11) \u00b7 \u2193 invasive \u00b7 Score +0.92 (-0.32 contribution); unreliable concept with 0/20 spot check \u00b7 Unreliable\n- **Tumor necrosis** (regions 1, 6, 8) \u00b7 \u2191 invasive \u00b7 Score +1.73 (+0.30 contribution); unreliable concept with 3/20 spot check \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top 3 risk regions beats random deletion (+0.011, 95% CI 0.002 to 0.020).\n- **Concepts**: Unproven faithfulness (deletion +0.001, 95% CI -0.009 to 0.006 includes 0); mitoses, normal lobules, and necrosis are unreliable.\n\n## Could be wrong if\n- Focal stromal invasion in region 8 (22% tile risk) or region 4 (7%) is missed by the slide-level score.\n- Simulated composite frozen-section features mimic in situ ductal changes (nearest Normal contrast case is 79% similar) or distort margins.\n\n## Check on the slide\n1. **Regions 8, 4, 5, 9**: Confirm atypical cells remain duct-confined and exclude focal invasion in highest-risk tiles.\n2. **Regions 4, 8, 9**: Verify suspected tumor at inferior (323 um) and medial (215 um) margins [F7].\n3. **Regions 0, 2, 3, 10, 11**: Inspect lymphocytic infiltrate and background lobules directly, as cell segmentation is disabled.",
+ "verification": {
+  "checked": 39,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:40:19-0500",
+ "elapsed_s": 93.2,
+ "usage": {
+  "inputTokens": 32519,
+  "outputTokens": 10673,
+  "cacheReadTokens": 6016,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 86313,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests InSitu (94%)** \u00b7 Confident \u00b7 Careful review\nSingle-class InSitu prediction [F1] with 1% invasive risk, prioritized as a tier-1 surgical frozen section with positive margins.\n\n## Confidence\n| Signal | Value | Reading |\n| --- | --- | --- |\n| Top probabilities | InSitu 94%, Benign 3%, Normal 2%, Invasive 1% | Clear InSitu call; low invasive risk |\n| Conformal set | {InSitu} (90% target and test coverage) | Single class at dataset-level guarantee |\n| Reliability / OOD | 98% reliability, 100% OOD (12/12 regions) [F6] | Typical input; no quality flag |\n| CONCH\u2013MUSK agreement | Agree | Independent models match top class |\n| Similar cases | 5/5 InSitu (81%\u201382% similarity) [F5] | Unanimous neighbor support for InSitu |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 0, 2, 3) \u00b7 context \u00b7 Above-typical score (+1.65, contribution -1.25); descriptive only, 8/20 spot check [F2] \u00b7 Weak\n- **Frequent mitotic figures** (regions 4, 8, 9) \u00b7 \u2191 invasive \u00b7 Score +2.10 (+0.64 contribution); unreliable concept with 0/20 spot check [F3] \u00b7 Unreliable\n- **Atypical cells confined within ducts** (regions 5, 8, 9) \u00b7 \u2193 invasive \u00b7 Above-typical score (+1.36, contribution -0.36) opposes invasion; 12/20 spot check [F4] \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (regions 10, 11) \u00b7 \u2193 invasive \u00b7 Score +0.92 (-0.32 contribution); unreliable concept with 0/20 spot check \u00b7 Unreliable\n- **Tumor necrosis** (regions 1, 6, 8) \u00b7 \u2191 invasive \u00b7 Score +1.73 (+0.30 contribution); unreliable concept with 3/20 spot check \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top 3 risk regions beats random deletion (+0.011, 95% CI 0.002 to 0.020).\n- **Concepts**: Unproven faithfulness (deletion +0.001, 95% CI -0.009 to 0.006 includes 0); mitoses, normal lobules, and necrosis are unreliable.\n\n## Could be wrong if\n- Focal stromal invasion in region 8 (22% tile risk) or region 4 (7%) is missed by the slide-level score.\n- Simulated composite frozen-section features mimic in situ ductal changes (nearest Normal contrast case is 79% similar) or distort margins.\n\n## Check on the slide\n1. **Regions 8, 4, 5, 9**: Confirm atypical cells remain duct-confined and exclude focal invasion in highest-risk tiles.\n2. **Regions 4, 8, 9**: Verify suspected tumor at inferior (323 um) and medial (215 um) margins [F7].\n3. **Regions 0, 2, 3, 10, 11**: Inspect lymphocytic infiltrate and background lobules directly, as cell segmentation is disabled.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "OOD percentile 1 means this image is farther from the calibration images than 100% of them (atypical), not 'typical'."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

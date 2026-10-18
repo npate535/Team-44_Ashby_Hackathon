@@ -1,0 +1,34 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_044",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "3f5b294dda328081",
+ "markdown": "## Bottom line\n**Suggests InSitu (69%)** \u00b7 Ambiguous: InSitu vs Benign \u00b7 Careful review\nTier 1 simulated frozen section where the 90% conformal set cannot separate InSitu from Benign [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | InSitu 69%, Benign 28%, Invasive 2%, Normal 1% (ECE 5%) | Favors InSitu; Benign remains plausible |\n| Conformal set | Benign, InSitu (90% target; 90% test coverage) | Cannot separate InSitu from Benign |\n| Reliability / OOD | 96% reliability, 100% OOD, 12/12 tiles (AUROC 70%) [F6] | Reliable input; atypical OOD distance |\n| CONCH\u2013MUSK agreement | Agree on top class (true) | Both independent backbones agree |\n| Similar cases | 5/5 InSitu (84%\u201387% similarity) [F5] | Nearest reference cases match InSitu |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 8, 10) \u00b7 context \u00b7 Above-typical score (1.11, contribution -0.54) [F2]; AI spot check 8/20 \u00b7 Weak\n- **Atypical cells confined within ducts** (regions 1, 5, 9) \u00b7 \u2193 invasive \u00b7 Above-typical score (1.31, contribution -0.35) opposes invasion [F3]; spot check 12/20 \u00b7 Weak\n- **Frequent mitotic figures** (regions 4, 8, 9) \u00b7 \u2191 invasive \u00b7 Unreliable score (1.40, contribution +0.31) favors invasion [F4]; spot check 0/20 \u00b7 Unreliable\n- **Tumor infiltrating stroma** (regions 11) \u00b7 \u2193 invasive \u00b7 Below-typical score (0.31, contribution -0.29) opposes invasion; spot check 19/20 \u00b7 Validated\n- **Tumor necrosis** (regions 1, 5, 9) \u00b7 \u2191 invasive \u00b7 Unreliable score (1.73, contribution +0.28) favors invasion; spot check 3/20 \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful to classifier; deleting top 3 risk regions drops invasive score above random (CI 0.0021 to 0.0197).\n- **Concepts**: Unproven faithfulness (CI -0.0088 to 0.0064 spans 0); case leans on unreliable mitoses (0/20) and necrosis (3/20).\n\n## Could be wrong if\n- Benign mimicry: contrast case BACH_0230 (83% similar, Benign) differs chiefly in unreliable mitoses and weak lymphocyte scores.\n- Unsampled lesion or frozen-section artifact: deeper levels drafted to clarify atypia/InSitu; stains blocked on simulated frozen sections.\n\n## Check on the slide\n1. **Regions 1, 5, 9**: Assess duct-confined atypia (InSitu vs Benign); ignore unreliable necrosis scores (region 5 risk 18%).\n2. **Regions 4, 8, 10**: Inspect highest-risk region 8 (23% risk), lymphocytic infiltrate, and manually check unreliable mitoses.\n3. **Regions 0, 1, 4, 8, 9**: Verify superior (215 um), medial (323 um), and inferior (323 um) margins [F7].",
+ "verification": {
+  "checked": 42,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:40:44-0500",
+ "elapsed_s": 90.2,
+ "usage": {
+  "inputTokens": 32574,
+  "outputTokens": 9232,
+  "cacheReadTokens": 6085,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 83473,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests InSitu (69%)** \u00b7 Ambiguous: InSitu vs Benign \u00b7 Careful review\nTier 1 simulated frozen section where the 90% conformal set cannot separate InSitu from Benign [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | InSitu 69%, Benign 28%, Invasive 2%, Normal 1% (ECE 5%) | Favors InSitu; Benign remains plausible |\n| Conformal set | Benign, InSitu (90% target; 90% test coverage) | Cannot separate InSitu from Benign |\n| Reliability / OOD | 96% reliability, 1% OOD, 12/12 tiles (AUROC 70%) [F6] | Typical input; moderate error ranking |\n| CONCH\u2013MUSK agreement | Agree on top class (true) | Independent backbones both favor InSitu |\n| Similar cases | 5/5 InSitu (84%\u201387% similarity) [F5] | Nearest reference cases match InSitu |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 8, 10) \u00b7 context \u00b7 Above-typical score (1.11, contribution -0.54) [F2]; AI spot check 8/20 \u00b7 Weak\n- **Atypical cells confined within ducts** (regions 1, 5, 9) \u00b7 \u2193 invasive \u00b7 Above-typical score (1.31, contribution -0.35) opposes invasion [F3]; spot check 12/20 \u00b7 Weak\n- **Frequent mitotic figures** (regions 4, 8, 9) \u00b7 \u2191 invasive \u00b7 Unreliable score (1.40, contribution +0.31) favors invasion [F4]; spot check 0/20 \u00b7 Unreliable\n- **Tumor infiltrating stroma** (regions 11) \u00b7 \u2193 invasive \u00b7 Below-typical score (0.31, contribution -0.29) opposes invasion; spot check 19/20 \u00b7 Validated\n- **Tumor necrosis** (regions 1, 5, 9) \u00b7 \u2191 invasive \u00b7 Unreliable score (1.73, contribution +0.28) favors invasion; spot check 3/20 \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful to classifier; deleting top 3 risk regions drops invasive score above random (CI 0.0021 to 0.0197).\n- **Concepts**: Unproven faithfulness (CI -0.0088 to 0.0064 spans 0); case leans on unreliable mitoses (0/20) and necrosis (3/20).\n\n## Could be wrong if\n- Benign mimicry: contrast case BACH_0230 (83% similar, Benign) differs chiefly in unreliable mitoses and weak lymphocyte scores.\n- Unsampled lesion or frozen-section artifact: deeper levels drafted to clarify atypia/InSitu; stains blocked on simulated frozen sections.\n\n## Check on the slide\n1. **Regions 1, 5, 9**: Assess duct-confined atypia (InSitu vs Benign); ignore unreliable necrosis scores (region 5 risk 18%).\n2. **Regions 4, 8, 10**: Inspect highest-risk region 8 (23% risk), lymphocytic infiltrate, and manually check unreliable mitoses.\n3. **Regions 0, 1, 4, 8, 9**: Verify superior (215 um), medial (323 um), and inferior (323 um) margins [F7].",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "The CONCH\u2013MUSK row names InSitu, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose.",
+   "OOD percentile 1 means this image is farther from the calibration images than 100% of them (atypical), not 'typical'."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

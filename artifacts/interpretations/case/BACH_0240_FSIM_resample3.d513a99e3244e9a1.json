@@ -1,0 +1,34 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0240_FSIM_resample3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "d513a99e3244e9a1",
+ "markdown": "## Bottom line\n**Suggests Invasive (95%)** \u00b7 Confident \u00b7 Careful review\nTier 1 simulated surgical frozen section with a single-class conformal set [F1] and severity-3 resample degradation.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Invasive 95%, InSitu 4%, Benign 1%, Normal 0% | Strong invasive probability score |\n| Conformal set | {Invasive} (alpha 10%; test coverage 90%) | Single class at 90% guarantee |\n| Reliability / OOD | 98% reliability, 100% OOD, 12/12 regions (AUROC 70%) [F6] | Atypical OOD, no quality flag |\n| CONCH\u2013MUSK agreement | Agree on top class | Independent backbones share top class |\n| Similar cases | 5/5 Invasive (68%\u201381% similarity) [F5]; Benign contrast 65% | All nearest references match Invasive |\n\n## Tissue evidence\n- **Frequent mitotic figures** (regions 2, 6, 11) \u00b7 \u2191 invasive \u00b7 Unreliable score (+0.96 contribution [F2]); 0/20 AI spot check \u00b7 Unreliable\n- **Tumor infiltrating stroma** (regions 3, 7, 11) \u00b7 \u2191 invasive \u00b7 Above-typical stromal infiltration (+0.81 contribution [F3]); 19/20 spot check \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (regions 1) \u00b7 \u2191 invasive \u00b7 Unreliable low score (-0.27, +0.73 contribution [F4]); 0/20 spot check \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 8) \u00b7 \u2191 invasive \u00b7 Below-typical benign stroma (-0.33, +0.58 contribution); 20/20 spot check \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 6, 7, 11) \u00b7 \u2191 invasive \u00b7 Above-typical nuclear atypia (+1.32, +0.14 contribution); 18/20 spot check \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top 3 risk regions drops invasive probability above random (0.011, 95% CI 0.002\u20130.020, n=132).\n- **Concepts**: Unproven faithfulness (0.001, 95% CI -0.009\u20130.006 includes 0); relies on unreliable mitoses and normal-lobule scores (both 0/20).\n\n## Could be wrong if\n- Severity-3 resample degradation on this simulated frozen section mimics invasion or masks tubules (contrast Benign BACH_0284, 65% similarity).\n- Clear margin call [F7] misses focal involvement; lateral margin reaches 100% (0.9969 vs 0.9998 threshold; inferior and superior 98%).\n\n## Check on the slide\n1. **Regions 3, 6, 7, 11**: Confirm stromal invasion and pleomorphism directly; cell segmentation is disabled and stains are blocked.\n2. **Regions 1, 7, 9**: Inspect lateral (0.9969 vs 0.9998 threshold), inferior (98%), and superior (98%) margins for involvement.\n3. **Regions 1, 2, 5, 8**: Manually check mitoses and lobules (unreliable AI scores) plus low-risk regions (10%\u201344%).",
+ "verification": {
+  "checked": 51,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:18:49-0500",
+ "elapsed_s": 92.4,
+ "usage": {
+  "inputTokens": 38516,
+  "outputTokens": 812,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 89648,
+ "key": "primary",
+ "markdown_original": "## Bottom line\n**Suggests Invasive (95%)** \u00b7 Confident \u00b7 Careful review\nTier 1 simulated surgical frozen section with a single-class conformal set [F1] and severity-3 resample degradation.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Invasive 95%, InSitu 4%, Benign 1%, Normal 0% | Strong invasive probability score |\n| Conformal set | {Invasive} (alpha 10%; test coverage 90%) | Single class at 90% guarantee |\n| Reliability / OOD | 98% reliability, 100% OOD, 12/12 regions (AUROC 70%) [F6] | Typical input, no quality flag |\n| CONCH\u2013MUSK agreement | Agree on Invasive | Independent backbones match suggestion |\n| Similar cases | 5/5 Invasive (68%\u201381% similarity) [F5]; Benign contrast 65% | All nearest references match Invasive |\n\n## Tissue evidence\n- **Frequent mitotic figures** (regions 2, 6, 11) \u00b7 \u2191 invasive \u00b7 Unreliable score (+0.96 contribution [F2]); 0/20 AI spot check \u00b7 Unreliable\n- **Tumor infiltrating stroma** (regions 3, 7, 11) \u00b7 \u2191 invasive \u00b7 Above-typical stromal infiltration (+0.81 contribution [F3]); 19/20 spot check \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (regions 1) \u00b7 \u2191 invasive \u00b7 Unreliable low score (-0.27, +0.73 contribution [F4]); 0/20 spot check \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 8) \u00b7 \u2191 invasive \u00b7 Below-typical benign stroma (-0.33, +0.58 contribution); 20/20 spot check \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 6, 7, 11) \u00b7 \u2191 invasive \u00b7 Above-typical nuclear atypia (+1.32, +0.14 contribution); 18/20 spot check \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top 3 risk regions drops invasive probability above random (0.011, 95% CI 0.002\u20130.020, n=132).\n- **Concepts**: Unproven faithfulness (0.001, 95% CI -0.009\u20130.006 includes 0); relies on unreliable mitoses and normal-lobule scores (both 0/20).\n\n## Could be wrong if\n- Severity-3 resample degradation on this simulated frozen section mimics invasion or masks tubules (contrast Benign BACH_0284, 65% similarity).\n- Clear margin call [F7] misses focal involvement; lateral margin reaches 100% (0.9969 vs 0.9998 threshold; inferior and superior 98%).\n\n## Check on the slide\n1. **Regions 3, 6, 7, 11**: Confirm stromal invasion and pleomorphism directly; cell segmentation is disabled and stains are blocked.\n2. **Regions 1, 7, 9**: Inspect lateral (0.9969 vs 0.9998 threshold), inferior (98%), and superior (98%) margins for involvement.\n3. **Regions 1, 2, 5, 8**: Manually check mitoses and lobules (unreliable AI scores) plus low-risk regions (10%\u201344%).",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "The CONCH\u2013MUSK row names Invasive, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose.",
+   "OOD percentile 1 means this image is farther from the calibration images than 100% of them (atypical), not 'typical'."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

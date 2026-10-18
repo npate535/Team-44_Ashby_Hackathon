@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0385_FSIM_stain3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "bf8b043a71e014a0",
+ "markdown": "## Bottom line\n**Suggests Invasive (92%)** \u00b7 Confident \u00b7 Careful review\nTier 1 surgical frozen section suggests invasive carcinoma [F1] involving all four margins [F7] despite severity-3 stain degradation.\n\n## Confidence\n| Signal | Value | Reading |\n| --- | --- | --- |\n| Top probabilities | Invasive 92%, InSitu 8%, Benign 0%, Normal 0% | Strong invasive risk score |\n| Conformal set | Invasive (10% alpha, 90% test coverage) | Single class at 90% guarantee |\n| Reliability / OOD | 98% reliability, 94% OOD, 12/12 regions kept [F6] | Passes QC despite high OOD |\n| CONCH\u2013MUSK agreement | Agree on top class | Independent foundation models concur |\n| Similar cases | 5/5 Invasive (79\u201385%); InSitu contrast 77% [F5] | All nearest neighbors match suggestion |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 0, 4, 8) \u00b7 context \u00b7 High score (+1.56) pushes away from invasive (-1.52) [F2]; 8/20 spot-checked \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 1) \u00b7 \u2191 invasive \u00b7 Low score (-0.73) pushes toward invasive (+1.06) [F3]; unreliable (0/20 spot-checked) \u00b7 Unreliable\n- **Gland / tubule formation** (region 5) \u00b7 \u2191 invasive \u00b7 Low score (-1.21) pushes toward invasive (+0.91) [F4]; caption inconsistent \u00b7 Weak\n- **Benign fibrous stroma or fat** (region 5) \u00b7 \u2191 invasive \u00b7 Low score (-0.95) pushes toward invasive (+0.88); separates InSitu contrast \u00b7 Validated\n- **Tumor necrosis** (regions 0, 2, 4) \u00b7 \u2191 invasive \u00b7 High score (+1.71) pushes toward invasive (+0.37); unreliable (3/20 spot-checked) \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top-3 risk regions drops P(invasive) beyond random (+0.0114, 95% CI 0.0021 to 0.0197, n=132).\n- **Concepts**: Unproven (deletion +0.0008, 95% CI -0.0088 to 0.0064); leans on unreliable normal_lobules (0/20), necrosis (3/20), and mitoses (0/20).\n\n## Could be wrong if\n- Severity-3 stain degradation on this simulated frozen section (94% OOD) mimics tubule or stromal loss versus InSitu (8%).\n- High-similarity InSitu contrast case BACH_0063 (77%) and disabled cell segmentation mask in-situ disease or overcall margins.\n\n## Check on the slide\n1. **Regions 0, 3, 2**: Highest risk (99%, 91%, 77%); confirm stromal invasion and pleomorphism over stain artifact.\n2. **Regions 5, 8**: Verify scarce tubules/stroma (region 5, 71% risk) and stromal infiltration with TILs (region 8).\n3. **Regions 0\u20133, 8\u201311**: Inspect positive margins (inferior 860 um, superior 538 um, lateral 430 um, medial 323 um).",
+ "verification": {
+  "checked": 49,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:34:03-0500",
+ "elapsed_s": 113.3,
+ "usage": {
+  "inputTokens": 38647,
+  "outputTokens": 806,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 103727,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Invasive (92%)** \u00b7 Confident \u00b7 Careful review\nTier 1 surgical frozen section suggests invasive carcinoma [F1] involving all four margins [F7] despite severity-3 stain degradation.\n\n## Confidence\n| Signal | Value | Reading |\n| --- | --- | --- |\n| Top probabilities | Invasive 92%, InSitu 8%, Benign 0%, Normal 0% | Strong invasive risk score |\n| Conformal set | Invasive (10% alpha, 90% test coverage) | Single class at 90% guarantee |\n| Reliability / OOD | 98% reliability, 94% OOD, 12/12 regions kept [F6] | Passes QC despite high OOD |\n| CONCH\u2013MUSK agreement | Agree on top class | Independent foundation models concur |\n| Similar cases | 5/5 Invasive (79\u201385%); InSitu contrast 77% [F5] | All nearest neighbors match suggestion |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 0, 4, 8) \u00b7 context \u00b7 High score (+1.56) pushes away from invasive (-1.52) [F2]; 8/20 spot-checked \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 1) \u00b7 \u2191 invasive \u00b7 Low score (-0.73) pushes toward invasive (+1.06) [F3]; unreliable (0/20 spot-checked) \u00b7 Unreliable\n- **Gland / tubule formation** (region 5) \u00b7 \u2191 invasive \u00b7 Low score (-1.21) pushes toward invasive (+0.91) [F4]; caption inconsistent \u00b7 Validated\n- **Benign fibrous stroma or fat** (region 5) \u00b7 \u2191 invasive \u00b7 Low score (-0.95) pushes toward invasive (+0.88); separates InSitu contrast \u00b7 Validated\n- **Tumor necrosis** (regions 0, 2, 4) \u00b7 \u2191 invasive \u00b7 High score (+1.71) pushes toward invasive (+0.37); unreliable (3/20 spot-checked) \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top-3 risk regions drops P(invasive) beyond random (+0.0114, 95% CI 0.0021 to 0.0197, n=132).\n- **Concepts**: Unproven (deletion +0.0008, 95% CI -0.0088 to 0.0064); leans on unreliable normal_lobules (0/20), necrosis (3/20), and mitoses (0/20).\n\n## Could be wrong if\n- Severity-3 stain degradation on this simulated frozen section (94% OOD) mimics tubule or stromal loss versus InSitu (8%).\n- High-similarity InSitu contrast case BACH_0063 (77%) and disabled cell segmentation mask in-situ disease or overcall margins.\n\n## Check on the slide\n1. **Regions 0, 3, 2**: Highest risk (99%, 91%, 77%); confirm stromal invasion and pleomorphism over stain artifact.\n2. **Regions 5, 8**: Verify scarce tubules/stroma (region 5, 71% risk) and stromal infiltration with TILs (region 8).\n3. **Regions 0\u20133, 8\u201311**: Inspect positive margins (inferior 860 um, superior 538 um, lateral 430 um, medial 323 um).",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

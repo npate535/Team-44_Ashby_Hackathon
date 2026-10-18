@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0385",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "e27f7228ab3e6469",
+ "markdown": "## Bottom line\n**Suggests Invasive (93%)** \u00b7 Confident \u00b7 Read in turn\nTier 1 surgical frozen section with single-class conformal set [F1] and all four margins called positive.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Invasive 93%, InSitu 6%, Benign 0%, Normal 0% | Strongly favors invasive carcinoma |\n| Conformal set | {Invasive} (90% dataset coverage, n=132) | Single class at 90% guarantee |\n| Reliability / OOD | 98% reliability, 94th OOD percentile, 12/12 regions [F6] | Passes QC; high OOD percentile |\n| CONCH\u2013MUSK agreement | Same top class | Independent foundation models agree |\n| Similar cases | 5/5 Invasive (79%\u201386% similarity) [F5] | All five neighbors match |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 0, 4, 8) \u00b7 context \u00b7 Above-typical score (-1.393 contribution against invasive) [F2]; 8/20 spot check \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 0) \u00b7 \u2191 invasive \u00b7 Below-typical score (+1.029 contribution), but 0/20 AI spot check [F3] \u00b7 Unreliable\n- **Gland / tubule formation** (region 5) \u00b7 \u2191 invasive \u00b7 Below-typical score (+0.914 contribution); caption inconsistent; 18/20 spot check [F4] \u00b7 Weak\n- **Benign fibrous stroma or fat** (region 5) \u00b7 \u2191 invasive \u00b7 Below-typical score (+0.865 contribution); 20/20 AI spot check \u00b7 Validated\n- **Nuclear pleomorphism and size** (regions 2, 5, 7) \u00b7 context \u00b7 Size CV 98th percentile [F8], shape 90th [F9], area 8th [F7] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful; removing top 3 risk regions drops score 0.0114 over random (95% CI 0.0021\u20130.0197, excludes 0).\n- **Concepts**: Unproven faithfulness (CI -0.0088\u20130.0064 includes 0); leans on unreliable normal_lobules (0/20), mitoses (0/20), necrosis (3/20).\n\n## Could be wrong if\n- Atypical image (94th OOD percentile) is actually InSitu (6% probability; 77% similar to InSitu contrast case BACH_0063).\n- Simulated frozen-section artifacts or small nuclei (49 \u00b5m\u00b2) distort embeddings and all-margin positive calls (430\u2013860 \u00b5m) [F10].\n\n## Check on the slide\n1. **Regions 0, 3, 2, 9**: Highest heatmap risk (75%\u201399%); verify stromal invasion and pleomorphism versus frozen artifact.\n2. **Regions 2, 5, 7**: Confirm nuclear pleomorphism and scarce tubules/stroma (63\u2013103 neoplastic nuclei segmented).\n3. **Regions 0\u20134, 7\u201311**: Inspect superior, inferior, medial, and lateral outer strips for tumor at margins.",
+ "verification": {
+  "checked": 43,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:33:16-0500",
+ "elapsed_s": 112.2,
+ "usage": {
+  "inputTokens": 33648,
+  "outputTokens": 12118,
+  "cacheReadTokens": 6016,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 105643,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Invasive (93%)** \u00b7 Confident \u00b7 Read in turn\nTier 1 surgical frozen section with single-class conformal set [F1] and all four margins called positive.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Invasive 93%, InSitu 6%, Benign 0%, Normal 0% | Strongly favors invasive carcinoma |\n| Conformal set | {Invasive} (90% dataset coverage, n=132) | Single class at 90% guarantee |\n| Reliability / OOD | 98% reliability, 94th OOD percentile, 12/12 regions [F6] | Passes QC; high OOD percentile |\n| CONCH\u2013MUSK agreement | Same top class | Independent foundation models agree |\n| Similar cases | 5/5 Invasive (79%\u201386% similarity) [F5] | All five neighbors match |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 0, 4, 8) \u00b7 context \u00b7 Above-typical score (-1.393 contribution against invasive) [F2]; 8/20 spot check \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 0) \u00b7 \u2191 invasive \u00b7 Below-typical score (+1.029 contribution), but 0/20 AI spot check [F3] \u00b7 Unreliable\n- **Gland / tubule formation** (region 5) \u00b7 \u2191 invasive \u00b7 Below-typical score (+0.914 contribution); caption inconsistent; 18/20 spot check [F4] \u00b7 Validated\n- **Benign fibrous stroma or fat** (region 5) \u00b7 \u2191 invasive \u00b7 Below-typical score (+0.865 contribution); 20/20 AI spot check \u00b7 Validated\n- **Nuclear pleomorphism and size** (regions 2, 5, 7) \u00b7 context \u00b7 Size CV 98th percentile [F8], shape 90th [F9], area 8th [F7] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful; removing top 3 risk regions drops score 0.0114 over random (95% CI 0.0021\u20130.0197, excludes 0).\n- **Concepts**: Unproven faithfulness (CI -0.0088\u20130.0064 includes 0); leans on unreliable normal_lobules (0/20), mitoses (0/20), necrosis (3/20).\n\n## Could be wrong if\n- Atypical image (94th OOD percentile) is actually InSitu (6% probability; 77% similar to InSitu contrast case BACH_0063).\n- Simulated frozen-section artifacts or small nuclei (49 \u00b5m\u00b2) distort embeddings and all-margin positive calls (430\u2013860 \u00b5m) [F10].\n\n## Check on the slide\n1. **Regions 0, 3, 2, 9**: Highest heatmap risk (75%\u201399%); verify stromal invasion and pleomorphism versus frozen artifact.\n2. **Regions 2, 5, 7**: Confirm nuclear pleomorphism and scarce tubules/stroma (63\u2013103 neoplastic nuclei segmented).\n3. **Regions 0\u20134, 7\u201311**: Inspect superior, inferior, medial, and lateral outer strips for tumor at margins.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

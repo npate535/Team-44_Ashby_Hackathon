@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0161",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "f609d21b738da207",
+ "markdown": "## Bottom line\n**Suggests InSitu (93%)** \u00b7 Unreliable input \u00b7 Careful review\nSimulated frozen section is flagged unreliable and cannot exclude Invasive [F1]; defer margin call to permanent sections [F10].\n\n## Confidence\n| Signal | Value | Reading |\n| --- | --- | --- |\n| Top probabilities | InSitu 93%, Invasive 5%, Benign 2%, Normal 0% | Favors InSitu; 5% invasive risk |\n| Conformal set | InSitu, Invasive (90% coverage, alpha 10%) | Cannot exclude Invasive at 90% |\n| Reliability / OOD | Reliability 35% (flagged), OOD 62% [F6] | Suspect input; recut/levels drafted |\n| CONCH\u2013MUSK agreement | Disagree (false) | Foundation models disagree on top |\n| Similar cases | 4/5 InSitu (80%); 1 Invasive (89%) [F5] | Mostly InSitu; close Invasive neighbor |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 7, 11) \u00b7 \u2193 invasive \u00b7 Pushes away from invasive (-0.282) [F2]; 0/20 AI spot check \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (region 6) \u00b7 context \u00b7 Descriptive score (+0.258) [F3]; 8/20 AI spot check \u00b7 Weak\n- **Frequent mitotic figures** (region 3) \u00b7 \u2193 invasive \u00b7 Typical level pushes down (-0.174) [F4]; 0/20 AI spot check \u00b7 Unreliable\n- **Tumor cell fraction & density** (regions 2, 5, 9) \u00b7 context \u00b7 87% neoplastic (100th percentile) [F7]; 3765/mm\u00b2 density (97th percentile) [F8] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top-risk regions drops invasive probability (+0.0114 vs random, 95% CI 0.0021\u20130.0197).\n- **Concepts**: Unproven faithfulness (deletion CI -0.0088\u20130.0064 includes 0); `normal_lobules`, `mitoses`, and `necrosis` are Unreliable (0\u20133/20 AI spot checks).\n\n## Could be wrong if\n- Low reliability (35%, simulated frozen section) masks invasion, matching close Invasive neighbor BACH_0138 (89% similarity).\n- Invasion exists in regions 8\u20139 or deeper levels, as CONCH\u2013MUSK disagreement and the conformal set warn.\n\n## Check on the slide\n1. **Regions 8, 9**: Inspect for stromal invasion at the highest heatmap risk areas (4% regional risk).\n2. **Regions 7, 11**: Check stromal infiltration and pleomorphism (validated concepts) against Invasive contrast case BACH_0138.\n3. **Regions 2, 5, 9**: Verify duct confinement in dense tumor [F9]; consider drafted recut H&E and deeper levels.",
+ "verification": {
+  "checked": 33,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:09:43-0500",
+ "elapsed_s": 101.9,
+ "usage": {
+  "inputTokens": 39618,
+  "outputTokens": 701,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 98556,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

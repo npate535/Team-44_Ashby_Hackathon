@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0006_FSIM_jpeg3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "0583714fbaff95f0",
+ "markdown": "## Bottom line\n**Suggests InSitu (57%)** \u00b7 Unreliable input \u00b7 Careful review\nFlagged low-reliability simulated frozen section (JPEG severity 3) [F6], with Normal (42%) close behind [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 57%, Normal 42%, Benign 1%, Invasive 0% | Split between InSitu and Normal |\n| Conformal set | {InSitu} at 90% coverage target | Single class; dataset-level guarantee only |\n| Reliability / OOD | 44% reliability (flagged); 100% OOD | Suspect input; extreme out-of-distribution image |\n| CONCH\u2013MUSK agreement | Disagree on top class | Independent foundation models disagree |\n| Similar cases | 0/5 match InSitu (all Normal) [F5] | Nearest references are all Normal |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 6, 8, 11) \u00b7 \u2193 invasive \u00b7 Above-typical (-1.296 contribution), failed AI spot check (0/20) [F2] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (region 10) \u00b7 context \u00b7 Below-typical (+0.393 contribution); descriptive only (8/20 check) [F3] \u00b7 Weak\n- **Tumor infiltrating stroma** (region 5) \u00b7 \u2191 invasive \u00b7 Above-typical (+0.362 contribution) favoring invasion (19/20 check) [F4] \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful to classifier; deleting top 3 risk regions beats random (0.0114, 95% CI 0.0021\u20130.0197).\n- **Concepts**: Unproven faithfulness (deletion 95% CI -0.0088\u20130.0064 includes 0); leans on Unreliable normal lobules (0/20).\n\n## Could be wrong if\n- JPEG-degraded frozen section (100% OOD) distorts Normal tissue (42% probability; all 5 neighbors Normal).\n- Poor quality masks focal invasion in regions 5, 8, or 9; recut and deeper levels drafted.\n\n## Check on the slide\n1. **Regions 8, 9**: Highest heatmap risk (94%, 95%); verify in situ vs normal epithelium.\n2. **Region 5**: Highest validated stromal invasion score; exclude focal invasion before recut or deeper levels.\n3. **Regions 1, 2, 9**: Superior (83%) and inferior (65%) margin hotspots; margin call deferred [F7].",
+ "verification": {
+  "checked": 30,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T09:59:12-0500",
+ "elapsed_s": 162.4,
+ "usage": {
+  "inputTokens": 38610,
+  "outputTokens": 612,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 155185,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

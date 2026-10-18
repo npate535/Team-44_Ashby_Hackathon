@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0006_FSIM_stain3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "6e717acc3589e918",
+ "markdown": "## Bottom line\n**Suggests InSitu (67%)** \u00b7 Unreliable input \u00b7 Defer to expert\nStain-degraded simulated frozen section is flagged unreliable [F6], and the conformal set cannot separate InSitu from Normal [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 67%, Normal 31%, Benign 2%, Invasive 0% | Favors InSitu; invasive risk 0% |\n| Conformal set | Normal, InSitu (90% coverage) | Cannot separate InSitu from Normal |\n| Reliability / OOD | 33% (flagged) / 78% OOD | Suspect stain-degraded frozen section |\n| CONCH\u2013MUSK agreement | Disagree on top class | Foundation models disagree on top |\n| Similar cases | 0/5 match InSitu (all Normal, 85\u201388%) [F5] | Nearest neighbors are all Normal |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 2, 4, 11) \u00b7 \u2193 invasive \u00b7 Strongest pull (-1.84) against invasion [F2], but 0/20 AI spot-check \u00b7 Unreliable\n- **Tumor infiltrating stroma** (regions 4, 8, 11) \u00b7 \u2191 invasive \u00b7 Pushes toward invasion (+1.42) despite 0% invasive score [F3] \u00b7 Validated\n- **Benign fibrous stroma or fat** (regions 6, 7, 9) \u00b7 \u2193 invasive \u00b7 Above-typical stromal score (-0.59) pulling against invasion [F4] \u00b7 Validated\n- **Dense lymphocytic infiltrate (TILs)** (region 4) \u00b7 context \u00b7 Descriptive score near baseline (8/20 AI spot-check) \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful to classifier; deleting top 3 risk regions drops invasive probability beyond random (diff +0.0114, CI 0.0021\u20130.0197).\n- **Concepts**: Unproven faithfulness (deletion diff +0.0008, CI -0.0088\u20130.0064 includes 0); leans on Unreliable normal lobules (0/20 spot-check).\n\n## Could be wrong if\n- Severe stain degradation (severity 3) on frozen section mimics InSitu in normal tissue (5/5 neighbors Normal).\n- Infiltrating-stroma signal in regions 4, 8, 11 reflects focal invasion masked by degraded section quality (cells disabled).\n\n## Check on the slide\n1. **Regions 1, 8, 2**: Highest heatmap risk (46%, 14%, 5%); inspect ducts for in situ atypia versus normal lobules.\n2. **Regions 4, 8, 11**: Highest infiltrating-stroma scores; check stroma and review drafted recut H&E and deeper levels.\n3. **Regions 8, 2**: Near inferior/medial (98%) and superior (94%) margins; defer frozen margin call to permanents [F7].",
+ "verification": {
+  "checked": 29,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T09:58:14-0500",
+ "elapsed_s": 104.2,
+ "usage": {
+  "inputTokens": 32666,
+  "outputTokens": 9515,
+  "cacheReadTokens": 6020,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 97122,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0335",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "b139a4594ff23d57",
+ "markdown": "## Bottom line\n**Suggests Normal (100%)** \u00b7 Confident \u00b7 Read in turn\nAll quality, model-agreement, and reference-neighbor signals support Normal tissue with 0% invasive risk (tier 4, unflagged) [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Normal 100%, Benign 0%, InSitu 0%, Invasive 0% | Single-class certainty, zero invasive risk |\n| Conformal set | {Normal} at 10% alpha (90% test coverage) | Single class at 90% guarantee |\n| Reliability / OOD | 98% reliability, 26th percentile OOD, 12/12 regions [F6] | Typical in-distribution image, unflagged |\n| CONCH\u2013MUSK agreement | Same top class | Independent foundation models concur |\n| Similar cases | 5/5 Normal (89\u201394% similarity) [F5] | Unanimous reference neighbor match |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 2, 10, 11) \u00b7 \u2193 invasive \u00b7 Above-typical score, strongest anti-invasive driver, 0/20 spot check [F2] \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 4, 7, 11) \u00b7 \u2193 invasive \u00b7 Above-typical score pushing strongly away from invasion (20/20 check) [F3] \u00b7 Validated\n- **Tumor infiltrating stroma** (region 7) \u00b7 \u2193 invasive \u00b7 Below-typical score arguing against stromal invasion (19/20 check) [F4] \u00b7 Validated\n- **Atypical cells confined within ducts** (region 5) \u00b7 \u2191 invasive \u00b7 Low score creates a small positive offset (12/20 check) \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful to the classifier; removing top-risk regions drops invasive probability more than random removal (95% CI excludes zero).\n- **Concepts**: Unverified by deletion test (95% CI includes zero), and top driver normal_lobules is Unreliable (0/20 AI spot check).\n\n## Could be wrong if\n- Subtle Benign lesions mimic Normal; Benign contrast case BACH_0369 (81% similarity) differs in duct_confined and Unreliable mitoses.\n- Focal atypia is missed; HoVer-Net flagged insufficient tumor nuclei (only 1 neoplastic nucleus in region 7).\n\n## Check on the slide\n1. **Regions 7, 11**: Verify benign stroma and exclude focal atypia where tile risk and 1 neoplastic nucleus peak.\n2. **Regions 2, 10, 11**: Confirm normal two-layered lobules directly, because the normal_lobules concept is Unreliable (0/20 spot check).\n3. **Regions 5, 9**: Inspect ducts and lymphocytes where tubules, Weak duct_confined, and Unreliable mitoses scores peak.",
+ "verification": {
+  "checked": 24,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:48:33-0500",
+ "elapsed_s": 87.2,
+ "usage": {
+  "inputTokens": 37084,
+  "outputTokens": 669,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 79277,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Normal (100%)** \u00b7 Confident \u00b7 Read in turn\nAll quality, model-agreement, and reference-neighbor signals support Normal tissue with 0% invasive risk (tier 4, unflagged) [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Normal 100%, Benign 0%, InSitu 0%, Invasive 0% | Single-class certainty, zero invasive risk |\n| Conformal set | {Normal} at 10% alpha (90% test coverage) | Single class at 90% guarantee |\n| Reliability / OOD | 98% reliability, 26th percentile OOD, 12/12 regions [F6] | Typical in-distribution image, unflagged |\n| CONCH\u2013MUSK agreement | Same top class (Normal) | Independent foundation models concur |\n| Similar cases | 5/5 Normal (89\u201394% similarity) [F5] | Unanimous reference neighbor match |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 2, 10, 11) \u00b7 \u2193 invasive \u00b7 Above-typical score, strongest anti-invasive driver, 0/20 spot check [F2] \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 4, 7, 11) \u00b7 \u2193 invasive \u00b7 Above-typical score pushing strongly away from invasion (20/20 check) [F3] \u00b7 Validated\n- **Tumor infiltrating stroma** (region 7) \u00b7 \u2193 invasive \u00b7 Below-typical score arguing against stromal invasion (19/20 check) [F4] \u00b7 Validated\n- **Atypical cells confined within ducts** (region 5) \u00b7 \u2191 invasive \u00b7 Low score creates a small positive offset (12/20 check) \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful to the classifier; removing top-risk regions drops invasive probability more than random removal (95% CI excludes zero).\n- **Concepts**: Unverified by deletion test (95% CI includes zero), and top driver normal_lobules is Unreliable (0/20 AI spot check).\n\n## Could be wrong if\n- Subtle Benign lesions mimic Normal; Benign contrast case BACH_0369 (81% similarity) differs in duct_confined and Unreliable mitoses.\n- Focal atypia is missed; HoVer-Net flagged insufficient tumor nuclei (only 1 neoplastic nucleus in region 7).\n\n## Check on the slide\n1. **Regions 7, 11**: Verify benign stroma and exclude focal atypia where tile risk and 1 neoplastic nucleus peak.\n2. **Regions 2, 10, 11**: Confirm normal two-layered lobules directly, because the normal_lobules concept is Unreliable (0/20 spot check).\n3. **Regions 5, 9**: Inspect ducts and lymphocytes where tubules, Weak duct_confined, and Unreliable mitoses scores peak.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "The CONCH\u2013MUSK row names Normal, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

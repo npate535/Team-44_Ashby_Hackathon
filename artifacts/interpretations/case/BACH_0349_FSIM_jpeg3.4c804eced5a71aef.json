@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0349_FSIM_jpeg3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "4c804eced5a71aef",
+ "markdown": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Careful review\nTier 1 surgical frozen section with model agreement [F1] and suggested tumor at all four margins [F7].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 100%, InSitu 0% (ECE 5%) | Near-certain invasive risk |\n| Conformal set | Invasive (90% target, 90% test) | Single class at guarantee |\n| Reliability / OOD | 98% reliability, 64th percentile [F6] | Typical despite JPEG degradation |\n| CONCH\u2013MUSK agreement | Agree on top class | Independent models concur |\n| Similar cases | 5/5 Invasive (82%\u201390%) [F5] | Unanimous reference neighbors |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 4, 8) \u00b7 \u2191 invasive \u00b7 Strongest driver (+1.79, z=1.48); distinguishes from InSitu BACH_0165 [F2] \u00b7 Validated\n- **Dense lymphocytic infiltrate (TILs)** (regions 4, 7, 9) \u00b7 context \u00b7 High score (z=1.50, -1.06); descriptive, 8/20 AI spot-check [F3] \u00b7 Weak\n- **Frequent mitotic figures** (regions 2, 3, 4) \u00b7 \u2191 invasive \u00b7 High score (+0.91, z=1.54) [F4], 0/20 spot-check is unreliable \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 7) \u00b7 \u2191 invasive \u00b7 Low score (z=-0.59) favors invasive (+0.70); 20/20 spot-check \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful; deleting top 3 risk regions drops P(invasive) vs random (+0.0114, 95% CI 0.0021 to 0.0197).\n- **Concepts**: Unproven (deletion +0.0008, 95% CI -0.0088 to 0.0064 includes 0); uses unreliable mitoses (0/20) and necrosis (3/20).\n\n## Could be wrong if\n- Frozen-section and severity-3 JPEG artifacts mimic invasion over InSitu (contrast case BACH_0165, 78% similarity).\n- Dense lymphocytes (regions 4, 7, 9) obscure ducts while cell segmentation is disabled and mitoses are unreliable.\n\n## Check on the slide\n1. **Regions 0, 4, 8**: Confirm stromal invasion vs InSitu; stains are blocked on simulated frozen sections.\n2. **Regions 2, 3, 4**: Manually verify mitoses and pleomorphism; mitotic concept score is unreliable (0/20).\n3. **Regions 0\u20134, 7, 8\u201311**: Verify tumor at all four margins (430\u2013753 um) and region 7 (66% risk).",
+ "verification": {
+  "checked": 37,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:31:24-0500",
+ "elapsed_s": 168.6,
+ "usage": {
+  "inputTokens": 38612,
+  "outputTokens": 702,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 160230,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Careful review\nTier 1 surgical frozen section with model agreement [F1] and suggested tumor at all four margins [F7].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 100%, InSitu 0% (ECE 5%) | Near-certain invasive risk |\n| Conformal set | Invasive (90% target, 90% test) | Single class at guarantee |\n| Reliability / OOD | 98% reliability, 64th percentile [F6] | Typical despite JPEG degradation |\n| CONCH\u2013MUSK agreement | Agree on Invasive | Independent models concur |\n| Similar cases | 5/5 Invasive (82%\u201390%) [F5] | Unanimous reference neighbors |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 4, 8) \u00b7 \u2191 invasive \u00b7 Strongest driver (+1.79, z=1.48); distinguishes from InSitu BACH_0165 [F2] \u00b7 Validated\n- **Dense lymphocytic infiltrate (TILs)** (regions 4, 7, 9) \u00b7 context \u00b7 High score (z=1.50, -1.06); descriptive, 8/20 AI spot-check [F3] \u00b7 Weak\n- **Frequent mitotic figures** (regions 2, 3, 4) \u00b7 \u2191 invasive \u00b7 High score (+0.91, z=1.54) [F4], 0/20 spot-check is unreliable \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 7) \u00b7 \u2191 invasive \u00b7 Low score (z=-0.59) favors invasive (+0.70); 20/20 spot-check \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful; deleting top 3 risk regions drops P(invasive) vs random (+0.0114, 95% CI 0.0021 to 0.0197).\n- **Concepts**: Unproven (deletion +0.0008, 95% CI -0.0088 to 0.0064 includes 0); uses unreliable mitoses (0/20) and necrosis (3/20).\n\n## Could be wrong if\n- Frozen-section and severity-3 JPEG artifacts mimic invasion over InSitu (contrast case BACH_0165, 78% similarity).\n- Dense lymphocytes (regions 4, 7, 9) obscure ducts while cell segmentation is disabled and mitoses are unreliable.\n\n## Check on the slide\n1. **Regions 0, 4, 8**: Confirm stromal invasion vs InSitu; stains are blocked on simulated frozen sections.\n2. **Regions 2, 3, 4**: Manually verify mitoses and pleomorphism; mitotic concept score is unreliable (0/20).\n3. **Regions 0\u20134, 7, 8\u201311**: Verify tumor at all four margins (430\u2013753 um) and region 7 (66% risk).",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "The CONCH\u2013MUSK row names Invasive, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

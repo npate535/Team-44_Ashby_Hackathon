@@ -1,0 +1,34 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0174_FSIM_jpeg3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "b4f8e7148ededc7e",
+ "markdown": "## Bottom line\n**Suggests Invasive (99%)** \u00b7 Confident \u00b7 Careful review\nTier-1 surgical frozen section with single-class conformal set [F1] and positive margins [F7], though top neighbor is InSitu.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 99%, InSitu 1%, Benign 0%, Normal 0% (ECE 5%) | Strong invasive score; small test set |\n| Conformal set | {Invasive}, 10% alpha (90% test coverage) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability, 96th-percentile OOD, 12/12 regions [F6] (JPEG-3; AUROC 70%) | Passes QC; near distribution edge |\n| CONCH\u2013MUSK agreement | Agree with each other | Independent backbones pick same class |\n| Similar cases | 3/5 Invasive (60%) [F5]; 2/5 InSitu (BACH_0241, 85%) | Mixed neighborhood; closest match InSitu |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 4) \u00b7 \u2191 invasive \u00b7 Above-typical (+0.54 contribution), pushes toward invasive [F2] \u00b7 Validated\n- **Gland / tubule formation** (regions 3, 10, 11) \u00b7 \u2193 invasive \u00b7 Above-typical (-0.37 contribution), pulls against invasive [F3] \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 4) \u00b7 \u2191 invasive \u00b7 Typical (+0.30 contribution); 0/20 AI spot check [F4] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (region 4) \u00b7 context \u00b7 Descriptive (+0.15 contribution); differs from InSitu neighbor BACH_0241 \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful; deleting top-3 risk regions drops invasive score beyond random (+0.011, 95% CI +0.002 to +0.020).\n- **Concepts**: Unproven faithfulness (+0.001 vs random, 95% CI -0.009 to +0.006); uses Unreliable normal lobules (0/20), mitoses, necrosis.\n\n## Could be wrong if\n- Top neighbor BACH_0241 (85% similarity) is InSitu, and tubules (regions 3, 10, 11) reflect in situ disease.\n- Severity-3 JPEG degradation and 96th-percentile OOD distort frozen-section embeddings or positive calls across all four margins.\n\n## Check on the slide\n1. **Regions 8, 6, 7, 9, 0, 4**: Confirm stromal invasion in highest-risk heatmap and concept regions.\n2. **Regions 3, 10, 11**: Distinguish invasive tubules from duct-confined in situ carcinoma.\n3. **Regions 0\u20134, 7\u201311**: Verify tumor at superior/inferior (430 um), lateral (323 um), medial (108 um) margins.",
+ "verification": {
+  "checked": 32,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:12:11-0500",
+ "elapsed_s": 148.4,
+ "usage": {
+  "inputTokens": 38604,
+  "outputTokens": 715,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 145461,
+ "key": "primary",
+ "markdown_original": "## Bottom line\n**Suggests Invasive (99%)** \u00b7 Confident \u00b7 Careful review\nTier-1 surgical frozen section with single-class conformal set [F1] and positive margins [F7], though top neighbor is InSitu.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 99%, InSitu 1%, Benign 0%, Normal 0% (ECE 5%) | Strong invasive score; small test set |\n| Conformal set | {Invasive}, 10% alpha (90% test coverage) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability, 96th-percentile OOD, 12/12 regions [F6] (JPEG-3; AUROC 70%) | Passes QC; near distribution edge |\n| CONCH\u2013MUSK agreement | Agree on Invasive | Independent backbones match top class |\n| Similar cases | 3/5 Invasive (60%) [F5]; 2/5 InSitu (BACH_0241, 85%) | Mixed neighborhood; closest match InSitu |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 4) \u00b7 \u2191 invasive \u00b7 Above-typical (+0.54 contribution), pushes toward invasive [F2] \u00b7 Validated\n- **Gland / tubule formation** (regions 3, 10, 11) \u00b7 \u2193 invasive \u00b7 Above-typical (-0.37 contribution), pulls against invasive [F3] \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (region 4) \u00b7 \u2191 invasive \u00b7 Typical (+0.30 contribution); 0/20 AI spot check [F4] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (region 4) \u00b7 context \u00b7 Descriptive (+0.15 contribution); differs from InSitu neighbor BACH_0241 \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful; deleting top-3 risk regions drops invasive score beyond random (+0.011, 95% CI +0.002 to +0.020).\n- **Concepts**: Unproven faithfulness (+0.001 vs random, 95% CI -0.009 to +0.006); uses Unreliable normal lobules (0/20), mitoses, necrosis.\n\n## Could be wrong if\n- Top neighbor BACH_0241 (85% similarity) is InSitu, and tubules (regions 3, 10, 11) reflect in situ disease.\n- Severity-3 JPEG degradation and 96th-percentile OOD distort frozen-section embeddings or positive calls across all four margins.\n\n## Check on the slide\n1. **Regions 8, 6, 7, 9, 0, 4**: Confirm stromal invasion in highest-risk heatmap and concept regions.\n2. **Regions 3, 10, 11**: Distinguish invasive tubules from duct-confined in situ carcinoma.\n3. **Regions 0\u20134, 7\u201311**: Verify tumor at superior/inferior (430 um), lateral (323 um), medial (108 um) margins.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed).",
+   "The CONCH\u2013MUSK row names Invasive, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

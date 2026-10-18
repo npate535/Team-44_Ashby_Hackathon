@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0186",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "497c361dd1f8d0ee",
+ "markdown": "## Bottom line\n**Suggests Normal (52%)** \u00b7 Unreliable input \u00b7 Careful review\nLow reliability (40%) and split Normal vs Benign (43%) read; recut and deeper levels are drafted.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Normal 52%, Benign 43%, InSitu 5%, Invasive 0% [F1] | Split between Normal and Benign |\n| Conformal set | Normal, Benign (90% dataset coverage, alpha 10%) | Cannot separate Normal from Benign |\n| Reliability / OOD | Reliability 40% (flagged), OOD 32nd percentile [F6] | Suspect input; recut or levels drafted |\n| CONCH\u2013MUSK agreement | False (models disagree) | Independent models disagree on class |\n| Similar cases | 4/5 Normal (89%\u201392%); 1/5 Benign (BACH_0341, 90%) [F5] | Mostly Normal, close Benign neighbor |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 7, 9, 10) \u00b7 \u2193 invasive \u00b7 Strongest anti-invasion score (z=1.53), failed 0/20 AI spot-check [F2] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (regions 0, 3, 4) \u00b7 context \u00b7 Above-typical score (z=1.55), 8/20 AI spot-check [F3] \u00b7 Weak\n- **Benign fibrous stroma or fat** (regions 0, 7, 10) \u00b7 \u2193 invasive \u00b7 Above-typical score (z=0.77) against invasive carcinoma [F4] \u00b7 Validated\n- **HoVer-Net nuclei counts** (regions 8, 10, 11) \u00b7 context \u00b7 38 connective, 2 epithelial, 1 neoplastic nucleus; insufficient tumor nuclei \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful in deletion tests (95% CI +0.0021 to +0.0197 excludes 0, n=132); all region risks here are 0%.\n- **Concepts**: Unproven in deletion tests (95% CI -0.0088 to +0.0064 includes 0); top driver normal_lobules (0/20) is unreliable.\n\n## Could be wrong if\n- Tissue is a benign lesion (43% probability, in conformal set, 90% similar to Benign case BACH_0341).\n- Flagged section quality (40% reliability) or sparse epithelium (2 epithelial nuclei across regions 8, 10, 11) masks disease.\n\n## Check on the slide\n1. **Regions 7, 9, 10**: Verify benign stroma and true two-layered lobules, as normal_lobules is unreliable (0/20).\n2. **Regions 0, 3, 4**: Assess lymphocytic infiltrate and ducts to distinguish Normal from Benign contrast case BACH_0341.\n3. **Regions 8, 10, 11**: Check epithelial adequacy and slide quality; order drafted recut or deeper levels if needed.",
+ "verification": {
+  "checked": 33,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:14:16-0500",
+ "elapsed_s": 110.7,
+ "usage": {
+  "inputTokens": 37319,
+  "outputTokens": 730,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 107721,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

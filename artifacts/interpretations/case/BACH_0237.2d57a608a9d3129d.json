@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0237",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "2d57a608a9d3129d",
+ "markdown": "## Bottom line\n**Suggests Benign (97%)** \u00b7 Confident \u00b7 Read in turn\nSingleton 90% conformal set [F1] with 0% invasive risk, though top concept explanations are unvalidated.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Benign 97%, InSitu 2%, Normal 1%, Invasive 0% | Strong benign call; minimal alternatives |\n| Conformal set | {Benign} at 10% alpha (90% dataset coverage) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability, 76th percentile OOD, 12/12 regions [F6] | Clean input; 70% error AUROC |\n| CONCH\u2013MUSK agreement | Agree on top class | Independent backbones match each other |\n| Similar cases | 3/5 Benign (60%), 1 InSitu, 1 Normal [F5] | Moderate match; close InSitu neighbor |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 7, 8, 11) \u00b7 \u2193 invasive \u00b7 Above-typical score (-1.16 contribution), but 0/20 AI spot check [F2] \u00b7 Unreliable\n- **Frequent mitotic figures** (region 0) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.40 contribution); weak concept, 0/20 spot check [F3] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (region 8) \u00b7 context \u00b7 Below-typical score (+0.38 contribution); 8/20 AI spot check [F4] \u00b7 Weak\n- **Atypical cells confined within ducts** (region 6) \u00b7 \u2191 invasive \u00b7 Below-typical confinement (+0.31 contribution); 12/20 AI spot check \u00b7 Weak\n- **Benign fibrous stroma or fat** (region 8) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.14 contribution); 20/20 AI spot check \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful; deleting top-3 risk regions drops invasive probability more than random (diff +0.0114, 95% CI 0.0021\u20130.0197, n=132).\n- **Concepts**: Unproven faithfulness (deletion CI -0.0088\u20130.0064 spans 0); top drivers (Normal lobules, Frequent mitotic figures) are Unreliable (0/20 spot checks).\n\n## Could be wrong if\n- Focal in situ disease is present, resembling contrast case BACH_0043 (InSitu, 88% similarity), which differs in mitoses and stroma.\n- Frozen-section artifacts mask atypia; HoVer-Net flagged insufficient tumor nuclei (only 5 neoplastic cells across regions 4, 7, 11).\n\n## Check on the slide\n1. **Regions 7, 11, 4**: Highest heatmap risk, 5 neoplastic nuclei, and 70%\u201394% margin segments (called clear [F7]).\n2. **Regions 7, 8, 11**: Confirm benign two-layered lobules and fibrous stroma/fat directly rather than trusting concept scores.\n3. **Regions 0, 3, 6**: Exclude ductal atypia (region 6), stromal infiltration (region 3), or mitotic activity (region 0).",
+ "verification": {
+  "checked": 35,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:17:44-0500",
+ "elapsed_s": 93.2,
+ "usage": {
+  "inputTokens": 32919,
+  "outputTokens": 10022,
+  "cacheReadTokens": 6020,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 89638,
+ "key": "primary",
+ "markdown_original": "## Bottom line\n**Suggests Benign (97%)** \u00b7 Confident \u00b7 Read in turn\nSingleton 90% conformal set [F1] with 0% invasive risk, though top concept explanations are unvalidated.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Benign 97%, InSitu 2%, Normal 1%, Invasive 0% | Strong benign call; minimal alternatives |\n| Conformal set | {Benign} at 10% alpha (90% dataset coverage) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability, 76th percentile OOD, 12/12 regions [F6] | Clean input; 70% error AUROC |\n| CONCH\u2013MUSK agreement | Agree on top class (Benign) | Independent backbones match top call |\n| Similar cases | 3/5 Benign (60%), 1 InSitu, 1 Normal [F5] | Moderate match; close InSitu neighbor |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 7, 8, 11) \u00b7 \u2193 invasive \u00b7 Above-typical score (-1.16 contribution), but 0/20 AI spot check [F2] \u00b7 Unreliable\n- **Frequent mitotic figures** (region 0) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.40 contribution); weak concept, 0/20 spot check [F3] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (region 8) \u00b7 context \u00b7 Below-typical score (+0.38 contribution); 8/20 AI spot check [F4] \u00b7 Weak\n- **Atypical cells confined within ducts** (region 6) \u00b7 \u2191 invasive \u00b7 Below-typical confinement (+0.31 contribution); 12/20 AI spot check \u00b7 Weak\n- **Benign fibrous stroma or fat** (region 8) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.14 contribution); 20/20 AI spot check \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful; deleting top-3 risk regions drops invasive probability more than random (diff +0.0114, 95% CI 0.0021\u20130.0197, n=132).\n- **Concepts**: Unproven faithfulness (deletion CI -0.0088\u20130.0064 spans 0); top drivers (Normal lobules, Frequent mitotic figures) are Unreliable (0/20 spot checks).\n\n## Could be wrong if\n- Focal in situ disease is present, resembling contrast case BACH_0043 (InSitu, 88% similarity), which differs in mitoses and stroma.\n- Frozen-section artifacts mask atypia; HoVer-Net flagged insufficient tumor nuclei (only 5 neoplastic cells across regions 4, 7, 11).\n\n## Check on the slide\n1. **Regions 7, 11, 4**: Highest heatmap risk, 5 neoplastic nuclei, and 70%\u201394% margin segments (called clear [F7]).\n2. **Regions 7, 8, 11**: Confirm benign two-layered lobules and fibrous stroma/fat directly rather than trusting concept scores.\n3. **Regions 0, 3, 6**: Exclude ductal atypia (region 6), stromal infiltration (region 3), or mitotic activity (region 0).",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "The CONCH\u2013MUSK row names Benign, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

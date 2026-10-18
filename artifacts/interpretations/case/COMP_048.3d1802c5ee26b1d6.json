@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_048",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "3d1802c5ee26b1d6",
+ "markdown": "## Bottom line\n**Suggests Invasive (62%)** \u00b7 Ambiguous: Invasive vs Benign \u00b7 Careful review\nBenign (33%) stays in the 90% conformal set [F1], with tumor called at three simulated frozen-section margins [F7].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Invasive 62%, Benign 33%, InSitu 5%, Normal 0% | Leans invasive; benign not excluded |\n| Conformal set | Benign, Invasive (10% alpha; 90% dataset coverage) | Cannot separate invasive from benign |\n| Reliability / OOD | 96% reliability, 76th OOD percentile, 12/12 regions [F6] | Typical image; no quality flag |\n| CONCH\u2013MUSK agreement | Agree on top class | Independent backbones match top call |\n| Similar cases | 3/5 Invasive (60%; 88%\u201390% similarity), 2/5 InSitu [F5] | Mixed invasive and in-situ neighbors |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 1, 5, 8) \u00b7 \u2191 invasive \u00b7 Above-typical (+1.13; 19/20 AI check) favors invasive [F2] \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (regions 7) \u00b7 \u2191 invasive \u00b7 Scarce (-0.11; +0.62 contribution), unreliable (0/20 check) [F3] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (regions 2, 10) \u00b7 context \u00b7 Above-typical descriptive TILs (-0.59; 8/20 check) [F4] \u00b7 Weak\n- **Benign fibrous stroma or fat** (regions 7) \u00b7 \u2191 invasive \u00b7 Below-typical (-0.18; +0.51; 20/20 check) favors invasive \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 1, 5, 9) \u00b7 \u2191 invasive \u00b7 High (+0.41; 18/20 check) vs in-situ BACH_0063 \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Top-3 region deletion beats random (95% CI 0.0021 to 0.0197, excludes 0); heatmap is faithful to the classifier.\n- **Concepts**: Deletion overlaps random (CI -0.0088 to 0.0064, unverified); case uses unreliable `normal_lobules` (0/20), `mitoses` (0/20), `necrosis` (3/20).\n\n## Could be wrong if\n- High-risk regions represent in-situ carcinoma (like 89%-similar `BACH_0063`) or benign mimic (33% probability, inside conformal set).\n- Simulated composite frozen-section artifacts distort margin calls where stains are blocked and calibration error spans 4%\u201322% (n=132).\n\n## Check on the slide\n1. **Regions 1, 5, 8, 9**: Confirm stromal invasion and pleomorphism versus in-situ (`BACH_0063`) or benign mimics.\n2. **Regions 0, 1, 4, 8**: Verify tumor at medial (323 \u00b5m), superior (215 \u00b5m), inferior (108 \u00b5m) margins.\n3. **Regions 2, 7, 10, 11**: Check low-risk right half for validated tubules, weak TILs, and duct-confined cells.",
+ "verification": {
+  "checked": 45,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:41:38-0500",
+ "elapsed_s": 122.5,
+ "usage": {
+  "inputTokens": 32604,
+  "outputTokens": 13113,
+  "cacheReadTokens": 6016,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 115221,
+ "key": "backup",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

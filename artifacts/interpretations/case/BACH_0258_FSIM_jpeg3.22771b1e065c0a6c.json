@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0258_FSIM_jpeg3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "22771b1e065c0a6c",
+ "markdown": "## Bottom line\n**Suggests InSitu (75%)** \u00b7 Ambiguous: InSitu vs Benign \u00b7 Careful review\nThe 90% conformal set includes both InSitu and Benign (21%) on a simulated frozen section [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | InSitu 75%, Benign 21%, Invasive 3%, Normal 2% (ECE 5%) | Favors InSitu; low invasive risk |\n| Conformal set | Benign, InSitu at 90% target (90% test coverage) | Cannot exclude a benign lesion |\n| Reliability / OOD | 96% reliability, OOD percentile 1.0, 12/12 regions kept [F6] | Input passes quality check |\n| CONCH\u2013MUSK agreement | Same top class | Independent backbones concur |\n| Similar cases | 5/5 InSitu (70%\u201379% similarity) [F5] | Reference neighbors match suggestion |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 0, 7, 9) \u00b7 context \u00b7 Above-typical score (-0.81 weight away from invasive; 8/20 AI spot check) [F2] \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 0) \u00b7 \u2191 invasive \u00b7 Typical score (+0.34 weight), but failed AI spot check (0/20) [F3] \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (region 11) \u00b7 \u2191 invasive \u00b7 Low slide-wide score (+0.33 weight toward invasive; 20/20 spot check) [F4] \u00b7 Validated\n- **Tumor necrosis** (regions 1, 2, 5) \u00b7 \u2191 invasive \u00b7 High concept score (+0.30 weight), but failed AI spot check (3/20) \u00b7 Unreliable\n- **Tumor infiltrating stroma** (region 10) \u00b7 \u2191 invasive \u00b7 Strongest in highest-risk region (+0.16 weight; 19/20 AI spot check) \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top 3 risk regions drops invasive score above random (95% CI 0.002 to 0.020).\n- **Concepts**: Unverified (CI -0.009 to 0.006 includes 0); leans on unreliable normal lobules (0/20), necrosis (3/20), and mitoses (0/20).\n\n## Could be wrong if\n- Lesion is a benign mimic (`BACH_0230`, 63% similar) or obscured by simulated frozen-section JPEG artifacts; deeper levels drafted.\n- Focal invasion exists in region 10 (58% regional risk), or lateral/superior edges are involved despite clear margin call [F7].\n\n## Check on the slide\n1. **Region 10**: Highest regional invasive risk (58%) and validated stromal infiltration score; rule out focal invasion.\n2. **Regions 1, 5**: Next highest risk (6% each) with duct-confined atypia; distinguish InSitu from Benign on deeper levels.\n3. **Regions 0, 7, 9**: Assess lymphocytic infiltrate and inspect lateral/superior margins (segment scores up to 100%).",
+ "verification": {
+  "checked": 39,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:21:00-0500",
+ "elapsed_s": 95.0,
+ "usage": {
+  "inputTokens": 38574,
+  "outputTokens": 749,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 92177,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

@@ -1,0 +1,31 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0053",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "85490f09adab6e8d",
+ "markdown": "## Bottom line\n**Suggests Benign (90%)** \u00b7 Unreliable input \u00b7 Careful review\nFlagged reliability (44%, 98th-pct OOD) and model disagreement warrant recuts/levels on this frozen section.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 90%, InSitu 8%, Normal 2%, Invasive 0% [F1] | Favors benign; low invasive risk |\n| Conformal set | {Benign} (alpha=0.10, 90% coverage) | Single class at dataset guarantee |\n| Reliability / OOD | 44% reliability (flagged), 98th-pct OOD [F6] | Unreliable input; atypical vs training |\n| CONCH\u2013MUSK agreement | False (top classes differ) | Foundation models split on top |\n| Similar cases | 5/5 Benign (100%, 0.75\u20130.89) [F5] | Nearest neighbors all benign |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 0) \u00b7 \u2193 invasive \u00b7 Below-typical score (0.085, -0.471) against invasive [F2] \u00b7 Validated\n- **Frequent mitotic figures** (region 4) \u00b7 \u2193 invasive \u00b7 Typical score (0.214, -0.206) against invasive [F3] \u00b7 Unreliable\n- **Gland / tubule formation** (regions 2, 3) \u00b7 \u2193 invasive \u00b7 Above-typical (0.993, -0.204; caption mismatch) favors benign [F4] \u00b7 Weak\n- **HoVer-Net nuclei** (regions 0, 4, 11) \u00b7 context \u00b7 59% neoplastic (92nd-pct) [F7]; 100th-pct shape variation [F8] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful; deleting top-3 risk regions drops invasive score beyond random (0.0114, CI 0.0021\u20130.0197).\n- **Concepts**: Unproven faithfulness (0.0008, CI -0.0088\u20130.0064); uses unreliable mitoses (0/20 spot-check), lobules (0/20), necrosis (3/20).\n\n## Could be wrong if\n- Flagged quality (44% reliability, 98th-pct OOD) masks InSitu (8%) or invasion while CONCH and MUSK disagree.\n- High neoplastic counts in regions 4 (47) and 0 (25) with 100th-pct shape variation reflect neoplasia.\n\n## Check on the slide\n1. **Regions 0, 4**: Inspect 25 and 47 neoplastic nuclei (3% benign epithelium [F10], 0% immune [F9]) and risk.\n2. **Regions 5, 9, 2, 3**: Check duct-confined atypia (region 5), pleomorphism (region 9), and tubules (regions 2, 3).\n3. **Regions 10, 11**: Check inferior (52%) and lateral (48%) margins; defer call [F11] and order recuts/levels.",
+ "verification": {
+  "checked": 44,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:02:33-0500",
+ "elapsed_s": 200.7,
+ "usage": {
+  "inputTokens": 33657,
+  "outputTokens": 21581,
+  "cacheReadTokens": 6020,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 197335,
+ "key": "primary",
+ "markdown_original": "## Bottom line\n**Suggests Benign (90%)** \u00b7 Unreliable input \u00b7 Careful review\nFlagged reliability (44%, 98th-pct OOD) and model disagreement warrant recuts/levels on this frozen section.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 90%, InSitu 8%, Normal 2%, Invasive 0% [F1] | Favors benign; low invasive risk |\n| Conformal set | {Benign} (alpha=0.10, 90% coverage) | Single class at dataset guarantee |\n| Reliability / OOD | 44% reliability (flagged), 98th-pct OOD [F6] | Unreliable input; atypical vs training |\n| CONCH\u2013MUSK agreement | False (top classes differ) | Foundation models split on top |\n| Similar cases | 5/5 Benign (100%, 0.75\u20130.89) [F5] | Nearest neighbors all benign |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 0) \u00b7 \u2193 invasive \u00b7 Below-typical score (0.085, -0.471) against invasive [F2] \u00b7 Validated\n- **Frequent mitotic figures** (region 4) \u00b7 \u2193 invasive \u00b7 Typical score (0.214, -0.206) against invasive [F3] \u00b7 Unreliable\n- **Gland / tubule formation** (regions 2, 3) \u00b7 \u2193 invasive \u00b7 Above-typical (0.993, -0.204; caption mismatch) favors benign [F4] \u00b7 Validated\n- **HoVer-Net nuclei** (regions 0, 4, 11) \u00b7 context \u00b7 59% neoplastic (92nd-pct) [F7]; 100th-pct shape variation [F8] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful; deleting top-3 risk regions drops invasive score beyond random (0.0114, CI 0.0021\u20130.0197).\n- **Concepts**: Unproven faithfulness (0.0008, CI -0.0088\u20130.0064); uses unreliable mitoses (0/20 spot-check), lobules (0/20), necrosis (3/20).\n\n## Could be wrong if\n- Flagged quality (44% reliability, 98th-pct OOD) masks InSitu (8%) or invasion while CONCH and MUSK disagree.\n- High neoplastic counts in regions 4 (47) and 0 (25) with 100th-pct shape variation reflect neoplasia.\n\n## Check on the slide\n1. **Regions 0, 4**: Inspect 25 and 47 neoplastic nuclei (3% benign epithelium [F10], 0% immune [F9]) and risk.\n2. **Regions 5, 9, 2, 3**: Check duct-confined atypia (region 5), pleomorphism (region 9), and tubules (regions 2, 3).\n3. **Regions 10, 11**: Check inferior (52%) and lateral (48%) margins; defer call [F11] and order recuts/levels.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

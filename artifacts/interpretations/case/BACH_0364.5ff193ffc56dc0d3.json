@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0364",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "5ff193ffc56dc0d3",
+ "markdown": "## Bottom line\n**Suggests Invasive (65%)** \u00b7 Confident \u00b7 Careful review\nSingle-class conformal set [F1], but 34% InSitu probability, foundation-model disagreement, and 4/5 InSitu neighbors require caution.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Invasive 65%, InSitu 34%, Benign 0%, Normal 0% | Leans Invasive; substantial InSitu probability |\n| Conformal set | Invasive (\u03b1=10%, 90% test coverage) | Single class; dataset-level guarantee |\n| Reliability / OOD | 54% reliability, 36th OOD percentile, 12/12 regions [F6] | Acceptable input; unflagged (AUROC 70%) |\n| CONCH\u2013MUSK agreement | False | Foundation models disagree on top |\n| Similar cases | 1/5 Invasive (20%), 4/5 InSitu [F5] | Nearest neighbors predominantly InSitu |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 10) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.73 SD) lowers invasive read (-0.46) [F2] \u00b7 Validated\n- **Benign fibrous stroma or fat** (region 11) \u00b7 \u2191 invasive \u00b7 Scarce benign stroma (-0.39 SD) raises invasive read (+0.30) [F3] \u00b7 Validated\n- **Atypical cells confined within ducts** (regions 2, 9) \u00b7 \u2193 invasive \u00b7 Above-typical confinement (+1.27 SD) lowers invasive read (-0.23) [F4] \u00b7 Weak\n- **Tumor necrosis** (regions 0, 3, 9) \u00b7 \u2191 invasive \u00b7 High score (+1.07 SD, +0.22), but 3/20 AI spot-check \u00b7 Unreliable\n- **Tumor cell density & nuclei** (regions 2, 6) \u00b7 context \u00b7 Density 95th percentile [F7], size CV 93rd [F9], size 0th [F8] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top-3 risk regions drops invasive score above random (0.0114, 95% CI 0.0021 to 0.0197).\n- **Concepts**: Unproven faithfulness (95% CI -0.0088 to 0.0064 includes 0); leans on unreliable necrosis (3/20), normal_lobules (0/20), mitoses (0/20).\n\n## Could be wrong if\n- True diagnosis is InSitu (34% probability), matching 4/5 neighbors and 94%-similar InSitu case BACH_0057 (differs in pleomorphism, mitoses).\n- High-risk regions (0, 3, 6) reflect intraductal atypia rather than stromal invasion, which scored below typical.\n\n## Check on the slide\n1. **Regions 3, 6, 0**: Highest risk (100%, 99%, 96%); confirm invasion before releasing drafted ER/PR/HER2/Ki-67 stain orders.\n2. **Regions 2, 9**: Strongest duct-confined atypia scores (low risk 4%, 6%); verify tumor remains confined within ducts.\n3. **Regions 10, 11**: Check weak stromal infiltration score (region 10) and lymphocytic infiltrate with benign stroma (region 11).",
+ "verification": {
+  "checked": 41,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:32:32-0500",
+ "elapsed_s": 112.4,
+ "usage": {
+  "inputTokens": 37679,
+  "outputTokens": 801,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 105789,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Invasive (65%)** \u00b7 Ambiguous: Invasive vs InSitu \u00b7 Careful review\nSingle-class conformal set [F1], but 34% InSitu probability, foundation-model disagreement, and 4/5 InSitu neighbors require caution.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Invasive 65%, InSitu 34%, Benign 0%, Normal 0% | Leans Invasive; substantial InSitu probability |\n| Conformal set | Invasive (\u03b1=10%, 90% test coverage) | Single class; dataset-level guarantee |\n| Reliability / OOD | 54% reliability, 36th OOD percentile, 12/12 regions [F6] | Acceptable input; unflagged (AUROC 70%) |\n| CONCH\u2013MUSK agreement | False | Foundation models disagree on top |\n| Similar cases | 1/5 Invasive (20%), 4/5 InSitu [F5] | Nearest neighbors predominantly InSitu |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 10) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.73 SD) lowers invasive read (-0.46) [F2] \u00b7 Validated\n- **Benign fibrous stroma or fat** (region 11) \u00b7 \u2191 invasive \u00b7 Scarce benign stroma (-0.39 SD) raises invasive read (+0.30) [F3] \u00b7 Validated\n- **Atypical cells confined within ducts** (regions 2, 9) \u00b7 \u2193 invasive \u00b7 Above-typical confinement (+1.27 SD) lowers invasive read (-0.23) [F4] \u00b7 Weak\n- **Tumor necrosis** (regions 0, 3, 9) \u00b7 \u2191 invasive \u00b7 High score (+1.07 SD, +0.22), but 3/20 AI spot-check \u00b7 Unreliable\n- **Tumor cell density & nuclei** (regions 2, 6) \u00b7 context \u00b7 Density 95th percentile [F7], size CV 93rd [F9], size 0th [F8] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top-3 risk regions drops invasive score above random (0.0114, 95% CI 0.0021 to 0.0197).\n- **Concepts**: Unproven faithfulness (95% CI -0.0088 to 0.0064 includes 0); leans on unreliable necrosis (3/20), normal_lobules (0/20), mitoses (0/20).\n\n## Could be wrong if\n- True diagnosis is InSitu (34% probability), matching 4/5 neighbors and 94%-similar InSitu case BACH_0057 (differs in pleomorphism, mitoses).\n- High-risk regions (0, 3, 6) reflect intraductal atypia rather than stromal invasion, which scored below typical.\n\n## Check on the slide\n1. **Regions 3, 6, 0**: Highest risk (100%, 99%, 96%); confirm invasion before releasing drafted ER/PR/HER2/Ki-67 stain orders.\n2. **Regions 2, 9**: Strongest duct-confined atypia scores (low risk 4%, 6%); verify tumor remains confined within ducts.\n3. **Regions 10, 11**: Check weak stromal infiltration score (region 10) and lymphocytic infiltrate with benign stroma (region 11).",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "Bottom line verdict should be 'Confident' because the conformal set is {Invasive}."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

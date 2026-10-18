@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0344_FSIM_stain3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "1278f93b311c0b9f",
+ "markdown": "## Bottom line\n**Suggests Benign (100%)** \u00b7 Confident \u00b7 Read in turn\nUnflagged tier-1 frozen section with model consensus and 0% invasive risk [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 100%, others 0% (ECE 5%) | Strong Benign call, 0% risk |\n| Conformal set | {Benign}, alpha 10% (90% coverage, n=132) | Single-class 90% dataset guarantee |\n| Reliability / OOD | 98% reliability, 94th-percentile OOD, stain severity 3 [F6] | Passes QC despite stain |\n| CONCH\u2013MUSK agreement | Same top class (true) | Independent backbones agree |\n| Similar cases | 5/5 Benign (82%\u201387%); Normal contrast 79% [F5] | All 5 neighbors Benign |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 3) \u00b7 \u2193 invasive \u00b7 Below-typical (-0.72, z=-2.22) lowers risk [F2] \u00b7 Validated\n- **Atypical cells confined within ducts** (regions 5, 7, 9) \u00b7 \u2193 invasive \u00b7 Above-typical (1.32, z=1.22) favors non-invasive [F3] \u00b7 Weak\n- **Gland / tubule formation** (regions 1, 3, 11) \u00b7 \u2193 invasive \u00b7 Above-typical (1.48, z=1.14), caption-inconsistent [F4] \u00b7 Weak\n- **Benign fibrous stroma or fat** (region 11) \u00b7 \u2191 invasive \u00b7 Below-average (-0.10, z=-0.80) raises risk \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful in dataset tests (deletion +0.0114 vs random, 95% CI 0.0021\u20130.0197, n=132).\n- **Concepts**: Unproven faithfulness (CI -0.0088\u20130.0064 includes 0); ignore unreliable normal lobules (0/20), mitoses (0/20), necrosis (3/20).\n\n## Could be wrong if\n- Severity-3 stain degradation (94th-percentile OOD) on simulated frozen section masks atypia (AUROC 0.70; cells disabled).\n- Duct-confined atypia (regions 5, 7, 9) is in-situ carcinoma, or superior (85%)/medial (74%) margins are involved.\n\n## Check on the slide\n1. **Regions 5, 7, 9**: verify duct-confined proliferation is benign hyperplasia, not in-situ carcinoma.\n2. **Regions 1, 3, 11**: confirm benign tubules and uninvaded stroma, especially region 3.\n3. **Regions 1, 4**: inspect superior (85%) and medial (74%) margins called clear [F7].",
+ "verification": {
+  "checked": 39,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:30:25-0500",
+ "elapsed_s": 145.9,
+ "usage": {
+  "inputTokens": 38390,
+  "outputTokens": 690,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 139444,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Benign (100%)** \u00b7 Confident \u00b7 Read in turn\nUnflagged tier-1 frozen section with model consensus and 0% invasive risk [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 100%, others 0% (ECE 5%) | Strong Benign call, 0% risk |\n| Conformal set | {Benign}, alpha 10% (90% coverage, n=132) | Single-class 90% dataset guarantee |\n| Reliability / OOD | 98% reliability, 94th-percentile OOD, stain severity 3 [F6] | Passes QC despite stain |\n| CONCH\u2013MUSK agreement | Same top class (true) | Independent backbones agree |\n| Similar cases | 5/5 Benign (82%\u201387%); Normal contrast 79% [F5] | All 5 neighbors Benign |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 3) \u00b7 \u2193 invasive \u00b7 Below-typical (-0.72, z=-2.22) lowers risk [F2] \u00b7 Validated\n- **Atypical cells confined within ducts** (regions 5, 7, 9) \u00b7 \u2193 invasive \u00b7 Above-typical (1.32, z=1.22) favors non-invasive [F3] \u00b7 Weak\n- **Gland / tubule formation** (regions 1, 3, 11) \u00b7 \u2193 invasive \u00b7 Above-typical (1.48, z=1.14), caption-inconsistent [F4] \u00b7 Validated\n- **Benign fibrous stroma or fat** (region 11) \u00b7 \u2191 invasive \u00b7 Below-average (-0.10, z=-0.80) raises risk \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful in dataset tests (deletion +0.0114 vs random, 95% CI 0.0021\u20130.0197, n=132).\n- **Concepts**: Unproven faithfulness (CI -0.0088\u20130.0064 includes 0); ignore unreliable normal lobules (0/20), mitoses (0/20), necrosis (3/20).\n\n## Could be wrong if\n- Severity-3 stain degradation (94th-percentile OOD) on simulated frozen section masks atypia (AUROC 0.70; cells disabled).\n- Duct-confined atypia (regions 5, 7, 9) is in-situ carcinoma, or superior (85%)/medial (74%) margins are involved.\n\n## Check on the slide\n1. **Regions 5, 7, 9**: verify duct-confined proliferation is benign hyperplasia, not in-situ carcinoma.\n2. **Regions 1, 3, 11**: confirm benign tubules and uninvaded stroma, especially region 3.\n3. **Regions 1, 4**: inspect superior (85%) and medial (74%) margins called clear [F7].",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

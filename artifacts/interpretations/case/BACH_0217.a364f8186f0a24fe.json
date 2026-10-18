@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0217",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "a364f8186f0a24fe",
+ "markdown": "## Bottom line\n**Suggests InSitu (90%)** \u00b7 Unreliable input \u00b7 Careful review\nInvasive carcinoma (8%) remains in the conformal set [F1], and low reliability flags an atypical image [F6].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | InSitu 90%, Invasive 8%, Benign 2%, Normal 0% | Favors InSitu; low invasive risk |\n| Conformal set | InSitu, Invasive (10% alpha; 90% coverage) | Cannot exclude invasive carcinoma |\n| Reliability / OOD | 30% reliability (flagged); 98th percentile OOD | Atypical input; reduced model trust |\n| CONCH\u2013MUSK agreement | Disagree on top class (false) | Independent foundation models split |\n| Similar cases | 40% match (2/5 InSitu, 2/5 Invasive, 1/5 Benign) [F5] | Nearest reference neighbors are mixed |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (region 4) \u00b7 context \u00b7 Scarce TILs (+0.495 push toward invasive) [F2]; 8/20 AI spot check \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 8) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.275 push) [F3], but 0/20 AI spot check \u00b7 Unreliable\n- **Tumor infiltrating stroma** (region 0) \u00b7 \u2193 invasive \u00b7 Typical score (-0.233 push away from invasive) [F4]; 19/20 spot check \u00b7 Validated\n- **Tumor necrosis** (regions 5, 10, 11) \u00b7 \u2191 invasive \u00b7 High score (+0.226 push), but 3/20 AI spot check \u00b7 Unreliable\n- **Tumor cell fraction and density** (regions 6, 7, 11) \u00b7 context \u00b7 94% neoplastic nuclei [F7], 5,889/mm\u00b2 [F8] (100th percentile), 0% immune [F9] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful; deleting top 3 risk regions drops invasive probability more than random (+0.0114, 95% CI 0.0021\u20130.0197, n=132).\n- **Concepts**: Unproven (+0.0008 vs random, 95% CI -0.0088\u20130.0064); leans on Unreliable normal lobules (0/20), necrosis (3/20), and mitoses (0/20).\n\n## Could be wrong if\n- High-risk regions 6, 7, and 11 (risks 54%, 45%, 31%) harbor invasion, matching top neighbor BACH_0138 (Invasive).\n- Out-of-distribution quality (98th percentile OOD, 30% reliability) distorted features, requiring drafted recut, deeper levels, or p63/calponin stains.\n\n## Check on the slide\n1. **Regions 6, 7, 11**: Highest risk (54%, 45%, 31%) and dense tumor; verify myoepithelium (drafted p63, calponin, ER).\n2. **Regions 5, 10, 11**: Confirm duct confinement in region 10 and check Unreliable necrosis calls (3/20 spot check).\n3. **Regions 0, 4, 8**: Inspect region 0 stroma, region 4 TILs, and region 8 quality (drafted recut/deeper levels).",
+ "verification": {
+  "checked": 45,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:16:10-0500",
+ "elapsed_s": 111.9,
+ "usage": {
+  "inputTokens": 37956,
+  "outputTokens": 835,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 108603,
+ "key": "primary",
+ "markdown_original": "## Bottom line\n**Suggests InSitu (90%)** \u00b7 Ambiguous: InSitu vs Invasive \u00b7 Careful review\nInvasive carcinoma (8%) remains in the conformal set [F1], and low reliability flags an atypical image [F6].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | InSitu 90%, Invasive 8%, Benign 2%, Normal 0% | Favors InSitu; low invasive risk |\n| Conformal set | InSitu, Invasive (10% alpha; 90% coverage) | Cannot exclude invasive carcinoma |\n| Reliability / OOD | 30% reliability (flagged); 98th percentile OOD | Atypical input; reduced model trust |\n| CONCH\u2013MUSK agreement | Disagree on top class (false) | Independent foundation models split |\n| Similar cases | 40% match (2/5 InSitu, 2/5 Invasive, 1/5 Benign) [F5] | Nearest reference neighbors are mixed |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (region 4) \u00b7 context \u00b7 Scarce TILs (+0.495 push toward invasive) [F2]; 8/20 AI spot check \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 8) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.275 push) [F3], but 0/20 AI spot check \u00b7 Unreliable\n- **Tumor infiltrating stroma** (region 0) \u00b7 \u2193 invasive \u00b7 Typical score (-0.233 push away from invasive) [F4]; 19/20 spot check \u00b7 Validated\n- **Tumor necrosis** (regions 5, 10, 11) \u00b7 \u2191 invasive \u00b7 High score (+0.226 push), but 3/20 AI spot check \u00b7 Unreliable\n- **Tumor cell fraction and density** (regions 6, 7, 11) \u00b7 context \u00b7 94% neoplastic nuclei [F7], 5,889/mm\u00b2 [F8] (100th percentile), 0% immune [F9] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful; deleting top 3 risk regions drops invasive probability more than random (+0.0114, 95% CI 0.0021\u20130.0197, n=132).\n- **Concepts**: Unproven (+0.0008 vs random, 95% CI -0.0088\u20130.0064); leans on Unreliable normal lobules (0/20), necrosis (3/20), and mitoses (0/20).\n\n## Could be wrong if\n- High-risk regions 6, 7, and 11 (risks 54%, 45%, 31%) harbor invasion, matching top neighbor BACH_0138 (Invasive).\n- Out-of-distribution quality (98th percentile OOD, 30% reliability) distorted features, requiring drafted recut, deeper levels, or p63/calponin stains.\n\n## Check on the slide\n1. **Regions 6, 7, 11**: Highest risk (54%, 45%, 31%) and dense tumor; verify myoepithelium (drafted p63, calponin, ER).\n2. **Regions 5, 10, 11**: Confirm duct confinement in region 10 and check Unreliable necrosis calls (3/20 spot check).\n3. **Regions 0, 4, 8**: Inspect region 0 stroma, region 4 TILs, and region 8 quality (drafted recut/deeper levels).",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "Bottom line verdict should be 'Unreliable input' because the reliability flag is set."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

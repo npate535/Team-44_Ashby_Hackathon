@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0006",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "27defa3eb0b4a5f6",
+ "markdown": "## Bottom line\n**Suggests InSitu (55%)** \u00b7 Unreliable input \u00b7 Careful review\nFlagged reliability [F6] and split probabilities [F1] warrant deferring margins [F7] for recut and deeper levels.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 55%, Normal 43%, Benign 2%, Invasive 0% | Split InSitu vs Normal |\n| Conformal set | {Normal, InSitu} (90% coverage) | Normal vs InSitu unseparated |\n| Reliability / OOD | 33% (flagged), OOD 78% | Suspect frozen-section input |\n| CONCH\u2013MUSK agreement | False (top classes differ) | Foundation models disagree |\n| Similar cases | 0/5 InSitu (5/5 Normal, 85\u201388%) [F5] | Nearest neighbors Normal |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 4, 6, 11) \u00b7 \u2193 invasive \u00b7 Score -1.81 [F2], 0/20 AI spot-check \u00b7 Unreliable\n- **Tumor infiltrating stroma** (regions 8, 9, 11) \u00b7 \u2191 invasive \u00b7 Score +1.45 [F3], 19/20 spot-check, 0% invasive risk \u00b7 Validated\n- **Benign fibrous stroma or fat** (regions 6, 7, 9) \u00b7 \u2193 invasive \u00b7 Score -0.68 [F4], 20/20 AI spot-check \u00b7 Validated\n- **HoVer-Net nuclei** (regions 1, 8, 9) \u00b7 context \u00b7 5 neoplastic in 1; 0 in 8, 9 (insufficient) \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Top-3 risk deletion beats random (+0.0114, 95% CI 0.0021\u20130.0197; faithful).\n- **Concepts**: Deletion CI spans zero (-0.0088 to 0.0064; unverified); normal_lobules is Unreliable (0/20).\n\n## Could be wrong if\n- Tissue is Normal (43% probability, in conformal set, 5/5 similar cases Normal).\n- Frozen-section quality (33% reliability, 78% OOD) or sampling obscures lesions; recut and deeper levels drafted.\n\n## Check on the slide\n1. **Region 1**: Highest risk (16%), 5 neoplastic nuclei; check ducts near superior margin (93%).\n2. **Regions 8, 9, 11**: Top validated invasion score (+1.45), but 0 neoplastic nuclei in 8, 9.\n3. **Regions 4, 6, 7**: Check benign stroma/fat (6, 7) and lobules in 4, 6 (unreliable normal_lobules).",
+ "verification": {
+  "checked": 32,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T09:59:44-0500",
+ "elapsed_s": 193.8,
+ "usage": {
+  "inputTokens": 39261,
+  "outputTokens": 664,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 186697,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

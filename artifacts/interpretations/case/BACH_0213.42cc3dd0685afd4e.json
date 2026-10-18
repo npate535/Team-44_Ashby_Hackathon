@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0213",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "42cc3dd0685afd4e",
+ "markdown": "## Bottom line\n**Suggests Normal (100%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal prediction [F1], full model and neighbor agreement, and unflagged image quality support routine tier-4 review.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Normal 100%, InSitu 0%, Invasive 0% (risk 0.0004) | Near-zero invasive risk; 5% dataset ECE |\n| Conformal set | {Normal} at alpha 0.10 (90% dataset coverage) | Single class at 90% dataset guarantee |\n| Reliability / OOD | 0.99 reliability, 14% OOD, 12/12 regions kept [F6] | Typical input; unflagged (AUROC 0.70) |\n| CONCH\u2013MUSK agreement | True (same top class) | Independent foundation models agree |\n| Similar cases | 5/5 Normal (similarity 0.90\u20130.95) [F5] | All five reference neighbors match |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 1, 4, 5) \u00b7 \u2193 invasive \u00b7 Above-typical score (1.52, contribution -1.39) [F2]; unreliable (0/20 AI spot check) \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 0, 5, 6) \u00b7 \u2193 invasive \u00b7 Above-typical score (1.56, contribution -1.21) [F3]; 20/20 AI spot check \u00b7 Validated\n- **Dense lymphocytic infiltrate (TILs)** (region 9) \u00b7 context \u00b7 Below-typical score (-0.68, contribution +1.04) [F4]; 8/20 AI spot check \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top 3 risk regions drops invasive probability above random (+0.0114, 95% CI 0.0021\u20130.0197, n=132).\n- **Concepts**: Not shown to reflect classifier use (+0.0008, 95% CI -0.0088\u20130.0064); leans on unreliable Normal lobules (0/20 spot check).\n\n## Could be wrong if\n- Focal in situ lesion resembles contrast case `BACH_0043` (InSitu, 0.79 similarity), which differs most in lymphocytes and invasion.\n- Sampled regions 4, 9, and 10 flagged `insufficient_tumor_nuclei` yet segmented 6 neoplastic-labeled nuclei (4 in region 9).\n\n## Check on the slide\n1. **Regions 1, 4, 5, 0, 6**: Verify normal lobules and benign stroma directly; the lobules concept is unreliable (0/20).\n2. **Region 9**: Inspect 4 HoVer-Net neoplastic-labeled nuclei and top tile scores for invasion (0.34) and tubules (0.57).\n3. **Regions 4, 10, 11**: Check non-zero risk tiles (4, 10: 0.001) and region 11 for duct-confined atypia (0.01).",
+ "verification": {
+  "checked": 40,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:15:37-0500",
+ "elapsed_s": 80.9,
+ "usage": {
+  "inputTokens": 37078,
+  "outputTokens": 758,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 77567,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

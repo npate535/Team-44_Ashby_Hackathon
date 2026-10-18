@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0362_FSIM_blur3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "94b1b036edb149af",
+ "markdown": "## Bottom line\n**Suggests Normal (87%)** \u00b7 Ambiguous: Normal vs Benign \u00b7 Careful review\nInvasive risk is 1% with clear margins [F7], though blurred frozen-section tissue leaves Benign in the conformal set.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Normal 87%, Benign 9%, InSitu 2%, Invasive 1% [F1] | Low invasive carcinoma risk (1%) |\n| Conformal set | Normal, Benign (\u03b1=0.10; 90% dataset coverage) | Cannot separate Normal from Benign |\n| Reliability / OOD | 96% reliability, 100th percentile OOD, blur severity 3, 12/12 tiles [F6] | Passes QC despite severe blur |\n| CONCH\u2013MUSK agreement | Agree on top class | Independent backbones concur |\n| Similar cases | 5/5 Normal (80\u201384% similarity); Benign contrast 73% [F5] | Nearest reference neighbors match Normal |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 1, 7, 11) \u00b7 context \u00b7 Above-typical score (1.35); descriptive context only [F2] \u00b7 Weak\n- **Atypical cells confined within ducts** (region 3) \u00b7 \u2191 invasive \u00b7 Scarce score (-0.50, +0.36 contribution) nudges toward invasive [F3] \u00b7 Weak\n- **Frequent mitotic figures** (region 3) \u00b7 \u2193 invasive \u00b7 Scarce score (-0.43, -0.36 contribution), but unreliable (0/20 spot check) [F4] \u00b7 Unreliable\n- **Tumor infiltrating stroma** (region 8) \u00b7 \u2193 invasive \u00b7 Low score (-0.49 SD, -0.35 contribution) opposes stromal invasion \u00b7 Validated\n- **Benign fibrous stroma or fat** (regions 7, 8) \u00b7 \u2193 invasive \u00b7 High score (1.10, -0.25 contribution) supports non-invasive stroma \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top-3 risk regions drops P(invasive) above random (+0.011, 95% CI 0.002 to 0.020).\n- **Concepts**: Unproven classifier faithfulness (diff +0.001, CI -0.009 to 0.006); mitoses (0/20), normal lobules (0/20), necrosis (3/20) are unreliable.\n\n## Could be wrong if\n- Blur (severity 3, 100th OOD percentile) masks a benign lesion (9% probability, contrast BACH_0027) or focal atypia.\n- Reliability score (96%) misses blur-induced error (dataset AUROC 0.70, n=1716), and HoVer-Net cell segmentation is disabled.\n\n## Check on the slide\n1. **Region 8**: Inspect highest-risk tile (0.002) to confirm benign stroma and fat without stromal invasion.\n2. **Region 3**: Check ducts and superior-lateral margin corner (22% segment probability) for blurred atypia.\n3. **Regions 1, 7, 11**: Verify whether lymphocytic infiltrate reflects normal tissue or benign lesion (BACH_0027 contrast).",
+ "verification": {
+  "checked": 41,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:31:41-0500",
+ "elapsed_s": 83.9,
+ "usage": {
+  "inputTokens": 38370,
+  "outputTokens": 768,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 77042,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Normal (87%)** \u00b7 Ambiguous: Normal vs Benign \u00b7 Careful review\nInvasive risk is 1% with clear margins [F7], though blurred frozen-section tissue leaves Benign in the conformal set.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Normal 87%, Benign 9%, InSitu 2%, Invasive 1% [F1] | Low invasive carcinoma risk (1%) |\n| Conformal set | Normal, Benign (\u03b1=0.10; 90% dataset coverage) | Cannot separate Normal from Benign |\n| Reliability / OOD | 96% reliability, 100th percentile OOD, blur severity 3, 12/12 tiles [F6] | Passes QC despite severe blur |\n| CONCH\u2013MUSK agreement | Agree on top class (Normal) | Independent backbones concur on Normal |\n| Similar cases | 5/5 Normal (80\u201384% similarity); Benign contrast 73% [F5] | Nearest reference neighbors match Normal |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 1, 7, 11) \u00b7 context \u00b7 Above-typical score (1.35); descriptive context only [F2] \u00b7 Weak\n- **Atypical cells confined within ducts** (region 3) \u00b7 \u2191 invasive \u00b7 Scarce score (-0.50, +0.36 contribution) nudges toward invasive [F3] \u00b7 Weak\n- **Frequent mitotic figures** (region 3) \u00b7 \u2193 invasive \u00b7 Scarce score (-0.43, -0.36 contribution), but unreliable (0/20 spot check) [F4] \u00b7 Unreliable\n- **Tumor infiltrating stroma** (region 8) \u00b7 \u2193 invasive \u00b7 Low score (-0.49 SD, -0.35 contribution) opposes stromal invasion \u00b7 Validated\n- **Benign fibrous stroma or fat** (regions 7, 8) \u00b7 \u2193 invasive \u00b7 High score (1.10, -0.25 contribution) supports non-invasive stroma \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top-3 risk regions drops P(invasive) above random (+0.011, 95% CI 0.002 to 0.020).\n- **Concepts**: Unproven classifier faithfulness (diff +0.001, CI -0.009 to 0.006); mitoses (0/20), normal lobules (0/20), necrosis (3/20) are unreliable.\n\n## Could be wrong if\n- Blur (severity 3, 100th OOD percentile) masks a benign lesion (9% probability, contrast BACH_0027) or focal atypia.\n- Reliability score (96%) misses blur-induced error (dataset AUROC 0.70, n=1716), and HoVer-Net cell segmentation is disabled.\n\n## Check on the slide\n1. **Region 8**: Inspect highest-risk tile (0.002) to confirm benign stroma and fat without stromal invasion.\n2. **Region 3**: Check ducts and superior-lateral margin corner (22% segment probability) for blurred atypia.\n3. **Regions 1, 7, 11**: Verify whether lymphocytic infiltrate reflects normal tissue or benign lesion (BACH_0027 contrast).",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "The CONCH\u2013MUSK row names Normal, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

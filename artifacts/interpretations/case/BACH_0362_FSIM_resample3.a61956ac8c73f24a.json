@@ -1,0 +1,34 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0362_FSIM_resample3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "a61956ac8c73f24a",
+ "markdown": "## Bottom line\n**Suggests Normal (49%)** \u00b7 Ambiguous: Normal vs InSitu \u00b7 Careful review\nInSitu (33%) and Invasive (9%) remain in the 90% conformal set on this resampled simulated frozen section [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| --- | --- | --- |\n| Top probabilities | Normal 49%, InSitu 33%, Invasive 9%, Benign 9% | Split between Normal and InSitu |\n| Conformal set | Normal, InSitu, Invasive (alpha 10%; 90% dataset coverage) | Cannot separate normal from carcinoma |\n| Reliability / OOD | 93% reliability, 100% OOD percentile (12/12 regions kept) [F6] | High reliability; atypical OOD distance |\n| CONCH\u2013MUSK agreement | Agree with each other | Independent backbones pick same class |\n| Similar cases | 5/5 Normal (76%\u201380% similarity); contrast Benign (68%) [F5] | Nearest references all labeled Normal |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 1, 4, 7) \u00b7 context \u00b7 Above-typical embedding score (+1.48); descriptive context only (8/20 AI spot-check) [F2] \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 8) \u00b7 \u2191 invasive \u00b7 Below-typical score (+0.11, contribution +0.46), but concept is unreliable (0/20 spot-check) [F3] \u00b7 Unreliable\n- **Tumor infiltrating stroma** (region 8) \u00b7 \u2193 invasive \u00b7 Below-typical score (+0.17, contribution -0.40) lowers invasive risk (19/20 spot-check) [F4] \u00b7 Validated\n- **Frequent mitotic figures** (region 2) \u00b7 \u2193 invasive \u00b7 Low score (-0.44, contribution -0.36), but concept is unreliable (0/20 spot-check) \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top-3 risk regions drops P(invasive) above random (+0.0114, 95% CI +0.0021 to +0.0197).\n- **Concepts**: Unproven faithfulness (deletion CI -0.0088 to +0.0064 includes 0); leans on Unreliable normal_lobules and mitoses (both 0/20).\n\n## Could be wrong if\n- Resampled frozen-section degradation (severity 3) masks focal in situ (33%) or invasive (9%) disease (reliability AUROC 70%).\n- Focal atypia lies deeper, or the near-threshold lateral margin segment (99% in region 7) is involved [F7].\n\n## Check on the slide\n1. **Regions 8, 10**: Inspect the highest heatmap risk areas (32% and 3%) for stromal invasion or atypia.\n2. **Regions 7, 3**: Check the lateral margin (99% score at y=512; 45% at y=0) despite clear call.\n3. **Regions 1, 4, 7, 0**: Evaluate lymphocytes and ducts; review drafted deeper levels order (frozen-section stains blocked).",
+ "verification": {
+  "checked": 43,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:32:10-0500",
+ "elapsed_s": 104.9,
+ "usage": {
+  "inputTokens": 38553,
+  "outputTokens": 752,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 99158,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Normal (49%)** \u00b7 Ambiguous: Normal vs InSitu \u00b7 Careful review\nInSitu (33%) and Invasive (9%) remain in the 90% conformal set on this resampled simulated frozen section [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| --- | --- | --- |\n| Top probabilities | Normal 49%, InSitu 33%, Invasive 9%, Benign 9% | Split between Normal and InSitu |\n| Conformal set | Normal, InSitu, Invasive (alpha 10%; 90% dataset coverage) | Cannot separate normal from carcinoma |\n| Reliability / OOD | 93% reliability, 100% OOD percentile (12/12 regions kept) [F6] | Typical input; unflagged despite resampling |\n| CONCH\u2013MUSK agreement | Agree on top class (Normal) | Independent backbones match top call |\n| Similar cases | 5/5 Normal (76%\u201380% similarity); contrast Benign (68%) [F5] | Nearest references all labeled Normal |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (regions 1, 4, 7) \u00b7 context \u00b7 Above-typical embedding score (+1.48); descriptive context only (8/20 AI spot-check) [F2] \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 8) \u00b7 \u2191 invasive \u00b7 Below-typical score (+0.11, contribution +0.46), but concept is unreliable (0/20 spot-check) [F3] \u00b7 Unreliable\n- **Tumor infiltrating stroma** (region 8) \u00b7 \u2193 invasive \u00b7 Below-typical score (+0.17, contribution -0.40) lowers invasive risk (19/20 spot-check) [F4] \u00b7 Validated\n- **Frequent mitotic figures** (region 2) \u00b7 \u2193 invasive \u00b7 Low score (-0.44, contribution -0.36), but concept is unreliable (0/20 spot-check) \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top-3 risk regions drops P(invasive) above random (+0.0114, 95% CI +0.0021 to +0.0197).\n- **Concepts**: Unproven faithfulness (deletion CI -0.0088 to +0.0064 includes 0); leans on Unreliable normal_lobules and mitoses (both 0/20).\n\n## Could be wrong if\n- Resampled frozen-section degradation (severity 3) masks focal in situ (33%) or invasive (9%) disease (reliability AUROC 70%).\n- Focal atypia lies deeper, or the near-threshold lateral margin segment (99% in region 7) is involved [F7].\n\n## Check on the slide\n1. **Regions 8, 10**: Inspect the highest heatmap risk areas (32% and 3%) for stromal invasion or atypia.\n2. **Regions 7, 3**: Check the lateral margin (99% score at y=512; 45% at y=0) despite clear call.\n3. **Regions 1, 4, 7, 0**: Evaluate lymphocytes and ducts; review drafted deeper levels order (frozen-section stains blocked).",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "The CONCH\u2013MUSK row names Normal, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose.",
+   "OOD percentile 1 means this image is farther from the calibration images than 100% of them (atypical), not 'typical'."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

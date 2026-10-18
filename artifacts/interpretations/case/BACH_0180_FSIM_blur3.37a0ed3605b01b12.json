@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0180_FSIM_blur3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "37a0ed3605b01b12",
+ "markdown": "## Bottom line\n**Suggests Invasive (93%)** \u00b7 Unreliable input \u00b7 Careful review\nFrozen section has severity-3 blur [F6]; defer margins [F7] and order recut or deeper levels.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 93%, InSitu 5%, Benign 1%, Normal 1% (ECE 5%) [F1] | High Invasive score; small calibration |\n| Conformal set | {Invasive} at 90% target (90% test coverage, CI 76\u201398%) | Single class; dataset-level guarantee |\n| Reliability / OOD | 44% reliability (flagged), 100% OOD, 12 tiles (AUROC 70%) | Suspect blurred out-of-distribution input |\n| CONCH\u2013MUSK agreement | Disagree on top class | Foundation models split on call |\n| Similar cases | 2/5 Invasive (40%), 2/5 InSitu (BACH_0117 82%), 1/5 Benign [F5] | Mixed neighbors; InSitu close match |\n\n## Tissue evidence\n- **Gland / tubule formation** (region 7) \u00b7 \u2191 invasive \u00b7 Scarce (-0.18, +0.411) favors invasive; 18/20 AI check [F2] \u00b7 Weak\n- **Atypical cells confined within ducts** (region 11) \u00b7 \u2191 invasive \u00b7 Scarce (-0.608, +0.378) favors invasive; 12/20 AI check [F3] \u00b7 Weak\n- **Benign fibrous stroma or fat** (regions 5, 7) \u00b7 \u2193 invasive \u00b7 High (1.127, -0.269) opposes invasive; 20/20 AI check [F4] \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (region 7) \u00b7 \u2191 invasive \u00b7 Unreliable score (0.387, +0.256); failed 0/20 AI check \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful; deleting top 3 risk regions beats random deletion (+0.0114, 95% CI 0.0021\u20130.0197).\n- **Concepts**: Unproven faithfulness (+0.0008 vs random, 95% CI -0.0088\u20130.0064); uses unreliable normal lobules (0/20).\n\n## Could be wrong if\n- Severity-3 blur and 100% OOD image (44% reliability) distort features where CONCH and MUSK disagree.\n- True lesion is InSitu or Benign, matching 3/5 neighbors including InSitu contrast BACH_0117 (82% similar).\n\n## Check on the slide\n1. **Regions 2, 0, 8, 10**: Check top-risk tiles (98\u2013100% risk) for stromal invasion and nuclear pleomorphism.\n2. **Regions 11, 5, 7**: Compare duct-confined atypia (11) with low-risk stroma and tubules (7: 11% risk).\n3. **Regions 2, 3, 10, 11**: Verify blurry margins (90\u2013100% score) on recut, deeper, or permanent sections.",
+ "verification": {
+  "checked": 46,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:15:15-0500",
+ "elapsed_s": 198.9,
+ "usage": {
+  "inputTokens": 38658,
+  "outputTokens": 768,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 195864,
+ "key": "primary",
+ "markdown_original": "## Bottom line\n**Suggests Invasive (93%)** \u00b7 Unreliable input \u00b7 Careful review\nFrozen section has severity-3 blur [F6]; defer margins [F7] and order recut or deeper levels.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 93%, InSitu 5%, Benign 1%, Normal 1% (ECE 5%) [F1] | High Invasive score; small calibration |\n| Conformal set | {Invasive} at 90% target (90% test coverage, CI 76\u201398%) | Single class; dataset-level guarantee |\n| Reliability / OOD | 44% reliability (flagged), 100% OOD, 12 tiles (AUROC 70%) | Suspect blurred out-of-distribution input |\n| CONCH\u2013MUSK agreement | Disagree on top class | Foundation models split on call |\n| Similar cases | 2/5 Invasive (40%), 2/5 InSitu (BACH_0117 82%), 1/5 Benign [F5] | Mixed neighbors; InSitu close match |\n\n## Tissue evidence\n- **Gland / tubule formation** (region 7) \u00b7 \u2191 invasive \u00b7 Scarce (-0.18, +0.411) favors invasive; 18/20 AI check [F2] \u00b7 Validated\n- **Atypical cells confined within ducts** (region 11) \u00b7 \u2191 invasive \u00b7 Scarce (-0.608, +0.378) favors invasive; 12/20 AI check [F3] \u00b7 Weak\n- **Benign fibrous stroma or fat** (regions 5, 7) \u00b7 \u2193 invasive \u00b7 High (1.127, -0.269) opposes invasive; 20/20 AI check [F4] \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (region 7) \u00b7 \u2191 invasive \u00b7 Unreliable score (0.387, +0.256); failed 0/20 AI check \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful; deleting top 3 risk regions beats random deletion (+0.0114, 95% CI 0.0021\u20130.0197).\n- **Concepts**: Unproven faithfulness (+0.0008 vs random, 95% CI -0.0088\u20130.0064); uses unreliable normal lobules (0/20).\n\n## Could be wrong if\n- Severity-3 blur and 100% OOD image (44% reliability) distort features where CONCH and MUSK disagree.\n- True lesion is InSitu or Benign, matching 3/5 neighbors including InSitu contrast BACH_0117 (82% similar).\n\n## Check on the slide\n1. **Regions 2, 0, 8, 10**: Check top-risk tiles (98\u2013100% risk) for stromal invasion and nuclear pleomorphism.\n2. **Regions 11, 5, 7**: Compare duct-confined atypia (11) with low-risk stroma and tubules (7: 11% risk).\n3. **Regions 2, 3, 10, 11**: Verify blurry margins (90\u2013100% score) on recut, deeper, or permanent sections.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

@@ -1,0 +1,34 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_010",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "926f5f4f8c4108a0",
+ "markdown": "## Bottom line\n**Suggests Benign (56%)** \u00b7 Ambiguous: Benign vs InSitu \u00b7 Careful review\nInSitu (37%) is in the 90% prediction set [F1], with superior and lateral margins flagged [F7].\n\n## Confidence\n| Signal | Value | Reading |\n| --- | --- | --- |\n| Top probabilities | Benign 56%, InSitu 37%, Invasive 6%, Normal 1% | Split between Benign and InSitu |\n| Conformal set | Benign, InSitu (90% target) | Cannot separate Benign from InSitu |\n| Reliability / OOD | 96% reliability, 100% OOD (12/12 regions) [F6] | Atypical image, no quality flag |\n| CONCH\u2013MUSK agreement | Same top class | Independent models share top call |\n| Similar cases | 2/5 Benign, 3/5 InSitu (40%) [F5] | Neighbors favor InSitu (top 90%) |\n\n## Tissue evidence\n- **Atypical cells confined within ducts** (regions 5, 6, 7) \u00b7 \u2193 invasive \u00b7 Above-typical score lowers invasive risk [F2] (AI spot check 12/20) \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 10) \u00b7 \u2191 invasive \u00b7 Unreliable (0/20 AI spot check); low score raises invasive risk [F3] \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (region 9) \u00b7 \u2191 invasive \u00b7 Below-typical score raises invasive risk [F4] (AI spot check 20/20) \u00b7 Validated\n- **Gland / tubule formation** (regions 9, 10) \u00b7 \u2193 invasive \u00b7 High score lowers invasive risk; differs from InSitu match BACH_0179 \u00b7 Weak\n- **Tumor infiltrating stroma** (region 1) \u00b7 \u2193 invasive \u00b7 Below-average infiltration score lowers invasive risk (AI spot check 19/20) \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing top 3 risk regions beats random deletion (95% CI [0.0021, 0.0197] excludes 0), confirming classifier faithfulness.\n- **Concepts**: Deletion CI [-0.0088, 0.0064] includes 0 (unproven faithfulness); leans on unreliable normal lobules (0/20) and necrosis (3/20).\n\n## Could be wrong if\n- Intraductal atypia is InSitu carcinoma (37% probability; 3/5 neighbors, including 90%-similar BACH_0179, are InSitu).\n- Deeper levels reveal unsampled atypia or invasion (order drafted; stains blocked on simulated frozen sections).\n\n## Check on the slide\n1. **Regions 3, 6, 2**: Inspect highest heatmap-risk regions (48%, 22%, 12%) for stromal invasion.\n2. **Regions 5, 6, 7**: Evaluate intraductal atypia for Benign vs InSitu; consider drafted deeper levels.\n3. **Regions 1, 3**: Check superior and lateral margins for lesion involvement (215 um each, 100% score).",
+ "verification": {
+  "checked": 32,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:36:46-0500",
+ "elapsed_s": 102.4,
+ "usage": {
+  "inputTokens": 38647,
+  "outputTokens": 724,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 96031,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Benign (56%)** \u00b7 Ambiguous: Benign vs InSitu \u00b7 Careful review\nInSitu (37%) is in the 90% prediction set [F1], with superior and lateral margins flagged [F7].\n\n## Confidence\n| Signal | Value | Reading |\n| --- | --- | --- |\n| Top probabilities | Benign 56%, InSitu 37%, Invasive 6%, Normal 1% | Split between Benign and InSitu |\n| Conformal set | Benign, InSitu (90% target) | Cannot separate Benign from InSitu |\n| Reliability / OOD | 96% reliability, 1% OOD (12/12 regions) [F6] | Typical image, no quality flag |\n| CONCH\u2013MUSK agreement | Same top class | Independent models share top call |\n| Similar cases | 2/5 Benign, 3/5 InSitu (40%) [F5] | Neighbors favor InSitu (top 90%) |\n\n## Tissue evidence\n- **Atypical cells confined within ducts** (regions 5, 6, 7) \u00b7 \u2193 invasive \u00b7 Above-typical score lowers invasive risk [F2] (AI spot check 12/20) \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 10) \u00b7 \u2191 invasive \u00b7 Unreliable (0/20 AI spot check); low score raises invasive risk [F3] \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (region 9) \u00b7 \u2191 invasive \u00b7 Below-typical score raises invasive risk [F4] (AI spot check 20/20) \u00b7 Validated\n- **Gland / tubule formation** (regions 9, 10) \u00b7 \u2193 invasive \u00b7 High score lowers invasive risk; differs from InSitu match BACH_0179 \u00b7 Validated\n- **Tumor infiltrating stroma** (region 1) \u00b7 \u2193 invasive \u00b7 Below-average infiltration score lowers invasive risk (AI spot check 19/20) \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing top 3 risk regions beats random deletion (95% CI [0.0021, 0.0197] excludes 0), confirming classifier faithfulness.\n- **Concepts**: Deletion CI [-0.0088, 0.0064] includes 0 (unproven faithfulness); leans on unreliable normal lobules (0/20) and necrosis (3/20).\n\n## Could be wrong if\n- Intraductal atypia is InSitu carcinoma (37% probability; 3/5 neighbors, including 90%-similar BACH_0179, are InSitu).\n- Deeper levels reveal unsampled atypia or invasion (order drafted; stains blocked on simulated frozen sections).\n\n## Check on the slide\n1. **Regions 3, 6, 2**: Inspect highest heatmap-risk regions (48%, 22%, 12%) for stromal invasion.\n2. **Regions 5, 6, 7**: Evaluate intraductal atypia for Benign vs InSitu; consider drafted deeper levels.\n3. **Regions 1, 3**: Check superior and lateral margins for lesion involvement (215 um each, 100% score).",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed).",
+   "OOD percentile 1 means this image is farther from the calibration images than 100% of them (atypical), not 'typical'."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

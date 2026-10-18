@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0328",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "5ad8fed0ce3b9a0c",
+ "markdown": "## Bottom line\n**Suggests InSitu (93%)** \u00b7 Confident \u00b7 Careful review\nUnflagged tier-4 biopsy [F1] (0% invasive risk, ER stain drafted), though models and neighbors disagree.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 93%, Benign 5%, Normal 2%, Invasive 0% (ECE 5%) | Zero invasive risk; small test set |\n| Conformal set | {InSitu} at 10% alpha (90% coverage, n=132) | Single class; dataset-level guarantee |\n| Reliability / OOD | 55% reliability, 26% OOD, 10 regions kept [F6] (AUROC 70%) | Typical image; moderate reliability |\n| CONCH\u2013MUSK agreement | False | Foundation models disagree |\n| Similar cases | 20% (1/5 InSitu [F5]; 3 Normal, 1 Benign) | Poor neighbor agreement |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 4, 8, 10) \u00b7 \u2193 invasive \u00b7 Above-typical (-2.05) [F2]; 0/20 AI spot check \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 1, 4, 8) \u00b7 \u2193 invasive \u00b7 Above-typical (-1.34), against invasion [F3] (20/20 check) \u00b7 Validated\n- **Dense lymphocytic infiltrate (TILs)** (regions 4) \u00b7 context \u00b7 Below-typical (-0.50) [F4]; descriptive (8/20 AI check) \u00b7 Weak\n- **HoVer-Net nuclei** (regions 1, 7, 10) \u00b7 context \u00b7 Zero neoplastic/epithelial nuclei; insufficient tumor nuclei flagged \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful; removing top-3 risk regions drops invasive score above random (+0.0114, CI 0.0021\u20130.0197, n=132).\n- **Concepts**: Unproven (+0.0008 vs random, CI -0.0088\u20130.0064); uses unreliable normal lobules (0/20 AI check) and mitoses (0/20).\n\n## Could be wrong if\n- Tissue is non-neoplastic: 4/5 neighbors are Normal/Benign (BACH_0170 Normal, 87% similar, differs in unreliable mitoses/TILs).\n- Atypia or invasion is missed where CONCH\u2013MUSK disagree and HoVer-Net found zero tumor nuclei.\n\n## Check on the slide\n1. **Regions 1, 7, 10**: Highest heatmap risk (5%, 1%, 1%), yet HoVer-Net counted zero neoplastic/epithelial nuclei.\n2. **Regions 4, 8, 10**: Verify InSitu versus normal lobules (unreliable 0/20 concept) before confirming ER stain.\n3. **Regions 1, 4, 8**: Check duct-confined atypia (region 8), invasion (region 4), and pleomorphism (region 1).",
+ "verification": {
+  "checked": 35,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:30:26-0500",
+ "elapsed_s": 245.9,
+ "usage": {
+  "inputTokens": 36778,
+  "outputTokens": 719,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 238751,
+ "key": "backup",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

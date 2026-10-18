@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0383",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "f0189bb6f59690fc",
+ "markdown": "## Bottom line\n**Suggests Benign (96%)** \u00b7 Unreliable input \u00b7 Careful review\nHigh benign probability [F1] is tempered by flagged image reliability (45%, 92nd OOD percentile) [F6] and cross-model disagreement.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 96%, InSitu 3%, Normal 1%, Invasive 0% | Strongly favors benign category |\n| Conformal set | {Benign} at 10% alpha (90% dataset coverage) | Single class at guarantee |\n| Reliability / OOD | 45% reliability (flagged); 92nd OOD percentile | Atypical image; reduced confidence |\n| CONCH\u2013MUSK agreement | False (top classes differ) | Independent foundation models disagree |\n| Similar cases | 5/5 Benign (78%\u201390% similarity) [F5] | Nearest neighbors all Benign |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 8) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.91 SD, contrib -0.54) [F2] \u00b7 Validated\n- **Benign fibrous stroma or fat** (regions 6, 7, 8) \u00b7 \u2193 invasive \u00b7 Above-typical score (+0.92 SD, contrib -0.42) [F3] \u00b7 Validated\n- **Gland / tubule formation** (regions 1, 6, 10) \u00b7 \u2193 invasive \u00b7 Above-typical text score (+0.73 SD, contrib -0.33); caption inconsistent [F4] \u00b7 Weak\n- **Frequent mitotic figures** (region 9) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.97 SD, contrib -0.31); 0/20 AI spot-check \u00b7 Unreliable\n- **Immune cell fraction** (regions 2, 7, 8) \u00b7 context \u00b7 0% immune cells (9th percentile) [F7]; insufficient tumor nuclei flagged \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful; deleting top-risk regions drops invasive probability more than random (+0.0114, 95% CI 0.0021 to 0.0197).\n- **Concepts**: Unverified (deletion CI -0.0088 to 0.0064 includes 0); mitoses (0/20), necrosis (3/20), and normal lobules (0/20) are Unreliable.\n\n## Could be wrong if\n- Low reliability (45%, 92nd OOD percentile) and model disagreement reflect artifacts masking in situ (3%) or invasive disease.\n- Duct-confined score in region 3 (1.36) reflects in situ carcinoma, or normal lobules like contrast case BACH_0038 (76%).\n\n## Check on the slide\n1. **Region 8**: Inspect the only nonzero heatmap risk (0.006) and peak invasion (0.37) and pleomorphism (0.59) scores.\n2. **Regions 1, 3, 6, 10**: Verify benign tubules (1, 6, 10) and exclude ductal atypia in region 3.\n3. **Regions 2, 7, 8**: Check section quality and 20 counted neoplastic nuclei; consider drafted recut or deeper levels.",
+ "verification": {
+  "checked": 41,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:33:06-0500",
+ "elapsed_s": 112.1,
+ "usage": {
+  "inputTokens": 37418,
+  "outputTokens": 756,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 104546,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Benign (96%)** \u00b7 Unreliable input \u00b7 Careful review\nHigh benign probability [F1] is tempered by flagged image reliability (45%, 92nd OOD percentile) [F6] and cross-model disagreement.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 96%, InSitu 3%, Normal 1%, Invasive 0% | Strongly favors benign category |\n| Conformal set | {Benign} at 10% alpha (90% dataset coverage) | Single class at guarantee |\n| Reliability / OOD | 45% reliability (flagged); 92nd OOD percentile | Atypical image; reduced confidence |\n| CONCH\u2013MUSK agreement | False (top classes differ) | Independent foundation models disagree |\n| Similar cases | 5/5 Benign (78%\u201390% similarity) [F5] | Nearest neighbors all Benign |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 8) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.91 SD, contrib -0.54) [F2] \u00b7 Validated\n- **Benign fibrous stroma or fat** (regions 6, 7, 8) \u00b7 \u2193 invasive \u00b7 Above-typical score (+0.92 SD, contrib -0.42) [F3] \u00b7 Validated\n- **Gland / tubule formation** (regions 1, 6, 10) \u00b7 \u2193 invasive \u00b7 Above-typical text score (+0.73 SD, contrib -0.33); caption inconsistent [F4] \u00b7 Validated\n- **Frequent mitotic figures** (region 9) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.97 SD, contrib -0.31); 0/20 AI spot-check \u00b7 Unreliable\n- **Immune cell fraction** (regions 2, 7, 8) \u00b7 context \u00b7 0% immune cells (9th percentile) [F7]; insufficient tumor nuclei flagged \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful; deleting top-risk regions drops invasive probability more than random (+0.0114, 95% CI 0.0021 to 0.0197).\n- **Concepts**: Unverified (deletion CI -0.0088 to 0.0064 includes 0); mitoses (0/20), necrosis (3/20), and normal lobules (0/20) are Unreliable.\n\n## Could be wrong if\n- Low reliability (45%, 92nd OOD percentile) and model disagreement reflect artifacts masking in situ (3%) or invasive disease.\n- Duct-confined score in region 3 (1.36) reflects in situ carcinoma, or normal lobules like contrast case BACH_0038 (76%).\n\n## Check on the slide\n1. **Region 8**: Inspect the only nonzero heatmap risk (0.006) and peak invasion (0.37) and pleomorphism (0.59) scores.\n2. **Regions 1, 3, 6, 10**: Verify benign tubules (1, 6, 10) and exclude ductal atypia in region 3.\n3. **Regions 2, 7, 8**: Check section quality and 20 counted neoplastic nuclei; consider drafted recut or deeper levels.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

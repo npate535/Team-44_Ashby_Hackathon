@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_035",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "b3c25854bee6a61a",
+ "markdown": "## Bottom line\n**Suggests Benign (47%)** \u00b7 Unreliable input \u00b7 Defer to expert\nSuspect frozen-section quality, unseparated InSitu (38%) and Normal (15%), and deferred margins [F7] warrant permanent sections or recut.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Benign 47%, InSitu 38%, Normal 15%, Invasive 0% [F1] | Split between Benign and InSitu |\n| Conformal set | Normal, Benign, InSitu (90% coverage, ECE 5%) | Cannot exclude InSitu or Normal |\n| Reliability / OOD | 0.22 reliability (flagged); 74th OOD percentile (AUROC 0.70) [F6] | Suspect input; reduced read confidence |\n| CONCH\u2013MUSK agreement | Disagree on top class | Independent foundation models disagree |\n| Similar cases | 1/5 Benign (20%); 4/5 Normal (top 90% similarity) [F5] | Neighbors mostly Normal, not Benign |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 7, 10, 11) \u00b7 \u2193 invasive \u00b7 Above-typical score (-1.251), but 0/20 AI spot check is unreliable [F2] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (region 9) \u00b7 context \u00b7 Below-typical score (-0.177, +0.638); descriptive context only (8/20 spot check) [F3] \u00b7 Weak\n- **Benign fibrous stroma or fat** (regions 7, 10, 11) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.419) supports non-invasive read (20/20 spot check) [F4] \u00b7 Validated\n- **Atypical cells confined within ducts** (regions 4, 5, 6) \u00b7 \u2193 invasive \u00b7 Elevated score (-0.324); differs from Normal neighbor BACH_0236 (12/20) \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful; deleting top 3 risk regions drops invasive probability above random (+0.0114, 95% CI 0.0021\u20130.0197, n=132).\n- **Concepts**: Unproven faithfulness (deletion +0.0008, 95% CI -0.0088\u20130.0064 includes 0); top driver `normal_lobules` (0/20 spot check) is unreliable.\n\n## Could be wrong if\n- In situ carcinoma (38% probability) is present in regions 4, 5, 6 or visible only on deeper levels.\n- Frozen-section artifact (reliability 0.22, 74th OOD percentile) masks atypia or margin involvement in region 9 (recut drafted).\n\n## Check on the slide\n1. **Regions 9, 8**: Highest risk (0.416 in 9) and inferior/medial margin scores (100%, 91%); defer margin.\n2. **Regions 4, 5, 6**: Highest duct-confined atypia scores (1.07\u20131.29); rule out InSitu (38%) and order deeper levels.\n3. **Regions 7, 10, 11**: Mild risk (0.009\u20130.086) with benign stroma/fat; check quality for drafted recut H&E.",
+ "verification": {
+  "checked": 45,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:39:17-0500",
+ "elapsed_s": 100.4,
+ "usage": {
+  "inputTokens": 38641,
+  "outputTokens": 805,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 93562,
+ "key": "backup",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

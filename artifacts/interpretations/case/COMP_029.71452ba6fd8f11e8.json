@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_029",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "71452ba6fd8f11e8",
+ "markdown": "## Bottom line\n**Suggests InSitu (47%)** \u00b7 Unreliable input \u00b7 Defer to expert\nFlagged low reliability [F6], three-class ambiguity [F1], and simulated frozen-section margins [F7] warrant deferral.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | InSitu 47%, Benign 38%, Normal 15%, Invasive 1% (ECE 5%) | InSitu leads; Benign close second |\n| Conformal set | Normal, Benign, InSitu (90% target; 90% test coverage) | Cannot separate three non-invasive classes |\n| Reliability / OOD | 20% reliability, 90% OOD (error AUROC 70%) | Suspect input; recut H&E drafted |\n| CONCH\u2013MUSK agreement | Disagree on top class | Foundation models disagree on top |\n| Similar cases | 0/5 match InSitu (3 Benign, 2 Normal, 88%\u201389% similarity) [F5] | Neighbors favor Benign or Normal |\n\n## Tissue evidence\n- **Atypical cells confined within ducts** (regions 6, 10, 11) \u00b7 \u2193 invasive \u00b7 Above-typical score lowers invasive likelihood [F2]; 12/20 AI spot checks \u00b7 Weak\n- **Dense lymphocytic infiltrate (TILs)** (region 1) \u00b7 context \u00b7 Typical descriptive score [F3]; 8/20 AI spot checks \u00b7 Weak\n- **Frequent mitotic figures** (region 1) \u00b7 \u2193 invasive \u00b7 Below-typical score [F4], but unreliable concept (0/20 AI spot checks) \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 8, 9) \u00b7 \u2193 invasive \u00b7 Above-typical score lowers invasive likelihood; 20/20 AI spot checks \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful on test set (3-region deletion 95% CI excludes zero, n=132); risk concentrates in region 8 (7%).\n- **Concepts**: Unproven faithfulness (deletion 95% CI includes zero); leans on unreliable mitoses (0/20), lobules (0/20), and necrosis (3/20).\n\n## Could be wrong if\n- Low-reliability composite frozen section misled the classifier over Benign (38%) or Normal (15%), which match all similar cases.\n- Deeper levels or permanent sections uncover stromal invasion near region 8 (7% risk) or at deferred margins.\n\n## Check on the slide\n1. **Regions 6, 10, 11**: Verify whether atypical epithelium is truly confined within ducts versus frozen-section artifact.\n2. **Regions 8, 9**: Inspect highest-risk region 8 (7% risk) for stromal infiltration versus benign fibrous stroma.\n3. **Regions 1, 4**: Check tubules and lymphocytes; evaluate section quality for drafted recut and deeper levels.",
+ "verification": {
+  "checked": 29,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:38:45-0500",
+ "elapsed_s": 94.1,
+ "usage": {
+  "inputTokens": 38611,
+  "outputTokens": 656,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 87085,
+ "key": "backup",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

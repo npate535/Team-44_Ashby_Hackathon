@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0301_FSIM_resample3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "0d13e14bfca87b09",
+ "markdown": "## Bottom line\n**Suggests Invasive (95%)** \u00b7 Unreliable input \u00b7 Careful review\nPriority tier 1 surgical frozen section with flagged resampling degradation, model disagreement, and drafted recut and deeper-level orders.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Invasive 95%, InSitu 4%, Benign 1%, Normal 0% [F1] | High invasive score; dataset ECE 5% |\n| Conformal set | {Invasive} (90% target, 90% test coverage) | Single class; dataset-level guarantee only |\n| Reliability / OOD | 44% reliability, 100% OOD, flagged [F6] | Suspect resampled input (error AUROC 70%) |\n| CONCH\u2013MUSK agreement | Disagree on top class | Independent foundation models disagree |\n| Similar cases | 4/5 Invasive (80%) [F5] | Mostly invasive; InSitu contrast at 75% |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (region 3) \u00b7 \u2191 invasive \u00b7 Below-typical score (-0.33, contribution +0.77) [F2]; 0/20 AI spot check \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (region 1) \u00b7 context \u00b7 Below-typical score (-0.15, contribution +0.62) [F3]; 8/20 AI spot check \u00b7 Weak\n- **Benign fibrous stroma or fat** (region 3) \u00b7 \u2191 invasive \u00b7 Below-typical score (0.04, contribution +0.40) [F4]; 20/20 AI spot check \u00b7 Validated\n- **Gland / tubule formation** (region 11) \u00b7 \u2191 invasive \u00b7 Low score (0.08, contribution +0.29); caption inconsistent; 18/20 spot check \u00b7 Weak\n- **Frequent mitotic figures** (regions 0, 2, 10) \u00b7 \u2191 invasive \u00b7 Elevated score (1.20, contribution +0.27); 0/20 AI spot check \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top 3 risk regions beats random deletion (+0.0114, 95% CI 0.0021 to 0.0197).\n- **Concepts**: Unproven faithfulness (deletion 95% CI -0.0088 to 0.0064 includes 0); leans on Unreliable normal lobules, mitoses, and necrosis.\n\n## Could be wrong if\n- Resampling degradation (severity 3, 44% reliability, 100% OOD) distorts tissue, explaining why CONCH and MUSK disagree.\n- True lesion is InSitu (4%), matching contrast case BACH_0253 (75% similarity; differs in TILs and normal lobules).\n\n## Check on the slide\n1. **Regions 0, 1, 2, 4, 5, 9**: Verify stromal invasion versus InSitu or resampling artifact (cells disabled).\n2. **Regions 3, 11, 1**: Compare benign stroma/lobules (**3, 11**) and TILs (**1**) against InSitu contrast BACH_0253.\n3. **Regions 0, 7, 8**: Defer margin call to permanent sections [F7]; review drafted recut and deeper-level orders.",
+ "verification": {
+  "checked": 41,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:26:01-0500",
+ "elapsed_s": 94.3,
+ "usage": {
+  "inputTokens": 32623,
+  "outputTokens": 9901,
+  "cacheReadTokens": 6016,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 87732,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Invasive (95%)** \u00b7 Unreliable input \u00b7 Careful review\nPriority tier 1 surgical frozen section with flagged resampling degradation, model disagreement, and drafted recut and deeper-level orders.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Invasive 95%, InSitu 4%, Benign 1%, Normal 0% [F1] | High invasive score; dataset ECE 5% |\n| Conformal set | {Invasive} (90% target, 90% test coverage) | Single class; dataset-level guarantee only |\n| Reliability / OOD | 44% reliability, 100% OOD, flagged [F6] | Suspect resampled input (error AUROC 70%) |\n| CONCH\u2013MUSK agreement | Disagree on top class | Independent foundation models disagree |\n| Similar cases | 4/5 Invasive (80%) [F5] | Mostly invasive; InSitu contrast at 75% |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (region 3) \u00b7 \u2191 invasive \u00b7 Below-typical score (-0.33, contribution +0.77) [F2]; 0/20 AI spot check \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (region 1) \u00b7 context \u00b7 Below-typical score (-0.15, contribution +0.62) [F3]; 8/20 AI spot check \u00b7 Weak\n- **Benign fibrous stroma or fat** (region 3) \u00b7 \u2191 invasive \u00b7 Below-typical score (0.04, contribution +0.40) [F4]; 20/20 AI spot check \u00b7 Validated\n- **Gland / tubule formation** (region 11) \u00b7 \u2191 invasive \u00b7 Low score (0.08, contribution +0.29); caption inconsistent; 18/20 spot check \u00b7 Validated\n- **Frequent mitotic figures** (regions 0, 2, 10) \u00b7 \u2191 invasive \u00b7 Elevated score (1.20, contribution +0.27); 0/20 AI spot check \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top 3 risk regions beats random deletion (+0.0114, 95% CI 0.0021 to 0.0197).\n- **Concepts**: Unproven faithfulness (deletion 95% CI -0.0088 to 0.0064 includes 0); leans on Unreliable normal lobules, mitoses, and necrosis.\n\n## Could be wrong if\n- Resampling degradation (severity 3, 44% reliability, 100% OOD) distorts tissue, explaining why CONCH and MUSK disagree.\n- True lesion is InSitu (4%), matching contrast case BACH_0253 (75% similarity; differs in TILs and normal lobules).\n\n## Check on the slide\n1. **Regions 0, 1, 2, 4, 5, 9**: Verify stromal invasion versus InSitu or resampling artifact (cells disabled).\n2. **Regions 3, 11, 1**: Compare benign stroma/lobules (**3, 11**) and TILs (**1**) against InSitu contrast BACH_0253.\n3. **Regions 0, 7, 8**: Defer margin call to permanent sections [F7]; review drafted recut and deeper-level orders.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

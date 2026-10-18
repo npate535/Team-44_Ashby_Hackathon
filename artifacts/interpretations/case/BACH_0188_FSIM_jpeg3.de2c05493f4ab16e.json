@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0188_FSIM_jpeg3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "de2c05493f4ab16e",
+ "markdown": "## Bottom line\n**Suggests InSitu (99%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set and backbone agreement support InSitu with 0% invasive risk [F1] and clear margins [F7].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | InSitu 99%, Normal 1%, Benign 0%, Invasive 0% | Strong InSitu call, 0% invasive |\n| Conformal set | {InSitu} at 90% target (10% alpha; 90% test coverage) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability, 96th OOD percentile, 12/12 regions, JPEG level 3 [F6] | Passes QC; high OOD, degraded |\n| CONCH\u2013MUSK agreement | True (same top class) | Independent models share top class |\n| Similar cases | 4/5 InSitu (80%) [F5]; nearest Invasive `BACH_0138` (82% similarity) | Reference neighbors mostly match InSitu |\n\n## Tissue evidence\n- **Atypical cells confined within ducts** (regions 3, 6, 8) \u00b7 \u2193 invasive \u00b7 Above-typical score (1.3, contribution -0.591) pushes away from invasion [F2] \u00b7 Weak\n- **Tumor infiltrating stroma** (region 9) \u00b7 \u2193 invasive \u00b7 Below-typical score (0.096, contribution -0.462) pushes away from invasion [F3] \u00b7 Validated\n- **Dense lymphocytic infiltrate (TILs)** (region 4) \u00b7 context \u00b7 Above-typical score (1.025, contribution -0.401); descriptive context only [F4] \u00b7 Weak\n- **Benign fibrous stroma or fat** (regions 0, 10, 11) \u00b7 \u2193 invasive \u00b7 Elevated score (1.09, contribution -0.324) favors non-invasive tissue \u00b7 Validated\n- **Frequent mitotic figures** (regions 2, 3, 9) \u00b7 \u2191 invasive \u00b7 Score 1.065 (contribution +0.315), but failed AI spot check (0/20) \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Deleting top-risk regions drops invasive score more than random (+0.0114, 95% CI 0.0021 to 0.0197), showing classifier faithfulness.\n- **Concepts**: Deletion CI crosses zero (-0.0088 to 0.0064, unverified); `mitoses` (0/20), `necrosis` (3/20), and `normal_lobules` (0/20) are unreliable.\n\n## Could be wrong if\n- Focal invasion exists in region 11 (41% risk) or region 9, matching invasive neighbor `BACH_0138` (82% similarity).\n- Severity-3 JPEG compression, 96th-percentile OOD shift, and blocked frozen-section stains mask invasion or borderline lateral margin involvement.\n\n## Check on the slide\n1. **Regions 11, 5, 9**: Inspect highest heatmap risk areas (41%, 4%, 2%) and stromal infiltration peak (region 9).\n2. **Regions 3, 6, 8, 4**: Verify duct confinement, nuclear pleomorphism (region 3), and TILs (region 4) versus `BACH_0138`.\n3. **Regions 3, 7, 8, 9**: Check lateral, inferior, medial, and superior surgical margins where segment scores approach threshold.",
+ "verification": {
+  "checked": 40,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:14:53-0500",
+ "elapsed_s": 77.9,
+ "usage": {
+  "inputTokens": 38448,
+  "outputTokens": 828,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 74326,
+ "key": "primary",
+ "markdown_original": "## Bottom line\n**Suggests InSitu (99%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set and backbone agreement support InSitu with 0% invasive risk [F1] and clear margins [F7].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | InSitu 99%, Normal 1%, Benign 0%, Invasive 0% | Strong InSitu call, 0% invasive |\n| Conformal set | {InSitu} at 90% target (10% alpha; 90% test coverage) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability, 96th OOD percentile, 12/12 regions, JPEG level 3 [F6] | Passes QC; high OOD, degraded |\n| CONCH\u2013MUSK agreement | True (same top class) | Independent models concur on InSitu |\n| Similar cases | 4/5 InSitu (80%) [F5]; nearest Invasive `BACH_0138` (82% similarity) | Reference neighbors mostly match InSitu |\n\n## Tissue evidence\n- **Atypical cells confined within ducts** (regions 3, 6, 8) \u00b7 \u2193 invasive \u00b7 Above-typical score (1.3, contribution -0.591) pushes away from invasion [F2] \u00b7 Weak\n- **Tumor infiltrating stroma** (region 9) \u00b7 \u2193 invasive \u00b7 Below-typical score (0.096, contribution -0.462) pushes away from invasion [F3] \u00b7 Validated\n- **Dense lymphocytic infiltrate (TILs)** (region 4) \u00b7 context \u00b7 Above-typical score (1.025, contribution -0.401); descriptive context only [F4] \u00b7 Weak\n- **Benign fibrous stroma or fat** (regions 0, 10, 11) \u00b7 \u2193 invasive \u00b7 Elevated score (1.09, contribution -0.324) favors non-invasive tissue \u00b7 Validated\n- **Frequent mitotic figures** (regions 2, 3, 9) \u00b7 \u2191 invasive \u00b7 Score 1.065 (contribution +0.315), but failed AI spot check (0/20) \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Deleting top-risk regions drops invasive score more than random (+0.0114, 95% CI 0.0021 to 0.0197), showing classifier faithfulness.\n- **Concepts**: Deletion CI crosses zero (-0.0088 to 0.0064, unverified); `mitoses` (0/20), `necrosis` (3/20), and `normal_lobules` (0/20) are unreliable.\n\n## Could be wrong if\n- Focal invasion exists in region 11 (41% risk) or region 9, matching invasive neighbor `BACH_0138` (82% similarity).\n- Severity-3 JPEG compression, 96th-percentile OOD shift, and blocked frozen-section stains mask invasion or borderline lateral margin involvement.\n\n## Check on the slide\n1. **Regions 11, 5, 9**: Inspect highest heatmap risk areas (41%, 4%, 2%) and stromal infiltration peak (region 9).\n2. **Regions 3, 6, 8, 4**: Verify duct confinement, nuclear pleomorphism (region 3), and TILs (region 4) versus `BACH_0138`.\n3. **Regions 3, 7, 8, 9**: Check lateral, inferior, medial, and superior surgical margins where segment scores approach threshold.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "The CONCH\u2013MUSK row names InSitu, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

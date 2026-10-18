@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0118",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "054f004df8165e5e",
+ "markdown": "## Bottom line\n**Suggests Benign (82%)** \u00b7 Ambiguous: Benign vs InSitu \u00b7 Careful review\nThe 90% prediction set includes both Benign and InSitu, triggering a tier-3 worklist flag [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| --- | --- | --- |\n| Top probabilities | Benign 82%, InSitu 13%, Normal 4%, Invasive 0% (ECE 5%, n=132) | Benign favored; negligible invasive risk |\n| Conformal set | Benign, InSitu (90% target; 90% test coverage, n=132) | Cannot rule out InSitu |\n| Reliability / OOD | 96% reliability (error AUROC 0.70), 84th OOD percentile, 12 tiles [F6] | Input passes quality checks |\n| CONCH\u2013MUSK agreement | Same top class (true) | Foundation models agree on top |\n| Similar cases | 2/5 Benign (40%); closest is InSitu (90%, BACH_0043) [F5] | Mixed neighbors; closest is InSitu |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 2, 6, 7) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.912), but unreliable (0/20 AI spot check) [F2] \u00b7 Unreliable\n- **Atypical cells confined within ducts** (region 1) \u00b7 \u2191 invasive \u00b7 Below-typical score (+0.368); 12/20 AI spot check [F3] \u00b7 Weak\n- **Frequent mitotic figures** (region 9) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.345), but unreliable (0/20 AI spot check) [F4] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (region 9) \u00b7 context \u00b7 Mildly positive score (+0.332); 8/20 AI spot check \u00b7 Weak\n- **Benign fibrous stroma or fat** (regions 0, 4, 7) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.309); 20/20 AI spot check \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top 3 risk regions drops invasive probability above random (95% CI 0.0021 to 0.0197).\n- **Concepts**: Unproven by deletion (95% CI -0.0088 to 0.0064 includes 0); case leans on unreliable `normal_lobules` and `mitoses` (0/20).\n\n## Could be wrong if\n- An in situ lesion (13% probability, inside conformal set) is present, matching closest neighbor `BACH_0043` (InSitu, 90% similarity).\n- Atypia lies deeper in the block, or sparse epithelium misled scoring (0 epithelial nuclei segmented in regions 6\u20138).\n\n## Check on the slide\n1. **Regions 6, 7, 8**: Highest heatmap risk (up to 5% in region 6), yet HoVer-Net found 0 epithelial nuclei.\n2. **Regions 0, 4, 7**: Inspect stroma and invasion features separating this case from InSitu neighbor `BACH_0043`.\n3. **Regions 1, 2, 9**: Check ducts and lobules directly; consider drafted deeper levels and CK5/6, ER stains.",
+ "verification": {
+  "checked": 37,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:06:57-0500",
+ "elapsed_s": 68.9,
+ "usage": {
+  "inputTokens": 31237,
+  "outputTokens": 8342,
+  "cacheReadTokens": 6020,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 65554,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

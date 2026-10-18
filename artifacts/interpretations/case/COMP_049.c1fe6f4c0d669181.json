@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_049",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "c1fe6f4c0d669181",
+ "markdown": "## Bottom line\n**Suggests InSitu (76%)** \u00b7 Unreliable input \u00b7 Defer to expert\nFlagged reliability and InSitu/Invasive set [F1] require deferring frozen-section margins [F7].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 76%, Invasive 13%, Normal 9%, Benign 2% (ECE 5%) | Favors InSitu; 13% invasive |\n| Conformal set | InSitu, Invasive (90% target; 90% test, n=132) | Cannot exclude invasion |\n| Reliability / OOD | 33% reliability (flagged), 78% OOD [F6] (AUROC 0.70) | Suspect input; low reliability |\n| CONCH\u2013MUSK agreement | Disagree on top class | Foundation models disagree |\n| Similar cases | 1/5 InSitu (20%) [F5]; top Normal (84%) | Neighbors mostly disagree |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 0, 1, 9) \u00b7 \u2193 invasive \u00b7 Lowers risk [F2]; 0/20 spot check \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 0, 8, 9) \u00b7 \u2193 invasive \u00b7 Lowers risk [F3]; 20/20 spot check \u00b7 Validated\n- **Dense lymphocytic infiltrate (TILs)** (region 4) \u00b7 context \u00b7 Below-typical [F4]; descriptive (8/20 check) \u00b7 Weak\n- **Tumor necrosis** (regions 6, 10, 11) \u00b7 \u2191 invasive \u00b7 Raises risk; 3/20 spot check \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful; deleting top 3 regions drops risk above random (CI 0.0021\u20130.0197, n=132).\n- **Concepts**: Unproven (CI -0.0088\u20130.0064 includes 0); leans on Unreliable normal lobules (0/20), necrosis (3/20).\n\n## Could be wrong if\n- Poor quality masks invasion in regions 6, 7, 11 (recut, deeper levels drafted).\n- Benign left half dilutes right-half carcinoma on composite slide (4/5 neighbors non-InSitu).\n\n## Check on the slide\n1. **Regions 6, 7, 11**: Highest invasive risk (54%, 45%, 31%); check for stromal invasion.\n2. **Regions 10, 11**: Check ductal atypia and inferior/lateral margins (97%, 90%); defer margins.\n3. **Regions 0, 1, 8, 9**: Review benign left half and quality for drafted recut/levels.",
+ "verification": {
+  "checked": 32,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:42:41-0500",
+ "elapsed_s": 183.6,
+ "usage": {
+  "inputTokens": 38658,
+  "outputTokens": 642,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 176502,
+ "key": "backup",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

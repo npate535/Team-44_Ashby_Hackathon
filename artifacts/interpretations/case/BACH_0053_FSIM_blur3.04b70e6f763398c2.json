@@ -1,0 +1,31 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0053_FSIM_blur3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "04b70e6f763398c2",
+ "markdown": "## Bottom line\n**Suggests Benign (73%)** \u00b7 Unreliable input \u00b7 Careful review\nSevere blur flags input reliability [F6], and the 90% conformal set cannot separate Benign from InSitu (22%) [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Benign 73%, InSitu 22%, Normal 3%, Invasive 2% | Favors Benign; InSitu remains possible |\n| Conformal set | Benign, InSitu (alpha 10%; test coverage 90%, n=132) | Cannot rule out InSitu |\n| Reliability / OOD | 30% reliability (flagged), 100th percentile OOD, blur 3 | Suspect input; out of distribution |\n| CONCH\u2013MUSK agreement | Disagree on top class | Independent foundation models disagree |\n| Similar cases | 2/5 Benign, 3/5 Normal (40% agreement) [F5] | Split between Benign and Normal |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 1) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.424) pushes away from invasive carcinoma [F2] \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (region 7) \u00b7 \u2191 invasive \u00b7 Low score (-0.009) pushes toward invasive; unreliable 0/20 check [F3] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (regions 0, 10) \u00b7 context \u00b7 Above-typical score (1.063); descriptive context only [F4] \u00b7 Weak\n- **Gland / tubule formation** (regions 3, 6, 7) \u00b7 \u2193 invasive \u00b7 High score (1.13) pushes away from invasive carcinoma \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top 3 risk regions drops P(invasive) by 0.0114 vs random (95% CI 0.0021 to 0.0197).\n- **Concepts**: Unproven faithfulness (deletion diff 0.0008, 95% CI -0.0088 to 0.0064 includes 0); normal lobules (0/20 spot check) is unreliable.\n\n## Could be wrong if\n- Severe blur (severity 3, 100th percentile OOD) masks in situ or invasive features; a recut H&E is drafted.\n- Unsampled ductal atypia represents InSitu (22%); deeper levels are drafted and frozen margin assessment is deferred [F7].\n\n## Check on the slide\n1. **Regions 2, 1**: Highest risk (10%, 6%) and superior margin (81% score); inspect for invasion or atypia.\n2. **Regions 5, 8**: Check duct-confined atypia (region 5) and pleomorphism (region 8, contrasting Normal case BACH_0195).\n3. **Regions 0, 10**: Dense lymphocytic infiltrate and inferior margin (58% score in region 10); verify tissue quality.",
+ "verification": {
+  "checked": 33,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:00:48-0500",
+ "elapsed_s": 94.9,
+ "usage": {
+  "inputTokens": 38631,
+  "outputTokens": 701,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 91768,
+ "key": "primary",
+ "markdown_original": "## Bottom line\n**Suggests Benign (73%)** \u00b7 Unreliable input \u00b7 Careful review\nSevere blur flags input reliability [F6], and the 90% conformal set cannot separate Benign from InSitu (22%) [F1].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Benign 73%, InSitu 22%, Normal 3%, Invasive 2% | Favors Benign; InSitu remains possible |\n| Conformal set | Benign, InSitu (alpha 10%; test coverage 90%, n=132) | Cannot rule out InSitu |\n| Reliability / OOD | 30% reliability (flagged), 100th percentile OOD, blur 3 | Suspect input; out of distribution |\n| CONCH\u2013MUSK agreement | Disagree on top class | Independent foundation models disagree |\n| Similar cases | 2/5 Benign, 3/5 Normal (40% agreement) [F5] | Split between Benign and Normal |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 1) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.424) pushes away from invasive carcinoma [F2] \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (region 7) \u00b7 \u2191 invasive \u00b7 Low score (-0.009) pushes toward invasive; unreliable 0/20 check [F3] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (regions 0, 10) \u00b7 context \u00b7 Above-typical score (1.063); descriptive context only [F4] \u00b7 Weak\n- **Gland / tubule formation** (regions 3, 6, 7) \u00b7 \u2193 invasive \u00b7 High score (1.13) pushes away from invasive carcinoma \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top 3 risk regions drops P(invasive) by 0.0114 vs random (95% CI 0.0021 to 0.0197).\n- **Concepts**: Unproven faithfulness (deletion diff 0.0008, 95% CI -0.0088 to 0.0064 includes 0); normal lobules (0/20 spot check) is unreliable.\n\n## Could be wrong if\n- Severe blur (severity 3, 100th percentile OOD) masks in situ or invasive features; a recut H&E is drafted.\n- Unsampled ductal atypia represents InSitu (22%); deeper levels are drafted and frozen margin assessment is deferred [F7].\n\n## Check on the slide\n1. **Regions 2, 1**: Highest risk (10%, 6%) and superior margin (81% score); inspect for invasion or atypia.\n2. **Regions 5, 8**: Check duct-confined atypia (region 5) and pleomorphism (region 8, contrasting Normal case BACH_0195).\n3. **Regions 0, 10**: Dense lymphocytic infiltrate and inferior margin (58% score in region 10); verify tissue quality.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

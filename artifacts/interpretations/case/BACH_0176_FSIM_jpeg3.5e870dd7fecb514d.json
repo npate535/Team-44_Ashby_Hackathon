@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0176_FSIM_jpeg3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "5e870dd7fecb514d",
+ "markdown": "## Bottom line\n**Suggests InSitu (97%)** \u00b7 Confident \u00b7 Careful review\nSimulated frozen section favors InSitu (1% invasive risk) [F1], with all four margins positive [F7].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 97%, Benign 1%, Invasive 1% | Strong InSitu, 1% invasive risk |\n| Conformal set | InSitu (alpha 0.1) | Single class at 90% coverage |\n| Reliability / OOD | 98%, OOD 1.0 (12/12 regions) [F6] | Reliable despite atypical OOD distance |\n| CONCH\u2013MUSK agreement | Agree (true) | Foundation models match top class |\n| Similar cases | 5/5 InSitu (74\u201381%) [F5] | Nearest reference cases match |\n\n## Tissue evidence\n- **Atypical cells confined within ducts** (regions 1, 6, 8) \u00b7 \u2193 invasive \u00b7 Score 1.73 (contribution -0.79) favors InSitu (12/20 spot check) [F2] \u00b7 Weak\n- **Dense lymphocytic infiltrate (TILs)** (region 10) \u00b7 context \u00b7 Score 0.16 (contribution +0.37), descriptive (8/20 spot check) [F3] \u00b7 Weak\n- **Frequent mitotic figures** (region 6) \u00b7 \u2193 invasive \u00b7 Score -0.06 (contribution -0.27), unreliable (0/20 spot check) [F4] \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Top-risk region deletion beats random (0.0114 drop, 95% CI 0.0021\u20130.0197, n=132), supporting classifier faithfulness.\n- **Concepts**: Deletion overlaps zero (0.0008, 95% CI -0.0088\u20130.0064); unfaithful to classifier, and mitoses (0/20) is unreliable.\n\n## Could be wrong if\n- Focal invasion in region 1 (67% risk) or region 4 is masked by frozen-section and JPEG-3 artifacts.\n- Duct-confined scores reflect normal ducts like contrast case BACH_0008 (73% similarity), or small-set calibration error (5% ECE, n=132).\n\n## Check on the slide\n1. **Regions 1, 4**: Rule out stromal invasion in the top risk (67%) and invasion-concept regions.\n2. **Regions 1, 6, 8**: Confirm atypical cells remain duct-confined rather than invading stroma.\n3. **Regions 0\u20133, 7, 8\u201311**: Verify superior, lateral, medial (108 um), and inferior (323 um) margins.",
+ "verification": {
+  "checked": 38,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:13:41-0500",
+ "elapsed_s": 192.7,
+ "usage": {
+  "inputTokens": 38599,
+  "outputTokens": 648,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 189774,
+ "key": "primary",
+ "markdown_original": "## Bottom line\n**Suggests InSitu (97%)** \u00b7 Confident \u00b7 Careful review\nSimulated frozen section favors InSitu (1% invasive risk) [F1], with all four margins positive [F7].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 97%, Benign 1%, Invasive 1% | Strong InSitu, 1% invasive risk |\n| Conformal set | InSitu (alpha 0.1) | Single class at 90% coverage |\n| Reliability / OOD | 98%, OOD 1.0 (12/12 regions) [F6] | Typical input despite JPEG-3 |\n| CONCH\u2013MUSK agreement | Agree (true) | Foundation models match top class |\n| Similar cases | 5/5 InSitu (74\u201381%) [F5] | Nearest reference cases match |\n\n## Tissue evidence\n- **Atypical cells confined within ducts** (regions 1, 6, 8) \u00b7 \u2193 invasive \u00b7 Score 1.73 (contribution -0.79) favors InSitu (12/20 spot check) [F2] \u00b7 Weak\n- **Dense lymphocytic infiltrate (TILs)** (region 10) \u00b7 context \u00b7 Score 0.16 (contribution +0.37), descriptive (8/20 spot check) [F3] \u00b7 Weak\n- **Frequent mitotic figures** (region 6) \u00b7 \u2193 invasive \u00b7 Score -0.06 (contribution -0.27), unreliable (0/20 spot check) [F4] \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Top-risk region deletion beats random (0.0114 drop, 95% CI 0.0021\u20130.0197, n=132), supporting classifier faithfulness.\n- **Concepts**: Deletion overlaps zero (0.0008, 95% CI -0.0088\u20130.0064); unfaithful to classifier, and mitoses (0/20) is unreliable.\n\n## Could be wrong if\n- Focal invasion in region 1 (67% risk) or region 4 is masked by frozen-section and JPEG-3 artifacts.\n- Duct-confined scores reflect normal ducts like contrast case BACH_0008 (73% similarity), or small-set calibration error (5% ECE, n=132).\n\n## Check on the slide\n1. **Regions 1, 4**: Rule out stromal invasion in the top risk (67%) and invasion-concept regions.\n2. **Regions 1, 6, 8**: Confirm atypical cells remain duct-confined rather than invading stroma.\n3. **Regions 0\u20133, 7, 8\u201311**: Verify superior, lateral, medial (108 um), and inferior (323 um) margins.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "OOD percentile 1 means this image is farther from the calibration images than 100% of them (atypical), not 'typical'."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

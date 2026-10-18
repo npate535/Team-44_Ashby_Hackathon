@@ -1,0 +1,34 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0141_FSIM_stain3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "6a4efe715d01d861",
+ "markdown": "## Bottom line\n**Suggests Benign (77%)** \u00b7 Ambiguous: Benign vs Normal \u00b7 Careful review\nInvasive risk is 0% with clear margins [F7], but Benign vs Normal is unseparated on frozen section [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 77%, Normal 23%, InSitu 0%, Invasive 0% | Zero invasive risk; benign favored |\n| Conformal set | Benign, Normal (90% target, alpha 10%) | Cannot separate Benign from Normal |\n| Reliability / OOD | 98% reliability, 8% OOD (12/12 regions, stain 3) [F6] | Passes QC despite stain shift |\n| CONCH\u2013MUSK agreement | Agree on top class | Independent foundation models concur |\n| Similar cases | 1/5 Benign, 4/5 Normal (96% top match) [F5] | Nearest neighbors favor Normal tissue |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 9, 10, 11) \u00b7 \u2193 invasive \u00b7 Above-typical score (-1.74), but unreliable (0/20 AI spot check) [F2] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (region 6) \u00b7 context \u00b7 Below-typical score; descriptive only (8/20 AI spot check) [F3] \u00b7 Weak\n- **Gland / tubule formation** (regions 2, 5, 6) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.47); caption-inconsistent (18/20 AI spot check) [F4] \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful on test set (deletion 95% CI 0.0021 to 0.0197 excludes 0); all region risks here are 0%.\n- **Concepts**: Unproven faithfulness (95% CI -0.0088 to 0.0064 includes 0); relies on unreliable normal lobules (0/20), necrosis (3/20), mitoses (0/20).\n\n## Could be wrong if\n- Tissue is normal parenchyma, matching 4/5 nearest neighbors (93%\u201396% similarity) and the unseparated Normal conformal class (23%).\n- Severity-3 frozen-section stain degradation masks atypia, with cell segmentation disabled and 70% reliability error AUROC.\n\n## Check on the slide\n1. **Regions 9, 10, 11**: Verify normal lobules versus benign lesion, as the normal-lobules concept is unreliable (0/20).\n2. **Regions 2, 5, 6**: Inspect tubules and region 6 ducts/lymphocytes to separate benign lesion from normal tissue.\n3. **Regions 3, 11**: Check validated stromal invasion scores (0.91, 0.73) separating this case from Normal match BACH_0308.",
+ "verification": {
+  "checked": 34,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:08:34-0500",
+ "elapsed_s": 118.6,
+ "usage": {
+  "inputTokens": 38446,
+  "outputTokens": 674,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 115179,
+ "key": "primary",
+ "markdown_original": "## Bottom line\n**Suggests Benign (77%)** \u00b7 Ambiguous: Benign vs Normal \u00b7 Careful review\nInvasive risk is 0% with clear margins [F7], but Benign vs Normal is unseparated on frozen section [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 77%, Normal 23%, InSitu 0%, Invasive 0% | Zero invasive risk; benign favored |\n| Conformal set | Benign, Normal (90% target, alpha 10%) | Cannot separate Benign from Normal |\n| Reliability / OOD | 98% reliability, 8% OOD (12/12 regions, stain 3) [F6] | Passes QC despite stain shift |\n| CONCH\u2013MUSK agreement | Agree on Benign | Independent foundation models concur |\n| Similar cases | 1/5 Benign, 4/5 Normal (96% top match) [F5] | Nearest neighbors favor Normal tissue |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 9, 10, 11) \u00b7 \u2193 invasive \u00b7 Above-typical score (-1.74), but unreliable (0/20 AI spot check) [F2] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (region 6) \u00b7 context \u00b7 Below-typical score; descriptive only (8/20 AI spot check) [F3] \u00b7 Weak\n- **Gland / tubule formation** (regions 2, 5, 6) \u00b7 \u2193 invasive \u00b7 Above-typical score (-0.47); caption-inconsistent (18/20 AI spot check) [F4] \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful on test set (deletion 95% CI 0.0021 to 0.0197 excludes 0); all region risks here are 0%.\n- **Concepts**: Unproven faithfulness (95% CI -0.0088 to 0.0064 includes 0); relies on unreliable normal lobules (0/20), necrosis (3/20), mitoses (0/20).\n\n## Could be wrong if\n- Tissue is normal parenchyma, matching 4/5 nearest neighbors (93%\u201396% similarity) and the unseparated Normal conformal class (23%).\n- Severity-3 frozen-section stain degradation masks atypia, with cell segmentation disabled and 70% reliability error AUROC.\n\n## Check on the slide\n1. **Regions 9, 10, 11**: Verify normal lobules versus benign lesion, as the normal-lobules concept is unreliable (0/20).\n2. **Regions 2, 5, 6**: Inspect tubules and region 6 ducts/lymphocytes to separate benign lesion from normal tissue.\n3. **Regions 3, 11**: Check validated stromal invasion scores (0.91, 0.73) separating this case from Normal match BACH_0308.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed).",
+   "The CONCH\u2013MUSK row names Benign, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

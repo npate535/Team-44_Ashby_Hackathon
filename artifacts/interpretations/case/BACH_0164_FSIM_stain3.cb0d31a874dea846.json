@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0164_FSIM_stain3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "cb0d31a874dea846",
+ "markdown": "## Bottom line\n**Suggests Benign (100%)** \u00b7 Confident \u00b7 Read in turn\nZero invasive risk across 12 regions and clear simulated margins [F7] (Tier 1: surgical frozen section).\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Benign 100%, others 0% (risk 0%) [F1] | Calibrated; test ECE 5% (n=132) |\n| Conformal set | {Benign} (alpha 10%) | Single class; 90% test coverage |\n| Reliability / OOD | 98% / 76th percentile (12/12 regions) [F6] | Unflagged despite level-3 stain degradation |\n| CONCH\u2013MUSK agreement | Agree (same top class) | Independent foundation models concur |\n| Similar cases | 4/5 Benign (80%), 1/5 Normal [F5] | Nearest neighbors match benign call |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 11) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.81, contribution -1.21) opposes invasion [F2] \u00b7 Validated\n- **Gland / tubule formation** (regions 0, 5, 9) \u00b7 \u2193 invasive \u00b7 Above-typical score (+1.69, contribution -0.73; caption-inconsistent) favors benign [F3] \u00b7 Weak\n- **Benign fibrous stroma or fat** (region 7) \u00b7 \u2191 invasive \u00b7 Below-typical score (-0.05, contribution +0.44) slightly raises invasive score [F4] \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (region 8) \u00b7 \u2191 invasive \u00b7 Low score (contribution +0.40); 0/20 AI spot check \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (region 6) \u00b7 context \u00b7 Mild score (+0.33, contribution +0.23); 8/20 AI spot check \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful to classifier (top-3 deletion drop +0.0114 vs random, 95% CI 0.0021 to 0.0197, n=132).\n- **Concepts**: Unproven faithfulness (deletion diff +0.0008, 95% CI -0.0088 to 0.0064); discount unreliable normal_lobules (0/20) and mitoses (0/20).\n\n## Could be wrong if\n- Severity-3 stain degradation (76th-percentile OOD) masks subtle invasion or margin tumor; reliability error AUROC is 70%.\n- Tissue is Normal (contrast case BACH_0381, 85% similar, differs in pleomorphism and benign_stroma_fat); cell segmentation disabled.\n\n## Check on the slide\n1. **Regions 0, 5, 9**: Confirm benign tubule architecture despite caption-inconsistent text scoring and severity-3 stain degradation.\n2. **Regions 7, 11**: Verify benign stroma in 7 and absent stromal invasion or pleomorphism in 11.\n3. **Regions 8, 11**: Inspect inferior, medial, and lateral frozen-section margins where segment risk reaches 1%.",
+ "verification": {
+  "checked": 37,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:10:55-0500",
+ "elapsed_s": 92.8,
+ "usage": {
+  "inputTokens": 38337,
+  "outputTokens": 752,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 89226,
+ "key": "primary",
+ "markdown_original": "## Bottom line\n**Suggests Benign (100%)** \u00b7 Confident \u00b7 Read in turn\nZero invasive risk across 12 regions and clear simulated margins [F7] (Tier 1: surgical frozen section).\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Benign 100%, others 0% (risk 0%) [F1] | Calibrated; test ECE 5% (n=132) |\n| Conformal set | {Benign} (alpha 10%) | Single class; 90% test coverage |\n| Reliability / OOD | 98% / 76th percentile (12/12 regions) [F6] | Unflagged despite level-3 stain degradation |\n| CONCH\u2013MUSK agreement | Agree (same top class) | Independent foundation models concur |\n| Similar cases | 4/5 Benign (80%), 1/5 Normal [F5] | Nearest neighbors match benign call |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 11) \u00b7 \u2193 invasive \u00b7 Below-typical score (-0.81, contribution -1.21) opposes invasion [F2] \u00b7 Validated\n- **Gland / tubule formation** (regions 0, 5, 9) \u00b7 \u2193 invasive \u00b7 Above-typical score (+1.69, contribution -0.73; caption-inconsistent) favors benign [F3] \u00b7 Validated\n- **Benign fibrous stroma or fat** (region 7) \u00b7 \u2191 invasive \u00b7 Below-typical score (-0.05, contribution +0.44) slightly raises invasive score [F4] \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (region 8) \u00b7 \u2191 invasive \u00b7 Low score (contribution +0.40); 0/20 AI spot check \u00b7 Unreliable\n- **Dense lymphocytic infiltrate (TILs)** (region 6) \u00b7 context \u00b7 Mild score (+0.33, contribution +0.23); 8/20 AI spot check \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful to classifier (top-3 deletion drop +0.0114 vs random, 95% CI 0.0021 to 0.0197, n=132).\n- **Concepts**: Unproven faithfulness (deletion diff +0.0008, 95% CI -0.0088 to 0.0064); discount unreliable normal_lobules (0/20) and mitoses (0/20).\n\n## Could be wrong if\n- Severity-3 stain degradation (76th-percentile OOD) masks subtle invasion or margin tumor; reliability error AUROC is 70%.\n- Tissue is Normal (contrast case BACH_0381, 85% similar, differs in pleomorphism and benign_stroma_fat); cell segmentation disabled.\n\n## Check on the slide\n1. **Regions 0, 5, 9**: Confirm benign tubule architecture despite caption-inconsistent text scoring and severity-3 stain degradation.\n2. **Regions 7, 11**: Verify benign stroma in 7 and absent stromal invasion or pleomorphism in 11.\n3. **Regions 8, 11**: Inspect inferior, medial, and lateral frozen-section margins where segment risk reaches 1%.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

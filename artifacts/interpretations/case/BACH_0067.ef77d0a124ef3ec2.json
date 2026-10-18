@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0067",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "ef77d0a124ef3ec2",
+ "markdown": "## Bottom line\n**Suggests Invasive (98%)** \u00b7 Confident \u00b7 Careful review\nFlagged Tier 2 for invasive prediction [F1]; confirm stromal invasion before releasing drafted ER, PR, HER2, and Ki-67 orders.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Invasive 98%, InSitu 2%, Benign 0%, Normal 0% | Strongly favors invasive over in-situ |\n| Conformal set | {Invasive} at 10% error rate (90% dataset coverage) | Single class at 90% coverage |\n| Reliability / OOD | 98% reliability, 64% OOD percentile, 12/12 regions kept [F6] | Typical image quality; flag clear |\n| CONCH\u2013MUSK agreement | Agree on top class | Independent foundation models agree |\n| Similar cases | 4/5 Invasive (80%); 1 InSitu (BACH_0241, 88% similarity) [F5] | Mostly invasive; close in-situ neighbor |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 4, 8, 10) \u00b7 \u2191 invasive \u00b7 Strongest driver (+1.21), above-typical score; AI spot check 19/20 [F2] \u00b7 Validated\n- **Dense lymphocytic infiltrate (TILs)** (regions 0, 1, 11) \u00b7 context \u00b7 Above-typical infiltrate weighted against invasion (-0.95); spot check 8/20 [F3] \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 0) \u00b7 \u2191 invasive \u00b7 Low score pushes toward invasion (+0.39); failed spot check 0/20 [F4] \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (region 3) \u00b7 \u2191 invasive \u00b7 Low benign stroma pushes toward invasion (+0.26); spot check 20/20 \u00b7 Validated\n- **HoVer-Net neoplastic nuclei** (region 6) \u00b7 context \u00b7 86 neoplastic cells (1872/mm\u00b2, 87th percentile); nuclear area CV 83rd percentile \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful; removing top 3 risk regions drops invasive probability above random removal (95% CI +0.002 to +0.020).\n- **Concepts**: Unproven faithfulness (deletion 95% CI -0.009 to +0.006 includes 0); case leans on unreliable normal_lobules, necrosis, and mitoses.\n\n## Could be wrong if\n- Duct-confined atypia mimics invasion, as in neighbor BACH_0241 (InSitu, 88% similarity), which differs most in duct_confined and normal_lobules.\n- Unreliable positive concepts (normal_lobules +0.39, necrosis +0.21, mitoses +0.19) inflate the invasive score without true stromal breach.\n\n## Check on the slide\n1. **Regions 4, 5, 8, 10**: Verify true stromal invasion in highest-risk regions (97%\u2013100% risk) before ordering ER, PR, HER2, and Ki-67.\n2. **Region 6**: Inspect duct borders around 86 measured neoplastic nuclei (1872/mm\u00b2) to rule out in-situ carcinoma.\n3. **Regions 0, 1, 11**: Check whether dense TILs obscure intact basement membranes or entrapped lobules.",
+ "verification": {
+  "checked": 42,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:01:36-0500",
+ "elapsed_s": 91.6,
+ "usage": {
+  "inputTokens": 37212,
+  "outputTokens": 798,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 88514,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "The CONCH\u2013MUSK row names Invasive, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ },
+ "markdown_original": "## Bottom line\n**Suggests Invasive (98%)** \u00b7 Confident \u00b7 Careful review\nFlagged Tier 2 for invasive prediction [F1]; confirm stromal invasion before releasing drafted ER, PR, HER2, and Ki-67 orders.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Invasive 98%, InSitu 2%, Benign 0%, Normal 0% | Strongly favors invasive over in-situ |\n| Conformal set | {Invasive} at 10% error rate (90% dataset coverage) | Single class at 90% coverage |\n| Reliability / OOD | 98% reliability, 64% OOD percentile, 12/12 regions kept [F6] | Typical image quality; flag clear |\n| CONCH\u2013MUSK agreement | Agree on top class (Invasive) | Independent foundation models agree |\n| Similar cases | 4/5 Invasive (80%); 1 InSitu (BACH_0241, 88% similarity) [F5] | Mostly invasive; close in-situ neighbor |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 4, 8, 10) \u00b7 \u2191 invasive \u00b7 Strongest driver (+1.21), above-typical score; AI spot check 19/20 [F2] \u00b7 Validated\n- **Dense lymphocytic infiltrate (TILs)** (regions 0, 1, 11) \u00b7 context \u00b7 Above-typical infiltrate weighted against invasion (-0.95); spot check 8/20 [F3] \u00b7 Weak\n- **Normal lobules with two-layered epithelium** (region 0) \u00b7 \u2191 invasive \u00b7 Low score pushes toward invasion (+0.39); failed spot check 0/20 [F4] \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (region 3) \u00b7 \u2191 invasive \u00b7 Low benign stroma pushes toward invasion (+0.26); spot check 20/20 \u00b7 Validated\n- **HoVer-Net neoplastic nuclei** (region 6) \u00b7 context \u00b7 86 neoplastic cells (1872/mm\u00b2, 87th percentile); nuclear area CV 83rd percentile \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Faithful; removing top 3 risk regions drops invasive probability above random removal (95% CI +0.002 to +0.020).\n- **Concepts**: Unproven faithfulness (deletion 95% CI -0.009 to +0.006 includes 0); case leans on unreliable normal_lobules, necrosis, and mitoses.\n\n## Could be wrong if\n- Duct-confined atypia mimics invasion, as in neighbor BACH_0241 (InSitu, 88% similarity), which differs most in duct_confined and normal_lobules.\n- Unreliable positive concepts (normal_lobules +0.39, necrosis +0.21, mitoses +0.19) inflate the invasive score without true stromal breach.\n\n## Check on the slide\n1. **Regions 4, 5, 8, 10**: Verify true stromal invasion in highest-risk regions (97%\u2013100% risk) before ordering ER, PR, HER2, and Ki-67.\n2. **Region 6**: Inspect duct borders around 86 measured neoplastic nuclei (1872/mm\u00b2) to rule out in-situ carcinoma.\n3. **Regions 0, 1, 11**: Check whether dense TILs obscure intact basement membranes or entrapped lobules."
+}

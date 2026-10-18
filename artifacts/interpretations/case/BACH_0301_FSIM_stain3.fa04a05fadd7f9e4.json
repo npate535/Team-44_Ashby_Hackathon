@@ -1,0 +1,34 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0301_FSIM_stain3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "fa04a05fadd7f9e4",
+ "markdown": "## Bottom line\n**Suggests Invasive (99%)** \u00b7 Confident \u00b7 Read in turn\nTier 1 surgical frozen section with model consensus [F1], severity-3 stain degradation, and all margins called positive [F7].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Invasive 99%, InSitu 1%, Benign 0%, Normal 0% (ECE 5%) | Strong calibrated invasive score |\n| Conformal set | {Invasive} at 90% target coverage (alpha 10%, n=132) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability, 86th OOD percentile, 12/12 tiles [F6] | Passes QC despite stain degradation |\n| CONCH\u2013MUSK agreement | Agree on top class | Independent foundation models concur |\n| Similar cases | 5/5 Invasive (86%\u201389% similarity) [F5]; contrast InSitu (84%) | Unanimous nearest-neighbor match |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (region 0) \u00b7 context \u00b7 Below-typical score (-0.33, contribution +0.76) [F2]; 8/20 AI spot check \u00b7 Weak\n- **Tumor infiltrating stroma** (regions 0, 1, 9) \u00b7 \u2191 invasive \u00b7 Above-typical score (+1.17, contribution +0.72) [F3]; 19/20 AI spot check \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (region 11) \u00b7 \u2191 invasive \u00b7 Scarce lobules (-0.13, contribution +0.63) [F4]; unreliable 0/20 spot check \u00b7 Unreliable\n- **Marked nuclear pleomorphism** (regions 1, 2, 9) \u00b7 \u2191 invasive \u00b7 Above-typical score (+1.47, contribution +0.55); 18/20 AI spot check \u00b7 Validated\n- **Gland / tubule formation** (region 11) \u00b7 \u2191 invasive \u00b7 Low text score (-0.02, contribution +0.33), caption-inconsistent; 18/20 spot check \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing 3 top-risk regions drops invasive probability beyond random (+0.0114, 95% CI +0.0021 to +0.0197).\n- **Concepts**: Unproven classifier faithfulness (deletion CI includes 0: -0.0088 to +0.0064); leans on unreliable normal lobules (0/20) and necrosis (3/20).\n\n## Could be wrong if\n- Severity-3 stain degradation on this simulated frozen section distorts morphology (reliability error AUROC 70%; stain orders blocked).\n- Lesion mimics 84%-similar InSitu contrast case BACH_0013 via duct confinement (12/20 Weak) and benign stroma in region 11.\n\n## Check on the slide\n1. **Regions 0, 1, 5, 6, 9**: Confirm stromal invasion and nuclear pleomorphism in highest-risk regions (80%\u201399% risk).\n2. **Region 11**: Evaluate duct-confined atypia and benign stroma to exclude in situ carcinoma.\n3. **Regions 0\u20133, 4, 7, 8\u201311**: Verify tumor at superior, inferior, medial, and lateral margins (215\u2013538 um).",
+ "verification": {
+  "checked": 47,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:26:41-0500",
+ "elapsed_s": 131.7,
+ "usage": {
+  "inputTokens": 38656,
+  "outputTokens": 803,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 125625,
+ "key": "backup",
+ "markdown_original": "## Bottom line\n**Suggests Invasive (99%)** \u00b7 Confident \u00b7 Read in turn\nTier 1 surgical frozen section with model consensus [F1], severity-3 stain degradation, and all margins called positive [F7].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Invasive 99%, InSitu 1%, Benign 0%, Normal 0% (ECE 5%) | Strong calibrated invasive score |\n| Conformal set | {Invasive} at 90% target coverage (alpha 10%, n=132) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability, 86th OOD percentile, 12/12 tiles [F6] | Passes QC despite stain degradation |\n| CONCH\u2013MUSK agreement | Agree on top class (Invasive) | Independent foundation models concur |\n| Similar cases | 5/5 Invasive (86%\u201389% similarity) [F5]; contrast InSitu (84%) | Unanimous nearest-neighbor match |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (region 0) \u00b7 context \u00b7 Below-typical score (-0.33, contribution +0.76) [F2]; 8/20 AI spot check \u00b7 Weak\n- **Tumor infiltrating stroma** (regions 0, 1, 9) \u00b7 \u2191 invasive \u00b7 Above-typical score (+1.17, contribution +0.72) [F3]; 19/20 AI spot check \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (region 11) \u00b7 \u2191 invasive \u00b7 Scarce lobules (-0.13, contribution +0.63) [F4]; unreliable 0/20 spot check \u00b7 Unreliable\n- **Marked nuclear pleomorphism** (regions 1, 2, 9) \u00b7 \u2191 invasive \u00b7 Above-typical score (+1.47, contribution +0.55); 18/20 AI spot check \u00b7 Validated\n- **Gland / tubule formation** (region 11) \u00b7 \u2191 invasive \u00b7 Low text score (-0.02, contribution +0.33), caption-inconsistent; 18/20 spot check \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing 3 top-risk regions drops invasive probability beyond random (+0.0114, 95% CI +0.0021 to +0.0197).\n- **Concepts**: Unproven classifier faithfulness (deletion CI includes 0: -0.0088 to +0.0064); leans on unreliable normal lobules (0/20) and necrosis (3/20).\n\n## Could be wrong if\n- Severity-3 stain degradation on this simulated frozen section distorts morphology (reliability error AUROC 70%; stain orders blocked).\n- Lesion mimics 84%-similar InSitu contrast case BACH_0013 via duct confinement (12/20 Weak) and benign stroma in region 11.\n\n## Check on the slide\n1. **Regions 0, 1, 5, 6, 9**: Confirm stromal invasion and nuclear pleomorphism in highest-risk regions (80%\u201399% risk).\n2. **Region 11**: Evaluate duct-confined atypia and benign stroma to exclude in situ carcinoma.\n3. **Regions 0\u20133, 4, 7, 8\u201311**: Verify tumor at superior, inferior, medial, and lateral margins (215\u2013538 um).",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed).",
+   "The CONCH\u2013MUSK row names Invasive, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

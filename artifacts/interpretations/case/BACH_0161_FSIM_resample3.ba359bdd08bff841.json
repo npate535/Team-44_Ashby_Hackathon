@@ -1,0 +1,30 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0161_FSIM_resample3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "ba359bdd08bff841",
+ "markdown": "## Bottom line\n**Suggests InSitu (91%)** \u00b7 Unreliable input \u00b7 Careful review\nResampled simulated frozen section is 100% out-of-distribution (44% reliability), models disagree, and margins defer to permanent sections [F7].\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | InSitu 91%, Invasive 7%, Benign 2%, Normal 0% [F1] | Low invasive carcinoma risk |\n| Conformal set | {InSitu} at 90% coverage (alpha 10%) | Single class; 90% dataset guarantee |\n| Reliability / OOD | 44% reliability (flagged), 100% OOD [F6] | Flagged degraded input; AUROC 0.70 |\n| CONCH\u2013MUSK agreement | Disagree on top class (false) | Independent foundation models split |\n| Similar cases | 3/5 InSitu (60%), 2/5 Benign [F5] | Mixed neighbors; closest is Benign |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate (TILs)** (region 6) \u00b7 context \u00b7 Below-typical score (+0.36 push toward invasive; 8/20 AI spot check) [F2] \u00b7 Weak\n- **Tumor infiltrating stroma** (region 8) \u00b7 \u2193 invasive \u00b7 Typical score pushes away from invasive (-0.30; 19/20 AI spot check) [F3] \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (region 11) \u00b7 \u2191 invasive \u00b7 Pushes toward invasive (+0.30), but 0/20 AI spot check [F4] \u00b7 Unreliable\n- **Atypical cells confined within ducts** (regions 4, 5) \u00b7 \u2193 invasive \u00b7 Elevated score pushes away from invasive (-0.17; 12/20 AI spot check) \u00b7 Weak\n- **Marked nuclear pleomorphism** (region 7) \u00b7 \u2193 invasive \u00b7 Below-typical score pushes away from invasive (-0.14; 18/20 AI spot check) \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful to classifier; deleting top-risk regions drops invasive score above random (+0.0114, 95% CI 0.0021 to 0.0197).\n- **Concepts**: Unverified faithfulness (deletion +0.0008, 95% CI -0.0088 to 0.0064 includes 0); leans on Unreliable normal lobules and mitoses (0/20).\n\n## Could be wrong if\n- Resampling degradation (severity 3) obscures stromal invasion in high-risk regions 2 (84%), 7 (83%), 8 (68%), or 9 (65%).\n- Lesion is Benign like closest match BACH_0330 (83% similarity), where CONCH and MUSK disagree on top class.\n\n## Check on the slide\n1. **Regions 2, 7, 8, 9**: Inspect highest-risk tiles (65%\u201384% risk) and region 8 for stromal invasion.\n2. **Regions 4, 5, 6**: Verify duct-confined atypia versus artifact; review drafted recut H&E and deeper-level orders.\n3. **Regions 0\u20133, 7, 8, 11**: Defer surgical margin call to permanent sections on this degraded frozen section.",
+ "verification": {
+  "checked": 42,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:10:00-0500",
+ "elapsed_s": 85.7,
+ "usage": {
+  "inputTokens": 38621,
+  "outputTokens": 779,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 82500,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

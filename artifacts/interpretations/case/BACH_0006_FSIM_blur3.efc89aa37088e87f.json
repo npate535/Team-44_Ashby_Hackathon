@@ -1,0 +1,33 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0006_FSIM_blur3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "efc89aa37088e87f",
+ "markdown": "## Bottom line\n**Suggests Normal (83%)** \u00b7 Ambiguous: Normal vs InSitu \u00b7 Careful review\nInSitu (12%) stays in the 90% set on this blurred frozen section.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 83%, InSitu 12%, Invasive 4%, Benign 1% [F1] | Favors Normal; low invasive risk |\n| Conformal set | Normal, InSitu (90% target; 90% test coverage) | Includes InSitu at 90% |\n| Reliability / OOD | 96% reliability, 86% OOD, 12/12 regions [F6] | Passes QC despite blur |\n| CONCH\u2013MUSK agreement | True (same top class) | Independent models agree |\n| Similar cases | 5/5 Normal (85%\u201386%) [F5]; InSitu contrast 83% | Neighbors Normal; close InSitu |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 1, 2, 8) \u00b7 \u2193 invasive \u00b7 Above-typical (-0.795) [F2]; 0/20 spot check \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 2, 7, 9) \u00b7 \u2193 invasive \u00b7 Above-typical (-0.64) [F3]; 20/20 spot check \u00b7 Validated\n- **Atypical cells confined within ducts** (region 9) \u00b7 \u2191 invasive \u00b7 Scarce (-1.336, +0.514) [F4]; 12/20 spot check \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful; deleting top-3 risk regions drops invasive score above random (0.0114, 95% CI 0.0021\u20130.0197).\n- **Concepts**: Unproven (deletion CI -0.0088\u20130.0064 includes 0); top concept normal_lobules (-0.795) is Unreliable (0/20).\n\n## Could be wrong if\n- Severity-3 blur on this simulated frozen section masks InSitu (12%; contrast BACH_0043 83% similar).\n- Unsampled levels harbor atypia or InSitu (deeper levels drafted; stains blocked on frozen sections).\n\n## Check on the slide\n1. **Regions 3, 0, 8**: Highest regional risk (0.015, 0.002); inspect blurred epithelium and consider drafted deeper levels.\n2. **Regions 9, 10**: Inspect ducts and tubules distinguishing Normal from InSitu contrast BACH_0043.\n3. **Regions 1, 2, 7**: Visually verify lobules (Unreliable concept) and clear margins (medial 81%, superior 79%) [F7].",
+ "verification": {
+  "checked": 37,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:00:13-0500",
+ "elapsed_s": 222.6,
+ "usage": {
+  "inputTokens": 38578,
+  "outputTokens": 660,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 214581,
+ "key": "primary",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "The CONCH\u2013MUSK row names Normal, but agreement.conch_musk_same_top only says the two models agree with each other; the JSON does not say which class they chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ },
+ "markdown_original": "## Bottom line\n**Suggests Normal (83%)** \u00b7 Ambiguous: Normal vs InSitu \u00b7 Careful review\nInSitu (12%) stays in the 90% set on this blurred frozen section.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 83%, InSitu 12%, Invasive 4%, Benign 1% [F1] | Favors Normal; low invasive risk |\n| Conformal set | Normal, InSitu (90% target; 90% test coverage) | Includes InSitu at 90% |\n| Reliability / OOD | 96% reliability, 86% OOD, 12/12 regions [F6] | Passes QC despite blur |\n| CONCH\u2013MUSK agreement | True (both rank Normal first) | Independent models agree |\n| Similar cases | 5/5 Normal (85%\u201386%) [F5]; InSitu contrast 83% | Neighbors Normal; close InSitu |\n\n## Tissue evidence\n- **Normal lobules with two-layered epithelium** (regions 1, 2, 8) \u00b7 \u2193 invasive \u00b7 Above-typical (-0.795) [F2]; 0/20 spot check \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 2, 7, 9) \u00b7 \u2193 invasive \u00b7 Above-typical (-0.64) [F3]; 20/20 spot check \u00b7 Validated\n- **Atypical cells confined within ducts** (region 9) \u00b7 \u2191 invasive \u00b7 Scarce (-1.336, +0.514) [F4]; 12/20 spot check \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Faithful; deleting top-3 risk regions drops invasive score above random (0.0114, 95% CI 0.0021\u20130.0197).\n- **Concepts**: Unproven (deletion CI -0.0088\u20130.0064 includes 0); top concept normal_lobules (-0.795) is Unreliable (0/20).\n\n## Could be wrong if\n- Severity-3 blur on this simulated frozen section masks InSitu (12%; contrast BACH_0043 83% similar).\n- Unsampled levels harbor atypia or InSitu (deeper levels drafted; stains blocked on frozen sections).\n\n## Check on the slide\n1. **Regions 3, 0, 8**: Highest regional risk (0.015, 0.002); inspect blurred epithelium and consider drafted deeper levels.\n2. **Regions 9, 10**: Inspect ducts and tubules distinguishing Normal from InSitu contrast BACH_0043.\n3. **Regions 1, 2, 7**: Visually verify lobules (Unreliable concept) and clear margins (medial 81%, superior 79%) [F7]."
+}

@@ -1,0 +1,31 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0073_FSIM_stain3",
+ "model": "gemini-4-argon-high",
+ "provider": "cursor",
+ "prompt_version": "interp-v3",
+ "evidence_hash": "569faba72c2453cd",
+ "markdown": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Careful review\nTier 1 surgical frozen section with tumor called at all four margins; stains blocked for frozen sections.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Invasive 100%, InSitu 0%, Benign 0%, Normal 0% [F1] | All weight on invasive carcinoma |\n| Conformal set | {Invasive} at 90% target (90% dataset coverage, n=132) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability, 100% OOD percentile, 12/12 regions kept [F6] | Passes QC despite stain degradation |\n| CONCH\u2013MUSK agreement | Agree on top class | Two independent foundation models match |\n| Similar cases | 5/5 Invasive (100%, similarity 0.74\u20130.83) [F5] | All nearest neighbors are invasive |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 3, 8) \u00b7 \u2191 invasive \u00b7 High score (1.56, +1.86 contribution) strongly supports stromal invasion [F2] \u00b7 Validated\n- **Frequent mitotic figures** (regions 0, 2, 11) \u00b7 \u2191 invasive \u00b7 High score (2.03, +1.19), but 0/20 AI spot check is unreliable [F3] \u00b7 Unreliable\n- **Gland / tubule formation** (region 7) \u00b7 \u2191 invasive \u00b7 Below-typical score (-1.25, +0.93 contribution); scarce tubules favor invasion [F4] \u00b7 Weak\n- **Benign fibrous stroma or fat** (region 1) \u00b7 \u2191 invasive \u00b7 Low score (-0.99, +0.90 contribution); scarce benign stroma favors invasion \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 8, 9, 11) \u00b7 \u2191 invasive \u00b7 Elevated atypia score (2.05, +0.65 contribution) supports invasive read \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top-3 risk regions drops P(invasive) by 0.0114 over random (95% CI 0.0021 to 0.0197).\n- **Concepts**: Unproven classifier faithfulness (deletion difference 0.0008, 95% CI -0.0088 to 0.0064); leans on Unreliable mitoses (0/20 spot check).\n\n## Could be wrong if\n- Severity-3 simulated frozen-section stain degradation (100% OOD percentile) mimics invasion; reliability ranks frozen-section errors at 70% AUROC.\n- Tumor is duct-confined in situ carcinoma, like contrast case BACH_0046 (InSitu, 66% similarity, differing in duct_confined and benign_stroma_fat).\n\n## Check on the slide\n1. **Regions 0, 3, 8, 9, 11**: Confirm true stromal invasion and nuclear pleomorphism rather than severity-3 stain artifact.\n2. **Regions 0, 2, 7, 11**: Manually verify mitotic figures (unreliable 0/20 concept) and absent tubules in region 7.\n3. **Regions 0\u20134, 7\u201311**: Verify tumor at superior (538 um), inferior (860 um), medial (430 um), lateral (645 um) margins [F7].",
+ "verification": {
+  "checked": 41,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-18T10:02:09-0500",
+ "elapsed_s": 74.0,
+ "usage": {
+  "inputTokens": 38633,
+  "outputTokens": 808,
+  "cacheReadTokens": 0,
+  "cacheWriteTokens": 0
+ },
+ "duration_ms": 71151,
+ "key": "primary",
+ "markdown_original": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Careful review\nTier 1 surgical frozen section with tumor called at all four margins; stains blocked for frozen sections.\n\n## Confidence\n| Signal | Value | Reading |\n| :--- | :--- | :--- |\n| Top probabilities | Invasive 100%, InSitu 0%, Benign 0%, Normal 0% [F1] | All weight on invasive carcinoma |\n| Conformal set | {Invasive} at 90% target (90% dataset coverage, n=132) | Single class at dataset guarantee |\n| Reliability / OOD | 98% reliability, 100% OOD percentile, 12/12 regions kept [F6] | Passes QC despite stain degradation |\n| CONCH\u2013MUSK agreement | Agree on top class | Two independent foundation models match |\n| Similar cases | 5/5 Invasive (100%, similarity 0.74\u20130.83) [F5] | All nearest neighbors are invasive |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 3, 8) \u00b7 \u2191 invasive \u00b7 High score (1.56, +1.86 contribution) strongly supports stromal invasion [F2] \u00b7 Validated\n- **Frequent mitotic figures** (regions 0, 2, 11) \u00b7 \u2191 invasive \u00b7 High score (2.03, +1.19), but 0/20 AI spot check is unreliable [F3] \u00b7 Unreliable\n- **Gland / tubule formation** (region 7) \u00b7 \u2191 invasive \u00b7 Below-typical score (-1.25, +0.93 contribution); scarce tubules favor invasion [F4] \u00b7 Validated\n- **Benign fibrous stroma or fat** (region 1) \u00b7 \u2191 invasive \u00b7 Low score (-0.99, +0.90 contribution); scarce benign stroma favors invasion \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 8, 9, 11) \u00b7 \u2191 invasive \u00b7 Elevated atypia score (2.05, +0.65 contribution) supports invasive read \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Faithful to classifier; removing top-3 risk regions drops P(invasive) by 0.0114 over random (95% CI 0.0021 to 0.0197).\n- **Concepts**: Unproven classifier faithfulness (deletion difference 0.0008, 95% CI -0.0088 to 0.0064); leans on Unreliable mitoses (0/20 spot check).\n\n## Could be wrong if\n- Severity-3 simulated frozen-section stain degradation (100% OOD percentile) mimics invasion; reliability ranks frozen-section errors at 70% AUROC.\n- Tumor is duct-confined in situ carcinoma, like contrast case BACH_0046 (InSitu, 66% similarity, differing in duct_confined and benign_stroma_fat).\n\n## Check on the slide\n1. **Regions 0, 3, 8, 9, 11**: Confirm true stromal invasion and nuclear pleomorphism rather than severity-3 stain artifact.\n2. **Regions 0, 2, 7, 11**: Manually verify mitotic figures (unreliable 0/20 concept) and absent tubules in region 7.\n3. **Regions 0\u20134, 7\u201311**: Verify tumor at superior (538 um), inferior (860 um), medial (430 um), lateral (645 um) margins [F7].",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}
