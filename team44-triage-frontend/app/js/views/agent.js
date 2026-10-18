@@ -1,58 +1,186 @@
-// Agent panel (biopsy): drafted orders with rationale + rule ID; Order tests / Edit / Take a closer look first /
-// Dismiss flag; the teammate's "Pathologist approval" card around Sign out. Nothing is ordered until approved.
+// Decision panel (plan §9): drafted orders with rationale + rule ID, a state stepper, the four agent actions, and the
+// sign-out card. Irreversible actions (ordering, dismissing, signing out) ask for an inline confirmation first: the
+// first button only opens the confirmation (data-cv-confirm, handled in case_ui.js); the confirm button carries the
+// real data-act that app.js sends to the backend. Nothing is ordered until the pathologist approves.
 // Surgical: only the visibly blocked actions (stains are never drafted in the simulated frozen-section lane).
-import {esc} from '../adapter.js';
+import { esc } from '../adapter.js';
+import { pending } from './case_ui.js';
 
-const STATUS = {none: 'No orders drafted', drafted: 'Drafted — awaiting your decision', approved: 'Orders approved',
-                edited_and_approved: 'Edited and approved', deferred_closer_look: 'Closer look first',
-                dismissed: 'Flag dismissed'};
-const ORDER_TYPE = {stain: 'Stain', recut: 'Recut', deeper_levels: 'Deeper levels', new_sample: 'New sample'};
-const ORDER_STATUS = {drafted: 'drafted', approved: 'ordered', edited: 'ordered (edited)', removed: 'removed',
-                      dismissed: 'dismissed'};
+const STATUS = {
+  none: 'No orders drafted',
+  drafted: 'Drafted, awaiting your decision',
+  approved: 'Orders placed',
+  edited_and_approved: 'Edited and placed',
+  deferred_closer_look: 'Closer look first',
+  dismissed: 'Flag dismissed'
+};
+const ORDER_TYPE = { stain: 'Stain', recut: 'Recut', deeper_levels: 'Deeper levels', new_sample: 'New sample' };
+const ORDER_STATUS = { drafted: 'drafted', approved: 'ordered', edited: 'ordered (edited)', removed: 'removed', dismissed: 'dismissed' };
+const TESTID = { approve_orders: 'approve', edit_orders: 'edit', closer_look: 'closer', dismiss_flag: 'dismiss', sign_out: 'signout' };
 
 function blockedRows(v) {
-  const rows = v.agent.blocked.map(b => `<div class="act blk" data-testid="agent-blocked"><b>Blocked</b> ${esc(b.action)}<div class="sub">${esc(b.reason)}${b.rule_id ? ' · ' + esc(b.rule_id) : ''}</div></div>`);
+  const rows = v.agent.blocked.map(
+    (b) =>
+      `<div class="act blk" data-testid="agent-blocked"><b>Blocked</b> ${esc(b.action)}<div class="sub">${esc(b.reason)}${b.rule_id ? ' · ' + esc(b.rule_id) : ''}</div></div>`
+  );
   if (v.lane === 'surgical') {
-    rows.push('<div class="act blk" data-testid="agent-guard"><b>Guard</b> no stain orders in the simulated frozen-section lane<div class="sub">The agent may only draft non-stain follow-up (recut, deeper levels) here; the result is your margin call.</div></div>');
+    rows.push(
+      '<div class="act blk" data-testid="agent-guard"><b>Guard</b> no stain orders in the simulated frozen-section lane<div class="sub">The agent may only draft non-stain follow-up (recut, deeper levels) here; the result is your margin call.</div></div>'
+    );
   }
   return rows.join('');
 }
 
+function lastTransition(events) {
+  const t = (events || []).filter((e) => e.type === 'agent_transition');
+  return t.length ? t[t.length - 1] : null;
+}
+const clock = (iso) => (iso ? new Date(iso).toLocaleTimeString() : '');
+
+/** Orders as shown: runtime order status when the backend has it, else the drafted orders. */
+function orderList(v) {
+  return v.agent.orderStatus || v.agent.orders.map((o, seq) => ({ ...o, seq, status: 'drafted', drafted_items: o.items }));
+}
+const liveItems = (detail) =>
+  detail.filter((o) => o.status !== 'removed' && o.status !== 'dismissed').flatMap((o) => (o.items && o.items.length ? o.items : o.drafted_items || []));
+
+function stepper(v, signed) {
+  const s = v.agent.status;
+  const hasOrders = s !== 'none';
+  const decided = ['approved', 'edited_and_approved', 'dismissed'].includes(s) || !hasOrders;
+  const step = (state, n, title, sub) =>
+    `<li class="${state}"${state === 'current' ? ' aria-current="step"' : ''}><span class="st-dot" aria-hidden="true">${state === 'done' ? '✓' : n}</span><span class="st-t"><b>${title}</b><span>${sub}</span></span></li>`;
+  const nOrders = orderList(v).length;
+  const decisionSub = !hasOrders
+    ? 'nothing to decide'
+    : s === 'drafted'
+      ? 'order, edit, look closer or dismiss'
+      : s === 'deferred_closer_look'
+        ? 'closer look in progress'
+        : STATUS[s].toLowerCase();
+  return (
+    '<ol class="stepper" aria-label="Decision steps">' +
+    step(hasOrders ? 'done' : 'skip', 1, 'Agent draft', hasOrders ? `${nOrders} order${nOrders === 1 ? '' : 's'} from rules` : 'no rule fired') +
+    step(decided ? (hasOrders ? 'done' : 'skip') : 'current', 2, 'Your decision', decisionSub) +
+    step(signed ? 'done' : decided ? 'current' : 'todo', 3, 'Sign out', signed ? 'routed to oncologist' : 'routes to the oncologist') +
+    '</ol>'
+  );
+}
+
+function confirmBox(v, ST, detail) {
+  const p = pending(v.id);
+  if (!p) return '';
+  const items = liveItems(detail);
+  const text = {
+    approve_orders: {
+      title: `Order ${items.length} item${items.length === 1 ? '' : 's'}?`,
+      body: `${items.map(esc).join(', ')}. Orders are placed in this workspace and cannot be withdrawn here.`,
+      ok: 'Confirm order'
+    },
+    dismiss_flag: {
+      title: 'Dismiss the flag and drop all drafted orders?',
+      body: 'No tests will be ordered for this case. The case stays open for sign-out.',
+      ok: 'Confirm dismiss'
+    },
+    sign_out: {
+      title: `Sign out ${esc(v.id)}?`,
+      body: `The result goes to the oncologist inbox with ${
+        v.agent.status === 'none' || v.agent.status === 'dismissed' ? 'no follow-up orders' : `${items.length} ordered item${items.length === 1 ? '' : 's'}`
+      }. Sign-out is final in this workspace.`,
+      ok: 'Confirm sign-out'
+    }
+  }[p.action];
+  if (!text) return '';
+  const can = v.agent.allowed.includes(p.action) && !ST.busy;
+  return (
+    `<div class="cv-confirm" role="alertdialog" aria-labelledby="cv-confirm-t" aria-describedby="cv-confirm-b" data-testid="confirm-box" data-action="${esc(p.action)}">` +
+    `<b id="cv-confirm-t">${text.title}</b><p id="cv-confirm-b">${text.body}</p>` +
+    `<div class="btns"><button class="btn p${p.action === 'dismiss_flag' ? ' dd' : ''}" data-act="${esc(p.action)}" data-testid="confirm-action"${can ? '' : ' disabled'}>${text.ok}</button>` +
+    '<button class="btn" data-cv-cancel data-testid="confirm-cancel">Cancel</button></div></div>'
+  );
+}
+
+function feedback(v, ST, signed) {
+  const s = v.agent.status;
+  const ev = lastTransition(ST.events && ST.events[v.id]);
+  const when = ev ? ` at ${esc(clock(ev.at))}` : '';
+  if (signed) return '';
+  if (s === 'approved' || s === 'edited_and_approved') {
+    const items = liveItems(orderList(v));
+    return `<div class="cv-done" role="status" data-testid="decision-feedback"><span aria-hidden="true">✓</span><span><b>${items.length} item${items.length === 1 ? '' : 's'} ordered${when}:</b> ${items.map(esc).join(', ')}. Next: sign out to route the result.</span></div>`;
+  }
+  if (s === 'dismissed') return `<div class="cv-done" role="status" data-testid="decision-feedback"><span aria-hidden="true">✓</span><span><b>Flag dismissed${when}.</b> No tests ordered. Next: sign out.</span></div>`;
+  if (s === 'deferred_closer_look')
+    return `<div class="cv-done info" role="status" data-testid="decision-feedback"><span aria-hidden="true">i</span><span><b>Closer look recorded${when}.</b> Orders are still drafted; order, edit or dismiss them when ready.</span></div>`;
+  return '';
+}
+
 export function agentPanel(v, ST) {
-  const head = '<h2>Drafted follow-up orders</h2><div class="note">Illustrative rules; require clinical review. Nothing is ordered until you approve.</div>';
+  const head =
+    '<h2>Follow-up orders</h2><p class="note">Illustrative rules; require clinical review. Nothing is ordered until you approve.</p>';
   if (v.lane === 'surgical' && !v.agent.orders.length && !(v.agent.orderStatus || []).length) {
-    return `<div class="card" data-testid="agent-panel">${head}<div style="margin-top:8px">${blockedRows(v)}</div></div>`;
+    return `<div class="card cv-decide" data-testid="agent-panel">${head}<div style="margin-top:8px">${blockedRows(v)}</div></div>`;
   }
   const status = v.agent.status;
-  const pill = `<span class="pill${status === 'drafted' ? ' warn' : status === 'none' ? '' : ' ok'}" data-testid="agent-status" data-status="${esc(status)}">${esc(STATUS[status] || status)}</span>`;
-  const detail = v.agent.orderStatus || v.agent.orders.map((o, seq) => ({...o, seq, status: 'drafted', drafted_items: o.items}));
-  const rationale = Object.fromEntries(v.agent.orders.map(o => [o.rule_id + '|' + o.type, o.rationale]));
+  const signed = v.decision.signedOut;
+  const pill = `<span class="pill${status === 'drafted' || status === 'deferred_closer_look' ? ' warn' : status === 'none' ? '' : ' ok'}" data-testid="agent-status" data-status="${esc(status)}">${esc(STATUS[status] || status)}</span>`;
+  const detail = orderList(v);
+  const rationale = Object.fromEntries(v.agent.orders.map((o) => [o.rule_id + '|' + o.type, o.rationale]));
   const editing = ST.editing === 'orders';
   let orders = '';
   for (const o of detail) {
     const off = o.status === 'removed' || o.status === 'dismissed';
+    const shown = o.items && o.items.length ? o.items : o.drafted_items;
     const items = editing
-      ? `<div class="edit">${o.drafted_items.map(item => `<label><input type="checkbox" data-edit-seq="${esc(o.seq)}" data-edit-item="${esc(item)}"${(ST.editDraft[o.seq] || []).includes(item) ? ' checked' : ''} data-testid="edit-item">${esc(item)}</label>`).join('')}</div>`
-      : `<b>${esc(o.items.join(', ') || o.drafted_items.join(', '))}</b>`;
-    orders += `<div class="act${off ? ' off' : ''}" data-testid="agent-order" data-seq="${esc(o.seq)}" data-rule="${esc(o.rule_id)}" data-status="${esc(o.status)}">` +
-      `<span class="pill">${esc(ORDER_TYPE[o.type] || o.type)}</span> ${items}` +
-      `<div class="sub">${esc(rationale[o.rule_id + '|' + o.type] || o.rationale || '')} · rule <code>${esc(o.rule_id)}</code> · ${esc(ORDER_STATUS[o.status] || o.status)}</div></div>`;
+      ? `<div class="edit">${o.drafted_items
+          .map(
+            (item) =>
+              `<label><input type="checkbox" data-edit-seq="${esc(o.seq)}" data-edit-item="${esc(item)}"${(ST.editDraft[o.seq] || []).includes(item) ? ' checked' : ''} data-testid="edit-item">${esc(item)}</label>`
+          )
+          .join('')}</div>`
+      : `<span class="ord-items">${shown.map((i) => `<b>${esc(i)}</b>`).join('')}</span>`;
+    orders +=
+      `<div class="act ord ${esc(o.status)}${off ? ' off' : ''}" data-testid="agent-order" data-seq="${esc(o.seq)}" data-rule="${esc(o.rule_id)}" data-status="${esc(o.status)}">` +
+      `<div class="ord-h"><span class="pill">${esc(ORDER_TYPE[o.type] || o.type)}</span>${items}<span class="ord-st">${esc(ORDER_STATUS[o.status] || o.status)}</span></div>` +
+      `<div class="sub">${esc(rationale[o.rule_id + '|' + o.type] || o.rationale || '')} · rule <code>${esc(o.rule_id)}</code></div></div>`;
   }
   if (!detail.length) orders = '<div class="note">No orders drafted. The agent drafts orders only for flagged cases.</div>';
-  if (v.lane === 'surgical') orders = '<div class="note">Non-stain follow-up only (the reliability flag is raised); the margin call is separate.</div>' + orders;
-  const can = a => v.agent.allowed.includes(a) && !ST.busy;
-  const btn = (act, label, cls = '') => `<button class="btn${cls}" data-act="${act}" data-testid="action-${act === 'approve_orders' ? 'approve' : act === 'edit_orders' ? 'edit' : act === 'closer_look' ? 'closer' : act === 'dismiss_flag' ? 'dismiss' : 'signout'}"${can(act) ? '' : ' disabled'}>${label}</button>`;
+  if (v.lane === 'surgical')
+    orders = '<div class="note">Non-stain follow-up only (the reliability flag is raised); the margin call is separate.</div>' + orders;
+  const can = (a) => v.agent.allowed.includes(a) && !ST.busy;
+  const p = pending(v.id);
+  const btn = (act, label, cls = '', confirm = false) =>
+    `<button class="btn${cls}" ${confirm ? 'data-cv-confirm' : 'data-act'}="${act}" data-testid="action-${TESTID[act]}"${can(act) ? '' : ' disabled'}${p && p.action === act ? ' aria-expanded="true"' : confirm ? ' aria-expanded="false"' : ''}>${label}</button>`;
+  const nItems = liveItems(detail).length;
+  const open = ['approve_orders', 'edit_orders', 'closer_look', 'dismiss_flag'].some((a) => v.agent.allowed.includes(a));
   const actions = editing
-    ? '<div class="btns"><button class="btn p" data-act="edit_save" data-testid="action-edit-save">Order selected</button><button class="btn" data-act="edit_cancel" data-testid="action-edit-cancel">Cancel</button><span class="sub">Edits can only remove drafted items.</span></div>'
-    : `<div class="btns">${btn('approve_orders', 'Order tests', ' p')}${btn('edit_orders', 'Edit')}${btn('closer_look', 'Take a closer look first')}${btn('dismiss_flag', 'Dismiss flag', ' d')}</div>`;
-  if (v.lane === 'surgical') {         // no sign-out in the frozen lane: the margin call is the result
-    const open = ['approve_orders', 'edit_orders', 'closer_look', 'dismiss_flag'].some(a => v.agent.allowed.includes(a));
-    return `<div class="card" data-testid="agent-panel">${head}<div style="margin:8px 0">${pill}</div>${orders}${blockedRows(v)}${open || editing ? actions : ''}</div>`;
+    ? '<div class="btns"><button class="btn p" data-act="edit_save" data-testid="action-edit-save">Order selected</button><button class="btn" data-act="edit_cancel" data-testid="action-edit-cancel">Cancel</button><span class="sub">Untick items to drop them; edits can only remove drafted items, and the selected ones are ordered at once.</span></div>'
+    : open
+      ? `<div class="btns cv-actions">${btn('approve_orders', nItems ? `Order tests (${nItems})` : 'Order tests', ' p', true)}${btn('edit_orders', 'Edit')}${btn('closer_look', 'Take a closer look first')}${btn('dismiss_flag', 'Dismiss flag', ' d', true)}</div>` +
+        (ST.busy ? '<p class="sub" role="status">Saving your decision…</p>' : '')
+      : '';
+  const box = p && p.action !== 'sign_out' ? confirmBox(v, ST, detail) : '';
+  if (v.lane === 'surgical') {
+    // no sign-out in the frozen lane: the margin call is the result
+    return `<div class="card cv-decide" data-testid="agent-panel">${head}<div style="margin:8px 0">${pill}</div>${orders}${blockedRows(v)}${open || editing ? actions + box : ''}</div>`;
   }
-  const signed = v.decision.signedOut;
-  const approval = `<div class="card" style="margin-top:14px" data-testid="approval"><h2>Pathologist approval</h2><div class="note">The only place a diagnosis is made.</div>` +
-    (signed ? `<div class="verdict" data-testid="verdict">Signed out — routed to the oncologist inbox ${esc(new Date(signed).toLocaleTimeString())}</div>`
-      : `<div class="btns">${btn('sign_out', 'Sign out', ' p')}${!can('sign_out') && status !== 'none' ? '<span class="sub">Act on the drafted orders first.</span>' : ''}</div>`) +
+  const signReason =
+    status === 'drafted' || status === 'deferred_closer_look'
+      ? 'Decide on the drafted orders first: order, edit or dismiss them.'
+      : ST.busy
+        ? 'Saving your decision…'
+        : '';
+  const approval =
+    `<div class="card cv-signout" data-testid="approval"><h2>Pathologist sign-out</h2><p class="note">The only place a diagnosis is made. The suggestion above is decision support.</p>` +
+    (signed
+      ? `<div class="verdict" data-testid="verdict" role="status">Signed out, routed to the oncologist inbox at ${esc(new Date(signed).toLocaleTimeString())}</div>`
+      : `<div class="btns">${btn('sign_out', 'Sign out…', ' p', true)}${!can('sign_out') && signReason ? `<span class="sub" data-testid="signout-reason">${esc(signReason)}</span>` : ''}</div>` +
+        (p && p.action === 'sign_out' ? confirmBox(v, ST, detail) : '')) +
     '</div>';
-  return `<div class="card" data-testid="agent-panel">${head}<div style="margin:8px 0">${pill}</div>${orders}${blockedRows(v)}${signed ? '' : actions}</div>${approval}`;
+  return (
+    `<div class="card cv-decide" data-testid="agent-panel"><div class="cv-decide-h"><h2>Follow-up orders</h2>${pill}</div>` +
+    stepper(v, signed) +
+    '<p class="note">Illustrative rules; require clinical review. Nothing is ordered until you approve.</p>' +
+    `<div class="ord-list">${orders}</div>${blockedRows(v)}${feedback(v, ST, signed)}${signed ? '' : actions + box}</div>${approval}`
+  );
 }
