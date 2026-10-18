@@ -348,9 +348,10 @@ def prediction_block(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any]) -> 
     aggressive = req_float(row[schemas.cal_prob_col(cfg["aggressive_class"])], f"{spec.case_id} pcal aggressive")
     if abs(risk - aggressive) > 1e-3:
         raise InputError(f"{spec.case_id}: risk {risk} differs from {schemas.cal_prob_col(cfg['aggressive_class'])} {aggressive}")
-    members = schemas.parse_set(row["set_lac"])
-    if len(members) != int(req_float(row["set_size"], f"{spec.case_id} set_size")):
-        raise InputError(f"{spec.case_id}: set_lac {members} does not match set_size {row['set_size']}")
+    set_col, size_col = ("set_tier", "set_tier_size") if "set_tier" in row.index else ("set_lac", "set_size")
+    members = schemas.parse_set(row[set_col])
+    if len(members) != int(req_float(row[size_col], f"{spec.case_id} {size_col}")):
+        raise InputError(f"{spec.case_id}: {set_col} {members} does not match {size_col} {row[size_col]}")
     return {"model": str(row["model"]), "classes": classes, "probs": probs,
             "risk_score": round(risk, 4), "conformal_alpha": float(cfg["alpha"]), "conformal_set": members}
 

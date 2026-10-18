@@ -21,7 +21,7 @@ from core import cli, config, io, schemas
 from eval.figures import ci_blocks
 
 STEP = "eval_results_md"
-OWN = ("metrics", "calibration", "conformal", "thunder", "queue_sim", "margin")
+OWN = ("qc", "metrics", "calibration", "conformal", "thunder", "queue_sim", "margin")
 FOREIGN = ("model_choice", "concepts", "concepts_bach", "zeroshot", "reliability", "retrieval", "deletion", "cells",
            "finetune", "spotcheck")
 
@@ -86,13 +86,41 @@ def section_conformal(c: Mapping[str, Any]) -> list[str]:
     for name, b in c["methods"].items():
         out.append(f"| {name} | {fmt(b['coverage'], pct=True)} | {fmt(b['mean_set_size'])} | "
                    f"{100 * b['empty_set_rate']:.1f}% |")
+    tier = c["methods"].get(c["drives_tiers"])
+    if tier and c["drives_tiers"] != "lac_marginal":
+        out += ["", f"Per-class coverage of the tier set ({c['drives_tiers']}): "
+                + "; ".join(f"{k} {fmt(v, pct=True)}" for k, v in tier["per_class"].items()) + "."]
     lac = c["methods"].get("lac_marginal")
     if lac:
-        out += ["", "Per-class LAC coverage: " + "; ".join(f"{k} {fmt(v, pct=True)}" for k, v in lac["per_class"].items()) + "."]
+        out += ["", "Per-class LAC coverage (pre-registered): "
+                + "; ".join(f"{k} {fmt(v, pct=True)}" for k, v in lac["per_class"].items()) + "."]
+    if c["drives_tiers"] != "lac_marginal" and lac:
+        out += ["", "**Post-hoc change, disclosed:** marginal LAC was the pre-registered tier set. On the held-out test "
+                "split it returned empty sets for "
+                f"{100 * lac['empty_set_rate']:.1f}% of cases and no multi-class sets, so it gave the reader no "
+                "differential; the 50-image calibration split is far easier than the test split, which violates the "
+                "exchangeability the guarantee needs. Tiers now use the set named above (APS, Romano et al. 2020, with "
+                "the argmax class added to empty sets). The switch was made after viewing test results, so its "
+                "observed coverage is optimistic and is not an independent confirmation."]
     fs = c.get("finite_sample") or {}
     if fs.get("note"):
         out += ["", fs["note"]]
     return out + [""]
+
+
+def section_qc(q: Mapping[str, Any]) -> list[str]:
+    it, rate = q["insufficient_tissue_cases"], q["qc_pass_rate"]
+    v = q["validation_old_rule_display_vs_fullres"]
+    by_old = ", ".join(f"{k} {n}" for k, n in it["old_by_class"].items())
+    return ["## Tissue quality control (fixed in this run)", "",
+            "Source: `eval/qc.json` (pipeline/01q_requalify_qc). The original tissue mask required HSV value < "
+            f"{q['rule_old']['brightness_max']}; HSV value is the brightest RGB channel, so pale H&E tissue was "
+            f"rejected. With saturation > {q['rule_new']['saturation_min']} alone, contract-tile QC pass rate went "
+            f"{100 * rate['old'].get('g512', 0):.1f}% -> {100 * rate['new'].get('g512', 0):.1f}% and insufficient-tissue "
+            f"images {it['old']} -> {it['new']} (before: {by_old}). Tile fractions were recomputed on display JPEGs; "
+            f"the old rule recomputed the same way reproduces the full-resolution Delta values (r = {v['pearson_r']:.3f}, "
+            f"mean |diff| = {v['mean_abs_diff']:.3f}). Every tile had been embedded on Delta, so no new GPU work was "
+            "needed; steps 04-08 and the evaluation were re-run.", ""]
 
 
 def section_thunder(t: Mapping[str, Any]) -> list[str]:
@@ -203,7 +231,7 @@ def build(art: Path, cfg: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
               "beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.", ""]
     sha = sorted({str(d.get("git_sha")) for d in present.values()})
     lines += [f"Generated {io.utc_now()} from {len(present)} eval files (git {', '.join(sha) or 'n/a'}).", ""]
-    renderers = {"metrics": section_metrics, "calibration": section_calibration, "conformal": section_conformal,
+    renderers = {"qc": section_qc, "metrics": section_metrics, "calibration": section_calibration, "conformal": section_conformal,
                  "thunder": section_thunder, "queue_sim": section_queue, "margin": section_margin}
     for name in OWN:
         if name in present:

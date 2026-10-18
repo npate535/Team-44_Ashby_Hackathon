@@ -68,6 +68,7 @@ INVENTORY_MPP_KEY = "measured_mpp"
 # EVAL_ENVELOPE keys (core.io.provenance gives all but `name`) plus its payload.
 EVAL_ENVELOPE = ("name", "created_utc", "config_hash", "git_sha", "synthetic")
 EVAL_FILES: dict[str, str] = {
+    "qc": "01q · tissue-QC fix: old vs new rule, pass rates, insufficient-tissue counts, display-vs-full-res validation",
     "concepts": "Task 9 · NCT cross-organ concept AUROCs; per concept {caption_consistent, cav_auroc}",
     "concepts_bach": "Task 9 · BACH per-class concept means (test) and spot-check summary",
     "zeroshot": "Task 9 · zero-shot BACH 4-class baseline per text-aligned encoder",
@@ -334,6 +335,9 @@ PREDICTIONS = Table(
         _c("top", "str", "argmax class of the calibrated probabilities"),
         _c("set_aps", "str", "secondary APS set (format_set)", required=False),
         _c("set_mondrian", "str", "secondary Mondrian set (format_set)", required=False),
+        _c("set_tier", "str", "tier-driving set: the conformal.method x mode set, argmax added when empty if "
+                              "conformal.nonempty (core.conformal.tier_set_source); absent => set_lac", required=False),
+        _c("set_tier_size", "int", "number of classes in set_tier", required=False),
         _c("agree_top", "bool", "production top == agreement model top (contract agreement.conch_musk_same_top)", required=False),
     ),
     notes="Dynamic: pcal__<class> for every class (cal_prob_col; calibrated production probabilities summing to 1) and "

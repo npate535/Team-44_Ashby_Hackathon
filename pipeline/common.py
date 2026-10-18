@@ -124,9 +124,15 @@ def read_rgb(path: str | Path, expected_size: Sequence[int] | None = None) -> Im
 
 
 def tissue_mask(img: Image.Image, cfg: Mapping[str, Any]) -> np.ndarray:
-    """Boolean HxW mask: HSV saturation (0-1) > qc.saturation_min and value (0-1) < qc.brightness_max."""
+    """Boolean HxW mask: HSV saturation (0-1) > qc.saturation_min and, when qc.brightness_max < 1, value (0-1) <
+    qc.brightness_max. brightness_max >= 1 disables the value test: HSV value is the max RGB channel, so pale eosin
+    and hematoxylin pixels sit at V ~ 0.95-1.0 and a value cut rejects real tissue (see 01q_requalify_qc)."""
     hsv = np.asarray(img.convert("RGB").convert("HSV"), dtype=np.float32) / 255.0
-    return (hsv[..., 1] > float(cfg["qc"]["saturation_min"])) & (hsv[..., 2] < float(cfg["qc"]["brightness_max"]))
+    mask = hsv[..., 1] > float(cfg["qc"]["saturation_min"])
+    brightness_max = float(cfg["qc"]["brightness_max"])
+    if brightness_max < 1.0:
+        mask &= hsv[..., 2] < brightness_max
+    return mask
 
 
 def tissue_fraction(mask: np.ndarray, x: int, y: int, w: int, h: int) -> float:

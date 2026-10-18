@@ -7,7 +7,7 @@ Features per read (settings reliability.features):
     nearest TTA-averaged train tiles (CONCH align; settings reliability.ood_reference), as a percentile among clean
     calibration cases read the same way (TTA reads vs clean-calibration TTA distances; view-0 reads vs clean-
     calibration view-0 distances).
-  * set_size: size of the production LAC conformal set of the read.
+  * set_size: size of the read's tier-driving conformal set (predictions.csv set_tier_size; set_size = LAC when absent).
   * conch_musk_disagree: 1 when the production model's top class differs from the agreement model's (MUSK) top.
 Combiner: standardized logistic regression P(error) fit on the calibration split, clean view-0 reads + degraded reads
 (view 0, ruling M9: like-for-like single-view reads). The flag threshold is the largest p_error that still flags
@@ -159,7 +159,7 @@ def run(ctx: cli.StepContext) -> dict[str, Any]:
         agree = pd.to_numeric(r["agree_top"], errors="coerce")
         out = pd.DataFrame({"ood_distance": dist.loc[ids].to_numpy(),
                             "ood_percentile": percentile(dist.loc[ids].to_numpy(), reference),
-                            "set_size": r["set_size"].astype(int).to_numpy(),
+                            "set_size": r["set_tier_size" if "set_tier_size" in r.columns else "set_size"].astype(int).to_numpy(),
                             "conch_musk_disagree": np.where(agree.isna(), 0, 1 - agree.fillna(1)).astype(int),
                             "agree_known": agree.notna().astype(int).to_numpy(),
                             "top": r["top"].to_numpy()}, index=pd.Index(ids, name="case_id"))
