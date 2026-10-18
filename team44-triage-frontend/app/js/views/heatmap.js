@@ -275,8 +275,11 @@ export function marginOverlay(v, assetUrl, { names = null } = {}) {
     (m
       ? `<div class="mlab" data-testid="margin-labels">${MARGINS.map((name) => {
           const st = marginStatus(m, name);
-          const len = m.lengths && m.lengths[name] ? `≈${Math.round(m.lengths[name])} µm involved` : st === 'involved' ? 'involved' : STATUS_TEXT[st];
-          return `<div class="${m.involved.includes(name) ? 'inv' : ''} ${st}" data-testid="margin-label-${name}" title="${esc(cap(name))}: p ${esc(fmtProb(m.perMargin[name] ?? 0))}"><b>${cap(name)}</b><span>${esc(len)}</span></div>`;
+          // "involved" is a call; only a tumor_at_margin suggestion uses it. Otherwise (e.g. defer) report the raw read.
+          const call = m.call === 'tumor_at_margin';
+          const word = st === 'involved' ? (call ? 'involved' : 'above threshold') : STATUS_TEXT[st];
+          const len = m.lengths && m.lengths[name] && st === 'involved' ? `≈${Math.round(m.lengths[name])} µm ${word}` : word;
+          return `<div class="${call && m.involved.includes(name) ? 'inv' : ''} ${st}" data-testid="margin-label-${name}" title="${esc(cap(name))}: p ${esc(fmtProb(m.perMargin[name] ?? 0))}${call ? '' : ' (raw read, not a call)'}"><b>${cap(name)}</b><span>${esc(len)}</span></div>`;
         }).join('')}</div>`
       : '')
   );

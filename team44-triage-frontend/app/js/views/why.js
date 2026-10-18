@@ -391,8 +391,11 @@ function findingTitle(f) {
 export function summary(v) {
   const s = v.summary;
   if (!s || !s.sentences.length) return '<div class="note">No summary.</div>';
+  const gen = s.isLLM ? s.generator.slice(6) : '';
+  const model = gen.split('+')[0];
+  const plusTemplate = /\+template\b/.test(gen);
   const badge = s.isLLM
-    ? `<span class="badge llm" data-testid="summary-generator">LLM-written from findings · ${esc(s.generator.slice(6))}</span>`
+    ? `<span class="badge llm" data-testid="summary-generator" title="Written by ${esc(model)} from the structured findings only; every sentence cites findings and was checked against them.">LLM-written from findings · ${esc(model)}${plusTemplate ? ' · + required template sentence' : ''}</span>`
     : '<span class="badge" data-testid="summary-generator">Template, from findings</span>';
   const ps = s.sentences
     .map(
