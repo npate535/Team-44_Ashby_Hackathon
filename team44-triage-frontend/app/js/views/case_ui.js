@@ -51,8 +51,13 @@ function resolveKey(k) {
   return all[k.idx] || all[0] || null;
 }
 let lastFocus = null;
+// a decision control (order, sign out, margin call…) disappears or is disabled once the decision is sent: move
+// keyboard focus to the outcome (feedback / verdict) when it appears instead of dropping it on <body>
+const DECISION = /data-act|data-call|data-cv-confirm|confirm-action/;
+let focusOutcome = false;
 document.addEventListener('focusin', (e) => {
   const app = $('#app');
+  focusOutcome = false;
   if (app && app.contains(e.target)) lastFocus = keyOf(e.target);
   else if (!(e.target.closest && e.target.closest('dialog'))) lastFocus = null;
 });
@@ -89,8 +94,15 @@ function afterRender() {
     if (!ae || ae === document.body) {
       const el = resolveKey(lastFocus);
       if (el && !el.disabled) el.focus({ preventScroll: true });
-      else lastFocus = null;
+      else {
+        focusOutcome = DECISION.test(lastFocus.sel);
+        lastFocus = null;
+      }
     }
+  }
+  if (focusOutcome && (!document.activeElement || document.activeElement === document.body)) {
+    const out = $('#app [data-testid=decision-feedback], #app [data-testid=verdict]');
+    if (out) out.focus({ preventScroll: true }); // focusin clears focusOutcome
   }
   // region tooltip: follow the replacement region if it is still hovered or focused, else hide it
   if (tipFor && !tipFor.isConnected) {
@@ -127,6 +139,7 @@ function clearPending(focusSel) {
 window.addEventListener('hashchange', () => {
   confirmState = null;
   lastFocus = null;
+  focusOutcome = false;
   hideTip();
   // a modal left open would keep showing the previous case over the new one
   for (const m of [viewer, cmp]) {

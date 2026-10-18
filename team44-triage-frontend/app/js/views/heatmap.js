@@ -35,7 +35,8 @@ function tileValue(t, layer, maxAttention) {
 }
 
 function conceptLabel(v, id) {
-  return (v.concepts.find((c) => c.id === id) || {}).label || id;
+  // measured cell features are Why rows too (no concept entry): use their configured label, not the raw id
+  return (v.concepts.find((c) => c.id === id) || (v.why || []).find((r) => r.id === id) || {}).label || id;
 }
 
 /** Plain-text + HTML description of one region, used by the tooltip and the accessible name. */

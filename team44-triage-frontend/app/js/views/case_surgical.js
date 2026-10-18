@@ -70,7 +70,7 @@ function callPanel(v, ST) {
   const m = v.margin;
   const done = v.decision.marginCall;
   if (done)
-    return `<div class="verdict" data-testid="verdict" role="status"><b>${esc(callText(done))}</b> — sent to the surgeon${done.at ? ` at ${esc(new Date(done.at).toLocaleTimeString())}` : ''}. Timer stopped.</div>`;
+    return `<div class="verdict" data-testid="verdict" role="status" tabindex="-1"><b>${esc(callText(done))}</b> — sent to the surgeon${done.at ? ` at ${esc(new Date(done.at).toLocaleTimeString())}` : ''}. Timer stopped.</div>`;
   const can = v.agent.allowed.includes('margin_call') && !ST.busy;
   const dis = can ? '' : ' disabled';
   const sug = m ? m.call : null;

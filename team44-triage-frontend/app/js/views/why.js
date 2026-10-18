@@ -271,13 +271,13 @@ export function howSure(v, cfg, metrics, { compact = false } = {}) {
   const checks =
     check(
       ag.conch_musk_same_top === true ? 'ok' : ag.conch_musk_same_top === false ? 'warn' : 'na',
-      'Second model (MUSK) agrees',
+      'Second model (MUSK)',
       ag.conch_musk_same_top === true ? 'same top category' : ag.conch_musk_same_top === false ? 'different top category' : 'not available',
       'Good: the independent MUSK probe picks the same top category.'
     ) +
     check(
       nbFrac === null ? 'na' : nbFrac >= 0.8 ? 'ok' : 'warn',
-      'Similar reference cases agree',
+      'Similar reference cases',
       nb === null ? '—' : nb.of ? `${nb.k} of ${nb.of}` : pct(nb.frac),
       `Good: 4–5 of 5 nearest training cases share the suggested category${isNum(p5) ? `; held-out average ${pct(p5)}` : ''}.`,
       ' data-f-target="retrieval"'
@@ -392,9 +392,10 @@ function findingTitle(f) {
   if (!f) return 'Unknown finding';
   const d = f.data || {};
   const kind = KIND_TEXT[f.kind] || humanize(f.kind);
-  if (f.kind === 'concept') return `${f.id} · ${kind}: ${d.label || d.concept}${d.tiles && d.tiles.length ? ` (regions ${d.tiles.join(', ')})` : ''}`;
-  if (f.kind === 'cells') return `${f.id} · ${kind}: ${d.label || d.feature} — opens the Cells tab`;
-  if (f.kind === 'retrieval') return `${f.id} · ${kind}: ${d.agree} of ${d.of} share ${d.label}`;
+  const name = d.label || d.concept || d.feature;
+  if (f.kind === 'concept' && name) return `${f.id} · ${kind}: ${name}${d.tiles && d.tiles.length ? ` (regions ${d.tiles.join(', ')})` : ''}`;
+  if (f.kind === 'cells') return `${f.id} · ${kind}${name ? `: ${name}` : ''} — opens the Cells tab`;
+  if (f.kind === 'retrieval' && isNum(d.agree) && isNum(d.of)) return `${f.id} · ${kind}: ${d.agree} of ${d.of} share ${d.label || 'the suggested category'}`;
   return `${f.id} · ${kind}`;
 }
 

@@ -729,6 +729,7 @@
   flex-direction: column;
   align-items: flex-end;
   text-align: right;
+  margin-left: auto; /* stays right-aligned when it wraps under the big number */
 }
 .hs-sugg b {
   font-size: 15px;
@@ -1879,10 +1880,13 @@ dialog.cv-compare::backdrop {
   font-size: var(--cv-fs-s);
   color: var(--mut);
 }
-.cv-timer.red {
+/* app.js's 1 s tick updates the timer's own class, not the card's: follow the timer so the stripe is never stale */
+.cv-timer.red,
+.cv-timer:has(> .big.timer.red) {
   box-shadow: inset 4px 0 0 var(--eos), var(--shadow);
 }
-.cv-timer.amber {
+.cv-timer.amber:not(:has(> .big.timer.red)),
+.cv-timer:has(> .big.timer.amber) {
   box-shadow: inset 4px 0 0 var(--amb), var(--shadow);
 }
 .sugg-call {

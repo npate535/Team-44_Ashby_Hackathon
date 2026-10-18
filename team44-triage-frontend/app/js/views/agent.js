@@ -107,11 +107,11 @@ function feedback(v, ST, signed) {
   if (signed) return '';
   if (s === 'approved' || s === 'edited_and_approved') {
     const items = liveItems(orderList(v));
-    return `<div class="cv-done" role="status" data-testid="decision-feedback"><span aria-hidden="true">✓</span><span><b>${items.length} item${items.length === 1 ? '' : 's'} ordered${when}:</b> ${items.map(esc).join(', ')}. Next: sign out to route the result.</span></div>`;
+    return `<div class="cv-done" role="status" data-testid="decision-feedback" tabindex="-1"><span aria-hidden="true">✓</span><span><b>${items.length} item${items.length === 1 ? '' : 's'} ordered${when}:</b> ${items.map(esc).join(', ')}. Next: sign out to route the result.</span></div>`;
   }
-  if (s === 'dismissed') return `<div class="cv-done" role="status" data-testid="decision-feedback"><span aria-hidden="true">✓</span><span><b>Flag dismissed${when}.</b> No tests ordered. Next: sign out.</span></div>`;
+  if (s === 'dismissed') return `<div class="cv-done" role="status" data-testid="decision-feedback" tabindex="-1"><span aria-hidden="true">✓</span><span><b>Flag dismissed${when}.</b> No tests ordered. Next: sign out.</span></div>`;
   if (s === 'deferred_closer_look')
-    return `<div class="cv-done info" role="status" data-testid="decision-feedback"><span aria-hidden="true">i</span><span><b>Closer look recorded${when}.</b> Orders are still drafted; order, edit or dismiss them when ready.</span></div>`;
+    return `<div class="cv-done info" role="status" data-testid="decision-feedback" tabindex="-1"><span aria-hidden="true">i</span><span><b>Closer look recorded${when}.</b> Orders are still drafted; order, edit or dismiss them when ready.</span></div>`;
   return '';
 }
 
@@ -175,7 +175,7 @@ export function agentPanel(v, ST) {
   const approval =
     `<div class="card cv-signout" data-testid="approval"><h2>Pathologist sign-out</h2><p class="note">The only place a diagnosis is made. The suggestion above is decision support.</p>` +
     (signed
-      ? `<div class="verdict" data-testid="verdict" role="status">Signed out, routed to the oncologist inbox at ${esc(new Date(signed).toLocaleTimeString())}</div>`
+      ? `<div class="verdict" data-testid="verdict" role="status" tabindex="-1">Signed out, routed to the oncologist inbox at ${esc(new Date(signed).toLocaleTimeString())}</div>`
       : `<div class="btns">${btn('sign_out', 'Sign out…', ' p', true)}${!can('sign_out') && signReason ? `<span class="sub" data-testid="signout-reason">${esc(signReason)}</span>` : ''}</div>` +
         (p && p.action === 'sign_out' ? confirmBox(v, ST, detail) : '')) +
     '</div>';
