@@ -203,6 +203,7 @@ export function lineChart({ width = 560, height = 300, x = {}, y = {}, series = 
       const X = r1(sx(p.x)),
         Y = r1(sy(p.y));
       if (!i) d += `M${X},${Y}`;
+      else if (s.step === 'vh') d += `V${Y}H${X}`;
       else if (s.step) d += `H${X}V${Y}`;
       else d += `L${X},${Y}`;
     });

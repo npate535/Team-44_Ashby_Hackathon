@@ -425,6 +425,46 @@ function figConfusion(ST, ev, L) {
     table: { head: ['True class', ...classes.map(shortClass), 'Total'], rows: counts.map((r, i) => [cls(classes[i], ST), ...r.map(String), String(totals[i])]), num: classes.map((_, i) => i + 1).concat([classes.length + 1]) }
   });
 }
+function figPr(ST, ev, L) {
+  const PR = get(ev, 'analytics.pr.models');
+  const prod = PR && PR.production;
+  if (!prod || !Array.isArray(prod.recall) || !prod.recall.length) return '';
+  const b = get(ev, 'metrics.models.b');
+  const k = ST.cfg.aggressive_class;
+  // interpolated precision (best precision at this recall or higher): the usual monotone PR frontier
+  const pts = (c, name) => {
+    const best = new Map();
+    c.recall.forEach((r, i) => {
+      const q = c.precision[i];
+      if (isNum(r) && isNum(q) && (!best.has(r) || q > best.get(r).q)) best.set(r, { q, t: c.threshold[i] });
+    });
+    const rs = [...best.keys()].sort((x, y) => x - y);
+    let run = 0;
+    const out = [];
+    for (let i = rs.length - 1; i >= 0; i--) {
+      run = Math.max(run, best.get(rs[i]).q);
+      const t = best.get(rs[i]).t;
+      out.unshift({ x: rs[i], y: run, tip: [`Precision ${pc(run)} at recall ${pc(rs[i])}`, `${name}${isNum(t) ? `, flags cases scoring ≥ ${C.fmtNum(t, 3)}` : ''}`] });
+    }
+    return out;
+  };
+  const series = [{ name: 'Production read (calibrated)', color: C.COLOR[1], step: 'vh', markers: 'hit', keepOrder: true, points: pts(prod, 'Production read') }];
+  if (b && PR[b] && PR[b].recall.length) series.push({ name: `Model B: ${modelName(b)}`, color: C.COLOR[2], step: 'vh', dash: true, markers: 'hit', keepOrder: true, points: pts(PR[b], modelName(b)) });
+  const w = Math.min(L.half, 460);
+  const chart = C.lineChart({ width: w, height: Math.round(w * 0.72), x: { min: 0, max: 1, label: `Recall (share of ${shortClass(k).toLowerCase()} cases flagged)`, format: (v) => pc(v) }, y: { min: 0, max: 1, label: 'Precision (interpolated)', format: (v) => pc(v) }, series, refs: isNum(prod.prevalence) ? [{ kind: 'h', value: prod.prevalence, label: `prevalence ${pc(prod.prevalence)}` }] : [], aria: `Precision-recall curve for ${k}, average precision ${fa(prod.average_precision)}` });
+  const atFull = prod.recall.map((r, i) => [r, prod.precision[i]]).filter(([r]) => r >= 1).map(([, q]) => q);
+  const bestAtFull = atFull.length ? Math.max(...atFull) : null;
+  return figure({
+    id: 'pr',
+    title: 'When every invasive case is flagged, how many flags are right?',
+    takeaway: `Average precision ${fa(prod.average_precision)}${b && PR[b] ? ` (model B ${fa(PR[b].average_precision)})` : ''}. ${isNum(bestAtFull) ? `Flagging all ${prod.n_pos} invasive images, ${pc(bestAtFull)} of the flagged images are invasive at best.` : ''} The dashed line is the ${pc(prod.prevalence)} share of invasive images: a useless score would sit on it.`,
+    chart,
+    population: `held-out test split, ${prod.n_pos} invasive of ${prod.n} images`,
+    source: 'eval/analytics.json',
+    notes: ['The curve shows the best precision reachable at each recall; average precision is computed from the raw curve (scikit-learn).'],
+    table: { head: ['Model', 'Average precision', 'Positives', 'Images'], rows: Object.entries(PR).map(([m, c]) => [m === 'production' ? 'Production read (calibrated)' : modelName(m), fa(c.average_precision), String(c.n_pos), String(c.n)]), num: [1, 2, 3] }
+  });
+}
 function figOvr(ST, ev, L) {
   const ovr = get(ev, 'analytics.roc.production_one_vs_rest');
   if (!ovr) return '';
@@ -1424,7 +1464,7 @@ export function render(ST, ctx) {
   h += nav();
   h += section('summary', 'Summary', 'The headline numbers, each with its uncertainty. The two workflow tiles come from a simulation, not measured clinical use.', safe(() => summaryTiles(ST, ev), 'metrics', 'Summary'));
   h += section('classification', 'Classification', 'Does the model separate invasive carcinoma from everything else, and where does it go wrong?',
-    S(figRoc, 'analytics', 'ROC') + S(figConfusion, 'metrics', 'Confusion matrix') + S(figOvr, 'analytics', 'One-vs-rest ROC') + S(figModels, 'metrics', 'Model comparison') + S(figSelection, 'model_choice', 'Model selection') + S(figThunder, 'thunder', 'Benchmark'));
+    S(figRoc, 'analytics', 'ROC') + `<div class="mx-stack">${S(figConfusion, 'metrics', 'Confusion matrix') + S(figPr, 'analytics', 'Precision-recall')}</div>` + S(figOvr, 'analytics', 'One-vs-rest ROC') + S(figModels, 'metrics', 'Model comparison') + S(figSelection, 'model_choice', 'Model selection') + S(figThunder, 'thunder', 'Benchmark'));
   h += section('confidence', 'Confidence', 'Do probabilities mean what they say, and how often does the suggested set contain the right answer?',
     S(figReliability, 'calibration', 'Calibration') + S(figRiskHist, 'analytics', 'Risk histogram') + S(figCoverage, 'conformal', 'Coverage') + `<div class="mx-stack">${S(figSetSize, 'conformal', 'Set size') + S(figComposition, 'analytics', 'Set composition')}</div>`);
   h += section('explanations', 'Explanations', 'Named histologic features are associated with the classes. These checks test whether they behave like the criteria they are named after.',
