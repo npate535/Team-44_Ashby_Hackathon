@@ -189,3 +189,16 @@ def test_after_arrivals_speed_never_rewinds_before_start(tmp_path):
     fake.advance(10)
     sim.tick()
     assert sim.sim_now() == pytest.approx(paused_at + 10 * CFG["sim"]["after_arrivals_speed"])
+
+
+def test_inject_delivers_due_arrivals_first_and_stamps_the_settled_clock(tmp_path):
+    base = fixture_case("demo_0001")
+    sim, fake, store = _sim(tmp_path, [variant(base, "b1", offset=30), variant(fixture_case("demo_0002"), "s1", offset=5)])
+    sim.start()
+    fake.advance(50)                                     # b1 came due long ago; nobody polled
+    injected = sim.inject_surgical("normal")
+    assert injected == "s1"
+    types = [(e["case_id"], e["type"]) for e in store.events() if e["type"] in ("arrived", "injected")]
+    assert types == [("b1", "arrived"), ("s1", "injected")]
+    assert store.row("s1")["arrived_sim_s"] == pytest.approx(sim.sim_now())
+    assert sim.sim_now() < 50 * CFG["sim"]["speed"]       # the after-arrivals speed applied from b1's arrival

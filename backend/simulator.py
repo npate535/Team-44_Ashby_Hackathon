@@ -218,6 +218,7 @@ class Simulator:
         if variant not in VARIANTS:
             raise db.PayloadError(f"unknown variant {variant!r}; expected one of {list(VARIANTS)}")
         with self.store.lock:
+            self.tick()                          # cases already due arrive first (event order, settled clock)
             candidates = [r for r in self.store.pending_rows()
                           if r["lane"] == "surgical" and (r["variant"] or "normal") == variant]
             if not candidates:
