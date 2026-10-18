@@ -24,12 +24,13 @@ import os
 import re
 import zlib
 from collections.abc import Mapping
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Literal, Optional
 
 from fastapi import Body, FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
@@ -457,6 +458,34 @@ class Backend:
         }
 
 
+# ---- thumbnails ---------------------------------------------------------------------------------------------------------
+# Reference thumbnails are shown ~100-300 px wide; sending the 1536-px display JPEG made the browser decode several large
+# images that sat off-screen, which left them blank in full-page captures and slow to appear (case view bug 2).
+# `?w=N` returns a downscaled JPEG (cached in memory, keyed by file + mtime); the full image is unchanged without it.
+THUMB_MIN_PX, THUMB_MAX_PX = 64, 1024
+_THUMBS: "dict[tuple[str, float, int], bytes]" = {}
+
+
+def thumbnail(path: Path, width: int) -> bytes:
+    key = (str(path), path.stat().st_mtime, int(width))
+    hit = _THUMBS.get(key)
+    if hit is not None:
+        return hit
+    from PIL import Image                       # local import: only needed when a thumbnail is requested
+    with Image.open(path) as im:
+        im.draft("RGB", (width * 2, width * 2))  # JPEG DCT scaling: fast decode at reduced size
+        im = im.convert("RGB")
+        if im.width > width:
+            im = im.resize((width, max(1, round(im.height * width / im.width))), Image.LANCZOS)
+        buf = BytesIO()
+        im.save(buf, "JPEG", quality=84, optimize=True)
+    data = buf.getvalue()
+    if len(_THUMBS) > 2048:                      # bounded: a demo references a few hundred images
+        _THUMBS.clear()
+    _THUMBS[key] = data
+    return data
+
+
 # ---- app factory --------------------------------------------------------------------------------------------------------------
 def resolve_paths(cfg: Mapping[str, Any], env: Mapping[str, str] | None = None) -> dict[str, Path]:
     """cases_dir: $PATHQUEUE_CASES_DIR (repo-relative allowed) else <artifacts>/cases; db: <artifacts>/backend.db_file."""
@@ -569,10 +598,12 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
         return backend.record_spotcheck(body)
 
     def media(kind: str):
-        def serve(name: str) -> Any:
+        def serve(name: str, w: Optional[int] = Query(None, ge=THUMB_MIN_PX, le=THUMB_MAX_PX)) -> Any:
             path = backend.media_path(kind, name)
             if not path.is_file():
                 raise db.NotFoundError(f"{kind}/{name} not found")
+            if w is not None and kind in ("images", "cells", "spotcheck"):
+                return Response(thumbnail(path, w), media_type="image/jpeg")
             if path.suffix == ".json":          # fixture cases for ?mock=1: public form only (no eval_only)
                 try:
                     return contract.to_public(io.read_json(path))

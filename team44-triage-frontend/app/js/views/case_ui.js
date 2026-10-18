@@ -1,0 +1,582 @@
+// Case-view interaction layer (biopsy + surgical): region tooltips, the full-screen pan/zoom viewer, the side-by-side
+// reference comparison, inline confirmations for irreversible actions, and finding / feature cross-highlighting.
+// app.js owns state, polling and the decision calls; this module only adds behaviour that needs no server round trip.
+// It listens on `document` (registered before app.js's own listeners, so it runs first) and never calls the API.
+import { classLabel, esc, humanize, num, thumbUrl, toView } from '../adapter.js';
+
+const ST = () => window.__PQ_ST__ || null;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const reduced = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---- re-rendering ---------------------------------------------------------------------------------------------------------
+let rerenderFn = null;
+let assetUrlFn = (p) => '/' + String(p || '').replace(/^\/+/, '');
+/** case_biopsy / case_surgical register how to re-render the current case (same HTML app.js would draw). */
+export function setRenderer(fn, assetUrl) {
+  rerenderFn = fn;
+  if (assetUrl) assetUrlFn = assetUrl;
+}
+function rerender(focusSel) {
+  const app = $('#app');
+  if (!app || !rerenderFn) return;
+  const y = window.scrollY;
+  app.innerHTML = rerenderFn();
+  window.scrollTo(0, y);
+  if (focusSel) {
+    const el = $(focusSel, app);
+    if (el) el.focus({ preventScroll: false });
+  }
+}
+
+// ---- confirmations --------------------------------------------------------------------------------------------------------
+let confirmState = null; // {caseId, action}
+export function pending(caseId) {
+  return confirmState && confirmState.caseId === caseId ? confirmState : null;
+}
+function setPending(action) {
+  const s = ST();
+  confirmState = s && s.caseId ? { caseId: s.caseId, action } : null;
+  if (s && s.editing === 'margins') s.editing = null; // one open decision at a time
+  rerender('[data-testid=confirm-action]');
+}
+function clearPending(focusSel) {
+  if (!confirmState) return;
+  confirmState = null;
+  if (focusSel) rerender(focusSel);
+}
+window.addEventListener('hashchange', () => {
+  confirmState = null;
+  hideTip();
+});
+
+// ---- tooltip ----------------------------------------------------------------------------------------------------------------
+function tipEl(host) {
+  const dlg = host && host.closest('dialog');
+  let el = dlg ? $('.cv-tip', dlg) : $('#cv-tip');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'cv-tip';
+    el.setAttribute('role', 'tooltip');
+    el.hidden = true;
+    if (dlg) dlg.appendChild(el);
+    else {
+      el.id = 'cv-tip';
+      document.body.appendChild(el);
+    }
+  }
+  return el;
+}
+let tipFor = null;
+function showTip(target) {
+  const html = target.dataset.tip;
+  if (!html) return;
+  const el = tipEl(target);
+  el.innerHTML = html;
+  el.hidden = false;
+  tipFor = target;
+  const r = target.getBoundingClientRect();
+  const tw = el.offsetWidth,
+    th = el.offsetHeight;
+  const vw = window.innerWidth,
+    vh = window.innerHeight;
+  let x = r.right + 8,
+    y = r.top;
+  if (x + tw > vw - 8) x = r.left - tw - 8;
+  if (x < 8) x = Math.max(8, Math.min(vw - tw - 8, r.left + r.width / 2 - tw / 2));
+  if (x === Math.max(8, Math.min(vw - tw - 8, r.left + r.width / 2 - tw / 2))) y = r.bottom + 8 > vh - th - 8 ? r.top - th - 8 : r.bottom + 8;
+  y = Math.max(8, Math.min(vh - th - 8, y));
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+}
+function hideTip() {
+  $$('.cv-tip').forEach((el) => (el.hidden = true));
+  tipFor = null;
+}
+window.addEventListener(
+  'scroll',
+  () => {
+    if (tipFor && tipFor.isConnected && (tipFor.matches(':hover') || document.activeElement === tipFor)) showTip(tipFor);
+    else hideTip();
+  },
+  { passive: true }
+);
+
+// ---- cross-highlighting (finding chips, why rows) ---------------------------------------------------------------------------
+function peekTiles(ids, on) {
+  $$('#app .rg').forEach((b) => b.classList.toggle('peek', on && ids.includes(Number(b.dataset.rg))));
+}
+function linkTargets(chip) {
+  const s = ST();
+  const c = s && s.cases[s.caseId];
+  const f = c && (c.findings || []).find((x) => x.id === chip.dataset.f);
+  if (!f) return { els: [], tiles: [] };
+  const d = f.data || {};
+  const sel = {
+    prediction: ['[data-testid=how-sure]'],
+    concept: [`[data-why="${CSS.escape(String(d.concept || ''))}"]`],
+    retrieval: ['[data-testid=compared]', '[data-f-target=retrieval]'],
+    quality: ['[data-f-target=quality]'],
+    cells: ['[data-testid=tab-cells]', `[data-testid=cells-tile][data-tile="${(d.tiles || [])[0]}"]`],
+    margin: ['[data-testid=margin-labels]', '[data-testid=specimen-diagram]', '[data-testid=margin-bars]']
+  }[f.kind] || [];
+  return { els: sel.flatMap((q) => $$(q, $('#app'))), tiles: f.kind === 'concept' || f.kind === 'cells' ? d.tiles || [] : [] };
+}
+function linkOn(chip, on) {
+  const { els, tiles } = linkTargets(chip);
+  els.forEach((el) => el.classList.toggle('cv-linked', on));
+  peekTiles(tiles, on);
+}
+
+// ---- pan / zoom -------------------------------------------------------------------------------------------------------------
+class PanZoom {
+  constructor(stage, canvas, aspect, onChange) {
+    Object.assign(this, { stage, canvas, aspect, onChange, s: 1, tx: 0, ty: 0, fw: 0, fh: 0, max: 8 });
+    this.pointers = new Map();
+    this.moved = 0;
+    stage.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const r = stage.getBoundingClientRect();
+      this.zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.0018));
+    }, { passive: false });
+    stage.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      this.moved = 0;
+      stage.setPointerCapture(e.pointerId);
+      stage.classList.add('grabbing');
+    });
+    stage.addEventListener('pointermove', (e) => {
+      const prev = this.pointers.get(e.pointerId);
+      if (!prev) return;
+      const pts = [...this.pointers.values()];
+      if (this.pointers.size === 2) {
+        const other = pts.find((p) => p !== prev);
+        const d0 = Math.hypot(prev.x - other.x, prev.y - other.y);
+        const d1 = Math.hypot(e.clientX - other.x, e.clientY - other.y);
+        const r = stage.getBoundingClientRect();
+        if (d0 > 0) this.zoomAt((e.clientX + other.x) / 2 - r.left, (e.clientY + other.y) / 2 - r.top, d1 / d0);
+      } else {
+        this.tx += e.clientX - prev.x;
+        this.ty += e.clientY - prev.y;
+        this.apply();
+      }
+      this.moved += Math.abs(e.clientX - prev.x) + Math.abs(e.clientY - prev.y);
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    });
+    const up = (e) => {
+      this.pointers.delete(e.pointerId);
+      if (!this.pointers.size) stage.classList.remove('grabbing');
+    };
+    stage.addEventListener('pointerup', up);
+    stage.addEventListener('pointercancel', up);
+    // a drag must not count as a click on a region underneath
+    stage.addEventListener('click', (e) => {
+      if (this.moved > 5) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }, true);
+    stage.addEventListener('keydown', (e) => {
+      const r = stage.getBoundingClientRect();
+      const k = e.key;
+      if (k.startsWith('Arrow') && e.target.closest('[data-rg]')) return; // arrow keys move between regions there
+      if (k === '+' || k === '=') this.zoomAt(r.width / 2, r.height / 2, 1.4);
+      else if (k === '-' || k === '_') this.zoomAt(r.width / 2, r.height / 2, 1 / 1.4);
+      else if (k === '0') this.fit();
+      else if (k.startsWith('Arrow')) {
+        const step = 60;
+        this.tx += k === 'ArrowLeft' ? step : k === 'ArrowRight' ? -step : 0;
+        this.ty += k === 'ArrowUp' ? step : k === 'ArrowDown' ? -step : 0;
+        this.apply();
+      } else return;
+      e.preventDefault();
+    });
+  }
+  layout() {
+    const sw = this.stage.clientWidth,
+      sh = this.stage.clientHeight;
+    if (sw / sh > this.aspect) {
+      this.fh = sh;
+      this.fw = sh * this.aspect;
+    } else {
+      this.fw = sw;
+      this.fh = sw / this.aspect;
+    }
+    this.canvas.style.width = this.fw + 'px';
+    this.canvas.style.height = this.fh + 'px';
+    this.apply();
+  }
+  fit() {
+    this.s = 1;
+    this.tx = (this.stage.clientWidth - this.fw) / 2;
+    this.ty = (this.stage.clientHeight - this.fh) / 2;
+    this.apply();
+  }
+  zoomAt(cx, cy, f) {
+    const s2 = Math.max(1, Math.min(this.max, this.s * f));
+    this.tx = cx - (cx - this.tx) * (s2 / this.s);
+    this.ty = cy - (cy - this.ty) * (s2 / this.s);
+    this.s = s2;
+    this.apply();
+  }
+  focusFrac(fx, fy, fw, fh) {
+    const sw = this.stage.clientWidth,
+      sh = this.stage.clientHeight;
+    this.s = Math.max(1, Math.min(this.max, 0.8 * Math.min(sw / (fw * this.fw), sh / (fh * this.fh))));
+    this.tx = sw / 2 - (fx + fw / 2) * this.fw * this.s;
+    this.ty = sh / 2 - (fy + fh / 2) * this.fh * this.s;
+    this.apply();
+  }
+  set(st) {
+    Object.assign(this, st);
+    this.apply(true);
+  }
+  apply(silent = false) {
+    const sw = this.stage.clientWidth,
+      sh = this.stage.clientHeight;
+    const W = this.fw * this.s,
+      H = this.fh * this.s;
+    this.tx = W <= sw ? (sw - W) / 2 : Math.min(0, Math.max(sw - W, this.tx));
+    this.ty = H <= sh ? (sh - H) / 2 : Math.min(0, Math.max(sh - H, this.ty));
+    this.canvas.style.transform = `translate(${this.tx}px, ${this.ty}px) scale(${this.s})`;
+    this.canvas.style.setProperty('--inv-s', String(1 / this.s));
+    if (!silent && this.onChange) this.onChange(this);
+  }
+}
+
+// ---- full-screen viewer -----------------------------------------------------------------------------------------------------
+let viewer = null;
+function cleanClone(html) {
+  return html
+    .replace(/\sdata-testid="[^"]*"/g, '')
+    .replace(/class="hl-halo"/g, 'class="vhl-halo"')
+    .replace(/class="hl"/g, 'class="vhl"')
+    .replace(/id="hm-hatch"/g, 'id="vw-hatch"')
+    .replace(/url\(#hm-hatch\)/g, 'url(#vw-hatch)')
+    .replace(/data-rg-scope="case"/g, 'data-rg-scope="viewer"');
+}
+function ensureViewer() {
+  if (viewer) return viewer;
+  const d = document.createElement('dialog');
+  d.className = 'cv-viewer';
+  d.setAttribute('aria-labelledby', 'cv-vw-title');
+  d.innerHTML =
+    '<div class="vw-bar"><div class="vw-title"><h2 id="cv-vw-title"></h2><span class="vw-sub"></span></div>' +
+    '<div class="vw-tools"><label class="vw-ov"><input type="checkbox" data-vw="overlay" checked> Overlay</label>' +
+    '<label class="vw-op">Opacity <input type="range" min="0" max="1" step="0.05" data-vw="opacity"></label>' +
+    '<span class="vw-zoom"><button type="button" class="btn" data-vw="out" aria-label="Zoom out">−</button><output aria-live="polite">100%</output><button type="button" class="btn" data-vw="in" aria-label="Zoom in">+</button><button type="button" class="btn" data-vw="fit">Fit</button></span>' +
+    '<button type="button" class="btn p" data-vw="close">Close</button></div></div>' +
+    '<div class="vw-stage" tabindex="0" aria-label="Image. Drag or use the arrow keys to pan; scroll, pinch, or press + and − to zoom; 0 fits the image."><div class="vw-canvas"></div></div>' +
+    '<div class="vw-foot"></div>';
+  document.body.appendChild(d);
+  const stage = $('.vw-stage', d),
+    canvas = $('.vw-canvas', d);
+  const pz = new PanZoom(stage, canvas, 4 / 3, (p) => {
+    $('output', d).textContent = Math.round(p.s * 100) + '%';
+  });
+  d.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-vw]');
+    if (b) {
+      const r = stage.getBoundingClientRect();
+      if (b.dataset.vw === 'in') pz.zoomAt(r.width / 2, r.height / 2, 1.5);
+      if (b.dataset.vw === 'out') pz.zoomAt(r.width / 2, r.height / 2, 1 / 1.5);
+      if (b.dataset.vw === 'fit') pz.fit();
+      if (b.dataset.vw === 'close') d.close();
+      return;
+    }
+    const rg = e.target.closest('[data-rg]');
+    if (rg) {
+      e.stopPropagation();
+      focusRegion(pz, rg);
+    }
+  });
+  d.addEventListener('change', (e) => {
+    if (e.target.dataset.vw === 'overlay') canvas.classList.toggle('no-overlay', !e.target.checked);
+  });
+  d.addEventListener('input', (e) => {
+    if (e.target.dataset.vw === 'opacity') {
+      const op = parseFloat(e.target.value);
+      $$('.hm-tile', canvas).forEach((r) => r.setAttribute('fill-opacity', (parseFloat(r.dataset.v) * op).toFixed(3)));
+    }
+  });
+  d.addEventListener('close', () => {
+    canvas.innerHTML = '';
+    hideTip();
+    if (viewer.returnFocus) viewer.returnFocus.focus({ preventScroll: true });
+  });
+  window.addEventListener('resize', () => d.open && pz.layout());
+  viewer = { d, pz, stage, canvas, returnFocus: null };
+  return viewer;
+}
+function focusRegion(pz, rg) {
+  const st = rg.style;
+  pz.focusFrac(parseFloat(st.left) / 100, parseFloat(st.top) / 100, parseFloat(st.width) / 100, parseFloat(st.height) / 100);
+}
+function openViewer(trigger, regionIdx = null) {
+  const host = (trigger && trigger.closest('.cv-hm')) || $('#app .cv-hm');
+  if (!host) return;
+  const s = ST();
+  const v = s && s.cases[s.caseId] ? toView(s.cases[s.caseId], Date.now(), s.cfg, s.sim) : null;
+  const vw = ensureViewer();
+  const img = $('img', host);
+  const svg = $('svg.hm-svg', host);
+  const grid = $('.rg-grid', host);
+  vw.canvas.innerHTML =
+    `<img src="${esc(img.getAttribute('src'))}" alt="${esc(img.getAttribute('alt') || '')}" draggable="false">` +
+    (svg ? cleanClone(svg.outerHTML) : '') +
+    (grid ? cleanClone(grid.outerHTML) : '');
+  vw.canvas.classList.remove('no-overlay');
+  $('[data-vw=overlay]', vw.d).checked = true;
+  const surgical = host.classList.contains('surg');
+  const opacity = s && s.hm ? s.hm.opacity : 0.6;
+  $('[data-vw=opacity]', vw.d).value = String(opacity);
+  $('.vw-op', vw.d).hidden = surgical;
+  const layerSel = $('#app [data-testid=heatmap-select]');
+  const layerName = layerSel && layerSel.selectedOptions[0] ? layerSel.selectedOptions[0].textContent : '';
+  $('#cv-vw-title', vw.d).textContent = `${v ? v.id : ''} · ${surgical ? 'Margin strips (simulated frozen section)' : 'Image evidence'}`;
+  $('.vw-sub', vw.d).textContent = surgical ? 'Eosin: segment above threshold · amber: near threshold' : layerName ? `Layer: ${layerName}` : '';
+  const legend = $('#app [data-testid=heatmap-legend]');
+  $('.vw-foot', vw.d).innerHTML =
+    (legend && !surgical ? cleanClone(legend.outerHTML) : '') +
+    '<p class="lg-note">Display image (downscaled from the source field); detail at high zoom is limited by its resolution.</p>';
+  const w = v && v.image ? num(v.image.w) : img.naturalWidth || 4;
+  const h = v && v.image ? num(v.image.h) : img.naturalHeight || 3;
+  vw.pz.aspect = w / h;
+  vw.returnFocus = trigger || null;
+  vw.d.showModal();
+  vw.pz.layout();
+  vw.pz.fit();
+  if (regionIdx !== null) {
+    const rg = $(`[data-rg="${regionIdx}"]`, vw.canvas);
+    if (rg) focusRegion(vw.pz, rg);
+  }
+  vw.stage.focus({ preventScroll: true });
+}
+
+// ---- side-by-side reference comparison -------------------------------------------------------------------------------------
+let cmp = null;
+function ensureCompare() {
+  if (cmp) return cmp;
+  const d = document.createElement('dialog');
+  d.className = 'cv-compare';
+  d.setAttribute('aria-labelledby', 'cv-cmp-title');
+  d.innerHTML =
+    '<div class="vw-bar"><div class="vw-title"><h2 id="cv-cmp-title">Compare with a reference case</h2><span class="vw-sub">Pan and zoom are linked between the two images.</span></div>' +
+    '<div class="vw-tools"><span class="vw-zoom"><button type="button" class="btn" data-cmp="prev" aria-label="Previous reference">‹ Prev</button><button type="button" class="btn" data-cmp="next" aria-label="Next reference">Next ›</button></span>' +
+    '<span class="vw-zoom"><button type="button" class="btn" data-cmp="out" aria-label="Zoom out">−</button><output aria-live="polite">100%</output><button type="button" class="btn" data-cmp="in" aria-label="Zoom in">+</button><button type="button" class="btn" data-cmp="fit">Fit</button></span>' +
+    '<button type="button" class="btn p" data-cmp="close">Close</button></div></div>' +
+    '<div class="cmp-panes"><figure class="cmp-pane q"><div class="vw-stage" tabindex="0" aria-label="This case. Drag to pan, scroll to zoom."><div class="vw-canvas"></div></div><figcaption></figcaption></figure>' +
+    '<figure class="cmp-pane r"><div class="vw-stage" tabindex="0" aria-label="Reference case. Drag to pan, scroll to zoom."><div class="vw-canvas"></div></div><figcaption></figcaption></figure></div>' +
+    '<div class="cmp-strip" role="group" aria-label="Choose a reference"></div>';
+  document.body.appendChild(d);
+  const panes = $$('.cmp-pane', d).map((p) => ({ stage: $('.vw-stage', p), canvas: $('.vw-canvas', p), cap: $('figcaption', p) }));
+  let syncing = false;
+  const pzs = panes.map((p, i) =>
+    new PanZoom(p.stage, p.canvas, 4 / 3, (src) => {
+      $('output', d).textContent = Math.round(src.s * 100) + '%';
+      if (syncing) return;
+      syncing = true;
+      const o = pzs[1 - i];
+      // same relative view in the other pane (fractions of its own fitted size)
+      const fx = src.tx / src.fw,
+        fy = src.ty / src.fh;
+      o.set({ s: src.s, tx: fx * o.fw, ty: fy * o.fh });
+      syncing = false;
+    })
+  );
+  d.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-cmp]');
+    if (!b) return;
+    const k = b.dataset.cmp;
+    const r = panes[0].stage.getBoundingClientRect();
+    if (k === 'close') d.close();
+    else if (k === 'in') pzs[0].zoomAt(r.width / 2, r.height / 2, 1.5);
+    else if (k === 'out') pzs[0].zoomAt(r.width / 2, r.height / 2, 1 / 1.5);
+    else if (k === 'fit') {
+      pzs.forEach((p) => p.fit());
+    } else if (k === 'prev' || k === 'next') showRef(cmp.i + (k === 'next' ? 1 : -1));
+    else if (k.startsWith('pick:')) showRef(Number(k.slice(5)));
+  });
+  d.addEventListener('keydown', (e) => {
+    if (e.target.closest('.vw-stage')) return;
+    if (e.key === 'ArrowRight') showRef(cmp.i + 1);
+    if (e.key === 'ArrowLeft') showRef(cmp.i - 1);
+  });
+  d.addEventListener('close', () => {
+    panes.forEach((p) => (p.canvas.innerHTML = ''));
+    if (cmp.returnFocus) cmp.returnFocus.focus({ preventScroll: true });
+  });
+  window.addEventListener('resize', () => d.open && pzs.forEach((p) => p.layout()));
+  cmp = { d, panes, pzs, i: 0, list: [], v: null, returnFocus: null };
+  return cmp;
+}
+function showRef(i) {
+  const c = cmp;
+  if (!c.list.length) return;
+  c.i = (i + c.list.length) % c.list.length;
+  const s = ST();
+  const v = c.v;
+  const cfg = s && s.cfg;
+  const ref = c.list[c.i];
+  const assetUrl = assetUrlFn;
+  c.panes[0].canvas.innerHTML = `<img src="${esc(assetUrl(v.image.src))}" alt="This case, ${esc(v.id)}" draggable="false">`;
+  c.panes[1].canvas.innerHTML = `<img src="${esc(assetUrl(ref.image || 'images/' + ref.case_id + '.jpg'))}" alt="Reference ${esc(ref.case_id)}" draggable="false">`;
+  c.panes[0].cap.innerHTML = `<b>This case</b> ${esc(v.id)} · suggested ${esc(classLabel(v.top, cfg) || '—')}`;
+  const label = (id) => (v.concepts.find((k) => k.id === id) || {}).label || humanize(id);
+  c.panes[1].cap.innerHTML =
+    `<b>${ref.kind === 'contrast' ? 'Nearest case with a different label' : `Reference ${c.i + 1} of ${c.list.filter((x) => x.kind !== 'contrast').length}`}</b> ${esc(ref.case_id)} · reference label <b>${esc(classLabel(ref.label, cfg))}</b> (training split) · similarity ${num(ref.similarity).toFixed(2)}` +
+    (ref.kind === 'contrast' && ref.differs_most_in && ref.differs_most_in.length
+      ? `<span class="cmp-diff">Differs most in: ${ref.differs_most_in.map((id) => `<span class="chip">${esc(label(id))}</span>`).join('')}</span>`
+      : '');
+  $('.cmp-strip', c.d).innerHTML = c.list
+    .map(
+      (r, j) =>
+        `<button type="button" class="ref-thumb mini${j === c.i ? ' on' : ''}" data-cmp="pick:${j}" aria-pressed="${j === c.i}" aria-label="${esc(r.case_id)}, ${esc(classLabel(r.label, cfg))}"><span class="cv-thumb"><img src="${esc(thumbUrl(assetUrl(r.image || 'images/' + r.case_id + '.jpg'), 240))}" alt="" data-cv-img></span><span class="rt-lbl">${r.kind === 'contrast' ? 'Contrast · ' : ''}${esc(classLabel(r.label, cfg))}</span></button>`
+    )
+    .join('');
+  c.pzs.forEach((p) => {
+    p.aspect = num(v.image.w) / num(v.image.h) || 4 / 3;
+    p.layout();
+    p.fit();
+  });
+}
+function openCompare(trigger, which) {
+  const s = ST();
+  if (!s || !s.cases[s.caseId]) return;
+  const v = toView(s.cases[s.caseId], Date.now(), s.cfg, s.sim);
+  if (!v.image) return;
+  const c = ensureCompare();
+  c.v = v;
+  c.list = [...v.similar.map((x) => ({ ...x, kind: 'similar' })), ...(v.contrast ? [{ ...v.contrast, kind: 'contrast' }] : [])];
+  c.returnFocus = trigger;
+  c.d.showModal();
+  showRef(which === 'contrast' ? c.list.length - 1 : Number(which) || 0);
+  c.panes[1].stage.focus({ preventScroll: true });
+}
+
+// ---- event wiring -------------------------------------------------------------------------------------------------------------
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('button, [data-rg]');
+  if (!t) return;
+  const d = t.dataset;
+  if (d.cvConfirm) {
+    e.preventDefault();
+    if (!t.disabled) setPending(d.cvConfirm);
+    return;
+  }
+  if (d.cvCancel !== undefined) {
+    const action = confirmState && confirmState.action;
+    clearPending(action ? `[data-cv-confirm="${action}"]` : null);
+    return;
+  }
+  if ((d.act || d.call) && confirmState) confirmState = null; // the real action is about to be sent by app.js
+  if (d.cvOpen === 'viewer') {
+    openViewer(t);
+    return;
+  }
+  if (d.cvCompare !== undefined) {
+    openCompare(t, d.cvCompare);
+    return;
+  }
+  if (d.rg !== undefined && d.rgScope === 'case') {
+    hideTip();
+    openViewer(t, Number(d.rg));
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  const rg = e.target.closest && e.target.closest('[data-rg]');
+  if (rg && e.key.startsWith('Arrow')) {
+    const grid = rg.closest('.rg-grid');
+    const cols = Number(grid && grid.dataset.cols) || 1;
+    const all = $$('[data-rg]', grid);
+    const i = Number(rg.dataset.rg);
+    const j = i + ({ ArrowLeft: -1, ArrowRight: 1, ArrowUp: -cols, ArrowDown: cols }[e.key] || 0);
+    const next = all.find((b) => Number(b.dataset.rg) === j);
+    if (next) {
+      e.preventDefault();
+      all.forEach((b) => b.setAttribute('tabindex', b === next ? '0' : '-1'));
+      next.focus();
+    }
+    return;
+  }
+  if (e.key === 'Escape') {
+    hideTip();
+    if (confirmState && e.target.closest && e.target.closest('.cv-confirm')) {
+      const action = confirmState.action;
+      clearPending(`[data-cv-confirm="${action}"]`);
+    }
+  }
+});
+
+document.addEventListener('pointerover', (e) => {
+  const rg = e.target.closest && e.target.closest('[data-rg]');
+  if (rg && rg !== tipFor) showTip(rg);
+  const chip = e.target.closest && e.target.closest('.fref[data-f]');
+  if (chip) linkOn(chip, true);
+  const row = e.target.closest && e.target.closest('.why-row[data-tiles]');
+  if (row) peekTiles(row.dataset.tiles.split(',').filter(Boolean).map(Number), true);
+});
+document.addEventListener('pointerout', (e) => {
+  const rg = e.target.closest && e.target.closest('[data-rg]');
+  if (rg && !(e.relatedTarget && rg.contains(e.relatedTarget))) hideTip();
+  const chip = e.target.closest && e.target.closest('.fref[data-f]');
+  if (chip && !(e.relatedTarget && chip.contains(e.relatedTarget))) linkOn(chip, false);
+  const row = e.target.closest && e.target.closest('.why-row[data-tiles]');
+  if (row && !(e.relatedTarget && row.contains(e.relatedTarget))) peekTiles([], false);
+});
+document.addEventListener('focusin', (e) => {
+  const t = e.target;
+  if (!t.closest) return;
+  if (t.matches('[data-rg]')) showTip(t);
+  if (t.matches('.fref[data-f]')) linkOn(t, true);
+  if (t.matches('.why-row[data-tiles]')) peekTiles(t.dataset.tiles.split(',').filter(Boolean).map(Number), true);
+});
+document.addEventListener('focusout', (e) => {
+  const t = e.target;
+  if (!t.matches) return;
+  if (t.matches('[data-rg]')) hideTip();
+  if (t.matches('.fref[data-f]')) linkOn(t, false);
+  if (t.matches('.why-row[data-tiles]')) peekTiles([], false);
+});
+
+// image loading state: a missing file is explained instead of leaving an empty box
+document.addEventListener(
+  'error',
+  (e) => {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement) || !img.hasAttribute('data-cv-img')) return;
+    const box = img.closest('.cv-thumb, .cv-hm, .cv-crop');
+    if (box) {
+      box.classList.add('is-missing');
+      box.setAttribute('data-missing', `Image unavailable: ${img.getAttribute('src')}`);
+    }
+  },
+  true
+);
+document.addEventListener(
+  'load',
+  (e) => {
+    const img = e.target;
+    if (img instanceof HTMLImageElement && img.hasAttribute('data-cv-img')) {
+      const box = img.closest('.cv-thumb');
+      if (box) box.classList.add('is-loaded');
+    }
+  },
+  true
+);
+
+// live count on the order editor's save button
+document.addEventListener('change', (e) => {
+  if (e.target.dataset && e.target.dataset.editItem !== undefined) {
+    const n = $$('#app [data-edit-item]').filter((x) => x.checked).length;
+    const b = $('#app [data-testid=action-edit-save]');
+    if (b) {
+      b.textContent = n ? `Order ${n} selected` : 'Select at least one item';
+      b.disabled = !n; // the backend rejects an empty edit; dismiss the flag to drop every order
+    }
+  }
+});
+
+export { reduced };
