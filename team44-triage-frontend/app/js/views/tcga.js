@@ -2,11 +2,15 @@
 // Story: a BACH-only trained model, applied unchanged to never-seen TCGA tissue — not a TCGA-tuned model.
 // Specimens open in the same biopsy case view as BACH. Research prototype — not for clinical use.
 import { classLabel, esc, num, pct, toView } from '../adapter.js';
+import { atBoundary, boundaryInterval, boundaryText } from '../ci.js';
 import * as biopsy from './case_biopsy.js';
 import { setChips } from './worklist.js';
 
 const PREP = { frozen: 'Frozen section', ffpe: 'FFPE' };
 const TIER_NAME = { 1: 'Frozen section', 2: 'Likely invasive', 3: 'Low confidence', 4: 'Unflagged' };
+const GROUP_NAME = { ffpe_tumor: 'FFPE tumor', frozen_tumor: 'frozen tumor', frozen_normal: 'frozen normal' };
+// specimen ids are <patient>_<prep>_<sample type>_<field>, e.g. TCGA-A7-A4SD_ffpe_tumor_00
+const CROP_ID = /^(.+?)_((?:ffpe|frozen)_[a-z]+_\d+)$/;
 
 function get(obj, path) {
   let cur = obj;
@@ -35,27 +39,82 @@ function ci(block) {
   };
 }
 
+const p1 = (v) => (100 * v).toFixed(1);
+
 function pct1(v) {
-  return isNum(v) ? `${(100 * v).toFixed(1)}%` : '—';
+  return isNum(v) ? `${p1(v)}%` : '—';
 }
 
-function ciPct(c) {
-  if (!c) return 'not available';
-  if (isNum(c.lo) && isNum(c.hi)) return `${pct1(c.est)} (95% CI ${pct1(c.lo)}–${pct1(c.hi)})`;
-  return pct1(c.est);
+// "22 of 23 slides" when the estimate is an exact share of its n; otherwise ''.
+function kOfN(c, unit) {
+  if (!c || !unit || !Number.isInteger(c.n) || c.n <= 0) return '';
+  const k = c.est * c.n;
+  return Math.abs(k - Math.round(k)) < 1e-6 ? `${Math.round(k)} of ${c.n} ${unit}` : '';
 }
 
-function ciNum(c, digits = 3) {
-  if (!c) return 'not available';
+/**
+ * {est, sub} for a share. A bootstrap that collapsed at 0 or 1 is replaced by the exact interval over the true
+ * denominator `trueN` ("17 of 17 slides (exact 95% CI 80.5–100%)"); other values keep their bootstrap interval.
+ */
+function shareStat(block, { unit = '', trueN = null } = {}) {
+  const c = ci(block);
+  if (!c) return { est: 'not available', sub: '' };
+  if (atBoundary(block)) {
+    const iv = Number.isInteger(trueN) ? boundaryInterval(block, trueN) : null;
+    const text = iv ? boundaryText(iv) : '';
+    return {
+      est: pct1(c.est),
+      sub: text
+        ? unit ? text.replace(/^(\d+ of \d+)/, `$1 ${unit}`) : text
+        : 'no interval: every resample gave the same value'
+    };
+  }
+  const range = isNum(c.lo) && isNum(c.hi) ? `95% CI ${p1(c.lo)}–${p1(c.hi)}%` : '';
+  return { est: pct1(c.est), sub: [kOfN(c, unit), range].filter(Boolean).join(' · ') };
+}
+
+function numStat(block, digits = 3) {
+  const c = ci(block);
+  if (!c) return { est: 'not available', sub: '' };
   const f = (v) => v.toFixed(digits);
-  if (isNum(c.lo) && isNum(c.hi)) return `${f(c.est)} (95% CI ${f(c.lo)}–${f(c.hi)})`;
-  return f(c.est);
+  return { est: f(c.est), sub: isNum(c.lo) && isNum(c.hi) ? `95% CI ${f(c.lo)}–${f(c.hi)}` : '' };
 }
 
-function nLine(c, unit = 'cases') {
-  if (!c || !isNum(c.n)) return '';
-  const g = isNum(c.ng) ? `, ${c.ng} patients` : '';
-  return `n = ${c.n} ${unit}${g}`;
+// Keep a range ("75.6–93.9%") on one line; escaped text in, HTML out.
+function keepRanges(html) {
+  return html.replace(/(\S+–\S+)/g, '<span class="tcga-nw">$1</span>');
+}
+
+function statRow(label, { est, sub }, testid) {
+  return (
+    `<div${testid ? ` data-testid="${esc(testid)}"` : ''}><dt>${esc(label)}</dt>` +
+    `<dd class="tcga-est">${esc(est)}</dd>` +
+    (sub ? `<dd class="tcga-ci">${keepRanges(esc(sub))}</dd>` : '') +
+    '</div>'
+  );
+}
+
+// True denominator of BACH invasive sensitivity: the Invasive row of the production confusion matrix
+// (metrics.json `invasive_sensitivity.n` counts every test image). Falls back to external_tcga.json's
+// patient-bootstrap reference for the same model. {k, n, nGroups} or null.
+function bachInvasiveCount(ST, model) {
+  const M = get(ST, 'metrics.eval.metrics');
+  const aggressive = get(ST, 'cfg.aggressive_class') || get(M, 'aggressive_class') || 'Invasive';
+  const ref = get(ST, 'metrics.eval.external_tcga.bach_reference');
+  const refBlock = ref && ref.model === model ? ref.invasive_sensitivity_patient_bootstrap : null;
+  const nGroups = refBlock && Number.isInteger(refBlock.n_groups) ? refBlock.n_groups : null;
+  const conf = get(M, 'models.production') === model ? get(M, 'production.confusion') : get(M, ['per_model', model, 'confusion']);
+  if (conf && Array.isArray(conf.classes) && Array.isArray(conf.matrix)) {
+    const i = conf.classes.indexOf(aggressive);
+    const rowI = i >= 0 ? conf.matrix[i] : null;
+    if (Array.isArray(rowI) && rowI.every(Number.isInteger)) {
+      return { k: rowI[i], n: rowI.reduce((a, b) => a + b, 0), nGroups };
+    }
+  }
+  if (refBlock && Number.isInteger(refBlock.n) && isNum(refBlock.estimate)) {
+    return { k: Math.round(refBlock.estimate * refBlock.n), n: refBlock.n, nGroups };
+  }
+  return null;
 }
 
 function bachBlock(ST) {
@@ -69,11 +128,23 @@ function bachBlock(ST) {
     n: M.n,
     nGroups: M.n_groups,
     split: M.split || 'test',
-    accuracy: ci(per.accuracy),
-    bal: ci(per.balanced_accuracy),
-    invSens: ci(per.invasive_sensitivity),
-    invAuroc: ci(per.invasive_vs_rest_auroc)
+    accuracy: per.accuracy,
+    bal: per.balanced_accuracy,
+    invSens: per.invasive_sensitivity,
+    invCount: bachInvasiveCount(ST, model),
+    invAuroc: per.invasive_vs_rest_auroc
   };
+}
+
+// AUROC at 1 (or 0) with a collapsed bootstrap: say what it means instead of printing "1.000–1.000".
+function aurocStat(block, nPos, nNeg) {
+  const c = ci(block);
+  if (!c || !atBoundary(block)) return numStat(block);
+  const counted = Number.isInteger(nPos) && Number.isInteger(nNeg);
+  const tumor = counted ? `all ${nPos} frozen tumor slides` : 'every frozen tumor slide';
+  const normal = counted ? `all ${nNeg} frozen normal slides` : 'every frozen normal slide';
+  const [hi, lo] = c.est === 1 ? [tumor, normal] : [normal, tumor];
+  return { est: c.est.toFixed(3), sub: `${hi[0].toUpperCase()}${hi.slice(1)} scored above ${lo}.` };
 }
 
 function story(ST, idx) {
@@ -95,67 +166,93 @@ function story(ST, idx) {
   }
 
   const p = (T && T.primary) || {};
-  const ffpe = ci(p.ffpe_tumor_sensitivity);
-  const frzSens = ci(p.frozen_tumor_sensitivity);
   const disc = p.frozen_tumor_vs_normal || {};
-  const auroc = ci(disc.auroc);
-  const frzSpec = ci(disc.specificity);
-  const tier = ci(p.tumor_tier_1_2_rate);
+  const nTumor = get(disc, 'sensitivity.n');
+  const nNormal = get(disc, 'specificity.n');
   const gap = p.ffpe_vs_frozen_tumor_sensitivity_gap || {};
+  const ffpe = ci(p.ffpe_tumor_sensitivity);
+  const frz = ci(p.frozen_tumor_sensitivity);
   const lim = ((T && T.limitations) || (idx && idx.limitations) || [])
     .map((l) => `<li>${esc(l)}</li>`)
     .join('');
 
-  const bachCard = bach
-    ? `<section class="tcga-panel" data-testid="tcga-bach">
-        <h3>BACH held-out (same model)</h3>
-        <p class="tcga-panel-note">In-domain test split · 4-class image labels · model <code>${esc(bach.model)}</code></p>
-        <dl class="tcga-dl">
-          <div><dt>Overall accuracy</dt><dd>${esc(ciPct(bach.accuracy))}</dd></div>
-          <div><dt>Balanced accuracy</dt><dd>${esc(ciPct(bach.bal))}</dd></div>
-          <div><dt>Invasive sensitivity</dt><dd>${esc(ciPct(bach.invSens))}</dd></div>
-          <div><dt>Invasive vs rest AUROC</dt><dd>${esc(ciNum(bach.invAuroc))}</dd></div>
-        </dl>
-        <p class="mx-pop">${bach.n != null ? `n = ${bach.n} images` : ''}${bach.nGroups != null ? `, ${bach.nGroups} patients` : ''} · Source: <code>eval/metrics.json</code></p>
-      </section>`
-    : `<section class="tcga-panel" data-testid="tcga-bach-missing">
+  let bachCard = `<section class="tcga-panel" data-testid="tcga-bach-missing">
         <h3>BACH held-out</h3>
         <p class="mx-muted">BACH test metrics not loaded yet.</p>
       </section>`;
+  if (bach) {
+    const inv = bach.invCount && bach.invCount.k === bach.invCount.n ? bach.invCount : null;
+    const invStat = shareStat(bach.invSens, { unit: 'invasive images', trueN: inv ? inv.n : null });
+    const exactNote =
+      atBoundary(bach.invSens) && inv && Number.isInteger(inv.nGroups) && inv.nGroups < inv.n
+        ? `<p class="tcga-foot">The exact interval counts images as independent; the ${inv.n} invasive images come from
+            ${inv.nGroups} patients, so it is optimistic.</p>`
+        : '';
+    const cohort = [
+      isNum(bach.n) ? `${bach.n} images` : '',
+      isNum(bach.nGroups) ? `${bach.nGroups} patients` : ''
+    ].filter(Boolean).join(' from ');
+    bachCard = `<section class="tcga-panel" data-testid="tcga-bach">
+        <h3>BACH held-out (same model)</h3>
+        <p class="tcga-panel-note">In-domain ${esc(bach.split)} split · 4-class image labels · model <code>${esc(bach.model)}</code></p>
+        <dl class="tcga-dl">
+          ${statRow('Overall accuracy', shareStat(bach.accuracy, { unit: 'images' }))}
+          ${statRow('Balanced accuracy', shareStat(bach.bal))}
+          ${statRow('Invasive sensitivity', invStat, 'tcga-bach-inv-sens')}
+          ${statRow('Invasive vs rest AUROC', numStat(bach.invAuroc))}
+        </dl>
+        ${exactNote}
+        <p class="mx-pop tcga-src">${cohort ? `${esc(cohort)} · ` : ''}Source: <code>eval/metrics.json</code></p>
+      </section>`;
+  }
+
+  const groups = (T && T.groups) || {};
+  const groupText = Object.keys(GROUP_NAME)
+    .filter((g) => Number.isInteger(groups[g]))
+    .map((g) => `${groups[g]} ${GROUP_NAME[g]}`)
+    .join(', ');
+  const nPatients = (T && T.n_patients) || (idx && idx.n_patients);
+  const nSlides = (T && T.n_slides) || (idx && idx.n_slides);
+  const nFields = (T && T.n_crops) || (idx && idx.n);
+  const cohort = [
+    nPatients ? `${nPatients} patients` : '',
+    nSlides ? `${nSlides} slides${groupText ? ` (${groupText})` : ''}` : '',
+    nFields ? `${nFields} fields` : ''
+  ].filter(Boolean).join(' · ');
+  const overlap =
+    ffpe && frz && [ffpe.lo, ffpe.hi, frz.lo, frz.hi].every(isNum) && ffpe.lo <= frz.hi && frz.lo <= ffpe.hi;
+  const gapNote = isNum(gap.estimate)
+    ? `<p class="tcga-foot" data-testid="tcga-gap">FFPE minus frozen tumor sensitivity: ${esc(p1(gap.estimate))} percentage points
+        (${esc(pct1(gap.ffpe))} vs ${esc(pct1(gap.frozen))}); a point estimate only${overlap ? ', and the two 95% intervals overlap' : ''}.</p>`
+    : '';
 
   const tcgaCard = `<section class="tcga-panel" data-testid="tcga-external">
       <h3>TCGA external (unchanged probe)</h3>
       <p class="tcga-panel-note">Out-of-domain · slide-level calls · not the same metric as BACH accuracy ·
         model <code>${esc(model)}</code>${T && T.quantized === false ? ' · full precision' : ''}</p>
       <dl class="tcga-dl">
-        <div><dt>FFPE tumor sensitivity</dt><dd>${esc(ciPct(ffpe))}</dd></div>
-        <div><dt>Frozen tumor sensitivity</dt><dd>${esc(ciPct(frzSens))}</dd></div>
-        <div><dt>Frozen tumor vs normal AUROC</dt><dd>${esc(ciNum(auroc))}</dd></div>
-        <div><dt>Frozen normal specificity</dt><dd>${esc(ciPct(frzSpec))}</dd></div>
+        ${statRow('FFPE tumor sensitivity', shareStat(p.ffpe_tumor_sensitivity, { unit: 'slides' }))}
+        ${statRow('Frozen tumor sensitivity', shareStat(p.frozen_tumor_sensitivity, { unit: 'slides' }))}
+        ${statRow('Frozen tumor vs normal AUROC', aurocStat(disc.auroc, nTumor, nNormal), 'tcga-auroc')}
+        ${statRow('Frozen normal specificity', shareStat(disc.specificity, { unit: 'slides', trueN: nNormal }), 'tcga-spec')}
+        ${p.tumor_tier_1_2_rate ? statRow('Tumor slides with a field in tiers 1–2', shareStat(p.tumor_tier_1_2_rate, { unit: 'slides' })) : ''}
       </dl>
-      <p class="mx-pop">${nLine(ffpe, 'slides')} ·
-        ${(T && T.n_patients) || (idx && idx.n_patients) || '—'} patients ·
-        ${(T && T.n_crops) || (idx && idx.n) || '—'} crops ·
-        Source: <code>eval/external_tcga.json</code></p>
-      ${isNum(gap.estimate)
-        ? `<p class="tcga-gap">FFPE vs frozen tumor sensitivity gap: ${pct1(gap.estimate)}
-            (FFPE ${pct1(gap.ffpe)} · frozen ${pct1(gap.frozen)}).</p>`
-        : ''}
-      ${tier ? `<p class="tcga-gap">Tumor slides with any crop in tiers 1–2: ${esc(ciPct(tier))}.</p>` : ''}
+      ${gapNote}
+      <p class="mx-pop tcga-src" data-testid="tcga-cohort">${cohort ? `${esc(cohort)} · ` : ''}Source: <code>eval/external_tcga.json</code></p>
     </section>`;
 
   const compareNote = `<p class="tcga-compare-note" role="note" data-testid="tcga-compare-note">
     <b>How to read this.</b> BACH “accuracy” is four-class image classification on the same dataset family the
     model saw in training. TCGA “sensitivity” is whether a never-seen tumor <em>slide</em> gets at least one
-    crop called Invasive. A drop on external data is expected and is the finding — not a reason to retrain
-    on TCGA for this demo.
+    field called Invasive; specificity is whether a normal slide gets none. A drop on external data is expected
+    and is the finding — not a reason to retrain on TCGA for this demo.
   </p>`;
 
   const limits = lim
     ? `<section class="tcga-limits" data-testid="tcga-limits">
         <h3>Limitations</h3>
         <ul class="mx-notes">${lim}</ul>
-        <p class="mx-pop">Pre-registered in <code>docs/EXTERNAL_TCGA_R2.md</code> before the run.</p>
+        <p class="mx-pop tcga-src">Pre-registered in <code>docs/EXTERNAL_TCGA_R2.md</code> before the run.</p>
       </section>`
     : '';
 
@@ -165,6 +262,7 @@ function story(ST, idx) {
     ${limits}`;
 }
 
+// Worklist-row view of an index item. Not computed for TCGA (CONCH/MUSK reliability, OOD): null, never a placeholder.
 function itemToCase(item, model) {
   const classes = ['Normal', 'Benign', 'InSitu', 'Invasive'];
   const probsMap = item.probs || {};
@@ -179,7 +277,7 @@ function itemToCase(item, model) {
     simulated: false,
     synthetic: false,
     cohort: 'tcga',
-    specimen_question: `TCGA-BRCA external field · ${PREP[prep] || prep}`,
+    specimen_question: `${PREP[prep] || prep} slide`,
     arrived_offset_s: 0,
     image: {
       display: item.image || `tcga/${item.case_id}.jpg`,
@@ -188,7 +286,12 @@ function itemToCase(item, model) {
       tile_size: 512,
       grid: [3, 4]
     },
-    quality: { qc_tiles_kept: 12, ood_percentile: 0.5, reliability: 0.5, reliability_flag: false },
+    quality: {
+      qc_tiles_kept: Number.isInteger(item.qc_tiles_kept) ? item.qc_tiles_kept : null,
+      ood_percentile: null,
+      reliability: null,
+      reliability_flag: false
+    },
     prediction: {
       model: model || item.model || null,
       classes,
@@ -219,11 +322,15 @@ function row(item, ST, model) {
   const v = toView(c, Date.now(), ST.cfg, null);
   const pInv = pct(v.risk === null ? null : v.risk / 100);
   const prep = PREP[item.prep] || item.prep || '—';
+  // The full id, split so it never truncates: patient barcode, then <prep>_<sample type>_<field>.
+  const m = CROP_ID.exec(String(v.id || ''));
+  const idHtml = m
+    ? `<b class="cid">${esc(m[1])}</b><span class="tcga-fld">_${esc(m[2])}</span>`
+    : `<b class="cid">${esc(v.id)}</b>`;
   return (
     `<tr class="row tr-${num(v.tier)}" tabindex="0" data-testid="tcga-row" data-case-id="${esc(v.id)}" data-tier="${num(v.tier)}">` +
     `<td class="c-tier"><span class="tierno t${num(v.tier)}" title="Tier ${num(v.tier)}">${num(v.tier)}</span></td>` +
-    `<td class="c-case"><div class="wl-cc"><b class="cid">${esc(v.id)}</b>` +
-    `<span class="lane-inline">${esc(item.patient_id || '')}</span></div></td>` +
+    `<td class="c-case"><div class="wl-cc tcga-cc" title="${esc(v.id)}">${idHtml}</div></td>` +
     `<td class="c-lane"><span class="lane bx">${esc(prep)}</span></td>` +
     `<td class="c-sugg"><span class="sugg${v.top === 'Invasive' ? ' inv' : ''}">${esc(classLabel(v.top, ST.cfg) || '—')}</span></td>` +
     `<td class="c-p"><span class="pnum${v.risk >= 50 ? ' hi' : ''}">${esc(pInv)}</span></td>` +
@@ -263,7 +370,9 @@ function specimenTable(ST, idx) {
   return `<section class="wl tcga-wl tcga-specimens" data-testid="tcga-worklist">
     <h2>Browse external specimens</h2>
     <p class="tcga-spec-lede">Open any field the same way as a BACH biopsy — image, suggestion, and confidence.
-      These are TCGA crops scored by the BACH-trained probe; ground-truth labels are not shown.</p>
+      Each field is scored by the BACH-trained probe. Its name is the patient barcode, preparation, the TCGA sample
+      type of its slide (tumor or normal) and the field number; the model never sees the name, and there are no
+      region-level labels.</p>
     <div class="tblw wl-table-wrap">
       <table class="wl-table" data-testid="tcga-table" aria-label="TCGA external specimens">
         <thead><tr>

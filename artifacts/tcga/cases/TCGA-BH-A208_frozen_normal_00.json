@@ -9,7 +9,7 @@
   "source_case_ids": [],
   "arrived_offset_s": 0.0,
   "cohort": "tcga",
-  "specimen_question": "TCGA-BRCA external field \u00b7 frozen section",
+  "specimen_question": "Field from a frozen-section slide",
   "tcga_meta": {
     "patient_id": "TCGA-BH-A208",
     "prep": "frozen",
@@ -201,12 +201,13 @@
       "kind": "prediction",
       "data": {
         "top": "Normal",
-        "p": 0.027,
+        "p": 0.782,
         "set": [
           "Normal",
           "InSitu"
         ],
-        "alpha": 0.1
+        "confidence": 0.9,
+        "risk": 0.027
       }
     },
     {
@@ -225,9 +226,15 @@
     "generator": "template",
     "sentences": [
       {
-        "text": "External TCGA field (frozen section). Suggested category: Normal (calibrated P(Invasive) 0.03); 90% confidence set: Normal, InSitu.",
+        "text": "Suggested category: normal breast tissue (calibrated probability of invasive carcinoma 3%); in situ carcinoma is also in the 90% confidence set.",
         "findings": [
           "F1"
+        ]
+      },
+      {
+        "text": "11 of 12 regions passed tissue quality control; the reliability score and input typicality are not computed for TCGA fields.",
+        "findings": [
+          "F2"
         ]
       }
     ]
