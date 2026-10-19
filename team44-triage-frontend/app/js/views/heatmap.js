@@ -5,16 +5,19 @@
 // model's centered calibrated logit (prediction.attribution), pink toward invasive and blue away.
 // Surgical: the four margins as per-segment strips (BUILD_PLAN §A12), a specimen diagram and per-margin score bars.
 // Every number shown comes from the case JSON; nothing here is a diagnosis.
-import { esc, exactProb, MARGINS, num } from '../adapter.js';
+import { esc, MARGINS, num } from '../adapter.js';
 
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 const Z_FULL = 3; // concept layers: z <= 0 is not shaded, z >= Z_FULL is fully shaded (display mapping only)
 export const cap = (s) => String(s || '').replace(/^./, (c) => c.toUpperCase());
 const f2 = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? '—' : Number(x).toFixed(2));
-/** Tile probability on the image: never 1.00 / 0.00. */
-const fp2 = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? '—' : Number(x) >= 0.995 ? '>0.99' : Number(x) < 0.005 ? '<0.01' : Number(x).toFixed(2));
+/** Tile probability as a percentage, like every other probability on the page: never 100% / 0%. */
+const fp2 = (x) => (x === null || x === undefined || !Number.isFinite(Number(x)) ? '—' : Number(x) >= 0.995 ? '>99%' : Number(x) < 0.005 ? '<1%' : Math.round(Number(x) * 100) + '%');
 const sz = (x) => (x > 0 ? '+' : x < 0 ? '−' : '±') + Math.abs(x).toFixed(2);
 const isNum = (x) => x !== null && x !== undefined && Number.isFinite(Number(x));
+/** Concepts whose AI spot check failed (set by the case view from the evaluation; empty elsewhere). */
+const failedSet = (v) => (v && v.spotFailed instanceof Set ? v.spotFailed : new Set());
+const FAILED_NOTE = 'AI spot check failed';
 
 /** True when the case carries an exact region decomposition (prediction.attribution + tile contributions). */
 export function hasContributions(v) {
@@ -44,7 +47,9 @@ export function layers(v) {
   const out = hasContributions(v) ? [{ id: 'contribution', label: 'Region contribution (exact)', kind: 'contribution' }] : [];
   if (hasRisk(v) || !out.length) out.push({ id: 'risk', label: 'Overall risk (tile P(Invasive))', kind: 'risk' });
   const tileConcepts = new Set(v.tiles.flatMap((t) => Object.keys(t.concepts || {})));
-  for (const c of v.concepts) if (tileConcepts.has(c.id)) out.push({ id: c.id, label: c.label, kind: 'concept' });
+  const failed = failedSet(v);
+  for (const c of v.concepts)
+    if (tileConcepts.has(c.id)) out.push({ id: c.id, label: c.label + (failed.has(c.id) ? ' (spot check failed)' : ''), kind: 'concept', failed: failed.has(c.id) });
   if (v.tiles.some((t) => t.attention !== null && t.attention !== undefined))
     out.push({ id: 'attention', label: 'ABMIL attention', kind: 'attention' });
   return out;
@@ -88,6 +93,11 @@ export function regionInfo(v, hm, idx) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
   const layer = layerOf(v, hm.sel);
+  const failed = failedSet(v);
+  const zRow = ([id, z]) =>
+    failed.has(id)
+      ? `<span class="tip-row muted"><span>${esc(conceptLabel(v, id))} <i>${FAILED_NOTE}</i></span><b>${esc(sz(z))}</b></span>`
+      : `<span class="tip-row"><span>${esc(conceptLabel(v, id))}</span><b>${esc(sz(z))}</b></span>`;
   if (layer.kind === 'contribution') {
     const line = contributionLine(idx, t.contribution);
     const text =
@@ -99,11 +109,7 @@ export function regionInfo(v, hm, idx) {
     const html =
       `<b>${esc(line)}</b><span class="tip-sub">${esc(where)}</span>` +
       '<span class="tip-sub">Additive term of the model\'s invasive score (centered calibrated logit)</span>' +
-      (zs.length
-        ? `<span class="tip-h">Strongest concept scores (z vs. reference regions)</span>${zs
-            .map(([id, z]) => `<span class="tip-row"><span>${esc(conceptLabel(v, id))}</span><b>${esc(sz(z))}</b></span>`)
-            .join('')}`
-        : '') +
+      (zs.length ? `<span class="tip-h">Strongest concept scores (z vs. reference regions)</span>${zs.map(zRow).join('')}` : '') +
       (isNum(t.risk) ? `<span class="tip-row"><span>Tile P(Invasive)</span><b>${fp2(t.risk)}</b></span>` : '') +
       `<span class="tip-qc ok">Passed tissue QC</span>` +
       (linked ? `<span class="tip-link">Linked to: ${esc(linked)}</span>` : '');
@@ -111,14 +117,14 @@ export function regionInfo(v, hm, idx) {
   }
   const cur =
     layer.kind === 'concept' && t.concepts && t.concepts[layer.id] !== undefined
-      ? { k: `${layer.label} (z)`, v: sz(t.concepts[layer.id]) }
+      ? { k: `${conceptLabel(v, layer.id)} (z)`, v: sz(t.concepts[layer.id]) }
       : layer.kind === 'attention' && t.attention !== null && t.attention !== undefined
         ? { k: 'ABMIL attention', v: Number(t.attention).toFixed(3) }
         : null;
-  const strongest = zs.map(([id, z]) => `${conceptLabel(v, id)} ${sz(z)}`);
+  const strongest = zs.map(([id, z]) => `${conceptLabel(v, id)} ${sz(z)}${failed.has(id) ? ` (${FAILED_NOTE})` : ''}`);
   const text =
     `Region ${idx} (${where}). ` +
-    (isNum(t.risk) ? `Tile P(Invasive) ${fp2(t.risk)} (${exactProb(t.risk)}). ` : '') +
+    (isNum(t.risk) ? `Tile P(Invasive) ${fp2(t.risk)}. ` : '') +
     (cur ? `${cur.k} ${cur.v}. ` : '') +
     (strongest.length ? `Strongest concept scores: ${strongest.join('; ')}. ` : '') +
     'Passed tissue QC.' +
@@ -126,14 +132,10 @@ export function regionInfo(v, hm, idx) {
   const html =
     `<b>Region ${idx}</b><span class="tip-sub">${esc(where)}</span>` +
     (isNum(t.risk)
-      ? `<span class="tip-row"><span>Tile P(Invasive)</span><b>${fp2(t.risk)} <span class="tip-sub">(${esc(exactProb(t.risk))})</span></b></span>`
+      ? `<span class="tip-row"><span>Tile P(Invasive)</span><b>${fp2(t.risk)}</b></span>`
       : '') +
     (cur ? `<span class="tip-row"><span>${esc(cur.k)}</span><b>${esc(cur.v)}</b></span>` : '') +
-    (strongest.length
-      ? `<span class="tip-h">Strongest concept scores (z vs. reference regions)</span>${zs
-          .map(([id, z]) => `<span class="tip-row"><span>${esc(conceptLabel(v, id))}</span><b>${esc(sz(z))}</b></span>`)
-          .join('')}`
-      : '') +
+    (strongest.length ? `<span class="tip-h">Strongest concept scores (z vs. reference regions)</span>${zs.map(zRow).join('')}` : '') +
     `<span class="tip-qc ok">Passed tissue QC</span>` +
     (linked ? `<span class="tip-link">Linked to: ${esc(linked)}</span>` : '') +
     (cellTiles.includes(idx) ? '<span class="tip-sub">Cell measurements available in the Cells tab</span>' : '');
@@ -141,7 +143,8 @@ export function regionInfo(v, hm, idx) {
 }
 
 function strongestText(v, zs) {
-  return zs.map(([id, z]) => `${conceptLabel(v, id)} ${sz(z)}`).join('; ');
+  const failed = failedSet(v);
+  return zs.map(([id, z]) => `${conceptLabel(v, id)} ${sz(z)}${failed.has(id) ? ` (${FAILED_NOTE})` : ''}`).join('; ');
 }
 
 /** The SVG overlay (fills, QC hatch, highlight outlines). hlClass lets the full-screen viewer avoid `rect.hl`. */
@@ -222,12 +225,34 @@ export function regionGrid(v, hm, { scope = 'case' } = {}) {
   return `<div class="rg-grid" role="group" data-cols="${cols}" aria-label="Image regions, ${rows} rows by ${cols} columns. Arrow keys move between regions; Enter zooms in.">${out}</div>`;
 }
 
+/** Alternative text for the case image, built only from the view model: what the field is, the suggested category with
+ *  its calibrated probability, the overlay layer and its three highest regions. */
+export function imageAlt(v, hm) {
+  const top = v.probs.find((p) => p.cls === v.top);
+  const layer = layerOf(v, hm.sel);
+  const maxA = Math.max(0, ...v.tiles.map((t) => t.attention || 0));
+  const value = (t) =>
+    layer.kind === 'contribution' ? t.contribution : layer.kind === 'risk' ? t.risk : layer.kind === 'attention' ? t.attention : (t.concepts || {})[layer.id];
+  const shown = (t) =>
+    layer.kind === 'contribution' || layer.kind === 'concept' ? sz(Number(value(t))) : layer.kind === 'risk' ? fp2(t.risk) : f2(maxA > 0 ? t.attention / maxA : null);
+  const ranked = v.tiles
+    .filter((t) => isNum(value(t)) && (layer.kind !== 'contribution' || Number(value(t)) > 0))
+    .sort((a, b) => Number(value(b)) - Number(value(a)) || a.idx - b.idx)
+    .slice(0, 3);
+  const which = layer.kind === 'contribution' ? 'regions pushing most toward invasive' : 'highest regions';
+  return (
+    `H&E image, ${v.laneLabel.toLowerCase()}, ${v.question}, ${v.id}.` +
+    (top ? ` Suggested category: ${top.label}, calibrated probability ${fp2(top.p)}.` : '') +
+    ` Overlay: ${layer.label}${ranked.length ? `; ${which}: ${ranked.map((t) => `${t.idx} (${shown(t)})`).join(', ')}` : ''}.`
+  );
+}
+
 export function heatmap(v, hm, assetUrl) {
   if (!v.image) return '<div class="note">No display image.</div>';
   const w = num(v.image.w),
     h = num(v.image.h);
   return (
-    `<div class="hm cv-hm" style="aspect-ratio:${w}/${h}"><img src="${esc(assetUrl(v.image.src))}" alt="Display image for ${esc(v.id)} with a tile heatmap overlay" data-testid="heatmap-img" data-cv-img decoding="async">` +
+    `<div class="hm cv-hm" style="aspect-ratio:${w}/${h}"><img src="${esc(assetUrl(v.image.src))}" alt="${esc(imageAlt(v, hm))}" data-testid="heatmap-img" data-cv-img decoding="async">` +
     overlaySvg(v, hm) +
     regionGrid(v, hm) +
     `<button type="button" class="hm-expand" data-cv-open="viewer" data-testid="viewer-open" aria-label="Open the full-screen image viewer"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5"/></svg><span>Full screen</span></button>` +
@@ -243,10 +268,18 @@ export function heatmapLegend(v, hm) {
     layer.kind === 'contribution'
       ? { title: 'Region contribution (centered logit)', lo: `${sz(-maxC)} away`, mid: '0', hi: `${sz(maxC)} toward`, note: "Each region's push toward (pink) or away from (blue) invasive carcinoma. The pushes plus a constant add up exactly to the model's invasive score." }
       : layer.kind === 'risk'
-      ? { title: 'Tile P(Invasive)', lo: '0', mid: '0.5', hi: '1', note: 'Per-region probability from the tile-level probe. Shading is proportional to the probability; it localises the read, it does not grade a region.' }
+      ? { title: 'Tile P(Invasive)', lo: '0%', mid: '50%', hi: '100%', note: 'Per-region probability from the tile-level probe. Shading is proportional to the probability; it localises the read, it does not grade a region.' }
       : layer.kind === 'attention'
         ? { title: 'ABMIL attention', lo: '0', mid: '', hi: 'case max', note: 'Relative attention weight, scaled to the most attended region in this case.' }
-        : { title: `${layer.label}: concept z`, lo: '≤ 0', mid: '+1.5', hi: `≥ +${Z_FULL}`, note: 'z = concept score of the region relative to reference (training) regions. Regions at or below the reference average are not shaded.' };
+        : {
+            title: `${conceptLabel(v, layer.id)}: concept z`,
+            lo: '≤ 0',
+            mid: '+1.5',
+            hi: `≥ +${Z_FULL}`,
+            note:
+              'z = concept score of the region relative to reference (training) regions. Regions at or below the reference average are not shaded.' +
+              (layer.failed ? " This feature failed its AI spot check (its top regions did not reliably show it), so read the shading as an association only, not as the feature's location." : '')
+          };
   const linked = hm.hl && hm.hl.length;
   return (
     `<div class="cv-legend" data-testid="heatmap-legend" data-kind="${layer.kind}">` +
@@ -314,6 +347,13 @@ function segClass(m, s) {
   return { hot, cls: hot ? 'hot' : warm ? 'warm' : 'cool' };
 }
 
+/** Alternative text for the frozen-section image: the field, then each margin's read against the threshold. */
+function marginAlt(v) {
+  const m = v.margin;
+  const reads = m ? MARGINS.map((name) => `${name} ${STATUS_TEXT[marginStatus(m, name)]}`).join(', ') : 'no margin read';
+  return `H&E image, simulated frozen section, ${v.id}; its four borders stand in for inked margins: ${reads}.`;
+}
+
 /** The image with every margin segment drawn as an inked-border strip, coloured by threshold status. */
 export function marginOverlay(v, assetUrl, { names = null } = {}) {
   if (!v.image) return '<div class="note">No display image.</div>';
@@ -335,7 +375,7 @@ export function marginOverlay(v, assetUrl, { names = null } = {}) {
     names && name ? `<span class="ms-side ${pos} ${m ? marginStatus(m, name) : ''}">${esc(cap(name))}</span>` : '';
   return (
     `<div class="ms-frame${names ? ' labelled' : ''}">${side('top', n.top)}${side('bottom', n.bottom)}${side('left', n.left)}${side('right', n.right)}` +
-    `<div class="hm cv-hm surg" style="aspect-ratio:${w}/${h}"><img src="${esc(assetUrl(v.image.src))}" alt="Display image for ${esc(v.id)} with margin strips (simulated frozen section)" data-testid="surgical-img" data-cv-img decoding="async">` +
+    `<div class="hm cv-hm surg" style="aspect-ratio:${w}/${h}"><img src="${esc(assetUrl(v.image.src))}" alt="${esc(marginAlt(v))}" data-testid="surgical-img" data-cv-img decoding="async">` +
     `<svg class="hm-svg msvg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">${rects}</svg>` +
     `<button type="button" class="hm-expand" data-cv-open="viewer" data-testid="viewer-open" aria-label="Open the full-screen image viewer"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5"/></svg><span>Full screen</span></button></div></div>` +
     (m

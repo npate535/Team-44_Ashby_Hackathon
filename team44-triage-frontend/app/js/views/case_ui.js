@@ -54,8 +54,15 @@ function resolveKey(k) {
 }
 let lastFocus = null;
 let kbInput = false; // last interaction was the keyboard (vs a pointer)
-document.addEventListener('keydown', () => (kbInput = true), true);
-document.addEventListener('pointerdown', () => (kbInput = false), true);
+const stageKb = (on) => $$('.vw-stage').forEach((st) => st.classList.toggle('kb', on)); // focus ring for keyboard use only
+document.addEventListener('keydown', () => {
+  kbInput = true;
+  stageKb(true);
+}, true);
+document.addEventListener('pointerdown', () => {
+  kbInput = false;
+  stageKb(false);
+}, true);
 // a decision control (order, sign out, margin call…) disappears or is disabled once the decision is sent: move
 // keyboard focus to the outcome (feedback / verdict) when it appears instead of dropping it on <body>
 const DECISION = /data-act|data-call|data-cv-confirm|confirm-action/;
@@ -112,13 +119,41 @@ function afterRender() {
     const out = $('#app [data-testid=decision-feedback], #app [data-testid=verdict]');
     if (out) out.focus({ preventScroll: true }); // focusin clears focusOutcome
   }
+  markEntrances();
   // region tooltip: follow the replacement region if it is still hovered or focused, else hide it
   if (tipFor && !tipFor.isConnected) {
     const host = $('#app');
     const next = host && $(`[data-rg="${CSS.escape(tipFor.dataset.rg || '')}"][data-rg-scope="case"]`, host);
-    if (next && (next.matches(':hover') || document.activeElement === next)) showTip(next);
+    if (next && tipWanted(next)) showTip(next);
     else hideTip();
   }
+}
+// Entrance motion for what just appeared on this case (a confirmation, the decision outcome, a new heatmap layer). Every
+// re-render rebuilds #app, so the class is added here, once, never by the HTML: a poll re-render does not replay it.
+const ENTER = {
+  '[data-testid=confirm-box]': (el) => 'confirm:' + el.dataset.action,
+  '[data-testid=decision-feedback]': (el) => 'feedback:' + el.textContent.slice(0, 40),
+  '[data-testid=verdict]': () => 'verdict',
+  '.cv-hm:not(.surg) > .hm-svg': (el) => 'layer:' + (($('#app [data-testid=heatmap-select]') || {}).value || el.dataset.kind)
+};
+let shown = { caseId: null, tab: null, keys: new Set() };
+function markEntrances() {
+  const s = ST();
+  const view = $('#app [data-testid=case-view]');
+  if (!view || !s) {
+    shown = { caseId: null, tab: null, keys: new Set() };
+    return;
+  }
+  const keys = new Set();
+  const same = shown.caseId === view.dataset.caseId && shown.tab === s.tab; // first draw of a case or tab: no motion
+  for (const [sel, key] of Object.entries(ENTER)) {
+    for (const el of $$(sel, view)) {
+      const k = key(el);
+      keys.add(k);
+      if (same && !shown.keys.has(k) && !reduced()) el.classList.add('cv-enter');
+    }
+  }
+  shown = { caseId: view.dataset.caseId, tab: s.tab, keys };
 }
 function watchApp() {
   const app = $('#app');
@@ -201,14 +236,23 @@ function hideTip() {
   $$('.cv-tip').forEach((el) => (el.hidden = true));
   tipFor = null;
 }
+/** A region's tooltip belongs on screen only while the pointer is over it or the keyboard focused it. Focus that a
+ *  script moved there (closing the viewer returns focus to the region that opened it) does not count: that tooltip
+ *  would stay up after the pointer has gone, covering the panel beside the image. */
+const tipWanted = (el) => !!el && el.isConnected && (el.matches(':hover') || (kbInput && document.activeElement === el));
 window.addEventListener(
   'scroll',
   () => {
-    if (tipFor && tipFor.isConnected && (tipFor.matches(':hover') || document.activeElement === tipFor)) showTip(tipFor);
+    if (tipWanted(tipFor)) showTip(tipFor);
     else hideTip();
   },
   { passive: true }
 );
+// the pointer left the window, or the window lost focus: no tooltip can still be wanted
+document.addEventListener('pointerout', (e) => {
+  if (!e.relatedTarget && !(kbInput && tipFor && document.activeElement === tipFor)) hideTip();
+});
+window.addEventListener('blur', hideTip);
 
 // ---- cross-highlighting (finding chips, why rows) ---------------------------------------------------------------------------
 function peekTiles(ids, on) {
@@ -258,6 +302,21 @@ class PanZoom {
       const r = stage.getBoundingClientRect();
       this.zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.0018));
     }, { passive: false });
+    // Safari: a trackpad pinch arrives as gesture events (not ctrl+wheel); without this it zooms the whole page
+    let pinch = 1;
+    stage.addEventListener('gesturestart', (e) => {
+      e.preventDefault();
+      pinch = 1;
+    });
+    stage.addEventListener('gesturechange', (e) => {
+      e.preventDefault();
+      const r = stage.getBoundingClientRect();
+      const x = Number.isFinite(e.clientX) ? e.clientX - r.left : r.width / 2;
+      const y = Number.isFinite(e.clientY) ? e.clientY - r.top : r.height / 2;
+      if (e.scale > 0) this.zoomAt(x, y, e.scale / pinch);
+      pinch = e.scale || 1;
+    });
+    stage.addEventListener('gestureend', (e) => e.preventDefault());
     stage.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -487,6 +546,7 @@ function openViewer(trigger, regionIdx = null) {
   vw.pz.aspect = w / h;
   vw.returnFocus = keyOf(trigger);
   vw.d.showModal();
+  stageKb(kbInput);
   vw.pz.layout();
   vw.pz.fit();
   if (regionIdx !== null) {
@@ -617,6 +677,7 @@ function openCompare(trigger, which) {
   c.list = [...v.similar.map((x) => ({ ...x, kind: 'similar' })), ...(v.contrast ? [{ ...v.contrast, kind: 'contrast' }] : [])];
   c.returnFocus = keyOf(trigger);
   c.d.showModal();
+  stageKb(kbInput);
   showRef(which === 'contrast' ? c.list.length - 1 : Number(which) || 0);
   c.panes[1].stage.focus({ preventScroll: true });
 }
@@ -637,6 +698,11 @@ document.addEventListener('click', (e) => {
     return;
   }
   if ((d.act || d.call) && confirmState) confirmState = null; // the real action is about to be sent by app.js
+  if (d.cvSkip !== undefined) {
+    const to = $('#app [data-testid=agent-panel] button:not([disabled]), #app [data-testid=approval] button:not([disabled]), #app [data-testid=verdict]');
+    if (to) to.focus();
+    return;
+  }
   if (d.cvOpen === 'viewer') {
     openViewer(t);
     return;
@@ -719,7 +785,7 @@ document.addEventListener('pointerout', (e) => {
 document.addEventListener('focusin', (e) => {
   const t = e.target;
   if (!t.closest) return;
-  if (t.matches('[data-rg]')) showTip(t);
+  if (t.matches('[data-rg]') && kbInput) showTip(t);
   if (t.matches('.fref[data-f]')) linkOn(t, true);
   const row = t.closest(PEEK_ROW);
   if (row) peekRow(row, true);
@@ -765,7 +831,7 @@ document.addEventListener('change', (e) => {
     const n = $$('#app [data-edit-item]').filter((x) => x.checked).length;
     const b = $('#app [data-testid=action-edit-save]');
     if (b) {
-      b.textContent = n ? `Order ${n} selected` : 'Select at least one item';
+      b.textContent = n ? `Approve ${n} selected` : 'Select at least one item';
       b.disabled = !n; // the backend rejects an empty edit; dismiss the flag to drop every order
     }
   }

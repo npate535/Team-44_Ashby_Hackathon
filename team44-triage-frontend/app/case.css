@@ -83,6 +83,23 @@
     grid-template-columns: minmax(0, 1.42fr) minmax(330px, 1fr);
   }
 }
+/* The case is fetched after the first paint (app.js draws a small "Loading…" card meanwhile). The footer under that card
+   would jump down by the whole case height when it arrives (cumulative layout shift): it is left out until then. */
+#app:has(> [data-testid='state-loading']) ~ footer.quiet {
+  display: none;
+}
+/* The case bar above the case is first drawn before the worklist arrives (no "Next case" button yet) and grows when it
+   does, pushing the whole case down: it keeps its final height from the start. */
+#casebar:not([hidden]) {
+  box-sizing: border-box;
+  min-height: 51px;
+  align-content: center;
+}
+@media (max-width: 760px) {
+  #casebar:not([hidden]) {
+    min-height: 88px;
+  }
+}
 
 /* ---- header ------------------------------------------------------------------------------------------------------ */
 .cv-header {
@@ -150,7 +167,7 @@
   border-radius: 9px;
   background: var(--bl);
   color: var(--hema);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 16px;
   text-align: center;
 }
@@ -169,7 +186,7 @@
 }
 .cv-hmctl select {
   font-size: var(--cv-fs-s);
-  max-width: 290px;
+  max-width: 420px;
 }
 .cv-hm {
   position: relative;
@@ -364,7 +381,7 @@
 .lg-ticks {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--mut);
 }
 .lg-keys {
@@ -466,6 +483,26 @@
 }
 .cv-tip .tip-row b {
   font-variant-numeric: tabular-nums;
+}
+/* a concept whose AI spot check failed: named with its score, muted and labelled, never read as a reason */
+.cv-tip .tip-row.muted,
+.cv-tip .tip-row.muted b {
+  color: #9da1b3;
+  font-weight: 400;
+}
+.cv-tip .tip-row.muted i {
+  display: block;
+  font-style: normal;
+  font-size: 11px;
+  color: #e4bb75;
+}
+.cv-tip:not([hidden]) {
+  animation: cv-fade-in 0.12s ease-out;
+}
+@keyframes cv-fade-in {
+  from {
+    opacity: 0;
+  }
 }
 .cv-tip .tip-qc {
   align-self: flex-start;
@@ -582,14 +619,14 @@
   gap: 10px;
   padding: 0 8px 6px;
   border-bottom: 1px solid var(--ln);
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--mut);
 }
 .why-key .axis {
   display: flex;
   justify-content: space-between;
   margin: 0;
-  font-size: 10.5px;
+  font-size: 11px;
 }
 .why-group h3 {
   margin: 14px 0 4px;
@@ -677,7 +714,7 @@
 }
 .cv .why-row .src,
 .cv .why-row .cc {
-  font-size: 10px;
+  font-size: 11px;
   margin-left: 6px;
   white-space: nowrap;
 }
@@ -831,7 +868,7 @@
 }
 .pc-tag {
   display: block;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--hema);
 }
@@ -866,12 +903,12 @@
   border-radius: 5px;
   border: 1px solid var(--hema);
   color: var(--hema);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
 }
 .pc-out {
-  color: var(--ln);
+  color: var(--mut);
   padding-left: 8px;
 }
 .hs-set {
@@ -1040,7 +1077,7 @@
   color: var(--mut);
 }
 .rt-sim {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--mut);
   font-variant-numeric: tabular-nums;
 }
@@ -1462,6 +1499,7 @@ dialog.cv-compare::backdrop {
   overflow: hidden;
   touch-action: none;
   cursor: grab;
+  -webkit-user-select: none;
   user-select: none;
 }
 .vw-stage.grabbing {
@@ -1470,6 +1508,11 @@ dialog.cv-compare::backdrop {
 .vw-stage:focus-visible {
   outline: 2px solid #b9a9e2;
   outline-offset: -4px;
+}
+/* the stage is focused by script when a dialog opens; WebKit then rings it even after a mouse click (case_ui.js adds
+   .kb while the keyboard is in use) */
+.vw-stage:not(.kb):focus-visible {
+  outline: none;
 }
 .vw-canvas {
   position: absolute;
@@ -1770,7 +1813,7 @@ dialog.cv-compare::backdrop {
   transform-origin: 100% 100%;
 }
 .rt-match {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--grn);
 }
 .rt-match.diff {
@@ -1791,7 +1834,7 @@ dialog.cv-compare::backdrop {
   padding: 0;
   background: none;
   color: var(--grn);
-  font-size: 10.5px;
+  font-size: 11px;
 }
 .cv .why-row .cc.no {
   color: var(--mut);
@@ -1875,7 +1918,7 @@ dialog.cv-compare::backdrop {
   font-weight: 600;
 }
 .sp-mid.sub {
-  font-size: 10px;
+  font-size: 11px;
   fill: var(--mut);
   font-weight: 400;
 }
@@ -2008,7 +2051,7 @@ dialog.cv-compare::backdrop {
 .mb-ticks {
   position: relative;
   height: 14px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--mut);
 }
 .mb-ticks span {
@@ -2553,7 +2596,7 @@ dialog.cv-compare::backdrop {
 .pct-ticks {
   display: flex;
   justify-content: space-between;
-  font-size: 9.5px;
+  font-size: 11px;
   color: var(--mut);
 }
 .pct-ticks span:nth-child(2) {
@@ -2690,7 +2733,7 @@ dialog.cv-compare::backdrop {
   margin: 0;
 }
 .spot {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--mut);
 }
 .spot::before {
@@ -2700,7 +2743,7 @@ dialog.cv-compare::backdrop {
   padding: 0 4px;
   border-radius: 3px;
   border: 1px solid var(--ln);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 13px;
   vertical-align: 1px;
@@ -2737,7 +2780,7 @@ dialog.cv-compare::backdrop {
   margin-top: 8px;
 }
 .cv .reason {
-  font-size: 10.5px;
+  font-size: 11px;
   padding: 2px 7px;
 }
 /* level column: replace the pip glyph with a small SD track */
@@ -2794,5 +2837,144 @@ dialog.cv-compare::backdrop {
   }
   .vw-foot {
     padding: 8px 12px 10px;
+  }
+}
+
+/* ---- polish: order rows, Why headline, look-alike table, compare panes, motion ------------------------------------- */
+.ord-rule {
+  display: block;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* text floor: nothing in the case view renders below 11px (workspace.css draws .src at 8-9px) */
+.cv .src,
+.cv .why-row .v,
+.cv .activity-card summary span {
+  font-size: 11px;
+}
+.ws-lists p.ws-skip {
+  display: block;
+  padding-left: 136px;
+  font-size: var(--cv-fs-xs);
+  color: var(--mut);
+}
+@media (max-width: 760px) {
+  .ws-lists p.ws-skip {
+    padding-left: 0;
+  }
+}
+.ct-table .ct-rg {
+  white-space: nowrap;
+}
+/* both compare panes share one row grid, so the two images sit at the same height whatever their captions hold */
+.cmp-panes {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+.cmp-pane {
+  display: grid;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  row-gap: 0;
+}
+.cmp-pane figcaption {
+  min-height: 0;
+}
+.cmp-pane figcaption .cmp-n {
+  color: #1b1a2e;
+}
+@media (max-width: 760px) {
+  .cmp-panes {
+    grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  }
+  .hs-sugg {
+    margin-left: 0;
+  }
+}
+/* "Skip to the decision": out of sight until the keyboard reaches it, then shown over the panel (no layout move) */
+.cv-evidence-panel {
+  position: relative;
+}
+.cv-skip {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  z-index: 5;
+  padding: 8px 14px;
+  border: 1px solid var(--hema);
+  border-radius: 999px;
+  background: var(--sf);
+  color: var(--hema);
+  font: 600 13px/1.2 var(--font);
+  box-shadow: 0 6px 18px #0002;
+}
+.cv-skip:not(:focus) {
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+/* case title: a long id (TCGA-BH-A0BJ_ffpe_tumor_01) breaks anywhere rather than at its first hyphen */
+.cv-title-id {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .cv .cv-id h2[data-testid='case-title'] {
+    font-size: 20px !important;
+    letter-spacing: -0.4px;
+  }
+}
+/* tab labels: the long form needs room; phones show the short form */
+.cv .tabs .tab-short {
+  display: none;
+}
+@media (max-width: 480px) {
+  .cv .tabs .tab-long {
+    display: none;
+  }
+  .cv .tabs .tab-short {
+    display: inline;
+  }
+}
+/* motion: short ease-out entrances only for things that just appeared (case_ui.js adds .cv-enter once) */
+dialog.cv-viewer[open],
+dialog.cv-compare[open] {
+  animation: cv-dialog-in 0.18s ease-out;
+}
+dialog.cv-viewer[open]::backdrop,
+dialog.cv-compare[open]::backdrop {
+  animation: cv-fade-in 0.18s ease-out;
+}
+@keyframes cv-dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+.cv .cv-enter {
+  animation: cv-reveal 0.2s ease-out;
+}
+@keyframes cv-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.cv .hm-svg.cv-enter {
+  animation: cv-fade-in 0.2s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cv-tip:not([hidden]),
+  dialog.cv-viewer[open],
+  dialog.cv-compare[open],
+  dialog.cv-viewer[open]::backdrop,
+  dialog.cv-compare[open]::backdrop,
+  .cv .cv-enter {
+    animation: none;
   }
 }

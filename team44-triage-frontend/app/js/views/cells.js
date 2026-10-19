@@ -2,6 +2,7 @@
 // against benign/normal reference cases. Automated segmentation, not pathologist-validated; wording: "measured
 // features associated with invasive carcinoma", never a causal claim about cells.
 import { cssColor, cssUrl, esc, humanize, num, ordinalPct, signed } from '../adapter.js';
+import { fmtPct, refShare } from './why.js';
 
 const isNum = (x) => x !== null && x !== undefined && Number.isFinite(Number(x));
 
@@ -36,7 +37,7 @@ function pctTrack(p) {
   const cls = q >= 0.9 ? 'hi' : q <= 0.1 ? 'lo' : 'mid';
   return (
     `<div class="pct-track ${cls}" aria-hidden="true"><span class="pct-band" title="Middle 80% of benign/normal reference cases"></span><b style="left:${(q * 100).toFixed(1)}%"></b></div>` +
-    `<div class="pct-ticks" aria-hidden="true">${[0, 10, 50, 90, 100].map((t) => `<span style="left:${t}%">${t === 100 ? '100th' : t}</span>`).join('')}</div>`
+    `<div class="pct-ticks" aria-hidden="true">${[0, 10, 50, 90, 100].map((t) => `<span style="left:${t}%">${t}</span>`).join('')}</div>`
   );
 }
 
@@ -59,7 +60,7 @@ export function cellsTab(v, ST, assetUrl) {
         : v.reliability.qcTiles === 0
         ? 'no regions passed quality control'
         : 'no measured output is available for this case';
-    return `<div class="card cv-cells" data-testid="cells-tab"><div class="card-h"><h2>Measured cells</h2></div><div class="note" data-testid="cells-disabled">Cell measurements are unavailable: ${unavailable}. The read and its explanation do not depend on them.</div></div>`;
+    return `<div class="card cv-cells" data-testid="cells-tab"><div class="card-h"><h2>Measured cells</h2></div><div class="note" data-testid="cells-disabled">${v.external ? 'Cell measurements are not computed for TCGA fields.' : `Cell measurements are unavailable: ${unavailable}.`} The read and its explanation do not depend on them.</div></div>`;
   }
   const types = cfg.cells.types;
   const colors = cfg.cells.overlay_colors;
@@ -118,7 +119,7 @@ export function cellsTab(v, ST, assetUrl) {
         .join('');
       return (
         `<figure class="cv-cell-fig${ST.cellsTile === ct.idx ? ' is-target' : ''}" data-testid="cells-tile" data-tile="${num(ct.idx)}">${img}` +
-        `<figcaption><b>Region ${num(ct.idx)}</b><span class="sub">${total(ct).toLocaleString()} nuclei${t && isNum(t.risk) ? ` · tile P(Invasive) ${Number(t.risk) >= 0.995 ? '>0.99' : Number(t.risk) < 0.005 ? '<0.01' : Number(t.risk).toFixed(2)}` : ''}</span></figcaption>` +
+        `<figcaption><b>Region ${num(ct.idx)}</b><span class="sub">${total(ct).toLocaleString()} nuclei${t && isNum(t.risk) ? ` · tile P(Invasive) ${fmtPct(t.risk)}` : ''}</span></figcaption>` +
         `${bar(ct)}<ul class="cell-counts">${counts}</ul></figure>`
       );
     })
@@ -129,9 +130,7 @@ export function cellsTab(v, ST, assetUrl) {
     const measured = f && isNum(f.value);
     const p = f ? f.ref_percentile : null;
     const dir = meta[id] && meta[id].direction;
-    const ref = isNum(p)
-      ? `higher than ${Math.round(p * 100)}% of benign/normal reference cases`
-      : 'no reference percentile';
+    const ref = isNum(p) ? refShare(p) : 'no reference percentile';
     const contrib =
       !f || f.contribution === null || f.contribution === undefined
         ? 'not used by the prediction model'

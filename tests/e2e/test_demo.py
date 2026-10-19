@@ -67,7 +67,7 @@ def test_demo_script(page, api, roles):
     expect(pg.locator("rect.hl")).to_have_count(2)
     expect(pg.locator(tid("src-measured")).first).to_be_visible()
     expect(pg.locator(tid("src-estimated")).first).to_be_visible()
-    assert pg.locator(tid("conformal-chip")).all_inner_texts() == ["InSitu", "Invasive"]
+    assert pg.locator(tid("conformal-chip")).all_inner_texts() == ["In situ", "Invasive"]   # display labels, never raw ids
     orders = " ".join(pg.locator(tid("agent-order")).all_inner_texts())
     for item in ("p63", "calponin", "ER", "PR", "HER2", "Ki-67"):
         assert item in orders
@@ -79,7 +79,7 @@ def test_demo_script(page, api, roles):
     expect(pg.locator(tid("agent-status"))).to_have_attribute("data-status", "drafted")
     pg.click(tid("confirm-action"))
     expect(pg.locator(tid("agent-status"))).to_have_attribute("data-status", "approved")
-    expect(pg.locator(tid("decision-feedback"))).to_contain_text("ordered")
+    expect(pg.locator(tid("decision-feedback"))).to_contain_text("approved in Sepia")
     pg.click(tid("action-signout"))
     pg.click(tid("confirm-action"))
     expect(pg.locator(tid("verdict"))).to_contain_text("Signed out")
