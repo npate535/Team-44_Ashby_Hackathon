@@ -94,7 +94,7 @@ def main():
     revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     settings = {'framework': 'fastapi', 'regions': ['iad1'], 'buildCommand': 'sh build.sh',
                 'functions': {'backend/vercel.py': {'maxDuration': 400, 'excludeFiles': 'public/**'}},
-                'env': {'PATHQUEUE_RELEASE_SHA': revision, 'PATHQUEUE_SITE': 'local'},
+                'env': {'PATHQUEUE_RELEASE_SHA': revision, 'PATHQUEUE_SITE': 'local', 'PATHQUEUE_INTERPRET_ON_DEMAND': '0'},
                 # static files revalidate (304 when unchanged, never stale); API responses are never stored
                 'headers': [{'source': '/((?!api/).*)', 'headers': [{'key': 'Cache-Control', 'value': 'no-cache'}]},
                             {'source': '/api/(.*)', 'headers': [{'key': 'Cache-Control', 'value': 'no-store'}]}]}

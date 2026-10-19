@@ -53,3 +53,11 @@ def test_prompt_describes_the_real_checks():
     assert "CONCH is not part of this check" in I.CASE_INSTRUCTIONS
     assert "separate concept model" in I.CASE_INSTRUCTIONS
     assert "CONCH–MUSK agreement" not in I.CASE_INSTRUCTIONS
+
+
+def test_serve_only_mode_never_starts_a_model_call(tmp_path, monkeypatch):
+    monkeypatch.setenv(I.ENV_ON_DEMAND, "0")
+    called = []
+    monkeypatch.setattr(I, "_run", lambda *a, **k: called.append(a) or ("x", {}))
+    out = I.Interpreter(tmp_path).case(_case(), generate=True, force=True)
+    assert out == {"status": "none", "model": I._model(), "on_demand": False} and not called

@@ -152,8 +152,12 @@ export function interpretPanel(ST, key, scope = 'case') {
     meta =
       verifyBadge(d.verification) +
       (scope === 'case' ? claimsBadge(d.claims) : '') +
-      `<span class="ai-chip" title="Language model used through the Cursor agent CLI">${esc(d.model || 'model')}</span>` +
+      `<span class="ai-chip" title="Language model used through the ${d.provider === 'claude' ? 'Claude Code' : 'Cursor agent'} CLI">${esc(d.model || 'model')}</span>` +
       `<span class="sub">${d.cached ? 'cached · ' : ''}${esc(when(d.generated_at))}${d.elapsed_s ? ` · ${Number(d.elapsed_s).toFixed(0)} s` : ''}</span>`;
+  } else if (d.on_demand === false) {
+    body =
+      '<div class="ai-empty">' +
+      `<p>No plain-language summary has been generated for ${what} in this workspace. The measured evidence it would restate is shown in full on this page.</p></div>`;
   } else {
     body =
       '<div class="ai-empty">' +
@@ -161,12 +165,12 @@ export function interpretPanel(ST, key, scope = 'case') {
       '<ul class="ai-points"><li><b>Confidence</b> calibrated probability, conformal set, reliability</li><li><b>Evidence</b> concepts and measured cells, by region</li><li><b>Validation</b> deletion test, spot check, calibration</li></ul>' +
       `${btn('generate', 'Generate interpretation', true)}<p class="sub">Uses only ${scope === 'results' ? 'docs/RESULTS.md' : "this case's evidence JSON (no ground truth)"}; the text is cached for the demo.</p></div>`;
   }
-  const regen = s.status === 'ok' && d.markdown ? btn('regenerate', 'Regenerate', false) : '';
+  const regen = s.status === 'ok' && d.markdown && d.on_demand !== false ? btn('regenerate', 'Regenerate', false) : '';
   return (
     `<div class="card ai-card" data-testid="interpretation" data-interp-state="${esc(s.status)}">` +
     `<div class="card-h ai-h"><h2><span class="ai-mark" aria-hidden="true"></span>Evidence in plain language</h2><div class="ai-meta">${meta}${regen}</div></div>` +
     body +
-    '<p class="ai-foot"><b>What this is:</b> a plain-language summary of evidence the app already measured, written by a language model. It adds no new evidence about why the classifier decided; a fluent explanation is not proof of what the model used. Automatic checks confirm that its numbers appear in the evidence and that its verdict, arrows, trust tags and OOD reading follow the data; they do not prove every sentence is right. The tested evidence is the deletion test, calibration and conformal coverage on the <a href="#/metrics">evaluation page</a>. Research prototype, not clinically validated.</p>' +
+    `<p class="ai-foot"><b>What this is:</b> a plain-language summary of evidence the app already measured, written by a language model. It adds no new evidence about why the classifier decided; a fluent explanation is not proof of what the model used. Automatic checks confirm that its numbers appear in the evidence and that its verdict, arrows, trust tags and OOD reading follow the data; they do not prove every sentence is right. The tested evidence is the deletion test, calibration and conformal coverage ${scope === 'results' ? 'in the sections below' : 'on the <a href="#/metrics">evaluation page</a>'}. Research prototype, not clinically validated.</p>` +
     '</div>'
   );
 }
