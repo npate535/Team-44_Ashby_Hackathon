@@ -1,0 +1,265 @@
+{
+  "schema_version": "1.0",
+  "synthetic": false,
+  "case_id": "TCGA-E9-A1NH_ffpe_tumor_02",
+  "lane": "biopsy",
+  "simulated": false,
+  "simulated_variant": null,
+  "degradation": null,
+  "source_case_ids": [],
+  "arrived_offset_s": 0.0,
+  "cohort": "tcga",
+  "specimen_question": "TCGA-BRCA external field \u00b7 FFPE",
+  "tcga_meta": {
+    "patient_id": "TCGA-E9-A1NH",
+    "prep": "ffpe",
+    "slide_file_name": "TCGA-E9-A1NH-01Z-00-DX1.20FF11B7-DAF0-41C2-B7C5-449BA5268EC0.svs"
+  },
+  "image": {
+    "display": "tcga/TCGA-E9-A1NH_ffpe_tumor_02.jpg",
+    "width": 2048,
+    "height": 1536,
+    "tile_size": 512,
+    "grid": [
+      3,
+      4
+    ]
+  },
+  "quality": {
+    "qc_tiles_kept": 12,
+    "ood_percentile": null,
+    "reliability": null,
+    "reliability_flag": false
+  },
+  "prediction": {
+    "model": "uni2h512_lr",
+    "classes": [
+      "Normal",
+      "Benign",
+      "InSitu",
+      "Invasive"
+    ],
+    "probs": [
+      0.04511098036378177,
+      0.023859271266095567,
+      0.37488293306206044,
+      0.5561468153080623
+    ],
+    "risk_score": 0.5561468153080623,
+    "conformal_alpha": 0.1,
+    "conformal_set": [
+      "InSitu",
+      "Invasive"
+    ],
+    "attribution": {
+      "method": "exact_linear",
+      "target": "Invasive",
+      "constant": -0.0548,
+      "unit": "centered calibrated logit"
+    }
+  },
+  "concepts": [],
+  "tiles": [
+    {
+      "idx": 0,
+      "row": 0,
+      "col": 0,
+      "x": 0,
+      "y": 0,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": 0.0916
+    },
+    {
+      "idx": 1,
+      "row": 0,
+      "col": 1,
+      "x": 512,
+      "y": 0,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": 0.08
+    },
+    {
+      "idx": 2,
+      "row": 0,
+      "col": 2,
+      "x": 1024,
+      "y": 0,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": 0.0448
+    },
+    {
+      "idx": 3,
+      "row": 0,
+      "col": 3,
+      "x": 1536,
+      "y": 0,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": 0.1971
+    },
+    {
+      "idx": 4,
+      "row": 1,
+      "col": 0,
+      "x": 0,
+      "y": 512,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": 0.1088
+    },
+    {
+      "idx": 5,
+      "row": 1,
+      "col": 1,
+      "x": 512,
+      "y": 512,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": 0.076
+    },
+    {
+      "idx": 6,
+      "row": 1,
+      "col": 2,
+      "x": 1024,
+      "y": 512,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": 0.1665
+    },
+    {
+      "idx": 7,
+      "row": 1,
+      "col": 3,
+      "x": 1536,
+      "y": 512,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": 0.1837
+    },
+    {
+      "idx": 8,
+      "row": 2,
+      "col": 0,
+      "x": 0,
+      "y": 1024,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": 0.1921
+    },
+    {
+      "idx": 9,
+      "row": 2,
+      "col": 1,
+      "x": 512,
+      "y": 1024,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": 0.1021
+    },
+    {
+      "idx": 10,
+      "row": 2,
+      "col": 2,
+      "x": 1024,
+      "y": 1024,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": 0.1462
+    },
+    {
+      "idx": 11,
+      "row": 2,
+      "col": 3,
+      "x": 1536,
+      "y": 1024,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": 0.1797
+    }
+  ],
+  "similar_cases": [],
+  "contrast_case": null,
+  "agreement": {},
+  "margin": null,
+  "cells": {
+    "status": "disabled"
+  },
+  "flag": {
+    "tier": 2,
+    "reasons": [
+      "aggressive_top",
+      "aggressive_in_conformal_set",
+      "set_size_gt_1"
+    ]
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "kind": "prediction",
+      "data": {
+        "top": "Invasive",
+        "p": 0.556,
+        "set": [
+          "InSitu",
+          "Invasive"
+        ],
+        "alpha": 0.1
+      }
+    },
+    {
+      "id": "F2",
+      "kind": "quality",
+      "data": {
+        "reliability_flag": false,
+        "reliability": null,
+        "ood_percentile": null,
+        "qc_tiles_kept": 12,
+        "min_tiles_kept": 3
+      }
+    }
+  ],
+  "summary": {
+    "generator": "template",
+    "sentences": [
+      {
+        "text": "External TCGA field (FFPE). Suggested category: Invasive (calibrated P(Invasive) 0.56); 90% confidence set: InSitu, Invasive.",
+        "findings": [
+          "F1"
+        ]
+      }
+    ]
+  },
+  "agent": {
+    "status": "none",
+    "orders": [],
+    "blocked": [],
+    "n_orders": 0
+  },
+  "runtime": {
+    "tier": 2,
+    "reasons": [
+      "aggressive_top",
+      "aggressive_in_conformal_set",
+      "set_size_gt_1"
+    ],
+    "allowed_actions": [],
+    "arrived_sim_s": 0.0,
+    "done": false
+  }
+}

@@ -1,0 +1,250 @@
+{
+  "schema_version": "1.0",
+  "synthetic": false,
+  "case_id": "TCGA-BH-A0HK_frozen_normal_00",
+  "lane": "biopsy",
+  "simulated": false,
+  "simulated_variant": null,
+  "degradation": null,
+  "source_case_ids": [],
+  "arrived_offset_s": 0.0,
+  "cohort": "tcga",
+  "specimen_question": "TCGA-BRCA external field \u00b7 frozen section",
+  "tcga_meta": {
+    "patient_id": "TCGA-BH-A0HK",
+    "prep": "frozen",
+    "slide_file_name": "TCGA-BH-A0HK-11A-01-BSA.cb7cc1cb-17d2-4a33-a299-c8b231dccb46.svs"
+  },
+  "image": {
+    "display": "tcga/TCGA-BH-A0HK_frozen_normal_00.jpg",
+    "width": 2048,
+    "height": 1536,
+    "tile_size": 512,
+    "grid": [
+      3,
+      4
+    ]
+  },
+  "quality": {
+    "qc_tiles_kept": 11,
+    "ood_percentile": null,
+    "reliability": null,
+    "reliability_flag": false
+  },
+  "prediction": {
+    "model": "uni2h512_lr",
+    "classes": [
+      "Normal",
+      "Benign",
+      "InSitu",
+      "Invasive"
+    ],
+    "probs": [
+      0.23707445054155518,
+      0.0067654819716956634,
+      0.6724615921163236,
+      0.08369847537042552
+    ],
+    "risk_score": 0.08369847537042552,
+    "conformal_alpha": 0.1,
+    "conformal_set": [
+      "Normal",
+      "InSitu"
+    ],
+    "attribution": {
+      "method": "exact_linear",
+      "target": "Invasive",
+      "constant": -0.0548,
+      "unit": "centered calibrated logit"
+    }
+  },
+  "concepts": [],
+  "tiles": [
+    {
+      "idx": 0,
+      "row": 0,
+      "col": 0,
+      "x": 0,
+      "y": 0,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": -0.0399
+    },
+    {
+      "idx": 1,
+      "row": 0,
+      "col": 1,
+      "x": 512,
+      "y": 0,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": -0.0066
+    },
+    {
+      "idx": 2,
+      "row": 0,
+      "col": 2,
+      "x": 1024,
+      "y": 0,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": -0.0179
+    },
+    {
+      "idx": 3,
+      "row": 0,
+      "col": 3,
+      "x": 1536,
+      "y": 0,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": -0.0285
+    },
+    {
+      "idx": 4,
+      "row": 1,
+      "col": 0,
+      "x": 0,
+      "y": 512,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": -0.0126
+    },
+    {
+      "idx": 5,
+      "row": 1,
+      "col": 1,
+      "x": 512,
+      "y": 512,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": -0.0383
+    },
+    {
+      "idx": 7,
+      "row": 1,
+      "col": 3,
+      "x": 1536,
+      "y": 512,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": 0.0443
+    },
+    {
+      "idx": 8,
+      "row": 2,
+      "col": 0,
+      "x": 0,
+      "y": 1024,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": 0.052
+    },
+    {
+      "idx": 9,
+      "row": 2,
+      "col": 1,
+      "x": 512,
+      "y": 1024,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": -0.0067
+    },
+    {
+      "idx": 10,
+      "row": 2,
+      "col": 2,
+      "x": 1024,
+      "y": 1024,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": -0.0079
+    },
+    {
+      "idx": 11,
+      "row": 2,
+      "col": 3,
+      "x": 1536,
+      "y": 1024,
+      "risk": null,
+      "concepts": {},
+      "attention": null,
+      "contribution": -0.0353
+    }
+  ],
+  "similar_cases": [],
+  "contrast_case": null,
+  "agreement": {},
+  "margin": null,
+  "cells": {
+    "status": "disabled"
+  },
+  "flag": {
+    "tier": 3,
+    "reasons": [
+      "set_size_gt_1"
+    ]
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "kind": "prediction",
+      "data": {
+        "top": "InSitu",
+        "p": 0.084,
+        "set": [
+          "Normal",
+          "InSitu"
+        ],
+        "alpha": 0.1
+      }
+    },
+    {
+      "id": "F2",
+      "kind": "quality",
+      "data": {
+        "reliability_flag": false,
+        "reliability": null,
+        "ood_percentile": null,
+        "qc_tiles_kept": 11,
+        "min_tiles_kept": 3
+      }
+    }
+  ],
+  "summary": {
+    "generator": "template",
+    "sentences": [
+      {
+        "text": "External TCGA field (frozen section). Suggested category: InSitu (calibrated P(Invasive) 0.08); 90% confidence set: Normal, InSitu.",
+        "findings": [
+          "F1"
+        ]
+      }
+    ]
+  },
+  "agent": {
+    "status": "none",
+    "orders": [],
+    "blocked": [],
+    "n_orders": 0
+  },
+  "runtime": {
+    "tier": 3,
+    "reasons": [
+      "set_size_gt_1"
+    ],
+    "allowed_actions": [],
+    "arrived_sim_s": 0.0,
+    "done": false
+  }
+}

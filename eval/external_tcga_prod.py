@@ -67,6 +67,7 @@ WARMUP = 2
 EMBED_BATCH = 96
 CROP_SIZE = (2048, 1536)
 QC01Q = importlib.import_module("pipeline.01q_requalify_qc")
+TILE_CONTRIB = importlib.import_module("pipeline.05d_tile_contrib")
 
 
 # ---- the production recipe ------------------------------------------------------------------------------------------
@@ -304,7 +305,10 @@ def featurize(rows: Sequence[Mapping[str, Any]], root: Path, enc: E.Encoder | No
                 if cache.dirty >= 25:
                     cache.save()
             full = X.tile_case(img, cfg)
+            contrib, constant = region_contributions(prod, x, regions, cfg)
             out[crop_id] = {"key": key, "feat": feat, "n_qc": int(n_qc), "qc_fallback": bool(fallback),
+                            "qc_regions": [int(r["tile_idx"]) for r in regions if r["qc_pass"]],
+                            "contributions": contrib, "contribution_constant": constant,
                             "qc_fullres_disagree": int(sum(a["qc_pass"] != b["qc_pass"] for a, b in zip(regions, full)))}
             print(f"  [{i}/{len(rows)}] {crop_id}{' (cached)' if cached else f' {t3 - t0:.2f}s'}", flush=True)
         except Exception as exc:  # noqa: BLE001 - a failed crop is reported, never silently dropped
@@ -312,6 +316,40 @@ def featurize(rows: Sequence[Mapping[str, Any]], root: Path, enc: E.Encoder | No
             out[crop_id] = {"error": f"{type(exc).__name__}: {exc}"}
     cache.save()
     return out
+
+
+def region_contributions(prod: Production, x: np.ndarray, regions: Sequence[Mapping[str, Any]],
+                         cfg: Mapping[str, Any]) -> tuple[dict[int, float], float]:
+    """Exact region contributions of the read (pipeline/05d_tile_contrib.read_contributions) over the rows the read
+    pools: the QC-passing regions, or every region when none passes (riskmodels.tile_bags). The g512 regions are the
+    contract grid, so each region is its own term. constant + sum = the centered calibrated logit of the aggressive
+    class."""
+    use = [i for i, r in enumerate(regions) if r["qc_pass"]] or list(range(len(regions)))
+    target = prod.classes.index(cfg["aggressive_class"])
+    terms, constant = TILE_CONTRIB.read_contributions(prod.linear, x[use], np.array([int(regions[i]["tile_idx"])
+                                                                                      for i in use]),
+                                                      prod.temperature, target)
+    return {int(k): float(v) for k, v in terms.items()}, float(constant)
+
+
+def centered_logit(probs: np.ndarray, target: int) -> float:
+    """log p_target - mean_k log p_k: what constant + sum(contributions) must reproduce (05d identity)."""
+    probs = np.asarray(probs, dtype=float)
+    return float(np.log(probs[target]) - np.log(probs).mean())
+
+
+def attribution_identity(crops: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Max |constant + sum(contributions) - centered calibrated logit| over crops whose probabilities are all above
+    05d's floor (the same check 05d runs on BACH reads)."""
+    errors = {}
+    for c in crops:
+        att = c.get("attribution")
+        if not att or min(c["probs"].values()) <= TILE_CONTRIB.PROB_FLOOR:
+            continue
+        errors[c["crop_id"]] = abs(att["constant"] + sum(c["region_contributions"].values()) - att["centered_logit"])
+    worst = max(errors, key=errors.get) if errors else None
+    return {"tolerance": TILE_CONTRIB.TOLERANCE, "n_checked": len(errors), "max_abs_error": errors.get(worst),
+            "worst_crop": worst, "passed": bool(errors) and max(errors.values()) <= TILE_CONTRIB.TOLERANCE}
 
 
 # ---- scoring and analyses ---------------------------------------------------------------------------------------------
@@ -343,7 +381,11 @@ def score_crops(rows: Sequence[Mapping[str, Any]], feats: Mapping[str, Mapping[s
             "p_invasive": float(probs[i, inv]), "top": prod.classes[int(probs[i].argmax())],
             "conformal_set": members, "set_size": len(members), "tier": int(tier), "tier_reasons": reasons,
             "conformal_set_deterministic": members_det, "tier_deterministic_sets": int(tier_det),
-            "qc_tiles_kept": f["n_qc"],
+            "qc_tiles_kept": f["n_qc"], "qc_regions": f["qc_regions"],
+            "region_contributions": {str(k): v for k, v in sorted(f["contributions"].items())},
+            "attribution": {"method": "exact_linear", "target": cfg["aggressive_class"],
+                            "constant": f["contribution_constant"], "unit": "centered calibrated logit",
+                            "centered_logit": centered_logit(probs[i], inv)},
         })
     return out
 
@@ -403,6 +445,7 @@ def cohort_payload(name: str, root: Path, rows: Sequence[Mapping[str, Any]], fea
         "pixel_sources": dict(Counter(c["pixel_source"] for c in crops)),
         "qc_fullres_disagree_regions": int(sum(c["qc_fullres_disagree"] for c in crops)),
         "qc_fallback_crops": [c["crop_id"] for c in crops if c["qc_fallback"]],
+        "attribution_identity": attribution_identity(crops),
         **{k: v for k, v in analysis.items() if k != "slides"},
         "slides": slides, "crops": crops,
         "run_info": {k: run_info[k] for k in ("created_utc", "args", "slides_selected", "crops_written", "groups",
