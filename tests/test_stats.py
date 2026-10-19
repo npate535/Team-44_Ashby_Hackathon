@@ -236,3 +236,30 @@ def test_caller_misuse_raises_instead_of_nan():
     y = np.array([0, 1, 2, 3] * 5)
     with pytest.raises(ValueError):
         stats.bootstrap_ci(stats.auroc, [y, np.arange(20.0)], None, None, 50, 0.95, 1)
+
+
+# ---- exact interval at the boundary (k = n or k = 0) -----------------------------------------------------------
+def test_exact_boundary_ci_closed_form():
+    lo, hi = stats.exact_boundary_ci(31, 31)
+    assert lo == pytest.approx(0.888, abs=5e-4) and hi == 1.0
+    lo, hi = stats.exact_boundary_ci(17, 17)
+    assert lo == pytest.approx(0.805, abs=5e-4) and hi == 1.0
+    lo, hi = stats.exact_boundary_ci(0, 71)
+    assert lo == 0.0 and hi == pytest.approx(0.051, abs=5e-4)
+
+
+def test_exact_boundary_ci_matches_beta_quantiles():
+    from scipy.stats import beta
+
+    for n in (1, 5, 31, 132):
+        assert stats.exact_boundary_ci(n, n)[0] == pytest.approx(beta.ppf(0.025, n, 1))
+        assert stats.exact_boundary_ci(0, n)[1] == pytest.approx(beta.ppf(0.975, 1, n))
+    assert stats.exact_boundary_ci(10, 10, level=0.9)[0] == pytest.approx(0.05 ** 0.1)
+
+
+def test_exact_boundary_ci_is_none_off_the_boundary_and_validates():
+    assert stats.exact_boundary_ci(30, 31) is None
+    assert stats.exact_boundary_ci(1, 71) is None
+    for k, n, level in ((0, 0, 0.95), (5, 4, 0.95), (-1, 4, 0.95), (2, 2, 1.0), (1.5, 2, 0.95)):
+        with pytest.raises(ValueError):
+            stats.exact_boundary_ci(k, n, level)

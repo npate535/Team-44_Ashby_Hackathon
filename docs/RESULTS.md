@@ -1,6 +1,6 @@
 # Sepia results
 
-> Research prototype — not for clinical use. Every number below is quoted from the eval file named beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.
+> Research prototype — not for clinical use. Every number below is quoted from the eval file named beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated. Where that bootstrap collapses to a single point at 0% or 100%, the result is given as a count with its exact Clopper–Pearson 95% interval (which treats the cases as independent); an AUROC of exactly 1 is described in words, without an interval.
 
 Generated 2026-10-19T02:09:36Z from 21 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 7045b84ab1fb8b386c44e0e9a60a98e9f974c330, bc76a1db582cac260a8734e7437050686420d0c2, e465ed396ce0c448c7c11f1a32260a779d3fd525).
 
@@ -16,13 +16,13 @@ Source: `eval/metrics.json` · test n = 132, 24 patient / pseudo-patient groups 
 |---|---|
 | Invasive vs rest AUROC | 0.999 [0.996, 1.000] (n 132, 24 groups) |
 | Macro AUROC | 0.965 [0.883, 0.995] (n 132, 24 groups) |
-| Macro-F1 | 0.86 [0.68, 0.93] (n 132, 24 groups) |
-| Balanced accuracy | 0.87 [0.68, 0.94] (n 132, 24 groups) |
-| Accuracy | 0.86 [0.76, 0.94] (n 132, 24 groups) |
-| Invasive sensitivity | 1.000 [1.000, 1.000] (n 132, 24 groups) |
-| Invasive specificity | 0.970 [0.936, 1.000] (n 132, 24 groups) |
+| Macro-F1 | 0.860 [0.678, 0.928] (n 132, 24 groups) |
+| Balanced accuracy | 0.871 [0.676, 0.938] (n 132, 24 groups) |
+| Accuracy | 0.864 [0.760, 0.944] (114 of 132; 24 groups) |
+| Invasive sensitivity | 31 of 31 invasive test images (exact 95% CI 88.8–100%) |
+| Invasive specificity | 0.970 [0.936, 1.000] (98 of 101 non-invasive test images; 24 groups) |
 
-Model A `uni2h512_lr` vs Model B `cb_text` (Invasive-vs-rest AUROC (uncalibrated scores)): A 0.999 [0.996, 1.000] (n 132, 24 groups); B 1.000 [1.000, 1.000] (n 132, 24 groups); paired difference A − B 0.00 [0.00, 0.00] (n 132, 24 groups).
+Model A `uni2h512_lr` vs Model B `cb_text` (Invasive-vs-rest AUROC (uncalibrated scores)): A 0.999 [0.996, 1.000] (n 132, 24 groups); B 1.000 (all 31 invasive images ranked above all 101 others; no interval); paired difference A − B −0.001 [−0.004, 0.000] (n 132, 24 groups).
 
 In situ ↔ invasive confusion: 3 of 30 in situ cases called invasive; 0 of 31 invasive cases called in situ.
 
@@ -32,8 +32,8 @@ Source: `eval/calibration.json` · temperature 0.342 fit on train_oof · 10 equa
 
 | | ECE | Brier | NLL |
 |---|---|---|---|
-| before temperature | 0.18 [0.12, 0.25] (n 132, 24 groups) | 0.28 [0.16, 0.40] (n 132, 24 groups) | 0.57 [0.35, 0.82] (n 132, 24 groups) |
-| after temperature | 0.05 [0.03, 0.18] (n 132, 24 groups) | 0.23 [0.09, 0.41] (n 132, 24 groups) | 0.57 [0.18, 1.32] (n 132, 24 groups) |
+| before temperature | 0.184 [0.124, 0.251] (n 132, 24 groups) | 0.285 [0.158, 0.398] (n 132, 24 groups) | 0.571 [0.353, 0.819] (n 132, 24 groups) |
+| after temperature | 0.055 [0.032, 0.185] (n 132, 24 groups) | 0.226 [0.092, 0.412] (n 132, 24 groups) | 0.575 [0.180, 1.323] (n 132, 24 groups) |
 
 ## Conformal prediction sets
 
@@ -46,7 +46,7 @@ Source: `eval/conformal.json` · alpha 0.1 (target coverage 90%) · tiers use ap
 | mondrian | 53.8% [40.4%, 80.7%] (n 132, 24 groups) | 0.64 [0.51, 0.89] (n 132, 24 groups) | 36.4% |
 | aps_marginal_nonempty | 91.7% [80.8%, 98.1%] (n 132, 24 groups) | 1.30 [1.16, 1.37] (n 132, 24 groups) | 0.0% |
 
-Per-class coverage of the tier set (aps_marginal_nonempty): Normal 95.7% [87.5%, 100.0%] (n 23, 6 groups); Benign 85.4% [50.0%, 100.0%] (n 48, 6 groups); InSitu 90.0% [66.7%, 94.7%] (n 30, 6 groups); Invasive 100.0% [100.0%, 100.0%] (n 31, 17 groups).
+Per-class coverage of the tier set (aps_marginal_nonempty): Normal 95.7% [87.5%, 100.0%] (n 23, 6 groups); Benign 85.4% [50.0%, 100.0%] (n 48, 6 groups); InSitu 90.0% [66.7%, 94.7%] (n 30, 6 groups); Invasive 31 of 31 (exact 95% CI 88.8–100%).
 
 Per-class LAC coverage (pre-registered): Normal 69.6% [34.6%, 92.9%] (n 23, 6 groups); Benign 64.6% [40.0%, 79.6%] (n 48, 6 groups); InSitu 60.0% [33.3%, 68.4%] (n 30, 6 groups); Invasive 96.8% [90.0%, 100.0%] (n 31, 17 groups).
 
@@ -179,9 +179,9 @@ Scoring models: Clean reads: 132 by uni2h512_lr. Simulated degraded reads: 1,584
 
 Source: `eval/margin.json` · threshold P = 0.99982 [0.84738, 0.99989] (n 30, 6 groups), from 30 benign calibration images.
 
-- Benign test images, false tumor-at-margin per margin (pooled over 4 margins): 0.0% [0.0%, 0.0%] (n 284, 7 groups) (the threshold targets ≤ 5% per margin; 71 of 71 benign test images scored). Image-level, any of 4 margins: 0.0% [0.0%, 0.0%] (n 71, 7 groups) (no 5% target at image level).
+- Benign test images, false tumor-at-margin: 0 of 284 margins (4 per image, so not independent; no interval). Each margin separately: 0 of 71 (exact 95% CI 0–5.1%); the threshold targets ≤ 5% per margin; 71 of 71 benign test images scored. Image-level, any of 4 margins: 0 of 71 images (exact 95% CI 0–5.1%; no 5% target at image level).
 - Carcinoma test images with ≥ 1 margin called clear: 47.5% [25.0%, 64.7%] (n 61, 19 groups); Spearman(max margin score, case risk) 0.56 [0.09, 0.80] (n 61, 19 groups).
-- Composite fields (64 of 64 scored): exact-negative margin called clear 100.0% [100.0%, 100.0%] (n 64, 41 groups); benign-half segments below threshold 100.0% [100.0%, 100.0%] (n 768, 41 groups); carcinoma-half segments above threshold 40.0% [30.8%, 50.9%] (n 768, 41 groups); tumor-side margin involved 70.3% [57.7%, 82.4%] (n 64, 41 groups). An echo of the diagnosis would score ~0% clear.
+- Composite fields (64 of 64 scored): exact-negative margin called clear in 64 of 64 (exact 95% CI 94.4–100%, treating the composites as independent although they reuse 41 source groups); benign-half segments below threshold 768 of 768 (segments of the same field are not independent; no interval); carcinoma-half segments above threshold 40.0% [30.8%, 50.9%] (n 768, 41 groups); tumor-side margin involved 70.3% [57.7%, 82.4%] (n 64, 41 groups). An echo of the diagnosis would score ~0% clear.
 - Annotated WSI windows (84, 10 patients): sensitivity 45.4% [25.4%, 65.2%] (n 141, 10 groups), specificity 98.5% [96.7%, 100.0%] (n 195, 10 groups).
 
 - Simulated margins: image borders stand in for inked margins (top superior, bottom inferior, left medial, right lateral); anterior/posterior are not representable in 2D.
@@ -197,9 +197,9 @@ TCGA-BRCA has no benign or in situ labels. Only invasive carcinoma (Primary Tumo
 | Analysis | 25 patients (tile-API crops) | first 8 patients (openslide crops) |
 |---|---|---|
 | FFPE tumor slides called invasive (sensitivity) | 95.7% [87.0%, 100.0%] (n 23, 23 groups) | 87.5% [62.5%, 100.0%] (n 8, 8 groups) |
-| Frozen tumor slides called invasive (sensitivity) | 84.0% [68.0%, 96.0%] (n 25, 25 groups) | 100.0% [100.0%, 100.0%] (n 8, 8 groups) |
-| Frozen normal slides not called invasive (specificity) | 100.0% [100.0%, 100.0%] (n 17, 17 groups) | 100.0% [100.0%, 100.0%] (n 7, 7 groups) |
-| Frozen tumor vs frozen normal, AUROC of the slide score | 1.000 [1.000, 1.000] (n 42, 25 groups) | 1.000 [1.000, 1.000] (n 15, 8 groups) |
+| Frozen tumor slides called invasive (sensitivity) | 84.0% [68.0%, 96.0%] (21 of 25; 25 groups) | 8 of 8 (exact 95% CI 63.1–100%) |
+| Frozen normal slides not called invasive (specificity) | 17 of 17 (exact 95% CI 80.5–100%) | 7 of 7 (exact 95% CI 59.0–100%) |
+| Frozen tumor vs frozen normal, AUROC of the slide score | 1.000: all 25 frozen tumor slides ranked above all 17 frozen normal slides (no interval) | 1.000: all 8 tumor above all 7 normal (no interval) |
 | Tumor slides with a crop in tier 1–2 | 97.9% [93.6%, 100.0%] (n 48, 25 groups) | 93.8% [81.2%, 100.0%] (n 16, 8 groups) |
 | FFPE minus frozen tumor sensitivity | 11.7 points | -12.5 points |
 | Patients / slides / crops | 25 / 65 / 353 | 8 / 23 / 132 |
@@ -214,10 +214,10 @@ BACH: 132 held-out test images (unit: single BACH image (2048 x 1536 field), not
 
 | Statistic | BACH test | TCGA |
 |---|---|---|
-| Invasive / tumor called invasive | 100.0% [100.0%, 100.0%] (n 31, 17 groups) | FFPE 95.7% [87.0%, 100.0%] (n 23, 23 groups); frozen 84.0% [68.0%, 96.0%] (n 25, 25 groups) |
-| Normal not called invasive | 100.0% [100.0%, 100.0%] (n 23, 6 groups) | 100.0% [100.0%, 100.0%] (n 17, 17 groups) |
-| Invasive vs normal AUROC | 1.000 [1.000, 1.000] (n 54, 22 groups) | 1.000 [1.000, 1.000] (n 42, 25 groups) |
-| Invasive / tumor in tier 1–2 | 100.0% [100.0%, 100.0%] (n 31, 17 groups) | 97.9% [93.6%, 100.0%] (n 48, 25 groups) |
+| Invasive / tumor called invasive | 31 of 31 (exact 95% CI 88.8–100%) | FFPE 95.7% [87.0%, 100.0%] (n 23, 23 groups); frozen 84.0% [68.0%, 96.0%] (n 25, 25 groups) |
+| Normal not called invasive | 23 of 23 (exact 95% CI 85.2–100%) | 17 of 17 (exact 95% CI 80.5–100%) |
+| Invasive vs normal AUROC | 1.000: all 31 invasive images ranked above all 23 normal images (no interval) | 1.000: all 25 frozen tumor slides above all 17 frozen normal slides (no interval) |
+| Invasive / tumor in tier 1–2 | 31 of 31 (exact 95% CI 88.8–100%) | 97.9% [93.6%, 100.0%] (n 48, 25 groups) |
 | Reliability flag rate | 16.7% (clean test) | not computed |
 
 ### Pre-registered sensitivity analysis S1: slides with exactly 6 crops
@@ -225,9 +225,9 @@ BACH: 132 held-out test images (unit: single BACH image (2048 x 1536 field), not
 | Analysis | 25 patients (tile-API crops) | first 8 patients (openslide crops) |
 |---|---|---|
 | FFPE tumor slides called invasive (sensitivity) | 95.7% [87.0%, 100.0%] (n 23, 23 groups) | 87.5% [62.5%, 100.0%] (n 8, 8 groups) |
-| Frozen tumor slides called invasive (sensitivity) | 83.3% [66.7%, 95.8%] (n 24, 24 groups) | 100.0% [100.0%, 100.0%] (n 8, 8 groups) |
-| Frozen normal slides not called invasive (specificity) | 100.0% [100.0%, 100.0%] (n 9, 9 groups) | 100.0% [100.0%, 100.0%] (n 5, 5 groups) |
-| Frozen tumor vs frozen normal, AUROC of the slide score | 1.000 [1.000, 1.000] (n 33, 24 groups) | 1.000 [1.000, 1.000] (n 13, 8 groups) |
+| Frozen tumor slides called invasive (sensitivity) | 83.3% [66.7%, 95.8%] (20 of 24; 24 groups) | 8 of 8 (exact 95% CI 63.1–100%) |
+| Frozen normal slides not called invasive (specificity) | 9 of 9 (exact 95% CI 66.4–100%) | 5 of 5 (exact 95% CI 47.8–100%) |
+| Frozen tumor vs frozen normal, AUROC of the slide score | 1.000: all 24 tumor above all 9 normal (no interval) | 1.000: all 8 tumor above all 5 normal (no interval) |
 | Tumor slides with a crop in tier 1–2 | 97.9% [93.5%, 100.0%] (n 47, 25 groups) | 93.8% [81.2%, 100.0%] (n 16, 8 groups) |
 | Slides analysed | 56 | 21 |
 
@@ -265,7 +265,7 @@ Limitations of this test:
 - cv_metrics · uni2h_lr · macro_f1: 0.951 [0.915, 0.980] (n 218, 49 groups)
 - cv_metrics · uni2h_lr · macro_auroc: 0.993 [0.984, 0.999] (n 218, 49 groups)
 - cv_metrics · uni2h512_lr · log_loss: 0.36 [0.30, 0.43] (n 218, 49 groups)
-- cv_metrics · uni2h512_lr · auroc_invasive: 1.000 [1.000, 1.000] (n 218, 49 groups)
+- cv_metrics · uni2h512_lr · auroc_invasive: 1.000, all invasive training images ranked above all others out of fold (n 218, 49 groups; no interval)
 - cv_metrics · uni2h512_lr · balanced_accuracy: 0.953 [0.922, 0.982] (n 218, 49 groups)
 - cv_metrics · uni2h512_lr · macro_f1: 0.955 [0.920, 0.982] (n 218, 49 groups)
 - cv_metrics · uni2h512_lr · macro_auroc: 0.993 [0.983, 0.999] (n 218, 49 groups)
@@ -300,7 +300,7 @@ Limitations of this test:
 - cv_metrics · cb_cells · macro_f1: 0.33 [0.26, 0.39] (n 218, 49 groups)
 - cv_metrics · cb_cells · macro_auroc: 0.62 [0.57, 0.67] (n 218, 49 groups)
 - cv_metrics · abmil · log_loss: 0.18 [0.07, 0.32] (n 218, 49 groups)
-- cv_metrics · abmil · auroc_invasive: 1.000 [1.000, 1.000] (n 218, 49 groups)
+- cv_metrics · abmil · auroc_invasive: 1.000, all invasive training images ranked above all others out of fold (n 218, 49 groups; no interval)
 - cv_metrics · abmil · balanced_accuracy: 0.946 [0.906, 0.981] (n 218, 49 groups)
 - cv_metrics · abmil · macro_f1: 0.946 [0.901, 0.980] (n 218, 49 groups)
 - cv_metrics · abmil · macro_auroc: 0.992 [0.983, 0.999] (n 218, 49 groups)

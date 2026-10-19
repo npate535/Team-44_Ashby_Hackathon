@@ -90,6 +90,51 @@ def test_render_md_states_units_and_conventions():
     assert "reads each region once" in md
 
 
+def test_exact_at_boundary_uses_the_true_denominator():
+    iv = fs.exact_at_boundary(1.0, [1.0, 1.0], 31, 31)
+    assert iv["k"] == 31 and iv["n"] == 31
+    assert iv["lo"] == pytest.approx(0.888, abs=5e-4) and iv["hi"] == 1.0
+    assert fs.exact_text(iv) == "31 of 31 (exact 95% CI 88.8–100%)"
+    assert fs.exact_text(fs.exact_at_boundary(0.0, [0.0, 0.0], 0, 71)) == "0 of 71 (exact 95% CI 0–5.1%)"
+    assert fs.exact_at_boundary(0.97, [0.936, 1.0], 98, 101) is None      # not on the boundary
+    assert fs.exact_at_boundary(1.0, [0.9, 1.0], 31, 31) is None          # bootstrap did not collapse
+    with pytest.raises(ValueError):
+        fs.exact_at_boundary(1.0, [1.0, 1.0], 31, 132)                    # 31 of 132 is not 100%
+
+
+def test_percentages_round_half_up_like_the_docs():
+    assert fs._pct(39 / 48) == "81.3%"
+    assert fs._pct(20 / 23) == "87.0%"
+    assert fs._pc_short(1.0) == "100" and fs._pc_short(0.05061) == "5.1"
+
+
+def test_render_md_replaces_collapsed_intervals():
+    counts = [[20, 3, 0, 0], [9, 39, 0, 0], [2, 1, 24, 3], [0, 0, 0, 31]]
+    sens = {"value": 1.0, "ci": [1.0, 1.0], "k": 31, "n": 31,
+            "exact_ci": fs.exact_at_boundary(1.0, [1.0, 1.0], 31, 31)}
+    other = {"value": 0.97, "ci": [0.936, 1.0], "k": 98, "n": 101, "exact_ci": None}
+    sheet = {"test": {"model": "m", "auroc_conventions": {"invasive_vs_rest": {"value": 1.0, "ci": [1.0, 1.0]}},
+                      "macro_f1": {"value": 0.86, "ci": [0.68, 0.93]},
+                      "balanced_accuracy": {"value": 0.87, "ci": [0.68, 0.94]},
+                      "accuracy": {"value": 114 / 132, "ci": [0.76, 0.94], "k": 114, "n": 132},
+                      "invasive_sensitivity": sens, "invasive_specificity": other,
+                      "confusion": {"classes": CLASSES, "counts": counts},
+                      "per_class": fs.per_class_rates(counts, CLASSES), "errors": []},
+             "external_test": {"n_patients": 25, "n_slides": 65, "n_crops": 353, "protocol": "p",
+                               "metrics": {"frozen_tumor_vs_normal_auroc": {"value": 1.0, "ci": [1.0, 1.0], "n": 42,
+                                                                            "collapsed": True, "n_pos": 25,
+                                                                            "n_neg": 17},
+                                           "frozen_normal_specificity": {
+                                               "value": 1.0, "ci": [1.0, 1.0], "n": 17, "k": 17,
+                                               "exact_ci": fs.exact_at_boundary(1.0, [1.0, 1.0], 17, 17)}}}}
+    md = fs.render_md(sheet)
+    assert "31 of 31 (exact 95% CI 88.8–100%)" in md
+    assert "17 of 17 (exact 95% CI 80.5–100%)" in md
+    assert "all positives ranked above all negatives" in md
+    assert "all 25 frozen tumor slides ranked above all 17 frozen normal slides" in md
+    assert "1.000–1.000" not in md and "[1.000, 1.000]" not in md and "100.0%, 100.0%" not in md
+
+
 DATA = Path(os.environ.get("PATHQUEUE_DATA_ROOT", "/nonexistent"))
 
 
@@ -103,5 +148,9 @@ def test_real_data_fact_sheet():
     assert sheet["disjointness"]["ok"] is True
     conf = np.array(sheet["test"]["confusion"]["counts"])
     assert conf.sum() == 132 and conf[3, 3] == 31
+    sens = sheet["test"]["invasive_sensitivity"]
+    assert (sens["k"], sens["n"]) == (31, 31)                    # denominator: invasive images, not all 132
+    assert sens["exact_ci"]["lo"] == pytest.approx(0.888, abs=5e-4)
+    assert (sheet["test"]["invasive_specificity"]["k"], sheet["test"]["invasive_specificity"]["n"]) == (98, 101)
     assert sheet["bach"]["n_regions"] == 4800
     assert sheet["production_features"]["views"] == 1  # uni2h bach512 was embedded at view 0 only

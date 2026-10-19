@@ -35,14 +35,14 @@ Both, for different purposes.
 Source: `artifacts/eval/model_choice.json`.
 
 **4. What does 98–99% AUROC measure in a four-class task? How many invasive test images? What mistakes were made?**
-The headline is **invasive vs rest AUROC 0.999 [0.996, 1.000]**: a binary AUROC of P(invasive), invasive images against all other classes. Macro one-vs-rest AUROC across the four classes is 0.965 [0.883, 0.995]. Intervals are 95% bootstrap over patient groups.
+The headline is **invasive vs rest AUROC 0.999 [0.996, 1.000]**: a binary AUROC of P(invasive), invasive images against all other classes. Macro one-vs-rest AUROC across the four classes is 0.965 [0.883, 0.995]. Intervals are 95% bootstrap over patient groups. At 100% that bootstrap collapses to a single point, so a perfect result is given as a count with its exact (Clopper–Pearson) interval.
 
 | Measure | Result |
 |---|---|
-| Invasive test images | 31, all flagged as invasive (sensitivity 100%) |
-| Invasive specificity | 97.0% [93.6, 100] |
-| Macro-F1 | 0.86 [0.68, 0.93] |
-| Accuracy | 0.86 [0.76, 0.94] |
+| Invasive test images | 31 of 31 called invasive (sensitivity; exact 95% CI 88.8–100%) |
+| Invasive specificity | 97.0% [93.6, 100] (98 of 101 non-invasive images) |
+| Macro-F1 | 0.860 [0.678, 0.928] |
+| Accuracy | 86.4% [76.0, 94.4] (114 of 132) |
 
 18 of 132 test images were misread:
 
@@ -61,7 +61,7 @@ BACH is curated, and that is the main limitation. The dataset page says images t
 
 Signs that within-BACH numbers overstate real-world performance:
 
-- Training-set cross-validation scored macro-F1 0.955, against 0.86 on the test split.
+- Training-set cross-validation scored macro-F1 0.955, against 0.860 on the test split.
 - The calibration split was easier than the test split, which broke the pre-registered conformal method.
 
 The closest human baseline is the BACH paper's own reader study (Aresta 2019, Table 4). Four pathologists read BACH's 100 hidden test images, seeing only the field image.
@@ -70,7 +70,7 @@ The closest human baseline is the BACH paper's own reader study (Aresta 2019, Ta
 |---|---|
 | Four pathologists, BACH hidden test images | 96%, 94%, 78%, 73% (mean 85%) |
 | Best challenge algorithm, same images | 87% |
-| Sepia, THUNDER test split (132 images, different images) | 86% [76, 94] |
+| Sepia, THUNDER test split (132 images, different images) | 86.4% [76.0, 94.4] |
 
 On whole slides of real biopsies, pathologists agreed with an expert consensus in 96% of invasive, 84% of DCIS and 48% of atypia cases (Elmore 2015, B-Path). Disagreement concentrates in atypia, which BACH does not contain.
 
@@ -103,7 +103,7 @@ Of 1,017,708 Quilt-1M caption rows, 26,837 mention breast tissue. Caption patter
 A near-duplicate check found no Quilt image closer than 0.935 CONCH cosine similarity to any BACH region. For scale, the median BACH region's nearest region from a different BACH image is at 0.914. Source: `artifacts/eval/fact_sheet.json`.
 
 **8. What does the "window of five" mean?**
-The five nearest training images by cosine similarity of their mean CONCH embedding. The library is the 218 training images only, so a test image can never retrieve itself or another test image. In 67% of cases the five neighbors share the test image's true label (precision@5 0.67 [0.58, 0.83]):
+The five nearest training images by cosine similarity of their mean CONCH embedding. The library is the 218 training images only, so a test image can never retrieve itself or another test image. On average, 67% of a test image's five neighbors share its true label (precision@5 0.67 [0.58, 0.83]):
 
 | Test class | Neighbors with the same label |
 |---|---|
@@ -136,7 +136,7 @@ Sepia scores nine named features as similarity to written descriptions:
 The app now labels the first group "Nottingham components (features, not a grade)". The AI spot check found the mitoses feature unreliable (0/20 top regions acceptable), so it should not be read as a mitotic count.
 
 **11. What do the displayed percentages and similarities mean? Are the probabilities calibrated?**
-The percentages are temperature-scaled class probabilities for this image. Calibration error (ECE) fell from 0.18 to 0.055 on the test split. They are not probabilities of progression, recurrence or survival.
+The percentages are temperature-scaled class probabilities for this image. Calibration error (ECE) fell from 0.184 to 0.055 on the test split. They are not probabilities of progression, recurrence or survival.
 
 The case judges saw (BACH_0087, reference label in situ) reads:
 
@@ -151,7 +151,7 @@ Feature scores are standardized against training images: "above normal" means ab
 **12. Why is the benign look-alike different? Does Sepia name the distinguishing features?**
 Each look-alike now shows a table of the two features that differ most between the case and the look-alike, with their values and the spot-check status of each feature. A feature that failed its spot check is greyed out and not offered as a reason.
 
-These are associations measured by feature similarity, not a pathologist's reasoning. Across the 328 cases in the app, 48 look-alikes differ in two features that passed the spot check, 170 in one and 110 in none. For BACH_0087 the passing difference is benign stroma or fat: +1.06 SD in the case against −1.95 SD in its invasive look-alike, a difference of +3.01 SD. For BACH_0167 neither differing feature passed, and the table says it offers no reliable feature-level reason. The region heatmap is the evidence that passes a faithfulness test: removing the top 3 regions lowers the centered logit by 0.54 more than removing random regions. The feature regions do not pass that test. See question 14 and the case view.
+These are associations measured by feature similarity, not a pathologist's reasoning. Across the 328 cases in the app, 48 look-alikes differ in two features that passed the spot check, 170 in one and 110 in none. For BACH_0087 the passing difference is benign stroma or fat: +1.06 SD in the case against −1.95 SD in its invasive look-alike, a difference of +3.01 SD. For BACH_0167 neither differing feature passed, and the table says it offers no reliable feature-level reason. The region heatmap is the evidence that passes a faithfulness test: in the 34 test images the model calls invasive (the pre-registered subset), removing the top 3 regions lowers the centered logit by 0.46 [0.38, 0.56] more than removing 3 random regions; over all 132 test images the difference is 0.54 [0.47, 0.60]. The feature regions do not pass that test. See question 14 and the case view.
 
 ## Workflow claims
 
@@ -166,17 +166,17 @@ It is not model runtime, not a measured hospital result, and not a turnaround ti
 **14. What happens on a different site, scanner, stain or protocol?**
 The production model was tested unchanged on TCGA-BRCA slides from other hospitals and scanners, including real frozen sections: same model, same thresholds, no retraining. The analysis was pre-registered in `docs/EXTERNAL_TCGA_R2.md` before any TCGA field was scored. Before scoring, a parity check confirmed that the laptop reproduces the Delta embeddings.
 
-The cohort was 25 patients and 65 slides, with 6 random tissue-rich fields per slide. Results are at slide level, with 95% bootstrap intervals over patients:
+The cohort was 25 patients and 65 slides, with up to 6 random tissue-rich fields per slide (353 fields; 9 slides had fewer than 6). Results are at slide level, with 95% bootstrap intervals over patients:
 
 | Measure | Result |
 |---|---|
 | FFPE tumor slides called invasive | 95.7% [87.0, 100] (23 slides) |
 | Frozen tumor slides called invasive | 84.0% [68.0, 96.0] (25 slides) |
-| Frozen tumor vs frozen normal AUROC | 1.000 |
-| Frozen normal slides not called invasive | 100% (17 slides) |
-| Tumor slides with a field in the top two tiers | 97.9% |
+| Frozen tumor vs frozen normal AUROC | 1.000: all 25 frozen tumor slides ranked above all 17 frozen normal slides (no interval) |
+| Frozen normal slides not called invasive | 17 of 17 (exact 95% CI 80.5–100%) |
+| Tumor slides with a field in the top two tiers | 97.9% [93.6, 100] (47 of 48) |
 
-The drop from FFPE to frozen sections (about 12 points) is the measured cost of real frozen-section artifacts.
+The drop from FFPE to frozen sections (11.7 percentage points) is the measured cost of real frozen-section artifacts.
 
 Limits:
 

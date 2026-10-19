@@ -35,16 +35,18 @@ Disjointness check: passed (patient groups in more than one split: 0; identified
 | Macro one-vs-rest AUROC | 0.965 | 0.883–0.995 | mean of the four one-vs-rest AUROCs |
 | Macro-F1 | 0.860 | 0.678–0.928 | |
 | Balanced accuracy | 0.871 | 0.676–0.938 | |
-| Accuracy | 0.864 | 0.760–0.944 | |
-| Invasive sensitivity | 1.000 | 1.000–1.000 | |
-| Invasive specificity | 0.970 | 0.936–1.000 | |
+| Accuracy | 0.864 (114 of 132) | 0.760–0.944 | images whose top class is the reference label |
+| Invasive sensitivity | 1.000 (31 of 31) | 31 of 31 (exact 95% CI 88.8–100%) | invasive images called invasive (denominator: invasive test images) |
+| Invasive specificity | 0.970 (98 of 101) | 0.936–1.000 | non-invasive images not called invasive (denominator: non-invasive test images) |
+
+Intervals are 95% percentile cluster bootstraps over patient / pseudo-patient groups. Where a result is 0% or 100% the bootstrap collapses to a single point, so the exact Clopper–Pearson interval for the count is shown instead (it treats the images as independent). An AUROC of exactly 1 gets no interval.
 
 Confusion matrix (rows = true class, columns = predicted; production model `uni2h512_lr`):
 
 | True \ Predicted | Normal | Benign | In situ carcinoma | Invasive carcinoma | Recall |
 |---|---|---|---|---|---|
 | Normal | 20 | 3 | 0 | 0 | 20/23 (87.0%) |
-| Benign | 9 | 39 | 0 | 0 | 39/48 (81.2%) |
+| Benign | 9 | 39 | 0 | 0 | 39/48 (81.3%) |
 | In situ carcinoma | 2 | 1 | 24 | 3 | 24/30 (80.0%) |
 | Invasive carcinoma | 0 | 0 | 0 | 31 | 31/31 (100.0%) |
 
@@ -114,12 +116,12 @@ Near-duplicate check (Quilt/PathGen vs BACH, CONCH): highest similarity of any p
 - Trained by the team: reliability combiner, CONCH tile probe for the risk heatmap, simulated-margin probe
 - Rule-based: worklist tiers and the safety rule
 - Rule-based: drafted follow-up orders (never placed)
-- Case summaries: {'template': 328}; summaries shipped in the case files are written by a deterministic template from structured findings.
-- 'In plain language' tab (cached explanations by model and provider): {'gemini-4-argon-high (cursor)': 330, 'claude-opus-5-5-medium (cursor)': 1, 'claude-sonnet-5-5-xhigh (cursor)': 1}; optional explanation generated from measured evidence; every number is checked against the evidence; not itself evidence.
+- Case summaries (case files by generator: template 328): summaries shipped in the case files are written by a deterministic template from structured findings.
+- 'In plain language' tab (cached explanations by model and provider: gemini-4-argon-high (cursor) 330; claude-opus-5-5-medium (cursor) 1; claude-sonnet-5-5-xhigh (cursor) 1): optional explanation generated from measured evidence; every number is checked against the evidence; not itself evidence.
 
 ## Three different time numbers
 
-1. **Queue simulation** (simulated reading day, not a measured workflow): Poisson, 6 per hour for 8 h; cases drawn uniformly with replacement from the clean test split; reader: one reader, fixed 9 min per case, non-preemptive, works overtime until empty. Results in `artifacts/eval/queue_sim.json`.
+1. **Queue simulation** (simulated reading day, not a measured workflow): Poisson, 6 per hour for 8 h; cases drawn uniformly with replacement from the clean test split; reader: one reader, fixed 9 min per case, non-preemptive, works overtime until empty. Mean wait of invasive cases 20.2 min first-in-first-out vs 6.0 min with the tiers (2.5–97.5 percentiles over 1000 simulated days: 3.5–60.1 and 1.9–12.9); non-flagged cases wait 21.4 min longer on average (0.7–86.5). Results in `artifacts/eval/queue_sim.json`.
 2. **Model latency** (measured): median 0.73 s per 2048 x 1536 image (IQR 0.69–0.82 s, n 351); embedding alone 0.63 s; Apple M3 Max; macOS 27.0.1; torch 2.14.1; device mps; bf16 autocast; measured on the TCGA crops.
 3. **Clinical turnaround**: see config/literature.yaml (cited benchmarks); not measured by Sepia.
 
@@ -129,11 +131,13 @@ Near-duplicate check (Quilt/PathGen vs BACH, CONCH): highest similarity of any p
 
 | Measure | Value [95% CI] | Slides |
 |---|---|---|
-| FFPE tumor slides called invasive | 95.7% [87.0%, 100.0%] | 23 |
-| Frozen tumor slides called invasive | 84.0% [68.0%, 96.0%] | 25 |
-| Frozen tumor vs frozen normal AUROC (slide score) | 1.000 [1.000, 1.000] | 42 |
-| Frozen normal slides not called invasive | 100.0% [100.0%, 100.0%] | 17 |
-| Tumor slides with a field in tier 1–2 | 97.9% [93.6%, 100.0%] | 48 |
+| FFPE tumor slides called invasive | 95.7% [87.0%, 100.0%] (22 of 23) | 23 |
+| Frozen tumor slides called invasive | 84.0% [68.0%, 96.0%] (21 of 25) | 25 |
+| Frozen tumor vs frozen normal AUROC (slide score) | 1.000 (all 25 frozen tumor slides ranked above all 17 frozen normal slides; no interval) | 42 |
+| Frozen normal slides not called invasive | 17 of 17 (exact 95% CI 80.5–100%) | 17 |
+| Tumor slides with a field in tier 1–2 | 97.9% [93.6%, 100.0%] (47 of 48) | 48 |
+
+Rates at 0% or 100% show the exact Clopper–Pearson interval for the count (slides treated as independent); the patient bootstrap collapses to a single point there.
 
 ## Cases shown to the judges
 

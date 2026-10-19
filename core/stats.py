@@ -213,3 +213,23 @@ def confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, n_classes: int) -> 
     cm = np.zeros((n_classes, n_classes), dtype=int)
     np.add.at(cm, (y, p), 1)
     return cm
+
+
+def exact_boundary_ci(k: int, n: int, level: float = 0.95) -> tuple[float, float] | None:
+    """Exact two-sided Clopper–Pearson interval for k of n when the result sits on the boundary.
+
+    A percentile bootstrap collapses to a single point when every case is right (k = n) or none is (k = 0), which
+    reads as zero uncertainty. At the boundary the Clopper–Pearson interval has a closed form, with
+    alpha = 1 - level: k = n gives ((alpha/2)^(1/n), 1); k = 0 gives (0, 1 - (alpha/2)^(1/n)). Any other k returns
+    None (use the bootstrap interval there). Treats the n cases as independent.
+    """
+    if isinstance(n, bool) or isinstance(k, bool) or int(n) != n or int(k) != k:
+        raise ValueError(f"k and n must be integers, got k={k!r}, n={n!r}")
+    if n < 1 or not 0 <= k <= n:
+        raise ValueError(f"need 0 <= k <= n and n >= 1, got k={k}, n={n}")
+    if not 0.0 < float(level) < 1.0:
+        raise ValueError(f"level must be in (0, 1), got {level!r}")
+    if k not in (0, n):
+        return None
+    edge = ((1.0 - float(level)) / 2.0) ** (1.0 / int(n))
+    return (edge, 1.0) if k == n else (0.0, 1.0 - edge)
