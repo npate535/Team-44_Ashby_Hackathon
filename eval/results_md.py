@@ -189,13 +189,20 @@ def section_qc(q: Mapping[str, Any]) -> list[str]:
             "needed; steps 04-08 and the evaluation were re-run.", ""]
 
 
-def section_thunder(t: Mapping[str, Any]) -> list[str]:
+def hidden_models(present: Mapping[str, Any]) -> set[str]:
+    """Models evaluated but not used in Sepia (eval/finetune.json `models`), never the production model: the same
+    rule as the app's evaluation page. Their numbers stay in eval/finetune.json and are not presented here."""
+    production = (present.get("model_choice") or {}).get("production")
+    return {str(m) for m in (present.get("finetune") or {}).get("models") or []} - {production}
+
+
+def section_thunder(t: Mapping[str, Any], hidden: set[str] | frozenset[str] = frozenset()) -> list[str]:
     out = ["## Benchmark anchor (THUNDER split)", "", f"Source: `eval/thunder.json` · **{t['label']}** · {t['source']}.",
            "", "| Model | Macro-F1 (%) | Balanced accuracy (%) |", "|---|---|---|"]
     for kind, title in (("linear_probe", "published linear probe"), ("zero_shot", "published zero-shot")):
         for name, v in t["published"][kind].items():
             out.append(f"| {title} · {name} | {v:.1f} (no CI) | — |")
-    for row in t["ours"]:
+    for row in (r for r in t["ours"] if r["model"] not in hidden):
         mf, ba = row["macro_f1"] or {}, row["balanced_accuracy"] or {}
         f = lambda b: "n/a" if b.get("estimate") is None else (                                         # noqa: E731
             f"{b['estimate']:.1f}" + (f" [{b['lo']:.1f}, {b['hi']:.1f}]" if b.get("lo") is not None else ""))
@@ -537,10 +544,12 @@ def build(art: Path, cfg: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
                  "conformal_resplit": section_conformal_resplit,
                  "thunder": section_thunder, "queue_sim": section_queue, "margin": section_margin,
                  "deferral": section_deferral, "external_tcga": section_external_tcga}
+    hidden = hidden_models(present)
+    renderers["thunder"] = lambda t: section_thunder(t, hidden)
     for name in OWN:
         if name in present:
             lines += renderers[name](present[name])
-    foreign = [n for n in FOREIGN if n in present and n not in ("spotcheck", "tile_contrib")]
+    foreign = [n for n in FOREIGN if n in present and n not in ("spotcheck", "tile_contrib", "finetune")]
     if foreign:
         lines += ["## Other evaluations (concepts, reliability, retrieval, deletion, cells)", ""]
         for name in foreign:

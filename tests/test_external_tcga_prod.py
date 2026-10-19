@@ -371,3 +371,18 @@ def _load_script(name: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def test_results_md_hides_models_sepia_does_not_use():
+    from eval import results_md as R
+
+    present = {"model_choice": {"production": "uni2h512_lr"}, "finetune": {"models": ["uni2h_ft", "uni2h512_lr"]}}
+    assert R.hidden_models(present) == {"uni2h_ft"}
+    thunder = {"label": "same split", "source": "s", "notes": [], "published": {"linear_probe": {}, "zero_shot": {}},
+               "ours": [{"model": m, "role": "evaluated model", "macro_f1": {"estimate": 80.0},
+                         "balanced_accuracy": {"estimate": 81.0}} for m in ("uni2h512_lr", "uni2h_ft")]}
+    text = "\n".join(R.section_thunder(thunder, R.hidden_models(present)))
+    assert "uni2h512_lr" in text and "uni2h_ft" not in text
+    real = config.REPO_ROOT / "docs" / "RESULTS.md"
+    if real.is_file():                                              # the committed document presents no fine-tune
+        assert not any(m in real.read_text() for m in ("uni2h_ft", "uni2h_frz", "uni2h_wise", "eval/finetune.json"))
