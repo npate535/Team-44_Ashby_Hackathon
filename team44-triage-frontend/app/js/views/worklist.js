@@ -17,6 +17,8 @@ import {
 } from '../flow.js';
 
 const TIER_NAME = { 1: 'Frozen section', 2: 'Likely invasive', 3: 'Low confidence', 4: 'Unflagged' };
+/** How long an arrival keeps its "New" tag (app.js drops it on the first poll after this). */
+export const NEW_MS = 6000;
 const TIER_NOTE = {
   1: 'Simulated frozen sections from the OR · 20-minute target',
   2: 'Invasive suggested, or Invasive in the confidence set',
@@ -116,8 +118,16 @@ export function heldHint(sim) {
 }
 
 // ---- pieces --------------------------------------------------------------------------------------------------------
-function row(v, ST, rank) {
-  const isNew = !ST.seen.has(v.id) && !ST.firstLoad;
+// Derived cases carry a long suffix (BACH_0225_FSIM_resample3): the source case leads, the suffix is quieter and may wrap.
+function caseIdHtml(id) {
+  const i = id.indexOf('_', id.indexOf('_') + 1);
+  return i > 0 ? `${esc(id.slice(0, i))}<wbr><span class="cid-x">${esc(id.slice(i))}</span>` : esc(id);
+}
+
+// One row is in the tab order (the last one used, else the first): the list is one tab stop, J/K and the arrow keys
+// move inside it. The case id is a real link (open in a new tab, the links list of a screen reader) but not a tab stop.
+function row(v, ST, rank, now, roving) {
+  const isNew = ST.arrived && ST.arrived.has(v.id) && now - ST.arrived.get(v.id) < NEW_MS;
   const pRaw = (v.probs.find((x) => x.cls === 'Invasive') || {}).p;
   const pInv = pctText(pRaw ?? (v.risk === null ? null : v.risk / 100));
   const surgCall = v.lane === 'surgical' ? suggestedCall(v.margin ? { suggested_call: v.margin.call, involved: v.margin.involved } : null) : '';
@@ -132,9 +142,9 @@ function row(v, ST, rank) {
   const next = nextAction(v);
   const label = `${v.id}, tier ${v.tier} ${TIER_NAME[v.tier] || ''}, ${v.lane === 'surgical' ? 'frozen section' : 'biopsy'}`;
   return (
-    `<tr class="row tr-${num(v.tier)}${isNew ? ' new' : ''}${v.done ? ' done' : ''}" tabindex="0" aria-label="${esc(label)}" data-testid="worklist-row" data-case-id="${esc(v.id)}" data-tier="${num(v.tier)}" data-lane="${esc(v.lane)}" data-done="${v.done}" data-reasons="${esc(codes(v).join(' '))}" data-rank="${rank}">` +
+    `<tr class="row tr-${num(v.tier)}${isNew ? ' new' : ''}${v.done ? ' done' : ''}" tabindex="${v.id === roving ? 0 : -1}" aria-label="${esc(label)}" data-testid="worklist-row" data-case-id="${esc(v.id)}" data-tier="${num(v.tier)}" data-lane="${esc(v.lane)}" data-done="${v.done}" data-reasons="${esc(codes(v).join(' '))}" data-rank="${rank}">` +
     `<td class="c-tier"><span class="tierno t${num(v.tier)}" data-testid="tier-badge" title="Tier ${num(v.tier)} · ${esc(v.tierLabel)}">${num(v.tier)}</span></td>` +
-    `<td class="c-case"><div class="wl-cc"><b class="cid" title="${esc(v.id)}">${esc(v.id)}</b>${v.lane === 'surgical' ? `<span class="lane-inline" title="${esc(`Simulated frozen section${v.room ? ' from ' + v.room : ''}${v.variantLabel ? ' · ' + v.variantLabel : ''}`)}">Frozen${v.room ? ' ' + esc(v.room) : ''}</span>` : ''}${isNew ? '<span class="newtag">New</span>' : ''}</div></td>` +
+    `<td class="c-case"><div class="wl-cc"><a class="cid" href="#/case/${encodeURIComponent(v.id)}" tabindex="-1" title="${esc(v.id)}">${caseIdHtml(v.id)}</a>${v.lane === 'surgical' ? `<span class="lane-inline" title="${esc(`Simulated frozen section${v.room ? ' from ' + v.room : ''}${v.variantLabel ? ' · ' + v.variantLabel : ''}`)}">Frozen${v.room ? ' ' + esc(v.room) : ''}</span>` : ''}${isNew ? '<span class="newtag">New</span>' : ''}</div></td>` +
     `<td class="c-lane">${lane}</td>` +
     `<td class="c-sugg">${sugg}</td>` +
     `<td class="c-p"><span class="pnum${v.risk >= 50 ? ' hi' : ''}">${pInv}</span>${v.risk === null ? '' : miniBar(v.risk / 100, v.risk >= 50 ? 'hi' : '')}</td>` +
@@ -208,6 +218,28 @@ function toolbar(ST, views) {
   );
 }
 
+// Filters persist while the pathologist moves between cases, so whatever is narrowing the list is spelled out above it,
+// each with its own remove button: a stale search can no longer hide a new arrival unnoticed.
+function activeFilters(ST, shown, total) {
+  const chip = (key, text) =>
+    `<button class="fchip" data-clear-filter="${key}" data-testid="active-filter-${key}" aria-label="Remove filter: ${esc(text)}">${esc(text)}<span aria-hidden="true">×</span></button>`;
+  const query = (ST.search || '').trim();
+  const flag = FLAG_FILTERS.find(([val]) => val === ST.flagFilter);
+  const chips = [
+    query && chip('search', `Search “${query}”`),
+    ST.status === 'open' && chip('status', 'Open only'),
+    ST.status === 'done' && chip('status', 'Done only'),
+    ST.tierFilter && chip('tier', `Tier ${ST.tierFilter} · ${TIER_NAME[ST.tierFilter] || ''}`),
+    flag && chip('flag', flag[1]),
+    ST.ordersOnly && chip('orders', 'Drafted orders')
+  ].filter(Boolean);
+  if (!chips.length) return '';
+  return (
+    `<div class="wl-active" data-testid="active-filters"><span class="wl-active-n"><b>${shown}</b> of ${total} cases shown</span>` +
+    `${chips.join('')}<button class="linkbtn" data-clear-search>Clear all</button></div>`
+  );
+}
+
 function head(ST) {
   const conf = conformalInfo(ST.metrics, ST.cfg);
   return (
@@ -244,17 +276,38 @@ export function filterViews(ST, allViews) {
   );
 }
 
+// Before the first worklist response: placeholders in the shape of the summary, toolbar and table, so the page does
+// not announce an empty queue (or a count of 0) while the cases are still loading.
+function skeleton() {
+  const sk = (w, extra = '') => `<i class="sk${extra}" style="width:${w}"></i>`;
+  const rows = [62, 48, 70, 55, 66, 44, 58, 50]
+    .map((w) => `<div class="sk-row">${sk('22px', ' sk-sq')}${sk('110px')}${sk(w + '%')}${sk('64px', ' sk-end')}</div>`)
+    .join('');
+  return (
+    '<section class="wl wl-loading" data-testid="worklist-view" aria-busy="true">' +
+    '<div class="wl-summary" data-testid="state-loading"><div class="comp">' +
+    `<div class="comp-head">${sk('48px', ' sk-num')}${sk('min(260px, 60%)')}</div>` +
+    '<div class="comp-bar"><i class="seg-empty"></i></div>' +
+    `<div class="comp-legend">${sk('104px')}${sk('104px')}${sk('104px')}${sk('90px')}</div></div>` +
+    '<span class="next-btn sk-btn" aria-hidden="true"></span></div>' +
+    `<div class="wl-toolbar" aria-hidden="true">${sk('230px', ' sk-ctl')}${sk('190px', ' sk-ctl')}${sk('150px', ' sk-ctl')}</div>` +
+    `<div class="tblw wl-table-wrap sk-table" role="status"><span class="sr-only">Loading the worklist</span><div class="sk-head"></div>${rows}</div>` +
+    '</section>'
+  );
+}
+
 export function render(ST, ctx) {
+  if (!ST.loadedOnce) return skeleton();
   const allViews = ST.items.map((c) => toView(c, ctx.now, ST.cfg, ST.sim));
   const comp = composition(allViews);
   const views = filterViews(ST, allViews);
-  const filtered = views.length !== allViews.length;
   // "Open next case" follows what is on screen: the first open row of the current filters and order.
   const firstOpen = views.find((v) => !v.done);
   const next = firstOpen ? ST.items.find((c) => c.case_id === firstOpen.id) : nextCase(ST.items, null);
   let h = `<section class="wl" data-testid="worklist-view">` + compositionBlock(comp, ST, next);
   h += heldHint(ST.sim);
   h += toolbar(ST, allViews);
+  h += activeFilters(ST, views.length, allViews.length);
   if (!views.length) {
     const missing = ST.health && !ST.health.loaded;
     const title = allViews.length
@@ -281,6 +334,7 @@ export function render(ST, ctx) {
   h += `<div class="tblw wl-table-wrap"><table class="wl-table" data-testid="worklist" aria-label="Case worklist${ST.order === 'ai' ? ', AI priority order' : ', arrival order'}">${head(ST)}<tbody>`;
   let group = null;
   const shown = views.slice(0, 400);
+  const roving = shown.some((v) => v.id === ST.focusId) ? ST.focusId : shown[0] && shown[0].id;
   shown.forEach((v, i) => {
     if (ST.order === 'ai') {
       const g = v.done ? 'done' : v.tier;
@@ -292,11 +346,9 @@ export function render(ST, ctx) {
         h += `<tr class="grp g-${esc(g)}" data-testid="tier-group" data-group="${esc(g)}"><th colspan="9" scope="colgroup"><span class="g-name">${name}</span><span class="g-n">${n}</span><span class="g-note">${esc(note)}</span></th></tr>`;
       }
     }
-    h += row(v, ST, i + 1);
+    h += row(v, ST, i + 1, ctx.now, roving);
   });
   h += '</tbody></table></div>';
   if (views.length > shown.length) h += `<p class="sub wl-more">Showing the first ${shown.length} of ${views.length} cases. Narrow the filters to see the rest.</p>`;
-  if (filtered)
-    h += `<p class="wl-foot">${views.length} of ${allViews.length} cases shown. <button class="linkbtn" data-clear-search>Clear filters</button></p>`;
   return h + '</section>';
 }

@@ -317,12 +317,12 @@ def test_keyboard_next_case_and_routing_feedback(page, api, roles):
     pg.keyboard.press("n")                                      # next case in priority order
     expect(pg.locator(f"{tid('case-view')}[data-case-id='{ids[1]}']")).to_be_visible()
 
-    # act on the hero: orders placed, sign-out routed, the shell offers the next case and counts the unread result
+    # act on the hero: orders approved, sign-out routed, the shell offers the next case and counts the unread result
     pg.goto(page.base + f"/#/case/{hero}")
     expect(pg.locator(f"{tid('case-view')}[data-case-id='{hero}']")).to_be_visible()
     pg.click(tid("action-approve"))
     pg.click(tid("confirm-action"))                         # irreversible actions confirm inline first
-    expect(pg.locator(tid("toast")).filter(has_text="Orders placed")).to_be_visible()
+    expect(pg.locator(tid("toast")).filter(has_text="Orders approved")).to_be_visible()
     pg.click(tid("action-signout"))
     pg.click(tid("confirm-action"))
     expect(pg.locator(tid("casebar-done"))).to_contain_text("Signed out")

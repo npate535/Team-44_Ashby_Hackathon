@@ -9,7 +9,7 @@ export class ApiError extends Error {
   }
 }
 
-const TIMEOUT_MS = 4000;
+const TIMEOUT_MS = 10000; // a cold start of the hosted backend can take several seconds
 
 export function createApi({base = ''} = {}) {
   async function req(method, path, body, timeoutMs = TIMEOUT_MS) {

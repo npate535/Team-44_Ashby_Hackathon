@@ -4,7 +4,7 @@
 // Pattern: one global state ST, string templates rendered into #app, event delegation on document.
 // Research prototype — not for clinical use. Ground truth is never fetched or rendered.
 import { createApi, ApiError } from './js/api.js';
-import { esc, fingerprint, mmss, timerNow, tierInfo } from './js/adapter.js';
+import { esc, fingerprint, mmss, timerNow, tierInfo, toView } from './js/adapter.js';
 import { callText, load, nextCase, openItems, queuePosition, routedKey, save, waitInfo } from './js/flow.js';
 import * as worklist from './js/views/worklist.js';
 import * as biopsy from './js/views/case_biopsy.js';
@@ -37,6 +37,7 @@ const ST = {
   spot: null,
   spotDraft: {},
   seen: new Set(),
+  arrived: new Map(), // case id -> ms it first appeared after the initial load (worklist "New" tag + highlight)
   firstLoad: true,
   fail: 0,
   staleSince: null,
@@ -72,9 +73,10 @@ let lastFp = null;
 let pollTimer = null;
 let pollSeq = 0; // a response older than the latest request is dropped (lane/sort clicks race the timer)
 let dragging = false; // heatmap opacity slider held: do not re-render under it
+let tickAt = Date.now(); // the instant every timer on screen shows; it advances once a second, never between ticks
 
 const $ = (sel) => document.querySelector(sel);
-const ctx = () => ({ now: Date.now(), assetUrl: (p) => api.assetUrl(p) });
+const ctx = () => ({ now: tickAt, assetUrl: (p) => api.assetUrl(p) }); // views draw timers at the current tick
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---- toasts ---------------------------------------------------------------------------------------------------------------
@@ -91,20 +93,47 @@ function toast(msg, opts = {}) {
     : '';
   el.innerHTML = `<div class="toast-msg"><b>${esc(msg)}</b>${opts.sub ? `<span>${esc(opts.sub)}</span>` : ''}</div>${action}<button class="toast-x" aria-label="Dismiss notification">×</button>`;
   // the same notice twice (N pressed again on a clear queue, a repeated rejection) replaces the first one
-  el.dataset.key = `${msg}|${opts.sub || ''}`;
+  el.dataset.key = opts.key || `${msg}|${opts.sub || ''}`;
+  el.dataset.born = Date.now();
   for (const old of [...box.children]) if (old.dataset.key === el.dataset.key) old.remove();
   box.prepend(el);
   while (box.children.length > 2) box.lastElementChild.remove();
-  const ttl = opts.ttl || (opts.action ? 6500 : 4000);
-  setTimeout(() => {
-    el.classList.add('out');
-    setTimeout(() => el.remove(), reducedMotion() ? 0 : 220);
-  }, ttl);
+  // A warning stays until it is dismissed and is announced at once. Other notices are short-lived, so they never sit
+  // over the controls for long; the countdown pauses while the pointer or keyboard focus is on the notice, and a
+  // click anywhere on it dismisses it.
+  if (opts.tone === 'warn') {
+    el.setAttribute('role', 'alert');
+    return;
+  }
+  let left = opts.ttl || (opts.action ? 5000 : 3500);
+  let timer = null;
+  let since = 0;
+  const run = () => {
+    since = Date.now();
+    timer = setTimeout(() => dismissToast(el), left);
+  };
+  const hold = () => {
+    if (timer === null) return;
+    clearTimeout(timer);
+    timer = null;
+    left = Math.max(1200, left - (Date.now() - since));
+  };
+  el.addEventListener('pointerenter', hold);
+  el.addEventListener('focusin', hold);
+  el.addEventListener('pointerleave', () => !el.contains(document.activeElement) && timer === null && run());
+  el.addEventListener('focusout', (e) => !el.contains(e.relatedTarget) && !el.matches(':hover') && timer === null && run());
+  run();
+}
+function dismissToast(el) {
+  if (!el.isConnected || el.classList.contains('out')) return;
+  el.classList.add('out');
+  setTimeout(() => el.remove(), reducedMotion() ? 0 : 200);
 }
 
 // ---- routing --------------------------------------------------------------------------------------------------------------
 function parseHash() {
   const h = location.hash.replace(/^#\/?/, '');
+  if (h === 'app') return { route: ST.route, caseId: ST.caseId }; // the skip link's target is not a route
   const [route, id] = h.split('/');
   if (route === 'case' && id) return { route: 'case', caseId: decodeURIComponent(id) };
   if (route === 'tcga')
@@ -123,6 +152,10 @@ function onRoute() {
   const changed = r.route !== ST.route || r.caseId !== ST.caseId;
   Object.assign(ST, r);
   if (changed) {
+    // notices from the page being left are cleared; one raised by the action that navigated (a reset) stays
+    document.querySelectorAll('#toast .toast-item').forEach((el) => {
+      if (Date.now() - Number(el.dataset.born) > 800) dismissToast(el);
+    });
     ST.editing = null;
     ST.notFound = null;
     ST.tab = 'evidence';
@@ -138,15 +171,7 @@ function onRoute() {
     if (active) b.setAttribute('aria-current', 'page');
     else b.removeAttribute('aria-current');
   });
-  // Keep every destination reachable in the top pill on narrow screens.
-  const strip = document.querySelector('.glass-nav');
-  const cur = strip && strip.querySelector('[aria-current=page]');
-  if (cur && strip.scrollWidth > strip.clientWidth) {
-    const s = strip.getBoundingClientRect(),
-      c = cur.getBoundingClientRect();
-    if (c.left < s.left || c.right > s.right) strip.scrollLeft += c.left - s.left - 16;
-  }
-  syncGlass();
+  syncGlass(); // also scrolls the current destination into view when the pill scrolls (phones)
   lastFp = null;
   if (!api || !ST.cfg) return;
   draw();
@@ -223,12 +248,14 @@ async function refresh(force, seq) {
         }
       }
     }
-  } else if (!ST.metrics && !ST.metricsAsked && !ST.mock) {
-    ST.metricsAsked = true; // once: the conformal method label + coverage shown in worklist/inbox copy
+  } else if (route === 'oncologist' && !ST.metrics && !ST.metricsAsked && !ST.mock) {
+    // once: the conformal method label + coverage in the inbox copy. The worklist only names the method in a column
+    // tooltip and falls back to "Confidence set"; it does not pull the 1 MB evaluation payload on first load.
+    ST.metricsAsked = true;
     evaluation = await api.metrics().catch(() => null);
   }
   if (seq !== pollSeq) return;
-  ST.items = wl.items || [];
+  ST.items = steadyTimers(wl.items || []);
   ST.itemsFor = JSON.stringify(worklistQuery(route)); // which query these items answer (the OR board asks for one lane)
   ST.loadedOnce = true;
   ST.sim = wl.sim || ST.sim;
@@ -238,7 +265,7 @@ async function refresh(force, seq) {
     ST.notFound = missing ? caseId : null;
     ST.notFoundAt = missing ? arrivals : null;
     if (detail) {
-      ST.cases[caseId] = detail;
+      ST.cases[caseId] = steadyTimers([detail])[0];
       ST.events[caseId] = events;
       if (interpretation && !ST.interp[caseId]) {
         ST.interp[caseId] = interpretation;
@@ -261,6 +288,44 @@ async function refresh(force, seq) {
     ST.metricsRev = (ST.metricsRev || 0) + 1; // "Reload results" with changed numbers redraws the dashboard
   }
   if (spot) ST.spot = spot;
+}
+
+// Frozen-section timers count from one local anchor (receipt time minus elapsed). Each poll's latency differs a little;
+// re-anchoring on every response nudged the display back and forth by a second. The anchor moves only for a real
+// change (a call that stops the timer, a reset), so the display advances one second per tick and never steps back.
+const anchors = new Map();
+function steadyTimers(cases) {
+  for (const c of cases) {
+    const t = c && c.runtime && c.runtime.timer;
+    if (!t || t.kind !== 'surgical' || t.state === 'stopped' || !c._fetched_ms) continue;
+    let anchor = c._fetched_ms - t.elapsed_s * 1000;
+    const prev = anchors.get(c.case_id);
+    if (prev !== undefined && Math.abs(anchor - prev) < 1500) anchor = prev;
+    else anchors.set(c.case_id, anchor);
+    // the same timer, read 2 s earlier: timerNow(c, tick) is then exactly (tick - anchor) even for a response that
+    // arrived after the last tick (timerNow never extrapolates backwards from the receipt time)
+    t.elapsed_s = Math.max(0, t.elapsed_s - 2);
+    c._fetched_ms = anchor + t.elapsed_s * 1000;
+  }
+  return cases;
+}
+// The running frozen-section timer the reader is looking at (the open case, else the first on the board), if any.
+function leadAnchor() {
+  const lead =
+    ST.route === 'case'
+      ? ST.caseId
+      : (ST.items.find((c) => c.lane === 'surgical' && c.runtime && c.runtime.timer && c.runtime.timer.state !== 'stopped') || {}).case_id;
+  return lead && anchors.has(lead) ? anchors.get(lead) : null;
+}
+// One tick per second, phase-locked so a frozen-section timer's second boundaries fall half-way between ticks (else
+// on the wall-clock second): each displayed second lasts exactly one tick, however the polls fall.
+function steadyTick() {
+  tickAt = Date.now();
+  tick();
+  const lead = leadAnchor();
+  const phase = lead === null ? 0 : (((lead + 500) % 1000) + 1000) % 1000;
+  const wait = (phase - (Date.now() % 1000) + 2000) % 1000;
+  setTimeout(steadyTick, wait < 250 ? wait + 1000 : wait);
 }
 
 // New margin calls light up on the OR board (and a toast elsewhere); results remembered per viewer.
@@ -393,9 +458,10 @@ function currentFp() {
         ST.health.assets
       ]
     ),
-    fingerprint(ST.items),
+    // the case view does not read the queue (the case bar is drawn separately): arrivals do not redraw it
+    ST.route === 'case' ? '' : fingerprint(ST.items),
     sim.running,
-    JSON.stringify(sim.pending),
+    ST.route === 'case' ? '' : JSON.stringify(sim.pending),
     JSON.stringify([ST.hm.sel, ST.hm.hl, ST.hm.why]),
     ST.cellsOverlay,
     ST.cellsTile,
@@ -422,7 +488,114 @@ function currentFp() {
   }
   if (ST.route === 'surgeon')
     parts.push(JSON.stringify(ST.routed.surgeon.map(routedKey)), [...ST.freshCalls].join());
+  if (ST.route === 'worklist') parts.push(ST.loadedOnce, freshArrivals().join());
   return parts.join('|');
+}
+
+// Arrivals still inside their "New" window; the list changes when one ages out, so the tag is dropped on the next poll.
+function freshArrivals(now = Date.now()) {
+  const fresh = [];
+  ST.arrived.forEach((t, id) => (now - t < worklist.NEW_MS ? fresh.push(id) : ST.arrived.delete(id)));
+  return fresh;
+}
+// Cases that appear after the first rendered data are arrivals; whatever was there on load (or on a lane switch) is not.
+function noteArrivals() {
+  if (ST.route !== 'worklist' || !ST.loadedOnce || ST.itemsFor !== JSON.stringify(worklistQuery('worklist'))) return;
+  const now = Date.now();
+  const fresh = [];
+  ST.items.forEach((c) => {
+    if (ST.seen.has(c.case_id)) return;
+    ST.seen.add(c.case_id);
+    if (ST.firstLoad) return;
+    ST.arrived.set(c.case_id, now);
+    fresh.push(c);
+  });
+  ST.firstLoad = false;
+  announceArrivals(fresh);
+  if (fresh.length) speakArrivals(fresh.length);
+}
+// Screen readers hear one short summary at most every 10 s ("3 new cases in the worklist"), not every row.
+let spoken = { n: 0, timer: null };
+function speakArrivals(n) {
+  spoken.n += n;
+  if (spoken.timer) return;
+  spoken.timer = setTimeout(() => {
+    $('#arrivals-live').textContent = `${spoken.n} new case${spoken.n === 1 ? '' : 's'} in the worklist`;
+    spoken = { n: 0, timer: null };
+  }, 10000);
+}
+// A likely-invasive biopsy sorts into tier 2 by P(Invasive), often below the fold, so its arrival gets one short notice
+// with a way to open it. Arrivals in the same poll share the notice, and a newer notice replaces the last one. Frozen
+// sections are announced when they are sent from the OR controls.
+function announceArrivals(fresh) {
+  const urgent = fresh.filter((c) => c.lane !== 'surgical' && c.runtime && !c.runtime.done && c.runtime.tier <= 2);
+  if (!urgent.length) return;
+  const newest = urgent.reduce((a, b) => ((b.runtime.arrived_sim_s || 0) > (a.runtime.arrived_sim_s || 0) ? b : a));
+  const pos = queuePosition(ST.items, newest.case_id);
+  const where = pos ? `position ${pos} of ${openItems(ST.items).length} open` : 'in the worklist';
+  const label = tierInfo(newest.runtime.tier, ST.cfg).label;
+  const tiers = [...new Set(urgent.map((c) => c.runtime.tier))].sort().join('–');
+  toast(urgent.length === 1 ? `New tier ${tiers} arrival: ${newest.case_id}` : `${urgent.length} new tier ${tiers} arrivals`, {
+    key: 'arrival',
+    sub: urgent.length === 1 ? `${label} · ${where}` : `Newest ${newest.case_id} · ${label} · ${where}`,
+    action: { label: 'Open', href: '#/case/' + encodeURIComponent(newest.case_id) }
+  });
+}
+
+// ---- in-place patching (worklist) --------------------------------------------------------------------------------------
+// The worklist redraws on every arrival. Patching the live tree instead of replacing it keeps each row's identity, so
+// hover, focus, native tooltips, an open popover and the arrival highlight survive the poll, and nothing flickers.
+const morphKey = (n) => (n.nodeType === 1 ? n.getAttribute('data-case-id') || n.getAttribute('data-group') : null);
+// UI state set by script (an open <details>, data-ui-* attributes) is not part of the markup and is kept.
+const keepAttr = (el, name) => (name === 'open' && el.tagName === 'DETAILS') || name.startsWith('data-ui-');
+function morph(live, next) {
+  for (const { name } of [...live.attributes]) if (!next.hasAttribute(name) && !keepAttr(live, name)) live.removeAttribute(name);
+  for (const { name, value } of [...next.attributes]) if (live.getAttribute(name) !== value) live.setAttribute(name, value);
+  if (live.tagName === 'INPUT') {
+    if (live.type === 'checkbox' || live.type === 'radio') live.checked = next.hasAttribute('checked');
+    else if (live.value !== (next.getAttribute('value') || '')) live.value = next.getAttribute('value') || '';
+  } else if (live.tagName === 'OPTION') live.selected = next.hasAttribute('selected');
+  const pool = new Map();
+  for (const c of live.childNodes) if (morphKey(c)) pool.set(morphKey(c), c);
+  let cur = live.firstChild;
+  for (const want of [...next.childNodes]) {
+    const key = morphKey(want);
+    let match = key ? pool.get(key) : cur && !morphKey(cur) && cur.nodeType === want.nodeType ? cur : null;
+    if (match && match.nodeName !== want.nodeName) match = null;
+    if (!match) {
+      live.insertBefore(want, cur);
+      continue;
+    }
+    if (key) pool.delete(key);
+    if (match === cur) cur = cur.nextSibling;
+    else live.insertBefore(match, cur);
+    if (match.nodeType === 1) morph(match, want);
+    else if (match.nodeValue !== want.nodeValue) match.nodeValue = want.nodeValue;
+  }
+  while (cur) {
+    const n = cur.nextSibling;
+    live.removeChild(cur);
+    cur = n;
+  }
+}
+function patchApp(html) {
+  const app = $('#app');
+  const live = app.firstElementChild;
+  // The loading placeholders are replaced, not patched: content that is new on screen is not a layout shift, while
+  // placeholders reshaped into the real summary and toolbar would be. The redraw that follows a replay command is
+  // replaced too: it can reorder the whole queue, and a row the user aimed at before it must not stay clickable.
+  const replace = ST.simBusy || !live || !live.matches('section.wl:not(.wl-loading)');
+  if (ST.route === 'worklist' && app.childElementCount === 1 && !replace) {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    const next = tpl.content.firstElementChild;
+    if (tpl.content.childElementCount === 1 && next.matches('section.wl')) {
+      morph(live, next);
+      return true;
+    }
+  }
+  app.innerHTML = html;
+  return false;
 }
 
 // Stable identity of a focusable element across re-renders (volatile attributes such as data-state are left out).
@@ -472,6 +645,7 @@ function draw(forceRender = false) {
     active.id !== 'case-search' &&
     active.type !== 'checkbox' &&
     active.type !== 'range';
+  noteArrivals();
   const fp = currentFp();
   if (!forceRender && (fp === lastFp || typing || dragging)) {
     tick();
@@ -492,27 +666,27 @@ function draw(forceRender = false) {
     console.error('view failed to render', err);
     html = `<div class="card" data-testid="state-render-error"><h2>This page could not be drawn</h2><p>${esc(err && err.message ? err.message : err)}. The data keeps refreshing in the background; other pages still work.</p></div>`;
   }
-  $('#app').innerHTML = html;
-  animateScene(`${ST.route}/${ST.caseId || ''}/${ST.tab}`);
-  if (searchFocused && $('#case-search')) {
+  const patched = patchApp(html);
+  // tab switches inside a case redraw only the panel: the page-level entrance is for a new route or case
+  animateScene(`${ST.route}/${ST.caseId || ''}`, ST.tab);
+  if (patched) {
+    // the focused element is still the same node unless the poll removed it (e.g. a filtered-out row)
+    if (focusSel && !$('#app').contains(document.activeElement))
+      (findFocus(focusSel) || $('#app')).focus({ preventScroll: true });
+  } else if (searchFocused && $('#case-search')) {
     $('#case-search').focus({ preventScroll: true });
     $('#case-search').setSelectionRange(caret, caret);
   } else if (focusSel) {
     const el = findFocus(focusSel);
     (el || $('#app')).focus({ preventScroll: true });
   }
-  if (openDetails.length)
+  if (openDetails.length && !patched)
     $('#app')
       .querySelectorAll('details')
       .forEach((el) => {
         if (openDetails.includes(detailsKey(el))) el.open = true;
       });
-  window.scrollTo(0, y);
-  if (ST.route === 'worklist' && ST.loadedOnce && ST.itemsFor === JSON.stringify(worklistQuery('worklist'))) {
-    // arrivals after the first rendered data animate in; whatever was there on load does not
-    ST.items.forEach((c) => ST.seen.add(c.case_id));
-    ST.firstLoad = false;
-  }
+  if (!patched) window.scrollTo(0, y);
   if (ST.flashTarget) {
     const el = $(ST.flashTarget);
     if (el) {
@@ -536,6 +710,8 @@ const PAGE = {
 };
 
 function pageDescription() {
+  // queue counts are unknown until the first worklist response ("0 open" while loading would be wrong)
+  if (!ST.loadedOnce && ['worklist', 'surgeon', 'oncologist'].includes(ST.route)) return 'Loading…';
   const open = openItems(ST.items);
   if (ST.route === 'worklist') {
     const all = ST.health?.open_cases;
@@ -567,10 +743,13 @@ function updateShell() {
   $('#page-description').title = desc; // the header truncates it on narrower screens
   document.title = `${(ST.route === 'case' || ST.route === 'tcga') && ST.caseId ? ST.caseId + ' · ' : ''}${crumb} · Sepia`;
   $('.workspace').dataset.route = ST.route;
-  // TCGA external is a static specimen browser — hide arrival-replay chrome entirely.
+  // TCGA external is a static specimen browser — hide arrival-replay chrome entirely. The root attribute is also set
+  // before first paint (index.html), so a #/tcga load does not show the controls and then collapse them.
+  document.documentElement.dataset.route = ST.route;
   const replay = $('.replay');
   if (replay) replay.hidden = ST.route === 'tcga';
-  $('#queue-count').textContent = ST.health?.open_cases ?? openItems(ST.items).length;
+  // empty until the first worklist response: a "0" badge on load would be a wrong count for a moment
+  $('#queue-count').textContent = ST.loadedOnce ? ST.health?.open_cases ?? openItems(ST.items).length : '';
   const orOpen = (ST.health && ST.health.open_surgical) ?? null;
   const orEl = $('#or-count');
   const liveFrozen = orOpen !== null ? orOpen : ST.route === 'surgeon' || ST.lane === 'all' || ST.route === 'case'
@@ -652,7 +831,7 @@ function lookup(id) {
 }
 
 function tick() {
-  const now = Date.now();
+  const now = tickAt; // a poll's redraw shows the same second as the last tick, so timers never advance early
   document.querySelectorAll('[data-timer]').forEach((el) => {
     const c = lookup(el.dataset.timer);
     if (!c) return;
@@ -695,7 +874,7 @@ function tick() {
 
 function tickClock() {
   const clock = $('#clock');
-  const d = new Date();
+  const d = new Date(tickAt);
   const text = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   if (clock.textContent !== text) {
     clock.textContent = text;
@@ -704,12 +883,24 @@ function tickClock() {
   const sim = ST.sim;
   if (!sim) return;
   const offline = ST.fail >= 2;
-  const since = sim._fetched_ms && sim.running && !offline ? ((Date.now() - sim._fetched_ms) / 1000) * (Number(sim.speed) || 1) : 0;
+  const since = sim._fetched_ms && sim.running && !offline ? (Math.max(0, tickAt - sim._fetched_ms) / 1000) * (Number(sim.speed) || 1) : 0;
   const fresh = !sim.running && !(sim.sim_time_s > 0);
   const state = offline ? 'Replay status unknown' : sim.running ? 'Replay running' : fresh ? 'Replay ready' : 'Replay paused';
-  $('#sim').innerHTML =
-    `<i class="rs-dot" aria-hidden="true"></i><b>${state}</b><span class="rs-t">+${mmss((Number(sim.sim_time_s) || 0) + since)}</span><span class="rs-x">×${Number((Number(sim.speed) || 1).toFixed(1))}</span>${ST.mock ? '<span class="rs-x">mock</span>' : ''}` +
-    `<span class="sr-only"> · simulator ${sim.running ? 'running' : 'paused'}</span>`;
+  const speed = Number(sim.speed) || 1;
+  // Built once, then only the text changes: rebuilding every second restarted the running dot's pulse mid-cycle.
+  const box = $('#sim');
+  if (!box.querySelector('.rs-t'))
+    box.innerHTML =
+      '<i class="rs-dot" aria-hidden="true"></i><b></b><span class="rs-t"></span><span class="rs-x" title="Replay speed"></span>' +
+      `${ST.mock ? '<span class="rs-x">mock</span>' : ''}<span class="sr-only"></span>`;
+  const set = (sel, text) => {
+    const el = box.querySelector(sel);
+    if (el.textContent !== text) el.textContent = text;
+  };
+  set('b', state);
+  set('.rs-t', '+' + mmss((Number(sim.sim_time_s) || 0) + since));
+  set('.rs-x', '×' + (speed >= 10 ? Math.round(speed) : Number(speed.toFixed(1))));
+  set('.sr-only', ` · simulator ${sim.running ? 'running' : 'paused'}`);
 }
 
 // ---- case navigation bar (shell): position in the priority queue + the next case ------------------------------------
@@ -720,8 +911,10 @@ function renderCasebar() {
       bar.hidden = true;
       bar.innerHTML = '';
     }
+    bar.dataset.off = ''; // no reserved space (theme.css) for a case that is not there
     return;
   }
+  delete bar.dataset.off;
   const c = ST.cases[ST.caseId];
   const done = !!(c && c.runtime && c.runtime.done);
   const pos = queuePosition(ST.items, ST.caseId);
@@ -790,8 +983,9 @@ function orderList(c) {
 function announceDecision(action, res) {
   const c = res.case;
   const id = c.case_id;
-  if (action === 'approve_orders') toast(`Orders placed for ${id}`, { tone: 'ok', sub: orderList(c) });
-  else if (action === 'edit_orders') toast(`Edited orders placed for ${id}`, { tone: 'ok', sub: orderList(c) });
+  // approval in this prototype: nothing is sent to a laboratory system
+  if (action === 'approve_orders') toast(`Orders approved for ${id} (not sent to a laboratory system)`, { tone: 'ok', sub: orderList(c) });
+  else if (action === 'edit_orders') toast(`Edited orders approved for ${id} (not sent to a laboratory system)`, { tone: 'ok', sub: orderList(c) });
   else if (action === 'closer_look') toast(`${id} marked for a closer look`, { sub: 'Drafted orders stay unplaced until you decide.' });
   else if (action === 'dismiss_flag') toast(`Flag dismissed for ${id}`, { sub: 'No follow-up orders were placed.' });
   else if (action === 'sign_out')
@@ -835,9 +1029,11 @@ async function simCommand(cmd, variant) {
     const item = ST.items.find((c) => c.case_id === res.injected);
     const room = item && item.runtime && item.runtime.or_room;
     const kind = variant === 'degraded' ? 'Degraded frozen section' : variant === 'composite' ? 'Composite frozen section' : 'Frozen section';
+    // a search or filter left on the worklist would hide the new case: say so instead of "top of the worklist"
+    const hidden = ST.lane === 'biopsy' || (item && !worklist.filterViews(ST, [toView(item, Date.now(), ST.cfg, ST.sim)]).length);
     toast(`${kind} ${res.injected} received${room ? ' from ' + room : ''}`, {
       tone: 'surg',
-      sub: 'Simulated · timer started · top of the worklist',
+      sub: `Simulated · timer started · ${hidden ? 'hidden by the current worklist filters' : 'top of the worklist'}`,
       action: { label: 'Open', href: '#/case/' + encodeURIComponent(res.injected) }
     });
   }
@@ -853,6 +1049,7 @@ function clearReplayState() {
   ST.routed = { surgeon: [], oncologist: [] };
   ST.items = [];
   ST.seen = new Set();
+  ST.arrived.clear();
   ST.firstLoad = true;
   ST.tierFilter = null;
   ST.freshCalls.clear();
@@ -950,6 +1147,16 @@ function markRead(keys) {
 }
 
 document.addEventListener('click', async (e) => {
+  if (e.target.closest('a.skip')) {
+    e.preventDefault(); // "#app" is the skip target, not a route
+    $('#app').focus();
+    return;
+  }
+  const note = e.target.closest('.toast-item');
+  if (note && !e.target.closest('a, button')) {
+    dismissToast(note);
+    return;
+  }
   const t = e.target.closest('button, [data-nav], tr.row, a, [data-inbox-key]');
   if (!t) return;
   const d = t.dataset;
@@ -963,7 +1170,7 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (t.classList.contains('toast-x')) {
-    t.closest('.toast-item').remove();
+    dismissToast(t.closest('.toast-item'));
     return;
   }
   if (d.toastNext !== undefined) {
@@ -998,6 +1205,10 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (!$('#app').contains(t)) return;
+  if (t.matches('tr.row a.cid')) {
+    if (ST.simBusy) e.preventDefault(); // like the row: not while a replay command reorders the queue
+    return; // otherwise the link navigates
+  }
   if (d.inboxRead !== undefined) {
     markRead([d.inboxRead]);
     return;
@@ -1029,6 +1240,19 @@ document.addEventListener('click', async (e) => {
     draw(true);
     return;
   }
+  if (d.clearFilter) {
+    // one active-filter chip: the rest of the filters stay as they are
+    const f = d.clearFilter;
+    if (f === 'search') ST.search = '';
+    else if (f === 'status') ST.status = 'all';
+    else if (f === 'tier') ST.tierFilter = null;
+    else if (f === 'flag') ST.flagFilter = 'all';
+    else if (f === 'orders') ST.ordersOnly = false;
+    ST.page = 0;
+    draw(true);
+    ($('#app [data-clear-filter]') || $('#case-search'))?.focus();
+    return;
+  }
   if (d.clearSearch !== undefined) {
     ST.search = '';
     ST.status = 'all';
@@ -1049,6 +1273,7 @@ document.addEventListener('click', async (e) => {
   if (d.laneFilter) {
     ST.page = 0;
     ST.lane = d.laneFilter;
+    ST.firstLoad = true; // cases another lane brings into view are not arrivals
     await poll(true);
     return;
   }
@@ -1138,6 +1363,12 @@ document.addEventListener('click', async (e) => {
 function isTyping(el) {
   return !!el && (/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) || el.isContentEditable);
 }
+// Single-key shortcuts (J/K/N, "/") act only from the page content: nothing focused, the workspace or a worklist row.
+// With a button, link, menu or field focused the key is left alone (WCAG 2.1.4).
+function shortcutTarget(el) {
+  if (!el || el === document.body || el === document.documentElement) return true;
+  return $('#app').contains(el) && !isTyping(el) && !el.closest('button, a, summary, [role=button]');
+}
 function moveRow(delta) {
   const rows = [...document.querySelectorAll('tr.row')];
   if (!rows.length) return;
@@ -1166,7 +1397,7 @@ document.addEventListener('keydown', (e) => {
     go(ST.route === 'tcga' ? '#/tcga/' + encodeURIComponent(id) : '#/case/' + encodeURIComponent(id));
     return;
   }
-  if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target) || $('#reset-dialog').open) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || !shortcutTarget(e.target) || $('#reset-dialog').open) return;
   if (ST.route === 'worklist' || (ST.route === 'tcga' && !ST.caseId)) {
     if (e.key === 'j' || e.key === 'ArrowDown') {
       if (e.key === 'ArrowDown' && !r) return; // plain page scrolling unless a row has focus
@@ -1192,8 +1423,26 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// The prioritisation popover opens toward the side with room: it sits at the far left when the toolbar wraps.
+document.addEventListener(
+  'toggle',
+  (e) => {
+    const pop = e.target.matches && e.target.matches('details.how') && e.target.open && e.target.querySelector('.how-pop');
+    if (!pop) return;
+    delete pop.dataset.uiSide;
+    if (getComputedStyle(pop).position === 'absolute' && pop.getBoundingClientRect().left < 8) pop.dataset.uiSide = 'left';
+  },
+  true
+);
+
 document.addEventListener('focusin', (e) => {
-  if (e.target.matches && e.target.matches('tr.row')) ST.focusId = e.target.dataset.caseId;
+  if (!e.target.matches || !e.target.matches('tr.row')) return;
+  ST.focusId = e.target.dataset.caseId;
+  // worklist rows: one tab stop (the row last used); J/K and the arrow keys move between rows
+  if (e.target.closest('section.wl')) {
+    document.querySelectorAll('section.wl tr.row[tabindex="0"]').forEach((r) => r !== e.target && (r.tabIndex = -1));
+    e.target.tabIndex = 0;
+  }
 });
 
 document.addEventListener('change', (e) => {
@@ -1264,8 +1513,15 @@ window.addEventListener('hashchange', onRoute);
 // Sticky offsets follow the real header height (it wraps onto two rows on narrow screens).
 function syncStick() {
   const top = $('.masthead');
-  document.documentElement.style.setProperty('--stick', top.offsetHeight + 'px');
+  const sticky = getComputedStyle(top).position === 'sticky';
+  document.documentElement.style.setProperty('--stick', (sticky ? top.offsetHeight : 0) + 'px');
 }
+// The evaluation charts pick cell-label colours from the resolved theme (js/charts.js): redraw them when it changes.
+window.addEventListener('pq:theme', () => {
+  if (ST.route !== 'metrics') return;
+  lastFp = null;
+  draw(true);
+});
 if ('ResizeObserver' in window) new ResizeObserver(syncStick).observe($('.masthead'));
 window.addEventListener('resize', syncStick);
 
@@ -1288,7 +1544,7 @@ async function boot() {
     return;
   }
   syncStick();
-  setInterval(tick, 1000);
+  steadyTick();
   onRoute();
 }
 boot();

@@ -24,7 +24,7 @@
   --sf: #fffefa;
   --sf2: #f6f8f4;
   --ink: #203c38;
-  --mut: #63736c;
+  --mut: #58675f; /* >= 5:1 on every light surface, including --bl and the wash */
   --ln: #d8e1d8;
   --ln2: #e7ece4;
   --hema: #28665b;
@@ -52,6 +52,8 @@
   --rose-wash: #ecdde349;
   --shadow: 0 3px 16px #244b3c06;
   --spring: cubic-bezier(.22, 1.15, .36, 1);
+  --ln-ctl: #7f8f88; /* form-control edges: >= 3:1 against the page (--ln is a divider, not a control boundary) */
+  --chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2358675f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   color-scheme: light;
 }
 :root[data-theme='dark'] {
@@ -76,6 +78,8 @@
   --wash: #396c5130;
   --rose-wash: #8d50691c;
   --shadow: 0 3px 16px #0000000d;
+  --ln-ctl: #6b8577;
+  --chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a4b8ac' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -101,6 +105,8 @@
     --wash: #396c5130;
     --rose-wash: #8d50691c;
     --shadow: 0 3px 16px #0000000d;
+    --ln-ctl: #6b8577;
+    --chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a4b8ac' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     color-scheme: dark;
   }
 }
@@ -146,7 +152,7 @@ html { scroll-padding-top: calc(var(--stick, 96px) + 16px); }
   font-variation-settings: 'SOFT' 100, 'WONK' 1, 'opsz' 96;
   letter-spacing: -.6px;
 }
-.masthead .brand img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 4px #5a33181f); }
+.masthead .brand img { width: 44px; height: 44px; object-fit: contain; }
 .glass-nav {
   position: relative;
   isolation: isolate;
@@ -185,7 +191,9 @@ html { scroll-padding-top: calc(var(--stick, 96px) + 16px); }
   box-shadow: none;
   white-space: nowrap;
 }
-.glass-nav button:hover { color: var(--ink); background: color-mix(in srgb, var(--bl) 60%, transparent); }
+@media (hover: hover) {
+  .glass-nav button:hover { color: var(--ink); background: color-mix(in srgb, var(--bl) 60%, transparent); }
+}
 .glass-nav button[aria-current='page'] { color: var(--on-accent); background: transparent; box-shadow: none; }
 .glass-nav svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .nav-lens, .tab-lens {
@@ -198,29 +206,49 @@ html { scroll-padding-top: calc(var(--stick, 96px) + 16px); }
   border-radius: 999px;
   background: linear-gradient(135deg, color-mix(in srgb, var(--hema) 85%, white), var(--hema));
   box-shadow: inset 0 1px 1px #ffffff55, inset 0 -1px 1px #00000018, 0 3px 9px #173e3020;
-  transition: transform .55s var(--spring), width .55s var(--spring);
 }
+/* until glass.js has placed the lens (first paint, before the module runs) the current item carries its own fill */
+.glass-nav:not([data-lens]) button[aria-current='page'] { background: var(--hema); }
 .glass-nav .nav-count { min-width: 20px; padding: 1px 5px; margin: 0; font-size: 10px; color: var(--hema); background: var(--bl); box-shadow: none; }
-.glass-nav [aria-current='page'] .nav-count { background: color-mix(in srgb, var(--on-accent) 18%, transparent); color: var(--on-accent); }
+.glass-nav .nav-count:empty { display: none; }
+/* counts change while the page is open: tabular digits and a floor width keep the pill from shifting */
+.glass-nav .nav-count { font-variant-numeric: tabular-nums; text-align: center; }
+.glass-nav #queue-count { min-width: 28px; }
+.glass-nav [aria-current='page'] .nav-count { background: color-mix(in srgb, var(--inkd) 30%, transparent); color: var(--on-accent); }
+:root[data-theme='dark'] .glass-nav [aria-current='page'] .nav-count { background: color-mix(in srgb, var(--on-accent) 14%, transparent); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .glass-nav [aria-current='page'] .nav-count { background: color-mix(in srgb, var(--on-accent) 14%, transparent); }
+}
 .glass-nav .nav-count.live, .glass-nav .nav-count.unread { background: var(--eosl); color: var(--eos); }
 .masthead-tools { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
-.workspace-tag { font-size: 10px; letter-spacing: .4px; color: var(--mut); white-space: nowrap; }
+.workspace-tag { font-size: 11px; letter-spacing: .4px; color: var(--mut); white-space: nowrap; }
 .theme-toggle { display: grid; place-items: center; width: 36px; height: 36px; padding: 8px; border: 1px solid var(--ln); border-radius: 50%; background: var(--glass); box-shadow: var(--glass-shadow); }
-.theme-toggle:hover { background: var(--bl); transform: rotate(-12deg); }
-.theme-toggle svg { width: 16px; height: 16px; stroke: var(--hema); stroke-width: 1.5; fill: none; }
+@media (hover: hover) {
+  .theme-toggle:hover { background: var(--bl); transform: rotate(-12deg); }
+}
+.theme-toggle svg { width: 16px; height: 16px; stroke: var(--hema); stroke-width: 1.5; fill: none; stroke-linecap: round; }
+/* the icon names the theme the button switches to */
+.theme-toggle .i-sun, :root[data-theme='dark'] .theme-toggle .i-moon { display: none; }
+:root[data-theme='dark'] .theme-toggle .i-sun { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .theme-toggle .i-moon { display: none; }
+  :root:not([data-theme='light']) .theme-toggle .i-sun { display: block; }
+}
+:root.theme-switching *, :root.theme-switching *::before, :root.theme-switching *::after { transition: none !important; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .2s; animation-timing-function: ease-out; }
 
 /* Utility and replay controls use the same surfaces, without competing with the navigation. */
 .workspace-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 32px 0; max-width: 1664px; margin: auto; }
 .data-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 0; margin: 0; border: 0; background: none; color: var(--mut); }
-.data-status b { font-size: 10px; font-weight: 500; }
-.data-status > span:last-child { font-size: 10px; color: var(--mut); margin: 0; }
+.data-status b { font-size: 11px; font-weight: 500; }
+.data-status > span:last-child { font-size: 11px; color: var(--mut); margin: 0; }
 .status-dot { width: 5px; height: 5px; margin: 0; background: var(--amb); }
 .data-status[data-state='ready'] .status-dot { background: var(--grn); }
-.kbd-help { color: var(--mut); margin: 0; font-size: 10px; line-height: 1.5; }
-.kbd-help kbd { color: var(--mut); background: var(--sf); border-color: var(--ln); font-size: 9px; }
+.kbd-help { color: var(--mut); margin: 0; font-size: 11px; line-height: 1.5; }
+.kbd-help kbd { color: var(--mut); background: var(--sf); border-color: var(--ln-ctl); font-size: 11px; }
 .topbar { position: relative; top: auto; min-height: 62px; margin: 0 auto; max-width: 1664px; padding: 12px 32px; background: transparent; border: 0; flex-wrap: wrap; gap: 12px; }
 .tb-title { flex: 1 1 180px; }
-.tb-title h1 { font-size: 14px; color: var(--mut); }
+.tb-title h1 { font-size: 14px; color: var(--ink); }
 .tb-desc { color: var(--mut); font-size: 11px; }
 .replay { flex: 0 1 auto; flex-wrap: wrap; }
 .replay-state { font-size: 11px; }
@@ -243,6 +271,7 @@ html { scroll-padding-top: calc(var(--stick, 96px) + 16px); }
 .wl-summary { border-radius: var(--radius); padding: 18px 20px; background: var(--glass); box-shadow: var(--glass-shadow); gap: 22px; }
 .comp-head [data-testid='open-count'] { font-family: var(--display); font-weight: 500; font-size: 30px; }
 .comp-bar { height: 6px; margin-block: 12px; border-radius: 10px; }
+.comp-bar i { transition: flex-grow .25s ease-out; } /* the rows are patched in place, so arrivals now ease the bar */
 .seg-t1 { background: var(--eos); }
 .seg-t2 { background: color-mix(in srgb, var(--eos) 52%, var(--sf)); }
 .seg-t3 { background: color-mix(in srgb, var(--amb) 60%, var(--sf)); }
@@ -250,14 +279,14 @@ html { scroll-padding-top: calc(var(--stick, 96px) + 16px); }
 .next-btn { min-width: 205px; border-radius: 13px; padding: 11px 17px; }
 .held-hint { font-size: 10px; margin: 12px 2px 18px; }
 .wl-toolbar { gap: 9px; padding: 0; margin-bottom: 16px; }
-.seg, .search, .sel select { border-radius: 10px; background: var(--glass); border-color: var(--ln); }
+.seg, .search, .sel select, .tog { border-radius: 10px; background-color: var(--glass); border-color: var(--ln-ctl); }
 .seg { padding: 3px; gap: 2px; }
 .seg button { border-radius: 7px; min-height: 29px; padding: 5px 10px; font-size: 11px; border: 0; }
 .seg button[aria-pressed='true'] { background: var(--bl); color: var(--hema); box-shadow: 0 1px 3px #244b3c08; }
 .search { min-height: 37px; }
 .search input { font-size: 11px; }
 .sel select { min-height: 37px; font-size: 11px; }
-.tog { font-size: 11px; }
+.tog { font-size: 11px; min-height: 37px; padding-inline: 9px 11px; } /* the same height as its neighbours */
 .how { margin-left: 0; }
 .wl-table-wrap { border-radius: 16px; box-shadow: var(--shadow); }
 #app[data-replay-busy='true'] .wl-table-wrap { cursor: progress; opacity: .65; }
@@ -277,7 +306,13 @@ html { scroll-padding-top: calc(var(--stick, 96px) + 16px); }
 .wl-table .cid { font-weight: 600; }
 .wl-table td.c-p { text-overflow: clip; }
 .wl-table td.c-p .mbar { width: 28px; }
-tr.row:hover { background: var(--sf2); }
+@media (hover: hover) {
+  tr.row:hover { background: var(--sf2); }
+}
+@media (hover: none) {
+  /* touch: a tapped row keeps no hover fill (flow.css sets one for pointers) */
+  .wl-table tr.row:hover { background: transparent; }
+}
 
 /* Case review and secondary screens share the same typography and surface scale. */
 .card { border-radius: var(--radius); background: var(--sf); border-color: var(--ln); box-shadow: var(--shadow); }
@@ -297,7 +332,9 @@ tr.row:hover { background: var(--sf2); }
 .ai-card::before { height: 2px; background: linear-gradient(90deg, var(--hema), color-mix(in srgb, var(--hema) 20%, transparent)); }
 .ai-mark { background: var(--hema); border-radius: 50%; width: 13px; height: 13px; box-shadow: 0 0 0 4px var(--bl); }
 .ai-tabpanel { max-width: none; }
-.ai-tabpanel .ai-card { max-width: 1120px; margin-inline: auto; padding: 24px; }
+/* the plain-language card spans the panel so its edges line up with the case header; the text keeps a reading measure */
+.ai-tabpanel .ai-card { max-width: none; margin-inline: 0; padding: 24px; }
+.ai-tabpanel .ai-md { max-width: 100ch; }
 .ai-md { font-size: 14px; }
 .ai-foot { max-width: 100ch; }
 .casebar { border-radius: 12px; background: var(--glass); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
@@ -307,9 +344,13 @@ tr.row:hover { background: var(--sf2); }
 .toasts { z-index: 60; }
 .toast-item { border-radius: 16px; box-shadow: var(--glass-shadow), 0 8px 28px #173e301a; }
 
-@media (max-width: 1270px) {
-  .masthead { gap: 12px; grid-template-columns: 160px minmax(0, 1fr) 38px; padding-inline: 24px; }
+@media (max-width: 1479px) {
+  /* the brand and the theme button flank a centred nav; the workspace tag would push the nav out of its pill */
+  .masthead { grid-template-columns: minmax(160px, 1fr) auto minmax(36px, 1fr); }
   .workspace-tag { display: none; }
+}
+@media (max-width: 1270px) {
+  .masthead { gap: 12px; grid-template-columns: minmax(150px, 1fr) auto minmax(36px, 1fr); padding-inline: 24px; }
   .glass-nav { justify-self: center; }
   .glass-nav button { padding-inline: 12px; font-size: 11px; }
   .wl-table th.c-case { width: 155px; }
@@ -319,8 +360,13 @@ tr.row:hover { background: var(--sf2); }
   .wl-table th.c-lane, .wl-table tr.row td.c-lane { visibility: visible; font-size: 11px; padding-inline: 10px; }
   .wl-table .lane-inline { display: none; }
 }
+@media (max-width: 1180px) {
+  /* labels only: every destination stays visible in one row down to tablet portrait */
+  .glass-nav svg { display: none; }
+}
 @media (max-width: 1100px) {
-  .wl-table tr.grp th { top: var(--stick, 0px); }
+  /* stacked rows: the group note wraps under the tier name instead of being cut off at a fixed height */
+  .wl-table tr.grp th { top: var(--stick, 0px); height: auto; padding-block: 7px; }
   .wl-table tr.row td { padding-block: 0; }
 }
 @media (max-width: 1000px) {
@@ -332,6 +378,8 @@ tr.row:hover { background: var(--sf2); }
   .wrap { padding-inline: 24px; }
   .topbar { gap: 12px; }
   .replay { order: 3; width: 100%; justify-content: space-between; }
+  /* the frozen-section buttons take their own row; the divider would otherwise start a wrapped line */
+  .inject { flex-basis: 100%; padding-left: 0; border-left: 0; }
   .tb-right { margin-left: auto; }
   .kbd-help { display: none; }
 }
@@ -339,12 +387,12 @@ tr.row:hover { background: var(--sf2); }
   .masthead { gap: 12px; padding: 12px 16px; }
   .masthead .brand { font-size: 22px; }
   .masthead .brand img { width: 36px; height: 36px; }
-  .workspace-tag { font-size: 9px; }
+  .workspace-tag { font-size: 11px; }
   .masthead-tools { gap: 10px; }
   .glass-nav { width: 100%; justify-self: stretch; }
   .glass-nav button { min-height: 39px; padding-inline: 12px; font-size: 11px; }
   .workspace-status { padding: 10px 16px 0; }
-  .data-status > span:last-child { font-size: 9px; }
+  .data-status > span:last-child { font-size: 11px; }
   .topbar { padding: 12px 16px; min-height: 0; }
   .tb-title { flex-basis: 140px; }
   .tb-right { display: flex; }
@@ -384,4 +432,115 @@ h1 .tier, h2 .tier, h1 .pill, h2 .pill, h2 .chip { font-family: var(--font); fon
 @media (max-width: 640px) {
   .masthead .brand { font-size: 21px; gap: 8px; }
   .masthead .brand img { width: 32px; height: 32px; }
+}
+
+/* Focus rings inside clipped containers (the nav pill, segmented controls) sit inside the control so they are not cut
+   off; on the filled current destination the ring takes the text colour. */
+.glass-nav button:focus-visible, .wl-toolbar .seg button:focus-visible, .leg:focus-visible { outline-offset: -3px; }
+.glass-nav button[aria-current='page']:focus-visible { outline-color: var(--on-accent); }
+
+/* Navigation that does not fit (phones) scrolls; a soft edge shows there is more in that direction. */
+.glass-nav[data-fade='end'] { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); }
+.glass-nav[data-fade='start'] { -webkit-mask-image: linear-gradient(90deg, transparent, #000 36px); mask-image: linear-gradient(90deg, transparent, #000 36px); }
+.glass-nav[data-fade='both'] { -webkit-mask-image: linear-gradient(90deg, transparent, #000 36px, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(90deg, transparent, #000 36px, #000 calc(100% - 36px), transparent); }
+
+/* The workspace keeps at least a screen of height, so the footer is never on screen while a page loads and then
+   pushed away by the content (the largest first-load layout shift). */
+#app { min-height: calc(100vh - var(--stick, 96px)); }
+:root[data-route='tcga'] .replay { display: none; }
+/* the shortcut hint only where the shortcuts act (worklist, case, TCGA list); hidden, not removed, so nothing moves */
+:is(:root[data-route='surgeon'], :root[data-route='oncologist'], :root[data-route='metrics'], :root[data-route='spotcheck']) .kbd-help { visibility: hidden; }
+
+/* Worklist table: the legacy 740 px table minimum clipped the right-hand cells on 761–790 px screens. */
+.tblw .wl-table { min-width: 0; }
+.wl-table .cid { white-space: normal; line-height: 1.25; color: inherit; text-decoration: none; }
+@media (hover: hover) {
+  .wl-table a.cid:hover { text-decoration: underline; text-underline-offset: 2px; }
+}
+.cid-x { font-size: 11.5px; font-weight: 500; color: var(--mut); }
+@media (min-width: 1361px) {
+  .wl-table th.c-case { width: 212px; } /* a derived case id (BACH_0225_FSIM_resample3) on one line */
+}
+@media (min-width: 761px) {
+  /* the whole toolbar on one line at 1280 px; the flag menu still lists its options in full */
+  .wl-toolbar .search { width: 200px; }
+  .wl-toolbar .sel select { width: 164px; }
+}
+@media (min-width: 1101px) {
+  /* the frozen-section variant sits under the lane instead of being truncated to one letter */
+  .wl-table tr.row td.c-lane { white-space: normal; line-height: 1.25; }
+  .wl-table td.c-lane .variant { display: block; margin: 1px 0 0; font-size: 11px; }
+}
+
+/* What is narrowing the worklist, above it, each removable on its own. */
+.wl-active { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: -6px 0 14px; font-size: 12px; color: var(--mut); }
+.wl-active-n { margin-right: 2px; }
+.wl-active-n b { color: var(--ink); font-weight: 650; }
+.fchip { display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 2px 4px 2px 10px; border: 1px solid color-mix(in srgb, var(--hema) 32%, var(--ln)); border-radius: 999px; background: var(--bl); color: var(--hema); font-size: 12px; font-weight: 600; }
+.fchip span { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-size: 14px; line-height: 1; }
+@media (hover: hover) {
+  .fchip:hover span { background: color-mix(in srgb, var(--hema) 16%, transparent); }
+}
+.wl-active .linkbtn { font-size: 12px; margin-left: 2px; }
+
+/* Loading placeholders in the shape of the worklist (no false "empty queue" or 0 count while it loads). */
+.sk { display: block; height: 10px; flex: none; border-radius: 5px; background: linear-gradient(90deg, var(--ln2) 30%, color-mix(in srgb, var(--ln2) 35%, var(--sf)) 50%, var(--ln2) 70%) 0 0 / 300% 100%; animation: sk-shimmer 1.6s ease-in-out infinite; }
+@keyframes sk-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+.wl-loading .comp-head { align-items: center; flex-wrap: nowrap; gap: 14px; min-height: 36px; }
+.wl-loading .comp-head .sk:last-child { flex: 0 1 auto; }
+.wl-loading .sk-num { height: 26px; border-radius: 7px; }
+.wl-loading .comp-legend { gap: 8px 18px; margin: 4px 0 0; min-height: 26px; align-items: center; }
+.sk-btn { display: block; width: 205px; height: 52px; border-radius: 13px; background: color-mix(in srgb, var(--hema) 14%, var(--sf)); }
+.wl-loading .wl-toolbar { min-height: 37px; }
+.sk-ctl { height: 37px; border-radius: 10px; }
+.sk-head { height: 39px; background: var(--sf2); border-bottom: 1px solid var(--ln); }
+.sk-row { display: flex; align-items: center; gap: 24px; height: 41px; padding: 0 14px; border-bottom: 1px solid var(--ln2); }
+.sk-row:last-child { border-bottom: 0; }
+.sk-row .sk-sq { height: 22px; border-radius: 5px; }
+.sk-row .sk:nth-child(3) { flex: 0 1 auto; }
+.sk-row .sk-end { margin-left: auto; }
+@media (max-width: 760px) {
+  .sk-btn { width: 100%; }
+  .wl-loading .wl-toolbar .sk:first-child { width: 100% !important; }
+  .wl-loading .wl-toolbar .sk:not(:first-child) { display: none; }
+  .sk-row .sk:nth-child(2) { width: 90px !important; }
+}
+
+@media (min-width: 761px) {
+  /* notifications bottom right (the old offset assumed a side rail that no longer exists) */
+  .toasts { left: auto; right: 24px; bottom: 24px; }
+  /* the prioritisation popover opens rightward when the toolbar has wrapped it to the left edge (app.js) */
+  .how-pop[data-ui-side='left'] { left: 0; right: auto; }
+}
+
+/* One select look in every engine: WebKit otherwise draws the native macOS control (about 20 px tall, padding and
+   radius ignored). :root lifts the rule above the per-view "background:" shorthands that would erase the chevron. */
+:root select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 28px;
+  background-image: var(--chev);
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px 6px;
+}
+
+/* 200% zoom or a landscape phone: the sticky masthead would take a third of the height, so it scrolls away. */
+@media (max-height: 560px) {
+  .masthead { position: static; }
+}
+
+/* Replay status: each part keeps one width whatever its text (running / paused / ready, the clock, the speed), so the
+   controls beside it do not shift; the first paint ("Checking simulator…") already has the final width. */
+.replay-state b { min-width: 81px; }
+.replay-state .rs-t { min-width: 50px; font-variant-numeric: tabular-nums; }
+.replay-state .rs-x { min-width: 26px; font-variant-numeric: tabular-nums; }
+@media (min-width: 761px) {
+  #sim { min-width: 188px; }
+}
+/* A case opened directly: the case bar's place is kept from the first paint (case.css gives it its final height). */
+:root[data-route='case'] #casebar[hidden]:not([data-off]) { display: flex; visibility: hidden; min-height: 51px; }
+@media (max-width: 760px) {
+  :root[data-route='case'] #casebar[hidden]:not([data-off]) { min-height: 88px; }
 }
