@@ -1,0 +1,488 @@
+# Verified literature for the human-reader baseline and clinical timing benchmarks (docs/HUMAN_BASELINE.md).
+# Each figure was read in the abstract or full text named in `where`; nothing here is estimated or inferred.
+# `libkey_resolved: false` means the citation has not yet been resolved through the LibKey connector; it was
+# verified instead through the PubMed record (E-utilities), DOI resolution (doi.org) and Crossref metadata.
+# Figures from Sepia itself are not stored here; they come from artifacts/eval/*.json.
+version: 2026-10-18
+verified_on: 2026-10-18
+
+citations:
+  - key: elmore2015_bpath
+    authors: Elmore JG, et al.
+    year: 2015
+    title: Diagnostic concordance among pathologists interpreting breast biopsy specimens
+    journal: JAMA
+    volume_pages: "313(11):1122-1132"
+    doi: 10.1001/jama.2015.1405
+    pmid: "25781441"
+    pmcid: PMC4516388
+    url: https://doi.org/10.1001/jama.2015.1405
+    libkey_resolved: false
+    verified_via: PubMed abstract (E-utilities); DOI resolves (doi.org) and Crossref metadata match; full text read in PMC4516388
+    figures:
+      - value: "115 pathologists; 240 cases; 6900 interpretations"
+        meaning: Participating US pathologists (8 states), test cases (1 H&E slide per case), total case interpretations
+        where: Abstract (Exposures; Results)
+      - value: "23 invasive, 73 DCIS, 72 atypia, 72 benign without atypia"
+        meaning: Reference-diagnosis composition of the 240 cases
+        where: Abstract (Exposures)
+      - value: "75.3% (95% CI 73.4-77.0%)"
+        meaning: Overall concordance of participants with the expert consensus-derived reference diagnosis (5194/6900)
+        where: Abstract (Results)
+      - value: "96% (94-97%) concordant; 4% (3-6%) underinterpreted"
+        meaning: Invasive carcinoma cases (663 interpretations)
+        where: Abstract (Results); Table 3
+      - value: "84% (82-86%) concordant; 3% (2-4%) overinterpreted; 13% (12-15%) underinterpreted"
+        meaning: DCIS cases (2097 interpretations); overinterpretation of DCIS means a call of invasive carcinoma
+        where: Abstract (Results); Table 3; Results paragraph ("over-interpretation of DCIS as invasive carcinoma occurred in only 3%")
+      - value: "48% (44-52%) concordant; 17% (15-21%) overinterpreted; 35% (31-39%) underinterpreted"
+        meaning: Atypia cases (2070 interpretations)
+        where: Abstract (Results); Table 3
+      - value: "87% (85-89%) concordant; 13% (11-15%) overinterpreted"
+        meaning: Benign without atypia cases (2070 interpretations)
+        where: Abstract (Results); Table 3
+      - value: "75% unanimous; 90.3% concordance"
+        meaning: Three-expert consensus panel - unanimous independent agreement (180/240 cases) and concordance of their independent diagnoses with the final consensus (650/720)
+        where: Abstract (Exposures); Methods (Test Set Development)
+      - value: "Benign 91%, atypia 80%, DCIS 97%, invasive 97%"
+        meaning: Concordance of the three panel experts' independent pre-consensus diagnoses with the consensus reference, by category
+        where: Table 1
+      - value: "1 slide per case; no time limit"
+        meaning: Reading conditions - one H&E slide per case selected by the panel; participants were not limited by interpretation time
+        where: Methods (Test Set Development; Test Set Implementation)
+      - value: "1 invasive case with predominant DCIS and a focus of microinvasion"
+        meaning: The microinvasive focus was initially missed by 2 of the 3 reference panelists and confirmed invasive at consensus
+        where: Results paragraph ("Pathologists' Diagnoses Compared With Consensus-Derived Reference Diagnoses")
+    use_in: Human concordance by diagnostic category (benign without atypia, atypia, DCIS, invasive) next to Sepia per-class recall
+
+  - key: aresta2019_bach
+    authors: Aresta G, et al.
+    year: 2019
+    title: "BACH: Grand challenge on breast cancer histology images"
+    journal: Medical Image Analysis
+    volume_pages: "56:122-139"
+    doi: 10.1016/j.media.2019.05.010
+    pmid: "31226662"
+    arxiv: "1808.04277v2"
+    url: https://doi.org/10.1016/j.media.2019.05.010
+    libkey_resolved: false
+    verified_via: PubMed abstract (E-utilities); DOI resolves (doi.org) and Crossref metadata match; full text read in the author version arXiv:1808.04277v2 (journal_ref Medical Image Analysis 2019, same DOI); section and table numbers refer to that version
+    figures:
+      - value: "87%"
+        meaning: Best automatic classification accuracy on the hidden microscopy test set (teams 216 and 248, Acc 0.87)
+        where: Abstract; Table 4
+      - value: "64 submissions out of 677 registrations"
+        meaning: Challenge participation (Part A 51, Part B 13)
+        where: Abstract; Section 4
+      - value: "400 training and 100 test images, four classes equally represented; 2048 x 1536 px; 0.42 um/px"
+        meaning: Microscopy dataset (Part A); the hidden test set therefore has 25 images per class
+        where: Section 2.2.1
+      - value: "Annotated by two medical experts; images with Normal vs Benign disagreement discarded; remaining doubtful cases confirmed by immunohistochemistry"
+        meaning: How BACH microscopy labels were made
+        where: Section 2.2.1
+      - value: "Test data from a completely different set of patients"
+        meaning: Patient separation between the public training images and the hidden test images
+        where: Section 2.2.1
+      - value: "Four pathologists (E1-E4) read the 100 hidden test field images seeing only the image"
+        meaning: BACH reader study; E1 and E3 breast cancer specialists, E2 and E4 experienced pathologists; E1 co-built the dataset and re-read after one month; at labelling time the annotators had access to other regions of the patient tissue and potentially immunohistochemistry
+        where: Section 4.1 (paragraph introducing E1-E4); Section 4.1.1
+      - value: "Accuracy 96% (E1, BACH annotator), 94%, 78%, 73% (external)"
+        meaning: Four-class accuracy of the four pathologists on the hidden test set
+        where: Section 4.1.1; Table 4
+      - value: "Normal Se 0.96/0.96/0.88/0.40; Benign Se 0.92/0.88/0.76/0.84; In situ Se 1.0/1.0/0.56/0.76; Invasive Se 0.96/0.92/0.92/0.92 (E1/E2/E3/E4)"
+        meaning: Class-wise sensitivity of each pathologist on the hidden test set
+        where: Table 4
+      - value: "Mean +/- SD: accuracy 0.85 +/- 0.10; sensitivity Normal 0.80 +/- 0.23, Benign 0.85 +/- 0.06, In situ 0.83 +/- 0.18, Invasive 0.93 +/- 0.02"
+        meaning: Average over the four pathologists
+        where: Table 4 ("Experts (avg.)" row)
+      - value: "Benign and In situ are the most challenging classes"
+        meaning: Class-wise analysis of the top-10 methods
+        where: Section 4.1; Fig. 6b
+    use_in: How BACH labels were made; four-class human reader baseline on BACH field images; top challenge accuracy
+
+  - key: bach_dataset_page
+    authors: ICIAR 2018 BACH challenge organizers
+    year: null
+    title: Dataset - ICIAR 2018 Grand Challenge on BreAst Cancer Histology images
+    journal: grand-challenge.org (web page)
+    volume_pages: null
+    doi: null
+    pmid: null
+    url: https://iciar2018-challenge.grand-challenge.org/Dataset/
+    accessed: 2026-10-18
+    libkey_resolved: false
+    verified_via: Official dataset page fetched and read on 2026-10-18 (not a scholarly article)
+    figures:
+      - value: "Labelled according to the predominant cancer type in each image"
+        meaning: Image-level labelling rule for the microscopy images
+        where: Section "1. Microscopy images"
+      - value: "Annotation performed by two medical experts and images where there was disagreement were discarded"
+        meaning: Label curation as stated on the dataset page (the paper narrows this to Normal vs Benign disagreement, see aresta2019_bach)
+        where: Section "1. Microscopy images"
+      - value: "400 images: 100 Normal, 100 Benign, 100 in situ carcinoma, 100 invasive carcinoma"
+        meaning: Public microscopy image set (the source of Sepia's THUNDER train/calibration/test split)
+        where: Section "1. Microscopy images"
+      - value: "CC BY-NC-ND; cite 10.1016/j.media.2019.05.010"
+        meaning: Licence and required citation
+        where: Page header
+    use_in: How BACH labels were made (official statement)
+
+  - key: novis1997_frozen_tat
+    authors: Novis DA, Zarbo RJ
+    year: 1997
+    title: "Interinstitutional comparison of frozen section turnaround time. A College of American Pathologists Q-Probes study of 32868 frozen sections in 700 hospitals"
+    journal: Archives of Pathology & Laboratory Medicine
+    volume_pages: "121(6):559-567"
+    doi: null
+    pmid: "9199619"
+    url: https://pubmed.ncbi.nlm.nih.gov/9199619/
+    libkey_resolved: false
+    verified_via: PubMed abstract (E-utilities); no DOI registered for this 1997 article (Crossref search returned no match)
+    figures:
+      - value: "32868 frozen section blocks; 700 institutions; 1995"
+        meaning: Study size and period (4 months in 1995; up to 30 frozen sections on elective inpatient cases per institution)
+        where: Abstract (Design; Participants; Results)
+      - value: "Measured from pathologist receipt of the specimen to communication of the result to the surgeon"
+        meaning: Definition of the turnaround interval
+        where: Abstract (Main Outcome Measures)
+      - value: "90% of frozen section procedures completed within 20 minutes"
+        meaning: Aggregate frozen-section turnaround benchmark
+        where: Abstract (Results; Conclusions)
+      - value: "70% of hospitals completed 90% of their frozen sections within 20 minutes"
+        meaning: Share of institutions meeting the 90%-within-20-minutes level
+        where: Abstract (Results)
+      - value: "Outliers more likely with multiple pathologists, trainees, review of prior material, simultaneous specimens, no final diagnosis, technical problems"
+        meaning: Factors associated with turnaround over 20 minutes
+        where: Abstract (Results)
+    use_in: Frozen-section turnaround benchmark
+
+  - key: captoday2008_anp11820
+    authors: College of American Pathologists, Laboratory Accreditation Program (answers reviewed by Sarewitz SJ, chair, Checklists Committee)
+    year: 2008
+    title: "Q and A: Laboratory Accreditation News (September 2008)"
+    journal: CAP Today
+    volume_pages: null
+    doi: null
+    pmid: null
+    url: https://www.captodayonline.com/Archives/0908/0908_QA_LAP_1.html
+    accessed: 2026-10-18
+    libkey_resolved: false
+    verified_via: CAP Today web archive page fetched and read on 2026-10-18 (not a scholarly article; reflects the checklist as quoted in September 2008; current checklist wording and numbering not verified)
+    figures:
+      - value: "ANP.11820: Does the laboratory periodically evaluate turnaround time for intraoperative frozen sections?"
+        meaning: Anatomic pathology checklist question, as quoted in September 2008
+        where: Answer to the first question
+      - value: "90 percent of frozen sections should be completed within 20 minutes"
+        meaning: Checklist note; applies only to cases with a single specimen requiring a single block, during regular business hours with a pathologist on site
+        where: Answer to the first question
+    use_in: CAP accreditation statement of the 20-minute frozen-section target
+
+  - key: zarbo1996_routine_tat
+    authors: Zarbo RJ, Gephardt GN, Howanitz PJ
+    year: 1996
+    title: "Intralaboratory timeliness of surgical pathology reports. Results of two College of American Pathologists Q-Probes studies of biopsies and complex specimens"
+    journal: Archives of Pathology & Laboratory Medicine
+    volume_pages: "120(3):234-244"
+    doi: null
+    pmid: "8629897"
+    url: https://pubmed.ncbi.nlm.nih.gov/8629897/
+    libkey_resolved: false
+    verified_via: PubMed abstract (E-utilities); no DOI registered for this 1996 article (Crossref search returned no match)
+    figures:
+      - value: "2 working days"
+        meaning: CAP Laboratory Accreditation Program standard for report completion, measured from specimen accessioning to report completion (intralaboratory interval)
+        where: Abstract (Design; Conclusions)
+      - value: "79% by 1 working day, 95% by 2, 98% by 3"
+        meaning: Routine biopsies (15725 cases, 525 laboratories), cumulative share of reports completed
+        where: Abstract (Results)
+      - value: "56% by 1 working day, 81% by 2, 91% by 3, 95% by 4"
+        meaning: Complex specimens (14298 cases, 489 laboratories), cumulative share of reports completed
+        where: Abstract (Results)
+      - value: "Mean of participants' median TATs 1.5 days (complex), 1.3 days (routine handling), 2.6 days (special handling)"
+        meaning: Typical report turnaround for complex specimens
+        where: Abstract (Results)
+    use_in: Routine surgical pathology turnaround benchmark; timing of permanent-section results after surgery (complex specimens in general, not breast-specific)
+
+  - key: moran2014_margins
+    authors: Moran MS, et al.
+    year: 2014
+    title: Society of Surgical Oncology-American Society for Radiation Oncology consensus guideline on margins for breast-conserving surgery with whole-breast irradiation in stages I and II invasive breast cancer
+    journal: Annals of Surgical Oncology
+    volume_pages: "21(3):704-716"
+    doi: 10.1245/s10434-014-3481-4
+    pmid: "24515565"
+    also_published: "Int J Radiat Oncol Biol Phys. 2014;88(3):553-564. doi:10.1016/j.ijrobp.2013.11.012. PMID 24521674. PMC4790083"
+    url: https://doi.org/10.1245/s10434-014-3481-4
+    libkey_resolved: false
+    verified_via: PubMed abstract (E-utilities) for both publications; both DOIs resolve (doi.org) and Crossref metadata match; full text read in the Int J Radiat Oncol Biol Phys author manuscript PMC4790083
+    figures:
+      - value: "33 studies; 28162 patients"
+        meaning: Meta-analysis evidence base
+        where: Abstract (Methods)
+      - value: "Positive margin (ink on invasive carcinoma or DCIS) doubles IBTR risk; no ink on tumor is the standard for an adequate margin in invasive cancer"
+        meaning: Guideline recommendation
+        where: Abstract (Results; Conclusion)
+      - value: "Approximately 1 in 4 women attempting breast-conserving therapy undergo a re-excision; nearly half of these to obtain wider margins when margins were already negative"
+        meaning: Re-excision burden before the guideline
+        where: Introduction, paragraph 1 (PMC4790083)
+    use_in: Breast-conserving surgery margin standard and re-excision burden
+
+  - key: morrow2016_dcis_margins
+    authors: Morrow M, et al.
+    year: 2016
+    title: Society of Surgical Oncology-American Society for Radiation Oncology-American Society of Clinical Oncology consensus guideline on margins for breast-conserving surgery with whole-breast irradiation in ductal carcinoma in situ
+    journal: Annals of Surgical Oncology
+    volume_pages: "23(12):3801-3810"
+    doi: 10.1245/s10434-016-5449-z
+    pmid: "27527714"
+    pmcid: PMC5047939
+    url: https://doi.org/10.1245/s10434-016-5449-z
+    libkey_resolved: false
+    verified_via: PubMed abstract (E-utilities); DOI resolves (doi.org) and Crossref metadata match
+    figures:
+      - value: "2 mm"
+        meaning: Standard adequate margin for DCIS treated with whole-breast irradiation
+        where: Abstract (Results; Conclusion)
+      - value: "20 studies; 7883 patients"
+        meaning: Meta-analysis evidence base
+        where: Abstract (Methods)
+    use_in: Margin standard for in situ disease
+
+  - key: mccahill2012_reexcision
+    authors: McCahill LE, et al.
+    year: 2012
+    title: Variability in reexcision following breast conservation surgery
+    journal: JAMA
+    volume_pages: "307(5):467-475"
+    doi: 10.1001/jama.2012.43
+    pmid: "22298678"
+    url: https://doi.org/10.1001/jama.2012.43
+    libkey_resolved: false
+    verified_via: PubMed abstract (E-utilities); DOI resolves (doi.org) and Crossref metadata match
+    figures:
+      - value: "22.9% (95% CI 21.2-24.7%)"
+        meaning: Women with invasive cancer who underwent re-excision after partial mastectomy (509 of 2206; 4 US institutions, 2003-2008)
+        where: Abstract (Results)
+      - value: "85.9% (95% CI 82.0-89.8%)"
+        meaning: Re-excision rate for initially positive margins
+        where: Abstract (Results)
+      - value: "Surgeon range 0-70%; institution range 1.7-20.9%"
+        meaning: Variation in re-excision among patients with negative margins
+        where: Abstract (Results)
+    use_in: Re-excision rate after breast-conserving surgery (margin result known only after the operation)
+
+  - key: esbona2012_fs_ic_review
+    authors: Esbona K, Li Z, Wilke LG
+    year: 2012
+    title: "Intraoperative imprint cytology and frozen section pathology for margin assessment in breast conservation surgery: a systematic review"
+    journal: Annals of Surgical Oncology
+    volume_pages: "19(10):3236-3245"
+    doi: 10.1245/s10434-012-2492-2
+    pmid: "22847119"
+    pmcid: PMC4247998
+    url: https://doi.org/10.1245/s10434-012-2492-2
+    libkey_resolved: false
+    verified_via: PubMed abstract (E-utilities); DOI resolves (doi.org) and Crossref metadata match; full text read in PMC4247998
+    figures:
+      - value: "Final re-excision 35% (permanent section only), 11% (imprint cytology), 10% (frozen section)"
+        meaning: Pooled final re-excision rates after primary breast-conserving surgery by margin-assessment method
+        where: Abstract (Results); Fig. 2a
+      - value: "Pooled sensitivity 83%, specificity 95% (frozen section)"
+        meaning: Intraoperative frozen-section margin accuracy against permanent sections
+        where: Abstract (Results)
+      - value: "Mean 27 min (frozen section, 4 studies); 13 min (imprint cytology, 6 studies)"
+        meaning: Time taken by the intraoperative technique
+        where: Abstract (Results); Results paragraph on technique duration; Tables 2-3
+    use_in: Intraoperative margin assessment accuracy, time cost and effect on re-excision
+
+  - key: garcia2021_fs_meta
+    authors: Garcia MT, et al.
+    year: 2021
+    title: "Accuracy of frozen section in intraoperative margin assessment for breast-conserving surgery: a systematic review and meta-analysis"
+    journal: PLoS One
+    volume_pages: "16(3):e0248768"
+    doi: 10.1371/journal.pone.0248768
+    pmid: "33735315"
+    pmcid: PMC7971883
+    url: https://doi.org/10.1371/journal.pone.0248768
+    libkey_resolved: false
+    verified_via: PubMed abstract (E-utilities); DOI resolves (doi.org) and Crossref metadata match; open-access full text read in PMC7971883
+    figures:
+      - value: "19 studies; 6769 cases"
+        meaning: Evidence base
+        where: Abstract (Results)
+      - value: "Sensitivity 0.81 (95% CI 0.79-0.83); specificity 0.97 (0.97-0.98)"
+        meaning: Pooled frozen-section margin accuracy (17 studies, 5615 cases)
+        where: Abstract (Results)
+      - value: "5.9%"
+        meaning: Average reoperation rate with intraoperative frozen section
+        where: Abstract (Results)
+      - value: "10 to 50 minutes"
+        meaning: Range of frozen-section procedure time reported by 11 of the 19 studies
+        where: Results, study characteristics paragraph
+      - value: "Reoperation rates 20% to 40% in the literature"
+        meaning: Reoperation for positive margins on H&E of the surgical specimen (background statement citing prior literature)
+        where: Introduction, paragraph 2
+      - value: "No consensus on the best method, particularly intraoperative margin assessment"
+        meaning: Practice varies between institutions
+        where: Introduction, paragraph 2
+    use_in: Intraoperative margin assessment accuracy and time; practice variation
+
+  - key: boughey2014_fs_nsqip
+    authors: Boughey JC, et al.
+    year: 2014
+    title: "Impact of analysis of frozen-section margin on reoperation rates in women undergoing lumpectomy for breast cancer: evaluation of the National Surgical Quality Improvement Program data"
+    journal: Surgery
+    volume_pages: "156(1):190-197"
+    doi: 10.1016/j.surg.2014.03.025
+    pmid: "24929768"
+    url: https://doi.org/10.1016/j.surg.2014.03.025
+    libkey_resolved: false
+    verified_via: PubMed abstract (E-utilities); DOI resolves (doi.org) and Crossref metadata match
+    figures:
+      - value: "13.2% vs 3.6%"
+        meaning: 30-day reoperation after lumpectomy for cancer, national NSQIP vs a single institution using routine frozen-section analysis of all margins (2006-2010; N = 24217 lumpectomies)
+        where: Abstract (Methods; Results)
+      - value: "Odds ratio 4.19"
+        meaning: Adjusted odds of reoperation, national data vs the frozen-section institution
+        where: Abstract (Results)
+      - value: "Intraoperative frozen-section margin analysis permits immediate re-excision, avoiding reoperation"
+        meaning: Mechanism - without it, margin status is known only after the operation
+        where: Abstract (Background)
+    use_in: When margin results arrive (intraoperative vs after surgery) and the reoperation consequence
+
+  - key: staradub2002_second_opinion
+    authors: Staradub VL, et al.
+    year: 2002
+    title: Changes in breast cancer therapy because of pathology second opinions
+    journal: Annals of Surgical Oncology
+    volume_pages: "9(10):982-987"
+    doi: 10.1007/BF02574516
+    pmid: "12464590"
+    url: https://doi.org/10.1007/BF02574516
+    libkey_resolved: false
+    verified_via: PubMed abstract (E-utilities); DOI resolves (doi.org) and Crossref metadata match
+    figures:
+      - value: "340 patients; 346 breast cancers; 1997-2001"
+        meaning: Second-opinion cohort (invasive or noninvasive cancer on biopsy)
+        where: Abstract (Methods; Results)
+      - value: "7.8%"
+        meaning: Major changes that altered surgical therapy
+        where: Abstract (Results)
+      - value: "80% some change; 40% additional prognostic information; 20% no change"
+        meaning: Any change in pathology or prognostic factors on review
+        where: Abstract (Results)
+      - value: "Changes more common in in situ than invasive carcinoma (P = .004)"
+        meaning: Where review changed the pathology most
+        where: Abstract (Results)
+    use_in: Second-opinion review changing breast diagnoses and treatment
+
+  - key: khazai2015_second_review
+    authors: Khazai L, et al.
+    year: 2015
+    title: Breast pathology second review identifies clinically significant discrepancies in over 10% of patients
+    journal: Journal of Surgical Oncology
+    volume_pages: "111(2):192-197"
+    doi: 10.1002/jso.23788
+    pmid: "25273328"
+    url: https://doi.org/10.1002/jso.23788
+    libkey_resolved: false
+    verified_via: PubMed abstract (E-utilities); DOI resolves (doi.org) and Crossref metadata match
+    figures:
+      - value: "226 of 1970 cases (11.47%)"
+        meaning: Significant discrepancy (a disagreement that affected patient care) on second review of breast pathology referrals in one year
+        where: Abstract (Methods; Results)
+      - value: "Histologic category 66 cases (33%); biomarkers 50 cases (25%)"
+        meaning: Most common areas of significant discrepancy
+        where: Abstract (Results)
+      - value: "Intraductal lesions, lobular carcinoma, metaplastic carcinomas, phyllodes tumors"
+        meaning: Most problematic diagnostic categories
+        where: Abstract (Results)
+    use_in: Second-opinion review changing breast diagnoses
+
+  - key: elmore2016_second_opinion_bmj
+    authors: Elmore JG, et al.
+    year: 2016
+    title: "Evaluation of 12 strategies for obtaining second opinions to improve interpretation of breast histopathology: simulation study"
+    journal: BMJ
+    volume_pages: "353:i3069"
+    doi: 10.1136/bmj.i3069
+    pmid: "27334105"
+    pmcid: PMC4916777
+    url: https://doi.org/10.1136/bmj.i3069
+    libkey_resolved: false
+    verified_via: PubMed abstract (E-utilities); DOI resolves (doi.org) and Crossref metadata match
+    figures:
+      - value: "24.7% to 18.1%"
+        meaning: Overall misclassification when every case receives a second opinion (B-Path data, 240 cases, 115 pathologists)
+        where: Abstract (Results)
+      - value: "Significant decrease with all strategies except second opinions limited to invasive cancer"
+        meaning: Second opinions restricted to invasive cases did not significantly reduce misclassification
+        where: Abstract (Results)
+      - value: "52.2% single read; more than 34% in all second-opinion scenarios"
+        meaning: Misclassification of atypia cases
+        where: Abstract (Results)
+      - value: "10% non-proliferative, 20% proliferative without atypia, 30% atypia, 30% DCIS, 10% invasive"
+        meaning: B-Path test-set composition, with a higher prevalence of difficult cases than typical practice
+        where: Abstract (Participants)
+    use_in: Second-opinion benefit by category; enrichment of the B-Path test set
+
+  - key: ehteshamibejnordi2017_camelyon16
+    authors: Ehteshami Bejnordi B, et al.
+    year: 2017
+    title: Diagnostic assessment of deep learning algorithms for detection of lymph node metastases in women with breast cancer
+    journal: JAMA
+    volume_pages: "318(22):2199-2210"
+    doi: 10.1001/jama.2017.14585
+    pmid: "29234806"
+    pmcid: PMC5820737
+    url: https://doi.org/10.1001/jama.2017.14585
+    libkey_resolved: false
+    verified_via: PubMed abstract (E-utilities); DOI resolves (doi.org) and Crossref metadata match
+    figures:
+      - value: "129 test whole-slide images (49 with, 80 without metastases)"
+        meaning: Independent test set (lymph node sections; metastases verified by immunohistochemistry in training data)
+        where: Abstract (Design, Setting, and Participants)
+      - value: "11 pathologists with time constraint (flexible 2-hour session); 1 pathologist without time constraint"
+        meaning: Human readers
+        where: Abstract (Design, Setting, and Participants)
+      - value: "Best algorithm AUC 0.994 (95% CI 0.983-0.999)"
+        meaning: Slide-level metastasis classification
+        where: Abstract (Results)
+      - value: "Mean AUC 0.810 (range 0.738-0.884)"
+        meaning: Pathologists with time constraint (P < .001 vs best algorithm)
+        where: Abstract (Results)
+      - value: "AUC 0.966 (95% CI 0.927-0.998)"
+        meaning: Pathologist without time constraint
+        where: Abstract (Results)
+      - value: "Mean AUC 0.960 (range 0.923-0.994)"
+        meaning: Top 5 algorithms
+        where: Abstract (Results)
+      - value: "Algorithm AUCs 0.556 to 0.994"
+        meaning: Range across submitted algorithms
+        where: Abstract (Results)
+    use_in: Different-task human-vs-AI reference (lymph node metastasis detection)
+
+  - key: steiner2018_assist
+    authors: Steiner DF, et al.
+    year: 2018
+    title: Impact of deep learning assistance on the histopathologic review of lymph nodes for metastatic breast cancer
+    journal: American Journal of Surgical Pathology
+    volume_pages: "42(12):1636-1646"
+    doi: 10.1097/PAS.0000000000001151
+    pmid: "30312179"
+    pmcid: PMC6257102
+    url: https://doi.org/10.1097/PAS.0000000000001151
+    libkey_resolved: false
+    verified_via: PubMed abstract (E-utilities); DOI resolves (doi.org) and Crossref metadata match
+    figures:
+      - value: "6 pathologists; 70 digitized lymph node slides; unassisted vs assisted with wash-out"
+        meaning: Multireader multicase design
+        where: Abstract
+      - value: "91% vs 83% (P = 0.02)"
+        meaning: Micrometastasis detection sensitivity, assisted vs unassisted
+        where: Abstract
+      - value: "61 vs 116 s (P = 0.002); 111 vs 137 s (P = 0.018)"
+        meaning: Average review time per image, assisted vs unassisted, for micrometastases and for negative images
+        where: Abstract
+    use_in: Different-task reference for measured AI-assisted reading time
