@@ -2,8 +2,8 @@
 
 The deck is generated from data files. `outputs/deck/extract_data.py` reads every number into `outputs/deck/data.json` from:
 
-- `artifacts/eval/*.json`, including `fact_sheet.json`, `human_baseline.json`, `attention_comparison.json` and, once
-  it holds the production run, `external_tcga.json`;
+- `artifacts/eval/*.json`, including `fact_sheet.json`, `human_baseline.json`, `attention_comparison.json` and
+  `external_tcga.json` (the production-model TCGA-BRCA run);
 - the case files (`artifacts/cases/`) and the model column of `data/predictions.csv`;
 - `config/literature.yaml` (verified citations and the corrected `deck_references`), `config/concepts.yaml` (feature
   groups), `core/contract.py` (the spot-check cut-off) and `docs/SCOPE_MATRIX.md` (feature statuses);
@@ -36,11 +36,11 @@ slides form an eight-minute talk track (about 1,100 words). Fine-tuned UNI2-h va
 | 9 | Evidence | {3} of {30} in situ images were read as invasive; {0} of {31} invasive as in situ | P(Invasive) histogram; safety rule; drafted p63/calponin | analytics, conformal |
 | 10 | Evidence | ECE {0.184} → {0.055} after temperature scaling; tier-set coverage {91.7%} | Reliability diagram; coverage of four conformal methods; 1,000 re-splits | calibration, conformal, conformal_resplit |
 | 11 | Evidence | Four pathologists reading BACH field images scored {73–96%} accuracy; Sepia scored {86%} on a different set of BACH test images | BACH reader study table (per-class sensitivity, accuracy) next to Sepia recall; B-Path concordance by category next to Sepia counterparts; "not directly comparable" band | human_baseline.json, literature.yaml |
-| 12 | Evidence | External test on TCGA-BRCA with the unchanged production model | Pre-registered protocol (docs/EXTERNAL_TCGA_R2.md) and results | external_tcga.json (production run) — **pending** |
+| 12 | Evidence | On TCGA-BRCA, the unchanged model called {95.7%} of FFPE tumor slides and {84.0%} of frozen tumor slides invasive | Slide-level table ({25} patients, {65} slides, {353} fields) next to the BACH test images; field-level P(Invasive) by group; FFPE → frozen drop as the cost of real frozen-section artifacts; no benign or in situ labels; frozen normal slides without a tissue-rich field; reliability flag not computed | external_tcga.json (`primary`, `bach_reference`, `slides_without_crops`), protocol docs/EXTERNAL_TCGA_R2.md |
 | 13 | Evidence | Deferring the least reliable {20%} of test reads lifts kept accuracy from {85.8%} to {89.8%} | Deferral curve (y-axis from 0%); error AUROC; worst-artifact accuracy; reliability flag crop; which model scored the reads | deferral, reliability, data/predictions.csv |
 | 14 | Evidence | Removing the {3} highest-contribution regions lowers P(Invasive) by {0.032}; random regions change it by {−0.001} | Exact contribution heatmap; method; deletion forest (random, tile-probe, feature, contribution); evidence vs description sentence | deletion |
 | 15 | Evidence | {3} of {9} named features mirror Nottingham components; AI spot check: invasion {19/20}, mitoses {0/20} | Feature z-score table grouped into Nottingham-related and additional features, with spot-check column (case-view cut-off); Nottingham definition and "no grade"; look-alike contrast screenshot (BACH_0087) and counts of reliable contrasts across case files | concepts_bach, spotcheck, concepts.yaml, case files, screenshot |
-| 16 | Workflow | Simulated queue: invasive cases first read after {6.0} min instead of {20.2} min; unflagged cases wait {21.4} min longer | Simulated queue chart with assumptions; cited benchmarks (Novis 1997 frozen sections; Zarbo 1996 routine biopsies) with their intervals; "different measures" note | queue_sim, analytics, literature.yaml |
+| 16 | Workflow | Simulated queue: invasive cases first read after {6.0} min instead of {20.2} min; unflagged cases wait {21.4} min longer | Simulated queue chart with assumptions; cited benchmarks (Novis 1997 frozen sections; Zarbo 1996 routine biopsies) with their intervals; "different measures" note with the measured model time ({0.73} s per image, laptop) | queue_sim, analytics, literature.yaml, external_tcga.json `latency_s_per_image` |
 | 17 | Workflow | {8} parts evaluated on BACH, {1} on external slides, {4} only in simulation, {5} app-only, {4} proposed or not claimed | Five-column scope matrix | docs/SCOPE_MATRIX.md |
 | 18 | Credibility | Limitations: curated public images, a simulated workflow and no clinical validation | Six limitations, curated BACH first | fact_sheet, metrics, conformal, spotcheck |
 | 19 | Next steps | Next steps: whole slides, external sites, a reader study, a silent frozen-section trial and other organs | Five proposed steps | docs/WSI_AND_EXTENSION.md |
@@ -64,15 +64,10 @@ Then a full-bleed "End of presentation" divider ("Appendix follows").
 
 ## Pending inputs
 
-Only these may be missing, and only in a draft built with `--allow-pending` (both scripts refuse a final build
-otherwise):
-
-- `artifacts/eval/external_tcga.json` holding the production-model run (slide 12). While it still holds the earlier
-  fine-tune run, extraction marks slide 12 pending. Once it lands, slide 12's final layout must be written for its
-  schema (build.js stops with a message until then).
-- `config/literature.yaml` `deck_references` (slide 20).
-- `outputs/deck/assets_sepia/contrast_BACH_0087.png` (slide 15), captured by `capture_screens.py`.
-- The round-3 analyses (deletion contribution arm, conformal re-splits, deferral curve); all present now.
+None: the final deck is built without `--allow-pending`. The scripts still accept `--allow-pending` for drafts; only
+these inputs may then be missing: `external_tcga.json` holding the production run (slide 12), `config/literature.yaml`
+`deck_references` (slide 20), `outputs/deck/assets_sepia/contrast_BACH_0087.png` (slide 15) and the round-3 analyses
+(deletion contribution arm, conformal re-splits, deferral curve). Any other missing file or key stops extraction.
 
 ## Rebuild
 
