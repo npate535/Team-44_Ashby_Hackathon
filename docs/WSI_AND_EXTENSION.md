@@ -20,7 +20,7 @@ Research prototype, not for clinical use. This file explains how Sepia would mov
    - **Slide to specimen:** the maximum over the specimen's slides.
    - **Recalibration:** temperature and conformal threshold refit on a slide-level calibration set, because field-level calibration does not transfer to slide-level maxima.
 5. **Evidence navigation.** Store the top-contribution regions with slide coordinates. The case view opens them in a tiled viewer, using DeepZoom tiles as the GDC tile service does, so the pathologist can jump from the flag to the regions behind it.
-6. **Throughput.** Measured laptop latency per field is reported in `docs/RESULTS.md` (TCGA section). Slide-level cost scales with the number of regions; it is estimated there from the measured per-region cost, not measured on whole slides.
+6. **Throughput.** Measured on an Apple M3 Max laptop (MPS, bf16), one 12-region field takes a median 0.73 s end to end, 0.63 s of it embedding (`artifacts/eval/external_tcga.json`). That is about 0.053 s of embedding per region, so the 4,900 regions of a 15 × 15 mm tissue area would take roughly 4–5 minutes on the laptop. This is an arithmetic estimate from the measured per-region cost, not a whole-slide measurement; a data-center GPU would be faster.
 
 Region arithmetic: a 512-px region at 0.42 µm/px covers 215 × 215 µm, about 0.046 mm². A 15 × 15 mm (225 mm²) tissue area therefore holds about 4,900 regions.
 

@@ -120,8 +120,20 @@ Near-duplicate check (Quilt/PathGen vs BACH, CONCH): highest similarity of any p
 ## Three different time numbers
 
 1. **Queue simulation** (simulated reading day, not a measured workflow): Poisson, 6 per hour for 8 h; cases drawn uniformly with replacement from the clean test split; reader: one reader, fixed 9 min per case, non-preemptive, works overtime until empty. Results in `artifacts/eval/queue_sim.json`.
-2. **Model latency** (measured): pending the TCGA production run.
+2. **Model latency** (measured): median 0.73 s per 2048 x 1536 image (IQR 0.69–0.82 s, n 351); embedding alone 0.63 s; Apple M3 Max; macOS 27.0.1; torch 2.14.1; device mps; bf16 autocast; measured on the TCGA crops.
 3. **Clinical turnaround**: see config/literature.yaml (cited benchmarks); not measured by Sepia.
+
+## External test on TCGA-BRCA (production model, unchanged)
+
+25 patients, 65 slides, 353 fields of view; slide-level, 95% bootstrap over patients; protocol `docs/EXTERNAL_TCGA_R2.md`. TCGA has no benign or in situ labels.
+
+| Measure | Value [95% CI] | Slides |
+|---|---|---|
+| FFPE tumor slides called invasive | 95.7% [87.0%, 100.0%] | 23 |
+| Frozen tumor slides called invasive | 84.0% [68.0%, 96.0%] | 25 |
+| Frozen tumor vs frozen normal AUROC (slide score) | 1.000 [1.000, 1.000] | 42 |
+| Frozen normal slides not called invasive | 100.0% [100.0%, 100.0%] | 17 |
+| Tumor slides with a field in tier 1–2 | 97.9% [93.6%, 100.0%] | 48 |
 
 ## Cases shown to the judges
 

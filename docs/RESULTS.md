@@ -2,7 +2,7 @@
 
 > Research prototype — not for clinical use. Every number below is quoted from the eval file named beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.
 
-Generated 2026-10-18T21:03:20Z from 20 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 7045b84ab1fb8b386c44e0e9a60a98e9f974c330, bc76a1db582cac260a8734e7437050686420d0c2).
+Generated 2026-10-19T01:54:35Z from 21 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 4b9230088f3987472e817faa9bf4fa199d538b22, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 7045b84ab1fb8b386c44e0e9a60a98e9f974c330, bc76a1db582cac260a8734e7437050686420d0c2).
 
 ## Tissue quality control (fixed in this run)
 
@@ -95,15 +95,7 @@ Source: `eval/thunder.json` · **same split, different protocol (published: whol
 | ours · hoptimus0_lr (evaluated model) | 78.2 [60.1, 87.4] | 78.6 [60.6, 88.9] |
 | ours · musk_lr (evaluated model) | 69.4 [55.8, 81.8] | 70.5 [57.5, 86.3] |
 | ours · uni2h512_lr (evaluated model) | 86.0 [69.2, 92.7] | 87.1 [69.1, 93.6] |
-| ours · uni2h_frz_lr (evaluated model) | 85.8 [69.7, 93.0] | 87.1 [69.4, 94.5] |
-| ours · uni2h_ft (evaluated model) | 83.8 [65.5, 91.9] | 84.4 [66.3, 93.3] |
-| ours · uni2h_ft_lr (evaluated model) | 81.7 [61.6, 91.5] | 82.2 [62.0, 92.6] |
-| ours · uni2h_ftb (evaluated model) | 83.8 [64.0, 92.1] | 84.4 [65.3, 93.7] |
-| ours · uni2h_ftcat_lr (evaluated model) | 81.8 [62.0, 91.7] | 82.4 [63.8, 93.2] |
 | ours · uni2h_lr (evaluated model) | 83.0 [60.7, 92.3] | 83.5 [62.7, 93.8] |
-| ours · uni2h_wise25_lr (evaluated model) | 85.2 [69.4, 92.9] | 86.5 [68.0, 94.4] |
-| ours · uni2h_wise50_lr (evaluated model) | 84.4 [67.3, 92.9] | 85.7 [67.4, 94.7] |
-| ours · uni2h_wise_lr (evaluated model) | 81.7 [62.3, 91.4] | 82.2 [61.1, 92.5] |
 
 - Same split, different protocol: published THUNDER probes resize the whole image; we embed tiles with test-time augmentation and select models by grouped CV inside train.
 - Not compared with the 87% ICIAR 2018 challenge result, which used a different, hidden test set.
@@ -195,6 +187,68 @@ Source: `eval/margin.json` · threshold P = 0.99982 [0.84738, 0.99989] (n 30, 6 
 - Simulated margins: image borders stand in for inked margins (top superior, bottom inferior, left medial, right lateral); anterior/posterior are not representable in 2D.
 - Raw-score evaluation: the reliability defer rule is a separate safety layer.
 - Composite fields are built from test images only and never enter headline metrics.
+
+## TCGA-BRCA external test (production model)
+
+Source: `eval/external_tcga.json` · pre-registered in `docs/EXTERNAL_TCGA_R2.md` before the run · model `uni2h512_lr` (frozen UNI2-h, 1 view per 512-px region, as in its BACH embeddings), BACH temperature 0.342, APS q-hat 0.931 (alpha 0.1) with randomized sets as in the app, unchanged tier rule · no retraining and no threshold changes.
+
+TCGA-BRCA has no benign or in situ labels. Only invasive carcinoma (Primary Tumor slides) and normal tissue (Solid Tissue Normal slides, frozen) are tested, and labels are per slide, not per crop. A slide's score is the maximum calibrated P(Invasive) over its crops (up to 6 random tissue-rich fields); a slide is called invasive when any crop's top class is Invasive. Intervals: 95% bootstrap over patients. The reliability flag and the OOD percentile are not computed (CONCH and MUSK are not on this laptop), so `reliability_flag` is false for every crop.
+
+| Analysis | 25 patients (tile-API crops) | first 8 patients (openslide crops) |
+|---|---|---|
+| FFPE tumor slides called invasive (sensitivity) | 95.7% [87.0%, 100.0%] (n 23, 23 groups) | 87.5% [62.5%, 100.0%] (n 8, 8 groups) |
+| Frozen tumor slides called invasive (sensitivity) | 84.0% [68.0%, 96.0%] (n 25, 25 groups) | 100.0% [100.0%, 100.0%] (n 8, 8 groups) |
+| Frozen normal slides not called invasive (specificity) | 100.0% [100.0%, 100.0%] (n 17, 17 groups) | 100.0% [100.0%, 100.0%] (n 7, 7 groups) |
+| Frozen tumor vs frozen normal, AUROC of the slide score | 1.000 [1.000, 1.000] (n 42, 25 groups) | 1.000 [1.000, 1.000] (n 15, 8 groups) |
+| Tumor slides with a crop in tier 1–2 | 97.9% [93.6%, 100.0%] (n 48, 25 groups) | 93.8% [81.2%, 100.0%] (n 16, 8 groups) |
+| FFPE minus frozen tumor sensitivity | 11.7 points | -12.5 points |
+| Patients / slides / crops | 25 / 65 / 353 | 8 / 23 / 132 |
+
+25 patients (tile-API crops): no tissue-rich field: TCGA-BH-A0B8 frozen_normal, TCGA-AC-A3EH frozen_normal, TCGA-AC-A2FK frozen_normal, TCGA-E2-A15K frozen_normal, TCGA-E9-A1N9 frozen_normal, TCGA-E2-A1IO frozen_normal, TCGA-E9-A1NH frozen_normal, TCGA-BH-A204 frozen_normal; fewer than 6 crops: TCGA-A7-A4SD frozen_normal (3), TCGA-A7-A4SD frozen_tumor (1), TCGA-AC-A2FM frozen_normal (1), TCGA-BH-A0H3 frozen_normal (2), TCGA-BH-A0HK frozen_normal (2), TCGA-BH-A18N frozen_normal (5), TCGA-BH-A18T frozen_normal (1), TCGA-BH-A1EO frozen_normal (1), TCGA-BH-A1FR frozen_normal (1).
+
+First 8 patients (openslide crops): no tissue-rich field: TCGA-BH-A0B8 frozen_normal; fewer than 6 crops: TCGA-BH-A0H3 frozen_normal (1), TCGA-BH-A18N frozen_normal (5).
+
+### BACH test vs TCGA (25 patients)
+
+BACH: 132 held-out test images (unit: single BACH image (2048 x 1536 field), not a slide); TCGA: slides, with frozen normal slides as the normal comparator. The units differ, so the comparison is indicative.
+
+| Statistic | BACH test | TCGA |
+|---|---|---|
+| Invasive / tumor called invasive | 100.0% [100.0%, 100.0%] (n 31, 17 groups) | FFPE 95.7% [87.0%, 100.0%] (n 23, 23 groups); frozen 84.0% [68.0%, 96.0%] (n 25, 25 groups) |
+| Normal not called invasive | 100.0% [100.0%, 100.0%] (n 23, 6 groups) | 100.0% [100.0%, 100.0%] (n 17, 17 groups) |
+| Invasive vs normal AUROC | 1.000 [1.000, 1.000] (n 54, 22 groups) | 1.000 [1.000, 1.000] (n 42, 25 groups) |
+| Invasive / tumor in tier 1–2 | 100.0% [100.0%, 100.0%] (n 31, 17 groups) | 97.9% [93.6%, 100.0%] (n 48, 25 groups) |
+| Reliability flag rate | 16.7% (clean test) | not computed |
+
+### Pre-registered sensitivity analysis S1: slides with exactly 6 crops
+
+| Analysis | 25 patients (tile-API crops) | first 8 patients (openslide crops) |
+|---|---|---|
+| FFPE tumor slides called invasive (sensitivity) | 95.7% [87.0%, 100.0%] (n 23, 23 groups) | 87.5% [62.5%, 100.0%] (n 8, 8 groups) |
+| Frozen tumor slides called invasive (sensitivity) | 83.3% [66.7%, 95.8%] (n 24, 24 groups) | 100.0% [100.0%, 100.0%] (n 8, 8 groups) |
+| Frozen normal slides not called invasive (specificity) | 100.0% [100.0%, 100.0%] (n 9, 9 groups) | 100.0% [100.0%, 100.0%] (n 5, 5 groups) |
+| Frozen tumor vs frozen normal, AUROC of the slide score | 1.000 [1.000, 1.000] (n 33, 24 groups) | 1.000 [1.000, 1.000] (n 13, 8 groups) |
+| Tumor slides with a crop in tier 1–2 | 97.9% [93.5%, 100.0%] (n 47, 25 groups) | 93.8% [81.2%, 100.0%] (n 16, 8 groups) |
+| Slides analysed | 56 | 21 |
+
+### Checks behind the run
+
+- Parity gate (original BACH TIFF (Zenodo record 3632035)): 5 BACH test images embedded on the laptop match the stored Delta embeddings with region cosine ≥ 0.99968 (mean 0.99996); calibrated probabilities differ from `predictions.csv` by at most 0.0009; pass = True.
+- Tile source: re-extracting 23 openslide crops from their manifest coordinates through the GDC tile API gave a mean absolute pixel difference of at most 0.0 (0–255 units). The tile path picked the same fields of view on 13 of 24 slides; decision: extract all 25 patients through tiles (pre-registered branch: FOV picks were not identical on every earlier openslide slide).
+- Why picks can differ (one slide downloaded and checked): openslide's get_thumbnail reads the slide's own pyramid level 2 (downsample 16.004). GDC renders DeepZoom level 'downsample 16' from slide level 1 (openslide get_best_level_for_downsample(16) = 1 because 16 < 16.004) and LANCZOS-downsamples it, so the two thumbnails differ slightly; tissue fractions near the 0.75 cut can cross it, which changes the candidate list and therefore the seeded random picks. Full-resolution pixels are identical (equivalence MAD 0.0 on 23 crops).
+- Latency per 2048 × 1536 crop (Apple M3 Max; macOS 27.0.1; torch 2.14.1; device mps; bf16 autocast): median 0.73 s (IQR 0.69–0.82 s, n 351, first 2 excluded); embedding alone median 0.63 s. Single fields, not whole slides.
+
+Limitations of this test:
+
+- Labels are slide-level sample types (Primary Tumor, Solid Tissue Normal); a tumor-slide crop may show only stroma or fat, and there are no tumor outlines.
+- TCGA-BRCA has no benign or in situ labels: four-class accuracy, in situ vs invasive and the p63/calponin rule are not tested; specificity is measured only against frozen normal tissue adjacent to tumor.
+- The reliability flag and the OOD percentile are not computed (CONCH and MUSK are not on this laptop); reliability_flag is forced false, which can move a crop from tier 3 to tier 4 but never changes tier 1-2 placement.
+- The sample is small (at most 25 patients); bootstrap intervals over patients are wide.
+- protocol25 crops come from the GDC DeepZoom tile API rather than local openslide decoding; re-extracting 23 openslide crops through the API reproduced them pixel for pixel, but the API's thumbnails can shift which tissue-rich fields are sampled (tile_equivalence).
+- BACH reference values are per image; TCGA values are per slide (maximum over up to 6 fields), so the BACH-vs-TCGA comparison is indicative, not a matched test.
+- Latency is measured on one laptop (Apple MPS) for single 2048 x 1536 fields, not whole slides.
+- Research prototype; not clinically validated.
+- Credit: TCGA Research Network (https://www.cancer.gov/tcga), via the NCI Genomic Data Commons.
 
 ## Other evaluations (concepts, reliability, retrieval, deletion, cells)
 
@@ -490,10 +544,6 @@ Exact contributions (`eval/tile_contrib.json`): constant plus region contributio
 - ablation · rows[21] · balanced_accuracy: 0.37 [0.31, 0.44] (n 218, 49 groups)
 - ablation · rows[21] · macro_f1: 0.33 [0.26, 0.39] (n 218, 49 groups)
 - ablation · rows[21] · macro_auroc: 0.62 [0.57, 0.67] (n 218, 49 groups)
-
-### `eval/finetune.json`
-
-(no estimate/CI blocks; see the file)
 
 ## Reviewed checks
 

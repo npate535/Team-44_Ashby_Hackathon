@@ -1,6 +1,11 @@
-"""External generalization: Delta-trained UNI2-h LoRA (uni2h_ft) on TCGA-BRCA crops (TCGA_TODO.md).
+"""Archived round 1: Delta-trained UNI2-h LoRA (uni2h_ft) on TCGA-BRCA crops (TCGA_TODO.md). Not used in Sepia.
 
     python -m eval.external_tcga --tcga-root data/tcga_brca_test [--device mps|cpu] [--limit N]
+
+uni2h_ft is not the production model. This script writes only the archive file
+artifacts/archive/eval/external_tcga_round1.json, which the app does not serve or package. The served
+artifacts/eval/external_tcga.json is the production-model test (eval/external_tcga_prod.py, docs/EXTERNAL_TCGA_R2.md).
+Its helpers (tile_case, pool_qc, slide_rows, analyze, ci_rate, ci_auroc, read_manifest) are shared with that test.
 
 This is the GPU fine-tune from pipeline/05c_finetune.py (not the frozen uni2h512_lr probe):
   * encoder uni2h_ft = UNI2-h + LoRA at ~/.cache/pathqueue_ft/uni2h_ft_lora.pt  (full precision, never quantized)
@@ -8,7 +13,7 @@ This is the GPU fine-tune from pipeline/05c_finetune.py (not the frozen uni2h512
   * temperature from artifacts/eval/finetune.json temperatures_from_oof.uni2h_ft
   * APS q-hat fit on BACH calibration rows of p__uni2h_ft__* (same method as settings; thresholds from this model)
 
-Writes artifacts/eval/external_tcga.json. Slide-level primary analyses per TCGA_TODO.md.
+Slide-level primary analyses per TCGA_TODO.md.
 """
 
 from __future__ import annotations
@@ -35,6 +40,7 @@ ENCODER = "uni2h_ft"
 HEAD = "probe"
 GRID = "g512"
 LORA_PATH = Path.home() / ".cache" / "pathqueue_ft" / "uni2h_ft_lora.pt"
+ARCHIVE = Path("archive") / "eval" / "external_tcga_round1.json"   # under the artifacts root; never artifacts/eval/
 
 
 def resolve_device(requested: str | None) -> str:
@@ -421,11 +427,17 @@ def run(tcga_root: Path, data_root: Path, art_root: Path, cfg: Mapping[str, Any]
         ],
         "data": {"tcga_root": str(tcga_root), "run_info": run_info, "embedding_cache": str(cache_path)},
     }
-    return emetrics.write_eval(art_root, "external_tcga", payload, cfg, synthetic=False)
+    return write_archive(art_root, payload, cfg)
+
+
+def write_archive(art_root: Path, payload: Mapping[str, Any], cfg: Mapping[str, Any]) -> Path:
+    """Write the round-1 result to the archive (eval envelope included), never to the served artifacts/eval/."""
+    obj = {**emetrics.envelope("external_tcga_round1", cfg, synthetic=False), **payload}
+    return io.write_json(Path(art_root) / ARCHIVE, emetrics._finite(obj))
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = cli.step_parser("eval.external_tcga", "TCGA-BRCA external test for Delta-trained uni2h_ft LoRA.")
+    parser = cli.step_parser("eval.external_tcga", "Archived round 1: TCGA-BRCA test of the uni2h_ft LoRA (not served).")
     parser.add_argument("--tcga-root", type=Path, default=Path("data/tcga_brca_test"))
     parser.add_argument("--device", default=None, help="mps | cuda | cpu (default: best available)")
     parser.add_argument("--batch", type=int, default=8)

@@ -1,25 +1,26 @@
 #!/usr/bin/env python3
-"""Materialize TCGA external crops as browseable specimen artifacts (images + case-shaped JSON).
+"""Materialize the production model's TCGA external crops as browseable specimen artifacts (images + case JSON).
 
-    python scripts/build_tcga_cases.py
+    python scripts/build_tcga_cases.py [--eval PATH] [--tcga-root DIR] [--out DIR]
 
-Reads artifacts/eval/external_tcga.json and data/tcga_brca_test/<path>.png.
-Writes artifacts/tcga/images/<crop_id>.jpg and artifacts/tcga/cases/<crop_id>.json
-(case-shaped for the biopsy UI; not ground-truth labeled in the public payload).
+Reads the served eval file <artifacts>/eval/external_tcga.json (production model, eval/external_tcga_prod.py) and
+the crop PNGs under its data.tcga_root (the 25-patient cohort, data/tcga_brca_prod/protocol25). Refuses an eval file
+whose model is not eval/model_choice.json `production`. Writes <artifacts>/tcga/images/<crop_id>.jpg,
+<artifacts>/tcga/cases/<crop_id>.json (case-shaped for the biopsy UI; no ground-truth labels in the public payload)
+and <artifacts>/tcga/index.json, and removes specimens of earlier builds that are not in this eval file.
+<artifacts> is $PATHQUEUE_ARTIFACTS_ROOT when set, else <repo>/artifacts.
 """
 from __future__ import annotations
 
+import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-EVAL = ROOT / "artifacts" / "eval" / "external_tcga.json"
-TCGA = ROOT / "data" / "tcga_brca_test"
-OUT_IMG = ROOT / "artifacts" / "tcga" / "images"
-OUT_CASE = ROOT / "artifacts" / "tcga" / "cases"
 CLASSES = ["Normal", "Benign", "InSitu", "Invasive"]
 
 
@@ -144,28 +145,49 @@ def case_json(crop: dict, model: str, alpha: float) -> dict:
     }
 
 
-def main() -> int:
-    if not EVAL.is_file():
-        print(f"missing {EVAL}", file=sys.stderr)
+def artifacts_root() -> Path:
+    env = os.environ.get("PATHQUEUE_ARTIFACTS_ROOT")
+    return Path(env).expanduser() if env else ROOT / "artifacts"
+
+
+def main(argv: list[str] | None = None) -> int:
+    art = artifacts_root()
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--eval", type=Path, default=art / "eval" / "external_tcga.json")
+    ap.add_argument("--model-choice", type=Path, default=art / "eval" / "model_choice.json")
+    ap.add_argument("--tcga-root", type=Path, default=None, help="crop root (default: the eval file's data.tcga_root)")
+    ap.add_argument("--out", type=Path, default=art / "tcga")
+    a = ap.parse_args(argv)
+    if not a.eval.is_file():
+        print(f"missing {a.eval}", file=sys.stderr)
         return 1
-    payload = json.loads(EVAL.read_text())
+    payload = json.loads(a.eval.read_text())
+    production = json.loads(a.model_choice.read_text())["production"]
+    model = str(payload.get("model") or "")
+    if model != production:
+        print(f"{a.eval} reports model {model!r}, not the production model {production!r}; refusing to build",
+              file=sys.stderr)
+        return 1
+    tcga = a.tcga_root or Path((payload.get("data") or {}).get("tcga_root") or "")
+    if not tcga.is_dir():
+        print(f"crop root {tcga} not found (pass --tcga-root)", file=sys.stderr)
+        return 1
     crops = payload.get("crops") or []
-    model = str(payload.get("model") or "uni2h_ft")
-    alpha = 0.1
-    OUT_IMG.mkdir(parents=True, exist_ok=True)
-    OUT_CASE.mkdir(parents=True, exist_ok=True)
+    alpha = float((payload.get("recipe") or {}).get("alpha", 0.1))
+    out_img, out_case = a.out / "images", a.out / "cases"
+    out_img.mkdir(parents=True, exist_ok=True)
+    out_case.mkdir(parents=True, exist_ok=True)
     index = []
     for crop in crops:
         cid = crop["crop_id"]
-        src = TCGA / crop["path"]
+        src = tcga / crop["path"]
         if not src.is_file():
             print(f"skip missing image {src}", file=sys.stderr)
             continue
-        jpg = OUT_IMG / f"{cid}.jpg"
-        if not jpg.is_file() or jpg.stat().st_mtime < src.stat().st_mtime:
-            Image.open(src).convert("RGB").save(jpg, quality=92, optimize=True)
+        with Image.open(src) as handle:
+            handle.convert("RGB").save(out_img / f"{cid}.jpg", quality=92, optimize=True)
         case = case_json(crop, model, alpha)
-        (OUT_CASE / f"{cid}.json").write_text(json.dumps(case, indent=2) + "\n")
+        (out_case / f"{cid}.json").write_text(json.dumps(case, indent=2) + "\n")
         index.append({
             "case_id": cid,
             "prep": crop["prep"],
@@ -179,7 +201,12 @@ def main() -> int:
             "probs": {c: float(crop["probs"][c]) for c in CLASSES},
             "model": model,
         })
-    (OUT_CASE.parent / "index.json").write_text(json.dumps({
+    keep = {item["case_id"] for item in index}
+    stale = [p for p in out_case.glob("*.json") if p.stem not in keep] + \
+            [p for p in out_img.glob("*.jpg") if p.stem not in keep]
+    for path in stale:                       # specimens of an earlier build (another model or cohort)
+        path.unlink()
+    (a.out / "index.json").write_text(json.dumps({
         "model": model,
         "n": len(index),
         "items": index,
@@ -190,7 +217,7 @@ def main() -> int:
         "quantized": payload.get("quantized"),
         "limitations": payload.get("limitations"),
     }, indent=2) + "\n")
-    print(f"wrote {len(index)} TCGA specimens -> {OUT_CASE.parent}")
+    print(f"wrote {len(index)} TCGA specimens ({model}) -> {a.out}; removed {len(stale)} stale files")
     return 0
 
 

@@ -15,7 +15,7 @@ Research prototype, not for clinical use. Each feature gets one status from the 
 | Feature | Status | Evidence | What would validate it |
 |---|---|---|---|
 | Four-class read (Normal, Benign, In situ, Invasive) from UNI2-h region embeddings and a linear probe | Evaluated (BACH) | Macro-F1 0.86 [0.68, 0.93]; invasive-vs-rest AUROC 0.999; 31/31 invasive images flagged | Multi-site test sets with all four classes; reader study |
-| Same read on tissue from other hospitals, scanners and real frozen sections | Evaluated (external) | `docs/EXTERNAL_TCGA_R2.md`, `artifacts/eval/external_tcga.json` (TCGA has no benign or in situ labels) | Larger external cohorts with benign and in situ cases |
+| Same read on tissue from other hospitals, scanners and real frozen sections | Evaluated (external) | 25 TCGA-BRCA patients, 65 slides: FFPE tumor slides called invasive 95.7%, frozen tumor 84.0%, frozen normal not called 100%; tumor vs normal AUROC 1.000 (`artifacts/eval/external_tcga.json`). TCGA has no benign or in situ labels | Larger external cohorts with benign and in situ cases |
 | Calibrated class percentages (temperature scaling) | Evaluated (BACH) | ECE 0.18 → 0.055 | Calibration on each new site before use |
 | Conformal set ("cannot be excluded") and the safety rule | Evaluated (BACH) | Tier-set coverage 91.7% (method chosen after viewing test results, disclosed); 94.5% mean over 1,000 re-splits | Prospective coverage monitoring |
 | Reliability flag and deferral | Evaluated (BACH), including simulated degradations | Error AUROC 0.69; deferring 20% raises kept accuracy 85.8% → 89.8% | Real artifacts (frozen, poor stain) with errors adjudicated |

@@ -1,0 +1,4452 @@
+{
+  "name": "external_tcga",
+  "created_utc": "2026-10-18T22:54:53Z",
+  "config_hash": "54f522670b9e3597a011a17410ba7d9d0cbfe705b7bfd2a92c565473ad712ebd",
+  "git_sha": "ea008ee2cc7689dea6fc4044ef334b37721953fc",
+  "synthetic": false,
+  "git_dirty": true,
+  "protocol": "TCGA_TODO.md",
+  "model": "uni2h_ft",
+  "encoder": "uni2h_ft",
+  "head": "probe",
+  "device": "mps",
+  "quantized": false,
+  "temperature": 0.5128211071939985,
+  "qhat_aps": 0.928680182285011,
+  "ft_meta": {
+    "finetune": {
+      "model": "uni2h_ft",
+      "adopted_as_production": false,
+      "rule_choice": "uni2h512_lr",
+      "recipe": {
+        "crop": 512,
+        "scale_jitter": 0.2,
+        "min_tissue": 0.5,
+        "epochs": 10,
+        "crops_per_image": 24,
+        "batch": 32,
+        "accum": 2,
+        "lr_lora": 0.0002,
+        "lr_head": 0.001,
+        "wd_head": 0.0001,
+        "warmup": 0.05,
+        "label_smoothing": 0.1,
+        "grad_clip": 1.0,
+        "lora_r": 8,
+        "lora_alpha": 16,
+        "jitter": {
+          "brightness": 0.1,
+          "contrast": 0.1,
+          "saturation": 0.1,
+          "hue": 0.02
+        },
+        "eval_grid": "g512",
+        "eval_views": 8,
+        "seed": 44,
+        "min_epochs": 3,
+        "timing_batches": 6
+      }
+    },
+    "lora_path": "/Users/m3-max/.cache/pathqueue_ft/uni2h_ft_lora.pt",
+    "head_path": "/Users/m3-max/Documents/GitHub/Team-44_Ashby_Hackathon/data/models/uni2h_ft_head.npz"
+  },
+  "n_crops": 132,
+  "n_crops_failed": 0,
+  "n_slides": 23,
+  "n_patients": 8,
+  "groups": {
+    "ffpe_tumor": 8,
+    "frozen_normal": 7,
+    "frozen_tumor": 8
+  },
+  "slides_short_crops": [
+    {
+      "patient_id": "TCGA-BH-A0H3",
+      "group": "frozen_normal",
+      "label": "Normal",
+      "prep": "frozen",
+      "n_crops": 1,
+      "slide_invasive_score": 0.07886650454944041,
+      "called_invasive": false,
+      "any_tier_1_2": false,
+      "min_tier": 3,
+      "crop_ids": [
+        "TCGA-BH-A0H3_frozen_normal_00"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A18N",
+      "group": "frozen_normal",
+      "label": "Normal",
+      "prep": "frozen",
+      "n_crops": 5,
+      "slide_invasive_score": 0.021272638974855488,
+      "called_invasive": false,
+      "any_tier_1_2": false,
+      "min_tier": 4,
+      "crop_ids": [
+        "TCGA-BH-A18N_frozen_normal_00",
+        "TCGA-BH-A18N_frozen_normal_01",
+        "TCGA-BH-A18N_frozen_normal_02",
+        "TCGA-BH-A18N_frozen_normal_03",
+        "TCGA-BH-A18N_frozen_normal_04"
+      ]
+    }
+  ],
+  "failed_crops": [],
+  "primary": {
+    "ffpe_tumor_sensitivity": {
+      "estimate": 0.875,
+      "lo": 0.625,
+      "hi": 1.0,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 8,
+      "n_groups": 8
+    },
+    "frozen_tumor_sensitivity": {
+      "estimate": 0.875,
+      "lo": 0.625,
+      "hi": 1.0,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 8,
+      "n_groups": 8
+    },
+    "ffpe_vs_frozen_tumor_sensitivity_gap": {
+      "estimate": 0.0,
+      "ffpe": 0.875,
+      "frozen": 0.875
+    },
+    "frozen_tumor_vs_normal": {
+      "auroc": {
+        "estimate": 1.0,
+        "lo": 1.0,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 15,
+        "n_groups": 8
+      },
+      "sensitivity": {
+        "estimate": 0.875,
+        "lo": 0.625,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 8,
+        "n_groups": 8
+      },
+      "specificity": {
+        "estimate": 1.0,
+        "lo": 1.0,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 7,
+        "n_groups": 7
+      }
+    },
+    "tumor_tier_1_2_rate": {
+      "estimate": 0.9375,
+      "lo": 0.8125,
+      "hi": 1.0,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 16,
+      "n_groups": 8
+    },
+    "crop_p_invasive_hist": {
+      "ffpe_tumor": {
+        "n": 48,
+        "mean": 0.5786004558511214,
+        "median": 0.9220991706416882,
+        "bins": [
+          0.0,
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.9,
+          1.0
+        ],
+        "counts": [
+          18,
+          0,
+          1,
+          0,
+          0,
+          0,
+          1,
+          0,
+          3,
+          25
+        ]
+      },
+      "frozen_normal": {
+        "n": 36,
+        "mean": 0.024938135809239783,
+        "median": 0.019452093557065273,
+        "bins": [
+          0.0,
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.9,
+          1.0
+        ],
+        "counts": [
+          35,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "frozen_tumor": {
+        "n": 48,
+        "mean": 0.37474631290271826,
+        "median": 0.3377156966101744,
+        "bins": [
+          0.0,
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.9,
+          1.0
+        ],
+        "counts": [
+          11,
+          4,
+          6,
+          10,
+          4,
+          2,
+          1,
+          3,
+          5,
+          2
+        ]
+      }
+    },
+    "bach_reliability_flag_rate_clean": 0.16666666666666666,
+    "reliability_note": "Full BACH reliability (CONCH OOD + MUSK disagree) not recomputed on TCGA; tier uses conformal set size + top-class only (reliability_flag=false)."
+  },
+  "slides": [
+    {
+      "patient_id": "TCGA-A7-A5ZX",
+      "group": "ffpe_tumor",
+      "label": "Invasive",
+      "prep": "ffpe",
+      "n_crops": 6,
+      "slide_invasive_score": 0.9833887140881976,
+      "called_invasive": true,
+      "any_tier_1_2": true,
+      "min_tier": 2,
+      "crop_ids": [
+        "TCGA-A7-A5ZX_ffpe_tumor_00",
+        "TCGA-A7-A5ZX_ffpe_tumor_01",
+        "TCGA-A7-A5ZX_ffpe_tumor_02",
+        "TCGA-A7-A5ZX_ffpe_tumor_03",
+        "TCGA-A7-A5ZX_ffpe_tumor_04",
+        "TCGA-A7-A5ZX_ffpe_tumor_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-A7-A5ZX",
+      "group": "frozen_normal",
+      "label": "Normal",
+      "prep": "frozen",
+      "n_crops": 6,
+      "slide_invasive_score": 0.03331453133562723,
+      "called_invasive": false,
+      "any_tier_1_2": false,
+      "min_tier": 4,
+      "crop_ids": [
+        "TCGA-A7-A5ZX_frozen_normal_00",
+        "TCGA-A7-A5ZX_frozen_normal_01",
+        "TCGA-A7-A5ZX_frozen_normal_02",
+        "TCGA-A7-A5ZX_frozen_normal_03",
+        "TCGA-A7-A5ZX_frozen_normal_04",
+        "TCGA-A7-A5ZX_frozen_normal_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-A7-A5ZX",
+      "group": "frozen_tumor",
+      "label": "Invasive",
+      "prep": "frozen",
+      "n_crops": 6,
+      "slide_invasive_score": 0.37262316039241505,
+      "called_invasive": false,
+      "any_tier_1_2": true,
+      "min_tier": 2,
+      "crop_ids": [
+        "TCGA-A7-A5ZX_frozen_tumor_00",
+        "TCGA-A7-A5ZX_frozen_tumor_01",
+        "TCGA-A7-A5ZX_frozen_tumor_02",
+        "TCGA-A7-A5ZX_frozen_tumor_03",
+        "TCGA-A7-A5ZX_frozen_tumor_04",
+        "TCGA-A7-A5ZX_frozen_tumor_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A0B8",
+      "group": "ffpe_tumor",
+      "label": "Invasive",
+      "prep": "ffpe",
+      "n_crops": 6,
+      "slide_invasive_score": 0.9950752312623223,
+      "called_invasive": true,
+      "any_tier_1_2": true,
+      "min_tier": 2,
+      "crop_ids": [
+        "TCGA-BH-A0B8_ffpe_tumor_00",
+        "TCGA-BH-A0B8_ffpe_tumor_01",
+        "TCGA-BH-A0B8_ffpe_tumor_02",
+        "TCGA-BH-A0B8_ffpe_tumor_03",
+        "TCGA-BH-A0B8_ffpe_tumor_04",
+        "TCGA-BH-A0B8_ffpe_tumor_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A0B8",
+      "group": "frozen_tumor",
+      "label": "Invasive",
+      "prep": "frozen",
+      "n_crops": 6,
+      "slide_invasive_score": 0.7227629433366078,
+      "called_invasive": true,
+      "any_tier_1_2": true,
+      "min_tier": 2,
+      "crop_ids": [
+        "TCGA-BH-A0B8_frozen_tumor_00",
+        "TCGA-BH-A0B8_frozen_tumor_01",
+        "TCGA-BH-A0B8_frozen_tumor_02",
+        "TCGA-BH-A0B8_frozen_tumor_03",
+        "TCGA-BH-A0B8_frozen_tumor_04",
+        "TCGA-BH-A0B8_frozen_tumor_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A0BF",
+      "group": "ffpe_tumor",
+      "label": "Invasive",
+      "prep": "ffpe",
+      "n_crops": 6,
+      "slide_invasive_score": 0.9846787977488041,
+      "called_invasive": true,
+      "any_tier_1_2": true,
+      "min_tier": 2,
+      "crop_ids": [
+        "TCGA-BH-A0BF_ffpe_tumor_00",
+        "TCGA-BH-A0BF_ffpe_tumor_01",
+        "TCGA-BH-A0BF_ffpe_tumor_02",
+        "TCGA-BH-A0BF_ffpe_tumor_03",
+        "TCGA-BH-A0BF_ffpe_tumor_04",
+        "TCGA-BH-A0BF_ffpe_tumor_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A0BF",
+      "group": "frozen_normal",
+      "label": "Normal",
+      "prep": "frozen",
+      "n_crops": 6,
+      "slide_invasive_score": 0.12095602156622651,
+      "called_invasive": false,
+      "any_tier_1_2": false,
+      "min_tier": 3,
+      "crop_ids": [
+        "TCGA-BH-A0BF_frozen_normal_00",
+        "TCGA-BH-A0BF_frozen_normal_01",
+        "TCGA-BH-A0BF_frozen_normal_02",
+        "TCGA-BH-A0BF_frozen_normal_03",
+        "TCGA-BH-A0BF_frozen_normal_04",
+        "TCGA-BH-A0BF_frozen_normal_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A0BF",
+      "group": "frozen_tumor",
+      "label": "Invasive",
+      "prep": "frozen",
+      "n_crops": 6,
+      "slide_invasive_score": 0.9151247107960395,
+      "called_invasive": true,
+      "any_tier_1_2": true,
+      "min_tier": 2,
+      "crop_ids": [
+        "TCGA-BH-A0BF_frozen_tumor_00",
+        "TCGA-BH-A0BF_frozen_tumor_01",
+        "TCGA-BH-A0BF_frozen_tumor_02",
+        "TCGA-BH-A0BF_frozen_tumor_03",
+        "TCGA-BH-A0BF_frozen_tumor_04",
+        "TCGA-BH-A0BF_frozen_tumor_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A0BJ",
+      "group": "ffpe_tumor",
+      "label": "Invasive",
+      "prep": "ffpe",
+      "n_crops": 6,
+      "slide_invasive_score": 0.9910430252979742,
+      "called_invasive": true,
+      "any_tier_1_2": true,
+      "min_tier": 2,
+      "crop_ids": [
+        "TCGA-BH-A0BJ_ffpe_tumor_00",
+        "TCGA-BH-A0BJ_ffpe_tumor_01",
+        "TCGA-BH-A0BJ_ffpe_tumor_02",
+        "TCGA-BH-A0BJ_ffpe_tumor_03",
+        "TCGA-BH-A0BJ_ffpe_tumor_04",
+        "TCGA-BH-A0BJ_ffpe_tumor_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A0BJ",
+      "group": "frozen_normal",
+      "label": "Normal",
+      "prep": "frozen",
+      "n_crops": 6,
+      "slide_invasive_score": 0.020056437242875105,
+      "called_invasive": false,
+      "any_tier_1_2": false,
+      "min_tier": 4,
+      "crop_ids": [
+        "TCGA-BH-A0BJ_frozen_normal_00",
+        "TCGA-BH-A0BJ_frozen_normal_01",
+        "TCGA-BH-A0BJ_frozen_normal_02",
+        "TCGA-BH-A0BJ_frozen_normal_03",
+        "TCGA-BH-A0BJ_frozen_normal_04",
+        "TCGA-BH-A0BJ_frozen_normal_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A0BJ",
+      "group": "frozen_tumor",
+      "label": "Invasive",
+      "prep": "frozen",
+      "n_crops": 6,
+      "slide_invasive_score": 0.881474865950428,
+      "called_invasive": true,
+      "any_tier_1_2": true,
+      "min_tier": 2,
+      "crop_ids": [
+        "TCGA-BH-A0BJ_frozen_tumor_00",
+        "TCGA-BH-A0BJ_frozen_tumor_01",
+        "TCGA-BH-A0BJ_frozen_tumor_02",
+        "TCGA-BH-A0BJ_frozen_tumor_03",
+        "TCGA-BH-A0BJ_frozen_tumor_04",
+        "TCGA-BH-A0BJ_frozen_tumor_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A0C0",
+      "group": "ffpe_tumor",
+      "label": "Invasive",
+      "prep": "ffpe",
+      "n_crops": 6,
+      "slide_invasive_score": 0.9772361204176141,
+      "called_invasive": true,
+      "any_tier_1_2": true,
+      "min_tier": 2,
+      "crop_ids": [
+        "TCGA-BH-A0C0_ffpe_tumor_00",
+        "TCGA-BH-A0C0_ffpe_tumor_01",
+        "TCGA-BH-A0C0_ffpe_tumor_02",
+        "TCGA-BH-A0C0_ffpe_tumor_03",
+        "TCGA-BH-A0C0_ffpe_tumor_04",
+        "TCGA-BH-A0C0_ffpe_tumor_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A0C0",
+      "group": "frozen_normal",
+      "label": "Normal",
+      "prep": "frozen",
+      "n_crops": 6,
+      "slide_invasive_score": 0.06095460392743876,
+      "called_invasive": false,
+      "any_tier_1_2": false,
+      "min_tier": 3,
+      "crop_ids": [
+        "TCGA-BH-A0C0_frozen_normal_00",
+        "TCGA-BH-A0C0_frozen_normal_01",
+        "TCGA-BH-A0C0_frozen_normal_02",
+        "TCGA-BH-A0C0_frozen_normal_03",
+        "TCGA-BH-A0C0_frozen_normal_04",
+        "TCGA-BH-A0C0_frozen_normal_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A0C0",
+      "group": "frozen_tumor",
+      "label": "Invasive",
+      "prep": "frozen",
+      "n_crops": 6,
+      "slide_invasive_score": 0.5156044242335347,
+      "called_invasive": true,
+      "any_tier_1_2": true,
+      "min_tier": 2,
+      "crop_ids": [
+        "TCGA-BH-A0C0_frozen_tumor_00",
+        "TCGA-BH-A0C0_frozen_tumor_01",
+        "TCGA-BH-A0C0_frozen_tumor_02",
+        "TCGA-BH-A0C0_frozen_tumor_03",
+        "TCGA-BH-A0C0_frozen_tumor_04",
+        "TCGA-BH-A0C0_frozen_tumor_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A0H3",
+      "group": "ffpe_tumor",
+      "label": "Invasive",
+      "prep": "ffpe",
+      "n_crops": 6,
+      "slide_invasive_score": 0.9699015186261156,
+      "called_invasive": true,
+      "any_tier_1_2": true,
+      "min_tier": 2,
+      "crop_ids": [
+        "TCGA-BH-A0H3_ffpe_tumor_00",
+        "TCGA-BH-A0H3_ffpe_tumor_01",
+        "TCGA-BH-A0H3_ffpe_tumor_02",
+        "TCGA-BH-A0H3_ffpe_tumor_03",
+        "TCGA-BH-A0H3_ffpe_tumor_04",
+        "TCGA-BH-A0H3_ffpe_tumor_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A0H3",
+      "group": "frozen_normal",
+      "label": "Normal",
+      "prep": "frozen",
+      "n_crops": 1,
+      "slide_invasive_score": 0.07886650454944041,
+      "called_invasive": false,
+      "any_tier_1_2": false,
+      "min_tier": 3,
+      "crop_ids": [
+        "TCGA-BH-A0H3_frozen_normal_00"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A0H3",
+      "group": "frozen_tumor",
+      "label": "Invasive",
+      "prep": "frozen",
+      "n_crops": 6,
+      "slide_invasive_score": 0.9197307285015257,
+      "called_invasive": true,
+      "any_tier_1_2": true,
+      "min_tier": 2,
+      "crop_ids": [
+        "TCGA-BH-A0H3_frozen_tumor_00",
+        "TCGA-BH-A0H3_frozen_tumor_01",
+        "TCGA-BH-A0H3_frozen_tumor_02",
+        "TCGA-BH-A0H3_frozen_tumor_03",
+        "TCGA-BH-A0H3_frozen_tumor_04",
+        "TCGA-BH-A0H3_frozen_tumor_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A18N",
+      "group": "ffpe_tumor",
+      "label": "Invasive",
+      "prep": "ffpe",
+      "n_crops": 6,
+      "slide_invasive_score": 0.9293797120232388,
+      "called_invasive": true,
+      "any_tier_1_2": true,
+      "min_tier": 2,
+      "crop_ids": [
+        "TCGA-BH-A18N_ffpe_tumor_00",
+        "TCGA-BH-A18N_ffpe_tumor_01",
+        "TCGA-BH-A18N_ffpe_tumor_02",
+        "TCGA-BH-A18N_ffpe_tumor_03",
+        "TCGA-BH-A18N_ffpe_tumor_04",
+        "TCGA-BH-A18N_ffpe_tumor_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A18N",
+      "group": "frozen_normal",
+      "label": "Normal",
+      "prep": "frozen",
+      "n_crops": 5,
+      "slide_invasive_score": 0.021272638974855488,
+      "called_invasive": false,
+      "any_tier_1_2": false,
+      "min_tier": 4,
+      "crop_ids": [
+        "TCGA-BH-A18N_frozen_normal_00",
+        "TCGA-BH-A18N_frozen_normal_01",
+        "TCGA-BH-A18N_frozen_normal_02",
+        "TCGA-BH-A18N_frozen_normal_03",
+        "TCGA-BH-A18N_frozen_normal_04"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A18N",
+      "group": "frozen_tumor",
+      "label": "Invasive",
+      "prep": "frozen",
+      "n_crops": 6,
+      "slide_invasive_score": 0.43286651440000623,
+      "called_invasive": true,
+      "any_tier_1_2": true,
+      "min_tier": 2,
+      "crop_ids": [
+        "TCGA-BH-A18N_frozen_tumor_00",
+        "TCGA-BH-A18N_frozen_tumor_01",
+        "TCGA-BH-A18N_frozen_tumor_02",
+        "TCGA-BH-A18N_frozen_tumor_03",
+        "TCGA-BH-A18N_frozen_tumor_04",
+        "TCGA-BH-A18N_frozen_tumor_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A1FE",
+      "group": "ffpe_tumor",
+      "label": "Invasive",
+      "prep": "ffpe",
+      "n_crops": 6,
+      "slide_invasive_score": 0.026950642804893364,
+      "called_invasive": false,
+      "any_tier_1_2": false,
+      "min_tier": 4,
+      "crop_ids": [
+        "TCGA-BH-A1FE_ffpe_tumor_00",
+        "TCGA-BH-A1FE_ffpe_tumor_01",
+        "TCGA-BH-A1FE_ffpe_tumor_02",
+        "TCGA-BH-A1FE_ffpe_tumor_03",
+        "TCGA-BH-A1FE_ffpe_tumor_04",
+        "TCGA-BH-A1FE_ffpe_tumor_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A1FE",
+      "group": "frozen_normal",
+      "label": "Normal",
+      "prep": "frozen",
+      "n_crops": 6,
+      "slide_invasive_score": 0.0338444612739374,
+      "called_invasive": false,
+      "any_tier_1_2": false,
+      "min_tier": 4,
+      "crop_ids": [
+        "TCGA-BH-A1FE_frozen_normal_00",
+        "TCGA-BH-A1FE_frozen_normal_01",
+        "TCGA-BH-A1FE_frozen_normal_02",
+        "TCGA-BH-A1FE_frozen_normal_03",
+        "TCGA-BH-A1FE_frozen_normal_04",
+        "TCGA-BH-A1FE_frozen_normal_05"
+      ]
+    },
+    {
+      "patient_id": "TCGA-BH-A1FE",
+      "group": "frozen_tumor",
+      "label": "Invasive",
+      "prep": "frozen",
+      "n_crops": 6,
+      "slide_invasive_score": 0.37903312481563345,
+      "called_invasive": true,
+      "any_tier_1_2": true,
+      "min_tier": 2,
+      "crop_ids": [
+        "TCGA-BH-A1FE_frozen_tumor_00",
+        "TCGA-BH-A1FE_frozen_tumor_01",
+        "TCGA-BH-A1FE_frozen_tumor_02",
+        "TCGA-BH-A1FE_frozen_tumor_03",
+        "TCGA-BH-A1FE_frozen_tumor_04",
+        "TCGA-BH-A1FE_frozen_tumor_05"
+      ]
+    }
+  ],
+  "crops": [
+    {
+      "crop_id": "TCGA-BH-A18N_frozen_tumor_00",
+      "path": "frozen_tumor/TCGA-BH-A18N_frozen_tumor_00.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-01A-01-TSA.fa28d892-c8d9-4e85-af22-24c75bb952f9.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.25897778317712733,
+        "Benign": 0.03585602500895731,
+        "InSitu": 0.27229967741390904,
+        "Invasive": 0.43286651440000623
+      },
+      "p_invasive": 0.43286651440000623,
+      "top": "Invasive",
+      "conformal_set": [
+        "InSitu",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_frozen_tumor_01",
+      "path": "frozen_tumor/TCGA-BH-A18N_frozen_tumor_01.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-01A-01-TSA.fa28d892-c8d9-4e85-af22-24c75bb952f9.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.5578372385232343,
+        "Benign": 0.06630078073171859,
+        "InSitu": 0.184130251667803,
+        "Invasive": 0.19173172907724403
+      },
+      "p_invasive": 0.19173172907724403,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_frozen_tumor_02",
+      "path": "frozen_tumor/TCGA-BH-A18N_frozen_tumor_02.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-01A-01-TSA.fa28d892-c8d9-4e85-af22-24c75bb952f9.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.6769981449814728,
+        "Benign": 0.025264200408577065,
+        "InSitu": 0.10862379570179018,
+        "Invasive": 0.18911385890816
+      },
+      "p_invasive": 0.18911385890816,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_frozen_tumor_03",
+      "path": "frozen_tumor/TCGA-BH-A18N_frozen_tumor_03.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-01A-01-TSA.fa28d892-c8d9-4e85-af22-24c75bb952f9.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.6501065435315683,
+        "Benign": 0.02750498609863995,
+        "InSitu": 0.11321044517437194,
+        "Invasive": 0.2091780251954198
+      },
+      "p_invasive": 0.2091780251954198,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_frozen_tumor_04",
+      "path": "frozen_tumor/TCGA-BH-A18N_frozen_tumor_04.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-01A-01-TSA.fa28d892-c8d9-4e85-af22-24c75bb952f9.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.3981971971457341,
+        "Benign": 0.020921896938061197,
+        "InSitu": 0.22934943134199556,
+        "Invasive": 0.35153147457420914
+      },
+      "p_invasive": 0.35153147457420914,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 10
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_frozen_tumor_05",
+      "path": "frozen_tumor/TCGA-BH-A18N_frozen_tumor_05.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-01A-01-TSA.fa28d892-c8d9-4e85-af22-24c75bb952f9.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.5808344511748973,
+        "Benign": 0.03833560018278349,
+        "InSitu": 0.13929643121148058,
+        "Invasive": 0.24153351743083853
+      },
+      "p_invasive": 0.24153351743083853,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_frozen_normal_00",
+      "path": "frozen_normal/TCGA-BH-A18N_frozen_normal_00.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-11A-01-TSA.67433f2f-b31c-420a-adb5-358ca3dfeb3e.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9627714030110222,
+        "Benign": 0.005142562342910385,
+        "InSitu": 0.025289574199578304,
+        "Invasive": 0.006796460446488983
+      },
+      "p_invasive": 0.006796460446488983,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 9
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_frozen_normal_01",
+      "path": "frozen_normal/TCGA-BH-A18N_frozen_normal_01.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-11A-01-TSA.67433f2f-b31c-420a-adb5-358ca3dfeb3e.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9244098225616882,
+        "Benign": 0.015595673572890293,
+        "InSitu": 0.04150933844255916,
+        "Invasive": 0.018485165422862188
+      },
+      "p_invasive": 0.018485165422862188,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 10
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_frozen_normal_02",
+      "path": "frozen_normal/TCGA-BH-A18N_frozen_normal_02.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-11A-01-TSA.67433f2f-b31c-420a-adb5-358ca3dfeb3e.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9199760802241538,
+        "Benign": 0.011181560192685064,
+        "InSitu": 0.05107564201787662,
+        "Invasive": 0.017766717565284574
+      },
+      "p_invasive": 0.017766717565284574,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_frozen_normal_03",
+      "path": "frozen_normal/TCGA-BH-A18N_frozen_normal_03.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-11A-01-TSA.67433f2f-b31c-420a-adb5-358ca3dfeb3e.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9200443897236233,
+        "Benign": 0.02216745524654798,
+        "InSitu": 0.0365155160549732,
+        "Invasive": 0.021272638974855488
+      },
+      "p_invasive": 0.021272638974855488,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 10
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_frozen_normal_04",
+      "path": "frozen_normal/TCGA-BH-A18N_frozen_normal_04.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-11A-01-TSA.67433f2f-b31c-420a-adb5-358ca3dfeb3e.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.8681229155037093,
+        "Benign": 0.02159240016423042,
+        "InSitu": 0.08998315219834516,
+        "Invasive": 0.020301532133715
+      },
+      "p_invasive": 0.020301532133715,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_ffpe_tumor_00",
+      "path": "ffpe_tumor/TCGA-BH-A18N_ffpe_tumor_00.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-01Z-00-DX1.FE0E24A1-8AE9-4021-B9C7-B408EE0DE329.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.019786994234247172,
+        "Benign": 0.008484496079984251,
+        "InSitu": 0.04234879766252982,
+        "Invasive": 0.9293797120232388
+      },
+      "p_invasive": 0.9293797120232388,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_ffpe_tumor_01",
+      "path": "ffpe_tumor/TCGA-BH-A18N_ffpe_tumor_01.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-01Z-00-DX1.FE0E24A1-8AE9-4021-B9C7-B408EE0DE329.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9940966753871444,
+        "Benign": 0.0021604355220496045,
+        "InSitu": 0.0034388875605704315,
+        "Invasive": 0.00030400153023575047
+      },
+      "p_invasive": 0.00030400153023575047,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_ffpe_tumor_02",
+      "path": "ffpe_tumor/TCGA-BH-A18N_ffpe_tumor_02.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-01Z-00-DX1.FE0E24A1-8AE9-4021-B9C7-B408EE0DE329.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.99783361023441,
+        "Benign": 0.00042626155843178415,
+        "InSitu": 0.0011633377785741127,
+        "Invasive": 0.0005767904285841307
+      },
+      "p_invasive": 0.0005767904285841307,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_ffpe_tumor_03",
+      "path": "ffpe_tumor/TCGA-BH-A18N_ffpe_tumor_03.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-01Z-00-DX1.FE0E24A1-8AE9-4021-B9C7-B408EE0DE329.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.05396307052055897,
+        "Benign": 0.014710344728838025,
+        "InSitu": 0.10532275596667055,
+        "Invasive": 0.8260038287839324
+      },
+      "p_invasive": 0.8260038287839324,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_ffpe_tumor_04",
+      "path": "ffpe_tumor/TCGA-BH-A18N_ffpe_tumor_04.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-01Z-00-DX1.FE0E24A1-8AE9-4021-B9C7-B408EE0DE329.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.992242557547406,
+        "Benign": 0.002025012548152268,
+        "InSitu": 0.0054255798571297125,
+        "Invasive": 0.0003068500473120498
+      },
+      "p_invasive": 0.0003068500473120498,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-BH-A18N_ffpe_tumor_05",
+      "path": "ffpe_tumor/TCGA-BH-A18N_ffpe_tumor_05.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A18N",
+      "slide_file_name": "TCGA-BH-A18N-01Z-00-DX1.FE0E24A1-8AE9-4021-B9C7-B408EE0DE329.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9957029783387241,
+        "Benign": 0.001192396639767322,
+        "InSitu": 0.0024621173281278753,
+        "Invasive": 0.0006425076933807056
+      },
+      "p_invasive": 0.0006425076933807056,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_frozen_tumor_00",
+      "path": "frozen_tumor/TCGA-BH-A1FE_frozen_tumor_00.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-01A-01-TSA.d6713956-a320-419d-9e3d-ff9a8951a2d0.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.6121485300076454,
+        "Benign": 0.015791365519011342,
+        "InSitu": 0.2830204416705146,
+        "Invasive": 0.08903966280282871
+      },
+      "p_invasive": 0.08903966280282871,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_frozen_tumor_01",
+      "path": "frozen_tumor/TCGA-BH-A1FE_frozen_tumor_01.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-01A-01-TSA.d6713956-a320-419d-9e3d-ff9a8951a2d0.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.19038285082089876,
+        "Benign": 0.030349038857586448,
+        "InSitu": 0.4376265060309037,
+        "Invasive": 0.3416416042906112
+      },
+      "p_invasive": 0.3416416042906112,
+      "top": "InSitu",
+      "conformal_set": [
+        "InSitu",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_frozen_tumor_02",
+      "path": "frozen_tumor/TCGA-BH-A1FE_frozen_tumor_02.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-01A-01-TSA.d6713956-a320-419d-9e3d-ff9a8951a2d0.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.8522577248565925,
+        "Benign": 0.0047846055481944845,
+        "InSitu": 0.1372580128362946,
+        "Invasive": 0.0056996567589182754
+      },
+      "p_invasive": 0.0056996567589182754,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_frozen_tumor_03",
+      "path": "frozen_tumor/TCGA-BH-A1FE_frozen_tumor_03.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-01A-01-TSA.d6713956-a320-419d-9e3d-ff9a8951a2d0.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.3482462232605222,
+        "Benign": 0.0213719107449523,
+        "InSitu": 0.251348741178892,
+        "Invasive": 0.37903312481563345
+      },
+      "p_invasive": 0.37903312481563345,
+      "top": "Invasive",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_frozen_tumor_04",
+      "path": "frozen_tumor/TCGA-BH-A1FE_frozen_tumor_04.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-01A-01-TSA.d6713956-a320-419d-9e3d-ff9a8951a2d0.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.6639601699731873,
+        "Benign": 0.008898387790834012,
+        "InSitu": 0.2838660882886183,
+        "Invasive": 0.043275353947360255
+      },
+      "p_invasive": 0.043275353947360255,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_frozen_tumor_05",
+      "path": "frozen_tumor/TCGA-BH-A1FE_frozen_tumor_05.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-01A-01-TSA.d6713956-a320-419d-9e3d-ff9a8951a2d0.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.5826486870433943,
+        "Benign": 0.011735337116901024,
+        "InSitu": 0.19853425205106087,
+        "Invasive": 0.20708172378864373
+      },
+      "p_invasive": 0.20708172378864373,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_frozen_normal_00",
+      "path": "frozen_normal/TCGA-BH-A1FE_frozen_normal_00.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-11B-01-TSA.64df3bc1-a7ca-4bc6-bd99-e619d76f5cb0.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9815606651601008,
+        "Benign": 0.006150372053355145,
+        "InSitu": 0.006087596261956772,
+        "Invasive": 0.006201366524587612
+      },
+      "p_invasive": 0.006201366524587612,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_frozen_normal_01",
+      "path": "frozen_normal/TCGA-BH-A1FE_frozen_normal_01.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-11B-01-TSA.64df3bc1-a7ca-4bc6-bd99-e619d76f5cb0.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.7276043223174159,
+        "Benign": 0.01781448734666645,
+        "InSitu": 0.22073672906198027,
+        "Invasive": 0.0338444612739374
+      },
+      "p_invasive": 0.0338444612739374,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_frozen_normal_02",
+      "path": "frozen_normal/TCGA-BH-A1FE_frozen_normal_02.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-11B-01-TSA.64df3bc1-a7ca-4bc6-bd99-e619d76f5cb0.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9054124093329994,
+        "Benign": 0.023009256814289506,
+        "InSitu": 0.05313449816925368,
+        "Invasive": 0.01844383568345748
+      },
+      "p_invasive": 0.01844383568345748,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_frozen_normal_03",
+      "path": "frozen_normal/TCGA-BH-A1FE_frozen_normal_03.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-11B-01-TSA.64df3bc1-a7ca-4bc6-bd99-e619d76f5cb0.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9323106736561778,
+        "Benign": 0.018849662569799506,
+        "InSitu": 0.03713937922062714,
+        "Invasive": 0.011700284553395628
+      },
+      "p_invasive": 0.011700284553395628,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_frozen_normal_04",
+      "path": "frozen_normal/TCGA-BH-A1FE_frozen_normal_04.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-11B-01-TSA.64df3bc1-a7ca-4bc6-bd99-e619d76f5cb0.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.8525657679895114,
+        "Benign": 0.009426051842970753,
+        "InSitu": 0.11473577349909267,
+        "Invasive": 0.023272406668425182
+      },
+      "p_invasive": 0.023272406668425182,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_frozen_normal_05",
+      "path": "frozen_normal/TCGA-BH-A1FE_frozen_normal_05.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-11B-01-TSA.64df3bc1-a7ca-4bc6-bd99-e619d76f5cb0.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9417685675892237,
+        "Benign": 0.011054463779337616,
+        "InSitu": 0.03249568825723668,
+        "Invasive": 0.014681280374202037
+      },
+      "p_invasive": 0.014681280374202037,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_ffpe_tumor_00",
+      "path": "ffpe_tumor/TCGA-BH-A1FE_ffpe_tumor_00.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-01Z-00-DX1.8FB57ECF-350B-44E4-8612-63E8374D3C4B.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.831737203526388,
+        "Benign": 0.010358833365512906,
+        "InSitu": 0.1309533203032055,
+        "Invasive": 0.026950642804893364
+      },
+      "p_invasive": 0.026950642804893364,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_ffpe_tumor_01",
+      "path": "ffpe_tumor/TCGA-BH-A1FE_ffpe_tumor_01.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-01Z-00-DX1.8FB57ECF-350B-44E4-8612-63E8374D3C4B.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.707377431609968,
+        "Benign": 0.030006259834537634,
+        "InSitu": 0.23916670016415065,
+        "Invasive": 0.02344960839134362
+      },
+      "p_invasive": 0.02344960839134362,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_ffpe_tumor_02",
+      "path": "ffpe_tumor/TCGA-BH-A1FE_ffpe_tumor_02.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-01Z-00-DX1.8FB57ECF-350B-44E4-8612-63E8374D3C4B.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9734123155120901,
+        "Benign": 0.010457862369855927,
+        "InSitu": 0.005769267369072873,
+        "Invasive": 0.010360554748981112
+      },
+      "p_invasive": 0.010360554748981112,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_ffpe_tumor_03",
+      "path": "ffpe_tumor/TCGA-BH-A1FE_ffpe_tumor_03.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-01Z-00-DX1.8FB57ECF-350B-44E4-8612-63E8374D3C4B.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9889059189224627,
+        "Benign": 0.004381320943349713,
+        "InSitu": 0.004858603687176163,
+        "Invasive": 0.0018541564470114168
+      },
+      "p_invasive": 0.0018541564470114168,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_ffpe_tumor_04",
+      "path": "ffpe_tumor/TCGA-BH-A1FE_ffpe_tumor_04.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-01Z-00-DX1.8FB57ECF-350B-44E4-8612-63E8374D3C4B.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9949946992801154,
+        "Benign": 0.002025621087545795,
+        "InSitu": 0.0019707909128562455,
+        "Invasive": 0.0010088887194826146
+      },
+      "p_invasive": 0.0010088887194826146,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A1FE_ffpe_tumor_05",
+      "path": "ffpe_tumor/TCGA-BH-A1FE_ffpe_tumor_05.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A1FE",
+      "slide_file_name": "TCGA-BH-A1FE-01Z-00-DX1.8FB57ECF-350B-44E4-8612-63E8374D3C4B.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9918446531425836,
+        "Benign": 0.006307321375000518,
+        "InSitu": 0.0009390527822082266,
+        "Invasive": 0.0009089727002077006
+      },
+      "p_invasive": 0.0009089727002077006,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_frozen_tumor_00",
+      "path": "frozen_tumor/TCGA-BH-A0C0_frozen_tumor_00.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-01A-02-BSB.4b112630-4214-42cb-8db9-56df1ce4c6ea.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.373889806171039,
+        "Benign": 0.040822800896323,
+        "InSitu": 0.15477951816099392,
+        "Invasive": 0.43050787477164404
+      },
+      "p_invasive": 0.43050787477164404,
+      "top": "Invasive",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_frozen_tumor_01",
+      "path": "frozen_tumor/TCGA-BH-A0C0_frozen_tumor_01.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-01A-02-BSB.4b112630-4214-42cb-8db9-56df1ce4c6ea.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.35817586855635725,
+        "Benign": 0.04526614992275632,
+        "InSitu": 0.35392072183466444,
+        "Invasive": 0.2426372596862219
+      },
+      "p_invasive": 0.2426372596862219,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 10
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_frozen_tumor_02",
+      "path": "frozen_tumor/TCGA-BH-A0C0_frozen_tumor_02.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-01A-02-BSB.4b112630-4214-42cb-8db9-56df1ce4c6ea.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.40929966066659135,
+        "Benign": 0.06476525594343192,
+        "InSitu": 0.20758710088409138,
+        "Invasive": 0.3183479825058853
+      },
+      "p_invasive": 0.3183479825058853,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_frozen_tumor_03",
+      "path": "frozen_tumor/TCGA-BH-A0C0_frozen_tumor_03.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-01A-02-BSB.4b112630-4214-42cb-8db9-56df1ce4c6ea.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.34592572574881597,
+        "Benign": 0.024302428870528015,
+        "InSitu": 0.2910728398573541,
+        "Invasive": 0.33869900552330184
+      },
+      "p_invasive": 0.33869900552330184,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_frozen_tumor_04",
+      "path": "frozen_tumor/TCGA-BH-A0C0_frozen_tumor_04.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-01A-02-BSB.4b112630-4214-42cb-8db9-56df1ce4c6ea.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.22947406780920304,
+        "Benign": 0.02176470669736535,
+        "InSitu": 0.23315680125989693,
+        "Invasive": 0.5156044242335347
+      },
+      "p_invasive": 0.5156044242335347,
+      "top": "Invasive",
+      "conformal_set": [
+        "InSitu",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_frozen_tumor_05",
+      "path": "frozen_tumor/TCGA-BH-A0C0_frozen_tumor_05.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-01A-02-BSB.4b112630-4214-42cb-8db9-56df1ce4c6ea.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.316780013473584,
+        "Benign": 0.030386545470745915,
+        "InSitu": 0.43807238585521346,
+        "Invasive": 0.21476105520045663
+      },
+      "p_invasive": 0.21476105520045663,
+      "top": "InSitu",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_frozen_normal_00",
+      "path": "frozen_normal/TCGA-BH-A0C0_frozen_normal_00.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-11A-02-BSB.8fef7630-9151-41e4-9d1c-52e083c4772b.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.8271295320782054,
+        "Benign": 0.038640125686610335,
+        "InSitu": 0.11024819470917352,
+        "Invasive": 0.023982147526010827
+      },
+      "p_invasive": 0.023982147526010827,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_frozen_normal_01",
+      "path": "frozen_normal/TCGA-BH-A0C0_frozen_normal_01.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-11A-02-BSB.8fef7630-9151-41e4-9d1c-52e083c4772b.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.8985327138949353,
+        "Benign": 0.01607343025522564,
+        "InSitu": 0.07134013388444387,
+        "Invasive": 0.014053721965395241
+      },
+      "p_invasive": 0.014053721965395241,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_frozen_normal_02",
+      "path": "frozen_normal/TCGA-BH-A0C0_frozen_normal_02.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-11A-02-BSB.8fef7630-9151-41e4-9d1c-52e083c4772b.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.6769238751928075,
+        "Benign": 0.03342159501833591,
+        "InSitu": 0.22869992586141788,
+        "Invasive": 0.06095460392743876
+      },
+      "p_invasive": 0.06095460392743876,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_frozen_normal_03",
+      "path": "frozen_normal/TCGA-BH-A0C0_frozen_normal_03.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-11A-02-BSB.8fef7630-9151-41e4-9d1c-52e083c4772b.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.8618285739024466,
+        "Benign": 0.018221225747095816,
+        "InSitu": 0.09825192575824944,
+        "Invasive": 0.021698274592208164
+      },
+      "p_invasive": 0.021698274592208164,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_frozen_normal_04",
+      "path": "frozen_normal/TCGA-BH-A0C0_frozen_normal_04.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-11A-02-BSB.8fef7630-9151-41e4-9d1c-52e083c4772b.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.7701994097641178,
+        "Benign": 0.017781828409813863,
+        "InSitu": 0.17583499512620754,
+        "Invasive": 0.0361837666998607
+      },
+      "p_invasive": 0.0361837666998607,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_frozen_normal_05",
+      "path": "frozen_normal/TCGA-BH-A0C0_frozen_normal_05.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-11A-02-BSB.8fef7630-9151-41e4-9d1c-52e083c4772b.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.8533153231228299,
+        "Benign": 0.027017875442376417,
+        "InSitu": 0.10081905156353818,
+        "Invasive": 0.01884774987125544
+      },
+      "p_invasive": 0.01884774987125544,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_ffpe_tumor_00",
+      "path": "ffpe_tumor/TCGA-BH-A0C0_ffpe_tumor_00.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-01Z-00-DX1.2D32D35A-EB7E-4D0E-BE5F-E56F7B930463.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.03442022692719432,
+        "Benign": 0.017582689687453173,
+        "InSitu": 0.008933407039199122,
+        "Invasive": 0.9390636763461534
+      },
+      "p_invasive": 0.9390636763461534,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_ffpe_tumor_01",
+      "path": "ffpe_tumor/TCGA-BH-A0C0_ffpe_tumor_01.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-01Z-00-DX1.2D32D35A-EB7E-4D0E-BE5F-E56F7B930463.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.020153177752496244,
+        "Benign": 0.004751000501778027,
+        "InSitu": 0.0029269460605580093,
+        "Invasive": 0.9721688756851677
+      },
+      "p_invasive": 0.9721688756851677,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_ffpe_tumor_02",
+      "path": "ffpe_tumor/TCGA-BH-A0C0_ffpe_tumor_02.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-01Z-00-DX1.2D32D35A-EB7E-4D0E-BE5F-E56F7B930463.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9031863665400036,
+        "Benign": 0.019778935009593334,
+        "InSitu": 0.03707635122203091,
+        "Invasive": 0.039958347228371945
+      },
+      "p_invasive": 0.039958347228371945,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_ffpe_tumor_03",
+      "path": "ffpe_tumor/TCGA-BH-A0C0_ffpe_tumor_03.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-01Z-00-DX1.2D32D35A-EB7E-4D0E-BE5F-E56F7B930463.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.013948939104957692,
+        "Benign": 0.00607683724625689,
+        "InSitu": 0.002738103231171444,
+        "Invasive": 0.9772361204176141
+      },
+      "p_invasive": 0.9772361204176141,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_ffpe_tumor_04",
+      "path": "ffpe_tumor/TCGA-BH-A0C0_ffpe_tumor_04.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-01Z-00-DX1.2D32D35A-EB7E-4D0E-BE5F-E56F7B930463.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.14968228916511273,
+        "Benign": 0.03969368885354214,
+        "InSitu": 0.1120189436510716,
+        "Invasive": 0.6986050783302735
+      },
+      "p_invasive": 0.6986050783302735,
+      "top": "Invasive",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0C0_ffpe_tumor_05",
+      "path": "ffpe_tumor/TCGA-BH-A0C0_ffpe_tumor_05.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0C0",
+      "slide_file_name": "TCGA-BH-A0C0-01Z-00-DX1.2D32D35A-EB7E-4D0E-BE5F-E56F7B930463.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9656169115287105,
+        "Benign": 0.02865787652668768,
+        "InSitu": 0.002324974240867832,
+        "Invasive": 0.00340023770373399
+      },
+      "p_invasive": 0.00340023770373399,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0B8_frozen_tumor_00",
+      "path": "frozen_tumor/TCGA-BH-A0B8_frozen_tumor_00.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0B8",
+      "slide_file_name": "TCGA-BH-A0B8-01A-02-BSB.64413cea-7a07-43c5-a8d0-939affc290cb.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.6984700711545454,
+        "Benign": 0.03040982093665327,
+        "InSitu": 0.22320247882217487,
+        "Invasive": 0.04791762908662651
+      },
+      "p_invasive": 0.04791762908662651,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0B8_frozen_tumor_01",
+      "path": "frozen_tumor/TCGA-BH-A0B8_frozen_tumor_01.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0B8",
+      "slide_file_name": "TCGA-BH-A0B8-01A-02-BSB.64413cea-7a07-43c5-a8d0-939affc290cb.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.37072572041140595,
+        "Benign": 0.049738296701108346,
+        "InSitu": 0.24280359519043862,
+        "Invasive": 0.33673238769704705
+      },
+      "p_invasive": 0.33673238769704705,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-BH-A0B8_frozen_tumor_02",
+      "path": "frozen_tumor/TCGA-BH-A0B8_frozen_tumor_02.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0B8",
+      "slide_file_name": "TCGA-BH-A0B8-01A-02-BSB.64413cea-7a07-43c5-a8d0-939affc290cb.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.1880033211355727,
+        "Benign": 0.03812661418305242,
+        "InSitu": 0.2910787986631146,
+        "Invasive": 0.4827912660182603
+      },
+      "p_invasive": 0.4827912660182603,
+      "top": "Invasive",
+      "conformal_set": [
+        "InSitu",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0B8_frozen_tumor_03",
+      "path": "frozen_tumor/TCGA-BH-A0B8_frozen_tumor_03.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0B8",
+      "slide_file_name": "TCGA-BH-A0B8-01A-02-BSB.64413cea-7a07-43c5-a8d0-939affc290cb.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.13974061672670587,
+        "Benign": 0.04758837340298724,
+        "InSitu": 0.08990806653369907,
+        "Invasive": 0.7227629433366078
+      },
+      "p_invasive": 0.7227629433366078,
+      "top": "Invasive",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0B8_frozen_tumor_04",
+      "path": "frozen_tumor/TCGA-BH-A0B8_frozen_tumor_04.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0B8",
+      "slide_file_name": "TCGA-BH-A0B8-01A-02-BSB.64413cea-7a07-43c5-a8d0-939affc290cb.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.40320306107787257,
+        "Benign": 0.04823177409911319,
+        "InSitu": 0.42720076741241053,
+        "Invasive": 0.12136439741060365
+      },
+      "p_invasive": 0.12136439741060365,
+      "top": "InSitu",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0B8_frozen_tumor_05",
+      "path": "frozen_tumor/TCGA-BH-A0B8_frozen_tumor_05.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0B8",
+      "slide_file_name": "TCGA-BH-A0B8-01A-02-BSB.64413cea-7a07-43c5-a8d0-939affc290cb.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.3108559480097538,
+        "Benign": 0.036084961936526924,
+        "InSitu": 0.45234755365008383,
+        "Invasive": 0.2007115364036355
+      },
+      "p_invasive": 0.2007115364036355,
+      "top": "InSitu",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0B8_ffpe_tumor_00",
+      "path": "ffpe_tumor/TCGA-BH-A0B8_ffpe_tumor_00.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0B8",
+      "slide_file_name": "TCGA-BH-A0B8-01Z-00-DX1.380ABAE9-EA83-4E9B-BFB2-6476A86C1ADD.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.012380718807082821,
+        "Benign": 0.0031620087434179084,
+        "InSitu": 0.0017370806165264282,
+        "Invasive": 0.9827201918329729
+      },
+      "p_invasive": 0.9827201918329729,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0B8_ffpe_tumor_01",
+      "path": "ffpe_tumor/TCGA-BH-A0B8_ffpe_tumor_01.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0B8",
+      "slide_file_name": "TCGA-BH-A0B8-01Z-00-DX1.380ABAE9-EA83-4E9B-BFB2-6476A86C1ADD.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.993584396902827,
+        "Benign": 0.0007118510132631809,
+        "InSitu": 0.0045360525685479,
+        "Invasive": 0.0011676995153620231
+      },
+      "p_invasive": 0.0011676995153620231,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 10
+    },
+    {
+      "crop_id": "TCGA-BH-A0B8_ffpe_tumor_02",
+      "path": "ffpe_tumor/TCGA-BH-A0B8_ffpe_tumor_02.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0B8",
+      "slide_file_name": "TCGA-BH-A0B8-01Z-00-DX1.380ABAE9-EA83-4E9B-BFB2-6476A86C1ADD.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.025333382499179147,
+        "Benign": 0.0029593410369249317,
+        "InSitu": 0.0026452947901007755,
+        "Invasive": 0.9690619816737951
+      },
+      "p_invasive": 0.9690619816737951,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0B8_ffpe_tumor_03",
+      "path": "ffpe_tumor/TCGA-BH-A0B8_ffpe_tumor_03.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0B8",
+      "slide_file_name": "TCGA-BH-A0B8-01Z-00-DX1.380ABAE9-EA83-4E9B-BFB2-6476A86C1ADD.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.009887074457900278,
+        "Benign": 0.004386684220672691,
+        "InSitu": 0.0064078376999573,
+        "Invasive": 0.9793184036214697
+      },
+      "p_invasive": 0.9793184036214697,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0B8_ffpe_tumor_04",
+      "path": "ffpe_tumor/TCGA-BH-A0B8_ffpe_tumor_04.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0B8",
+      "slide_file_name": "TCGA-BH-A0B8-01Z-00-DX1.380ABAE9-EA83-4E9B-BFB2-6476A86C1ADD.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.0027741612736008818,
+        "Benign": 0.0016894736025284656,
+        "InSitu": 0.00046113386154818996,
+        "Invasive": 0.9950752312623223
+      },
+      "p_invasive": 0.9950752312623223,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0B8_ffpe_tumor_05",
+      "path": "ffpe_tumor/TCGA-BH-A0B8_ffpe_tumor_05.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0B8",
+      "slide_file_name": "TCGA-BH-A0B8-01Z-00-DX1.380ABAE9-EA83-4E9B-BFB2-6476A86C1ADD.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.0028782334028338557,
+        "Benign": 0.0017738083719152586,
+        "InSitu": 0.0009340203529316262,
+        "Invasive": 0.9944139378723192
+      },
+      "p_invasive": 0.9944139378723192,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0H3_frozen_tumor_00",
+      "path": "frozen_tumor/TCGA-BH-A0H3_frozen_tumor_00.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0H3",
+      "slide_file_name": "TCGA-BH-A0H3-01A-01-MSA.32ba4ab2-1d6a-4927-953f-2801f2d216e6.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.7613009138254001,
+        "Benign": 0.026674941037016783,
+        "InSitu": 0.1162143196743278,
+        "Invasive": 0.09580982546325519
+      },
+      "p_invasive": 0.09580982546325519,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0H3_frozen_tumor_01",
+      "path": "frozen_tumor/TCGA-BH-A0H3_frozen_tumor_01.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0H3",
+      "slide_file_name": "TCGA-BH-A0H3-01A-01-MSA.32ba4ab2-1d6a-4927-953f-2801f2d216e6.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.04418181807080183,
+        "Benign": 0.025778734043459615,
+        "InSitu": 0.010308719384212864,
+        "Invasive": 0.9197307285015257
+      },
+      "p_invasive": 0.9197307285015257,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0H3_frozen_tumor_02",
+      "path": "frozen_tumor/TCGA-BH-A0H3_frozen_tumor_02.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0H3",
+      "slide_file_name": "TCGA-BH-A0H3-01A-01-MSA.32ba4ab2-1d6a-4927-953f-2801f2d216e6.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.11013632413746495,
+        "Benign": 0.015196897687172537,
+        "InSitu": 0.04580661017622884,
+        "Invasive": 0.8288601679991336
+      },
+      "p_invasive": 0.8288601679991336,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0H3_frozen_tumor_03",
+      "path": "frozen_tumor/TCGA-BH-A0H3_frozen_tumor_03.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0H3",
+      "slide_file_name": "TCGA-BH-A0H3-01A-01-MSA.32ba4ab2-1d6a-4927-953f-2801f2d216e6.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.34599604083627583,
+        "Benign": 0.04328940355607946,
+        "InSitu": 0.22199525450727067,
+        "Invasive": 0.388719301100374
+      },
+      "p_invasive": 0.388719301100374,
+      "top": "Invasive",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0H3_frozen_tumor_04",
+      "path": "frozen_tumor/TCGA-BH-A0H3_frozen_tumor_04.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0H3",
+      "slide_file_name": "TCGA-BH-A0H3-01A-01-MSA.32ba4ab2-1d6a-4927-953f-2801f2d216e6.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.7944644223772058,
+        "Benign": 0.015423072899869009,
+        "InSitu": 0.11785341108262481,
+        "Invasive": 0.07225909364030038
+      },
+      "p_invasive": 0.07225909364030038,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0H3_frozen_tumor_05",
+      "path": "frozen_tumor/TCGA-BH-A0H3_frozen_tumor_05.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0H3",
+      "slide_file_name": "TCGA-BH-A0H3-01A-01-MSA.32ba4ab2-1d6a-4927-953f-2801f2d216e6.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.09460266900576125,
+        "Benign": 0.017229462498788994,
+        "InSitu": 0.02230301129554489,
+        "Invasive": 0.8658648571999049
+      },
+      "p_invasive": 0.8658648571999049,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0H3_frozen_normal_00",
+      "path": "frozen_normal/TCGA-BH-A0H3_frozen_normal_00.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0H3",
+      "slide_file_name": "TCGA-BH-A0H3-11A-01-TSA.1720d8fc-722f-435e-8e65-722ab5865bfe.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.6923582900001356,
+        "Benign": 0.051851327189258556,
+        "InSitu": 0.17692387826116537,
+        "Invasive": 0.07886650454944041
+      },
+      "p_invasive": 0.07886650454944041,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 10
+    },
+    {
+      "crop_id": "TCGA-BH-A0H3_ffpe_tumor_00",
+      "path": "ffpe_tumor/TCGA-BH-A0H3_ffpe_tumor_00.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0H3",
+      "slide_file_name": "TCGA-BH-A0H3-01Z-00-DX1.C6D4DFB9-A4FA-40B2-90EF-75294CBC4523.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.32341384041179855,
+        "Benign": 0.19790338967549373,
+        "InSitu": 0.20694200257553247,
+        "Invasive": 0.2717407673371752
+      },
+      "p_invasive": 0.2717407673371752,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "InSitu",
+        "Invasive"
+      ],
+      "set_size": 3,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0H3_ffpe_tumor_01",
+      "path": "ffpe_tumor/TCGA-BH-A0H3_ffpe_tumor_01.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0H3",
+      "slide_file_name": "TCGA-BH-A0H3-01Z-00-DX1.C6D4DFB9-A4FA-40B2-90EF-75294CBC4523.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.021626473052276114,
+        "Benign": 0.01703552309047303,
+        "InSitu": 0.015835481004800016,
+        "Invasive": 0.9455025228524508
+      },
+      "p_invasive": 0.9455025228524508,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0H3_ffpe_tumor_02",
+      "path": "ffpe_tumor/TCGA-BH-A0H3_ffpe_tumor_02.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0H3",
+      "slide_file_name": "TCGA-BH-A0H3-01Z-00-DX1.C6D4DFB9-A4FA-40B2-90EF-75294CBC4523.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.008341729470063093,
+        "Benign": 0.015405804481295129,
+        "InSitu": 0.00635094742252611,
+        "Invasive": 0.9699015186261156
+      },
+      "p_invasive": 0.9699015186261156,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0H3_ffpe_tumor_03",
+      "path": "ffpe_tumor/TCGA-BH-A0H3_ffpe_tumor_03.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0H3",
+      "slide_file_name": "TCGA-BH-A0H3-01Z-00-DX1.C6D4DFB9-A4FA-40B2-90EF-75294CBC4523.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.993525795504613,
+        "Benign": 0.0037725991162925613,
+        "InSitu": 0.002346815092262646,
+        "Invasive": 0.0003547902868319535
+      },
+      "p_invasive": 0.0003547902868319535,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0H3_ffpe_tumor_04",
+      "path": "ffpe_tumor/TCGA-BH-A0H3_ffpe_tumor_04.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0H3",
+      "slide_file_name": "TCGA-BH-A0H3-01Z-00-DX1.C6D4DFB9-A4FA-40B2-90EF-75294CBC4523.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9985004600237443,
+        "Benign": 0.00029520372407964554,
+        "InSitu": 0.0009090568712155114,
+        "Invasive": 0.0002952793809604576
+      },
+      "p_invasive": 0.0002952793809604576,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0H3_ffpe_tumor_05",
+      "path": "ffpe_tumor/TCGA-BH-A0H3_ffpe_tumor_05.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0H3",
+      "slide_file_name": "TCGA-BH-A0H3-01Z-00-DX1.C6D4DFB9-A4FA-40B2-90EF-75294CBC4523.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9779624051052068,
+        "Benign": 0.010301473227521984,
+        "InSitu": 0.010468840546095851,
+        "Invasive": 0.0012672811211753335
+      },
+      "p_invasive": 0.0012672811211753335,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_frozen_tumor_00",
+      "path": "frozen_tumor/TCGA-BH-A0BJ_frozen_tumor_00.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-01A-01-BSA.979caa76-44d5-4c81-ac78-08908ce542d2.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.17379729058722415,
+        "Benign": 0.03687215045398505,
+        "InSitu": 0.1999066703383342,
+        "Invasive": 0.5894238886204567
+      },
+      "p_invasive": 0.5894238886204567,
+      "top": "Invasive",
+      "conformal_set": [
+        "InSitu",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_frozen_tumor_01",
+      "path": "frozen_tumor/TCGA-BH-A0BJ_frozen_tumor_01.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-01A-01-BSA.979caa76-44d5-4c81-ac78-08908ce542d2.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.12425756286870315,
+        "Benign": 0.024857633173412063,
+        "InSitu": 0.19064819319362886,
+        "Invasive": 0.6602366107642559
+      },
+      "p_invasive": 0.6602366107642559,
+      "top": "Invasive",
+      "conformal_set": [
+        "InSitu",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_frozen_tumor_02",
+      "path": "frozen_tumor/TCGA-BH-A0BJ_frozen_tumor_02.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-01A-01-BSA.979caa76-44d5-4c81-ac78-08908ce542d2.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.2773638865242984,
+        "Benign": 0.04614252263640592,
+        "InSitu": 0.30094657871822195,
+        "Invasive": 0.3755470121210737
+      },
+      "p_invasive": 0.3755470121210737,
+      "top": "Invasive",
+      "conformal_set": [
+        "InSitu",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_frozen_tumor_03",
+      "path": "frozen_tumor/TCGA-BH-A0BJ_frozen_tumor_03.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-01A-01-BSA.979caa76-44d5-4c81-ac78-08908ce542d2.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.0734308887458617,
+        "Benign": 0.008554437939916195,
+        "InSitu": 0.03653980736379394,
+        "Invasive": 0.881474865950428
+      },
+      "p_invasive": 0.881474865950428,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_frozen_tumor_04",
+      "path": "frozen_tumor/TCGA-BH-A0BJ_frozen_tumor_04.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-01A-01-BSA.979caa76-44d5-4c81-ac78-08908ce542d2.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.17259333776588978,
+        "Benign": 0.022721202620575965,
+        "InSitu": 0.10373511112173649,
+        "Invasive": 0.7009503484917977
+      },
+      "p_invasive": 0.7009503484917977,
+      "top": "Invasive",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_frozen_tumor_05",
+      "path": "frozen_tumor/TCGA-BH-A0BJ_frozen_tumor_05.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-01A-01-BSA.979caa76-44d5-4c81-ac78-08908ce542d2.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.28277811295704297,
+        "Benign": 0.032060529870118766,
+        "InSitu": 0.37856894899782983,
+        "Invasive": 0.30659240817500827
+      },
+      "p_invasive": 0.30659240817500827,
+      "top": "InSitu",
+      "conformal_set": [
+        "InSitu",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_frozen_normal_00",
+      "path": "frozen_normal/TCGA-BH-A0BJ_frozen_normal_00.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-11A-02-BSB.16f9156d-b101-43bd-86fb-68e50c4c655d.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.958970437248818,
+        "Benign": 0.011184853269135374,
+        "InSitu": 0.022635561180675737,
+        "Invasive": 0.007209148301371091
+      },
+      "p_invasive": 0.007209148301371091,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_frozen_normal_01",
+      "path": "frozen_normal/TCGA-BH-A0BJ_frozen_normal_01.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-11A-02-BSB.16f9156d-b101-43bd-86fb-68e50c4c655d.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9955860876480124,
+        "Benign": 0.0017470606717612822,
+        "InSitu": 0.0013978234063589604,
+        "Invasive": 0.0012690282738671336
+      },
+      "p_invasive": 0.0012690282738671336,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_frozen_normal_02",
+      "path": "frozen_normal/TCGA-BH-A0BJ_frozen_normal_02.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-11A-02-BSB.16f9156d-b101-43bd-86fb-68e50c4c655d.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9936560415378561,
+        "Benign": 0.001972017605985692,
+        "InSitu": 0.002358596231802958,
+        "Invasive": 0.0020133446243553034
+      },
+      "p_invasive": 0.0020133446243553034,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_frozen_normal_03",
+      "path": "frozen_normal/TCGA-BH-A0BJ_frozen_normal_03.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-11A-02-BSB.16f9156d-b101-43bd-86fb-68e50c4c655d.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9179891838860705,
+        "Benign": 0.011938841341886455,
+        "InSitu": 0.050015537529168104,
+        "Invasive": 0.020056437242875105
+      },
+      "p_invasive": 0.020056437242875105,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_frozen_normal_04",
+      "path": "frozen_normal/TCGA-BH-A0BJ_frozen_normal_04.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-11A-02-BSB.16f9156d-b101-43bd-86fb-68e50c4c655d.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.989473362847278,
+        "Benign": 0.004909081383131455,
+        "InSitu": 0.003263732682541149,
+        "Invasive": 0.0023538230870496024
+      },
+      "p_invasive": 0.0023538230870496024,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_frozen_normal_05",
+      "path": "frozen_normal/TCGA-BH-A0BJ_frozen_normal_05.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-11A-02-BSB.16f9156d-b101-43bd-86fb-68e50c4c655d.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9666980494018047,
+        "Benign": 0.017262627556952563,
+        "InSitu": 0.01174171006002627,
+        "Invasive": 0.004297612981216383
+      },
+      "p_invasive": 0.004297612981216383,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_ffpe_tumor_00",
+      "path": "ffpe_tumor/TCGA-BH-A0BJ_ffpe_tumor_00.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-01Z-00-DX1.77BE9A20-3D23-4650-843A-0483BF9DD07B.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.006775971881828732,
+        "Benign": 0.0011309077651878157,
+        "InSitu": 0.0010500950550092149,
+        "Invasive": 0.9910430252979742
+      },
+      "p_invasive": 0.9910430252979742,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_ffpe_tumor_01",
+      "path": "ffpe_tumor/TCGA-BH-A0BJ_ffpe_tumor_01.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-01Z-00-DX1.77BE9A20-3D23-4650-843A-0483BF9DD07B.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9916376087564057,
+        "Benign": 0.005366305592744454,
+        "InSitu": 0.001699925517822531,
+        "Invasive": 0.0012961601330273706
+      },
+      "p_invasive": 0.0012961601330273706,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_ffpe_tumor_02",
+      "path": "ffpe_tumor/TCGA-BH-A0BJ_ffpe_tumor_02.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-01Z-00-DX1.77BE9A20-3D23-4650-843A-0483BF9DD07B.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.015854861717562452,
+        "Benign": 0.0023623827443520614,
+        "InSitu": 0.007708586023112923,
+        "Invasive": 0.9740741695149725
+      },
+      "p_invasive": 0.9740741695149725,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 9
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_ffpe_tumor_03",
+      "path": "ffpe_tumor/TCGA-BH-A0BJ_ffpe_tumor_03.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-01Z-00-DX1.77BE9A20-3D23-4650-843A-0483BF9DD07B.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.017720752643522474,
+        "Benign": 0.0028595434272852063,
+        "InSitu": 0.005609757866102281,
+        "Invasive": 0.97380994606309
+      },
+      "p_invasive": 0.97380994606309,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 10
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_ffpe_tumor_04",
+      "path": "ffpe_tumor/TCGA-BH-A0BJ_ffpe_tumor_04.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-01Z-00-DX1.77BE9A20-3D23-4650-843A-0483BF9DD07B.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.04175393292399237,
+        "Benign": 0.01273880163513548,
+        "InSitu": 0.04609253078179002,
+        "Invasive": 0.8994147346590822
+      },
+      "p_invasive": 0.8994147346590822,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BJ_ffpe_tumor_05",
+      "path": "ffpe_tumor/TCGA-BH-A0BJ_ffpe_tumor_05.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0BJ",
+      "slide_file_name": "TCGA-BH-A0BJ-01Z-00-DX1.77BE9A20-3D23-4650-843A-0483BF9DD07B.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9863101562931645,
+        "Benign": 0.007592342550344868,
+        "InSitu": 0.0045830007430588205,
+        "Invasive": 0.0015145004134316875
+      },
+      "p_invasive": 0.0015145004134316875,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 10
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_frozen_tumor_00",
+      "path": "frozen_tumor/TCGA-A7-A5ZX_frozen_tumor_00.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-01A-01-TS1.34A6187F-702F-49C0-BF87-4C496FB5DD43.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.8184088067753152,
+        "Benign": 0.003713874427564381,
+        "InSitu": 0.16884310019986712,
+        "Invasive": 0.009034218597253172
+      },
+      "p_invasive": 0.009034218597253172,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_frozen_tumor_01",
+      "path": "frozen_tumor/TCGA-A7-A5ZX_frozen_tumor_01.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-01A-01-TS1.34A6187F-702F-49C0-BF87-4C496FB5DD43.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.6328133828382849,
+        "Benign": 0.017278635283048887,
+        "InSitu": 0.2717038809472558,
+        "Invasive": 0.07820410093141049
+      },
+      "p_invasive": 0.07820410093141049,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_frozen_tumor_02",
+      "path": "frozen_tumor/TCGA-A7-A5ZX_frozen_tumor_02.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-01A-01-TS1.34A6187F-702F-49C0-BF87-4C496FB5DD43.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9431614892153091,
+        "Benign": 0.0010041580338140206,
+        "InSitu": 0.05381123883624165,
+        "Invasive": 0.0020231139146353826
+      },
+      "p_invasive": 0.0020231139146353826,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_frozen_tumor_03",
+      "path": "frozen_tumor/TCGA-A7-A5ZX_frozen_tumor_03.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-01A-01-TS1.34A6187F-702F-49C0-BF87-4C496FB5DD43.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.5510462193235995,
+        "Benign": 0.01696890803245848,
+        "InSitu": 0.38960454266593475,
+        "Invasive": 0.04238032997800711
+      },
+      "p_invasive": 0.04238032997800711,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_frozen_tumor_04",
+      "path": "frozen_tumor/TCGA-A7-A5ZX_frozen_tumor_04.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-01A-01-TS1.34A6187F-702F-49C0-BF87-4C496FB5DD43.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.6206107478373765,
+        "Benign": 0.021627492909796927,
+        "InSitu": 0.28526443605580193,
+        "Invasive": 0.07249732319702476
+      },
+      "p_invasive": 0.07249732319702476,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_frozen_tumor_05",
+      "path": "frozen_tumor/TCGA-A7-A5ZX_frozen_tumor_05.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-01A-01-TS1.34A6187F-702F-49C0-BF87-4C496FB5DD43.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.5496561542635626,
+        "Benign": 0.014522014350638117,
+        "InSitu": 0.06319867099338412,
+        "Invasive": 0.37262316039241505
+      },
+      "p_invasive": 0.37262316039241505,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_frozen_normal_00",
+      "path": "frozen_normal/TCGA-A7-A5ZX_frozen_normal_00.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-11A-05-TS5.99452101-D729-4ABB-BB07-2B6B18D765DC.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9326382651155324,
+        "Benign": 0.01263952914183806,
+        "InSitu": 0.04285117038174135,
+        "Invasive": 0.01187103536088817
+      },
+      "p_invasive": 0.01187103536088817,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_frozen_normal_01",
+      "path": "frozen_normal/TCGA-A7-A5ZX_frozen_normal_01.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-11A-05-TS5.99452101-D729-4ABB-BB07-2B6B18D765DC.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.8345790425119732,
+        "Benign": 0.029218595058708302,
+        "InSitu": 0.1028878310936911,
+        "Invasive": 0.03331453133562723
+      },
+      "p_invasive": 0.03331453133562723,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_frozen_normal_02",
+      "path": "frozen_normal/TCGA-A7-A5ZX_frozen_normal_02.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-11A-05-TS5.99452101-D729-4ABB-BB07-2B6B18D765DC.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.895742792693157,
+        "Benign": 0.02573590748140756,
+        "InSitu": 0.05845290370811088,
+        "Invasive": 0.020068396117324545
+      },
+      "p_invasive": 0.020068396117324545,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_frozen_normal_03",
+      "path": "frozen_normal/TCGA-A7-A5ZX_frozen_normal_03.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-11A-05-TS5.99452101-D729-4ABB-BB07-2B6B18D765DC.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9463176071810449,
+        "Benign": 0.011642205635179474,
+        "InSitu": 0.033393508791216726,
+        "Invasive": 0.008646678392558947
+      },
+      "p_invasive": 0.008646678392558947,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_frozen_normal_04",
+      "path": "frozen_normal/TCGA-A7-A5ZX_frozen_normal_04.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-11A-05-TS5.99452101-D729-4ABB-BB07-2B6B18D765DC.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9365186849337842,
+        "Benign": 0.021348736928314474,
+        "InSitu": 0.02545308175337695,
+        "Invasive": 0.01667949638452448
+      },
+      "p_invasive": 0.01667949638452448,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_frozen_normal_05",
+      "path": "frozen_normal/TCGA-A7-A5ZX_frozen_normal_05.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-11A-05-TS5.99452101-D729-4ABB-BB07-2B6B18D765DC.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.908428445822921,
+        "Benign": 0.0201099217894371,
+        "InSitu": 0.04785766210522204,
+        "Invasive": 0.023603970282419916
+      },
+      "p_invasive": 0.023603970282419916,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_ffpe_tumor_00",
+      "path": "ffpe_tumor/TCGA-A7-A5ZX_ffpe_tumor_00.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-01Z-00-DX1.A4C651F0-DB8E-4534-84A2-AD875F62209F.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.051075542364438314,
+        "Benign": 0.020248227405094407,
+        "InSitu": 0.009871532099628705,
+        "Invasive": 0.9188046981308385
+      },
+      "p_invasive": 0.9188046981308385,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_ffpe_tumor_01",
+      "path": "ffpe_tumor/TCGA-A7-A5ZX_ffpe_tumor_01.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-01Z-00-DX1.A4C651F0-DB8E-4534-84A2-AD875F62209F.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.03050197233256869,
+        "Benign": 0.011795604809939913,
+        "InSitu": 0.007164657735905812,
+        "Invasive": 0.9505377651215855
+      },
+      "p_invasive": 0.9505377651215855,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_ffpe_tumor_02",
+      "path": "ffpe_tumor/TCGA-A7-A5ZX_ffpe_tumor_02.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-01Z-00-DX1.A4C651F0-DB8E-4534-84A2-AD875F62209F.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.04368985496243554,
+        "Benign": 0.008662608096501585,
+        "InSitu": 0.0031265273372211703,
+        "Invasive": 0.9445210096038417
+      },
+      "p_invasive": 0.9445210096038417,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_ffpe_tumor_03",
+      "path": "ffpe_tumor/TCGA-A7-A5ZX_ffpe_tumor_03.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-01Z-00-DX1.A4C651F0-DB8E-4534-84A2-AD875F62209F.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.024584293078519278,
+        "Benign": 0.007272029898210705,
+        "InSitu": 0.003209189661588846,
+        "Invasive": 0.9649344873616811
+      },
+      "p_invasive": 0.9649344873616811,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 9
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_ffpe_tumor_04",
+      "path": "ffpe_tumor/TCGA-A7-A5ZX_ffpe_tumor_04.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-01Z-00-DX1.A4C651F0-DB8E-4534-84A2-AD875F62209F.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.012289729219406251,
+        "Benign": 0.0029204676130079434,
+        "InSitu": 0.0014010890793882196,
+        "Invasive": 0.9833887140881976
+      },
+      "p_invasive": 0.9833887140881976,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-A7-A5ZX_ffpe_tumor_05",
+      "path": "ffpe_tumor/TCGA-A7-A5ZX_ffpe_tumor_05.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-A7-A5ZX",
+      "slide_file_name": "TCGA-A7-A5ZX-01Z-00-DX1.A4C651F0-DB8E-4534-84A2-AD875F62209F.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.04944128433585538,
+        "Benign": 0.019173653186125246,
+        "InSitu": 0.005991419325481373,
+        "Invasive": 0.9253936431525379
+      },
+      "p_invasive": 0.9253936431525379,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_frozen_tumor_00",
+      "path": "frozen_tumor/TCGA-BH-A0BF_frozen_tumor_00.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-01A-02-BSB.00d3beec-4e44-4585-a6c0-ec25b8ee3538.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.071831570219491,
+        "Benign": 0.003552051737970829,
+        "InSitu": 0.030456246323430577,
+        "Invasive": 0.8941601317191077
+      },
+      "p_invasive": 0.8941601317191077,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_frozen_tumor_01",
+      "path": "frozen_tumor/TCGA-BH-A0BF_frozen_tumor_01.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-01A-02-BSB.00d3beec-4e44-4585-a6c0-ec25b8ee3538.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.35676674204990827,
+        "Benign": 0.040525988974289225,
+        "InSitu": 0.4140931941243172,
+        "Invasive": 0.1886140748514854
+      },
+      "p_invasive": 0.1886140748514854,
+      "top": "InSitu",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 10
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_frozen_tumor_02",
+      "path": "frozen_tumor/TCGA-BH-A0BF_frozen_tumor_02.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-01A-02-BSB.00d3beec-4e44-4585-a6c0-ec25b8ee3538.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.06516539694660144,
+        "Benign": 0.00631249788671266,
+        "InSitu": 0.03261246062559355,
+        "Invasive": 0.8959096445410922
+      },
+      "p_invasive": 0.8959096445410922,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_frozen_tumor_03",
+      "path": "frozen_tumor/TCGA-BH-A0BF_frozen_tumor_03.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-01A-02-BSB.00d3beec-4e44-4585-a6c0-ec25b8ee3538.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.19253218099085226,
+        "Benign": 0.004968862917532694,
+        "InSitu": 0.06730696505222558,
+        "Invasive": 0.7351919910393895
+      },
+      "p_invasive": 0.7351919910393895,
+      "top": "Invasive",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 10
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_frozen_tumor_04",
+      "path": "frozen_tumor/TCGA-BH-A0BF_frozen_tumor_04.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-01A-02-BSB.00d3beec-4e44-4585-a6c0-ec25b8ee3538.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.056453447031077915,
+        "Benign": 0.004093414641799878,
+        "InSitu": 0.024328427531082678,
+        "Invasive": 0.9151247107960395
+      },
+      "p_invasive": 0.9151247107960395,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_frozen_tumor_05",
+      "path": "frozen_tumor/TCGA-BH-A0BF_frozen_tumor_05.png",
+      "label": "Invasive",
+      "group": "frozen_tumor",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-01A-02-BSB.00d3beec-4e44-4585-a6c0-ec25b8ee3538.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.30877948463933363,
+        "Benign": 0.023766125667079776,
+        "InSitu": 0.22542728621218333,
+        "Invasive": 0.4420271034814032
+      },
+      "p_invasive": 0.4420271034814032,
+      "top": "Invasive",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_frozen_normal_00",
+      "path": "frozen_normal/TCGA-BH-A0BF_frozen_normal_00.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-11A-01-TSA.709449f0-86c4-4cb7-b9a8-31b6edfc39b1.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.7455069495465443,
+        "Benign": 0.06464542123733877,
+        "InSitu": 0.13664553418608713,
+        "Invasive": 0.053202095030029914
+      },
+      "p_invasive": 0.053202095030029914,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_frozen_normal_01",
+      "path": "frozen_normal/TCGA-BH-A0BF_frozen_normal_01.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-11A-01-TSA.709449f0-86c4-4cb7-b9a8-31b6edfc39b1.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.7919413359581416,
+        "Benign": 0.03255024240298319,
+        "InSitu": 0.14680433941874466,
+        "Invasive": 0.02870408222013048
+      },
+      "p_invasive": 0.02870408222013048,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_frozen_normal_02",
+      "path": "frozen_normal/TCGA-BH-A0BF_frozen_normal_02.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-11A-01-TSA.709449f0-86c4-4cb7-b9a8-31b6edfc39b1.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9549347604502478,
+        "Benign": 0.011728594019287802,
+        "InSitu": 0.017800714855917187,
+        "Invasive": 0.01553593067454716
+      },
+      "p_invasive": 0.01553593067454716,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_frozen_normal_03",
+      "path": "frozen_normal/TCGA-BH-A0BF_frozen_normal_03.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-11A-01-TSA.709449f0-86c4-4cb7-b9a8-31b6edfc39b1.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.5612701593682146,
+        "Benign": 0.06875773328855085,
+        "InSitu": 0.24901608577700793,
+        "Invasive": 0.12095602156622651
+      },
+      "p_invasive": 0.12095602156622651,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_frozen_normal_04",
+      "path": "frozen_normal/TCGA-BH-A0BF_frozen_normal_04.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-11A-01-TSA.709449f0-86c4-4cb7-b9a8-31b6edfc39b1.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.9254763718029888,
+        "Benign": 0.02111660355726908,
+        "InSitu": 0.03245721932790581,
+        "Invasive": 0.02094980531183616
+      },
+      "p_invasive": 0.02094980531183616,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal"
+      ],
+      "set_size": 1,
+      "tier": 4,
+      "tier_reasons": [],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_frozen_normal_05",
+      "path": "frozen_normal/TCGA-BH-A0BF_frozen_normal_05.png",
+      "label": "Normal",
+      "group": "frozen_normal",
+      "prep": "frozen",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-11A-01-TSA.709449f0-86c4-4cb7-b9a8-31b6edfc39b1.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.7799633874196384,
+        "Benign": 0.041353039102076855,
+        "InSitu": 0.11899504028532178,
+        "Invasive": 0.05968853319296287
+      },
+      "p_invasive": 0.05968853319296287,
+      "top": "Normal",
+      "conformal_set": [
+        "Normal",
+        "InSitu"
+      ],
+      "set_size": 2,
+      "tier": 3,
+      "tier_reasons": [
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 11
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_ffpe_tumor_00",
+      "path": "ffpe_tumor/TCGA-BH-A0BF_ffpe_tumor_00.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-01Z-00-DX1.934DF984-9054-4B20-B85B-9CF94B8DC3D4.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.01752622309306724,
+        "Benign": 0.003868613543834104,
+        "InSitu": 0.003746476709632023,
+        "Invasive": 0.9748586866534665
+      },
+      "p_invasive": 0.9748586866534665,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_ffpe_tumor_01",
+      "path": "ffpe_tumor/TCGA-BH-A0BF_ffpe_tumor_01.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-01Z-00-DX1.934DF984-9054-4B20-B85B-9CF94B8DC3D4.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.017565646326680947,
+        "Benign": 0.01035727354184412,
+        "InSitu": 0.007072796663369014,
+        "Invasive": 0.9650042834681059
+      },
+      "p_invasive": 0.9650042834681059,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_ffpe_tumor_02",
+      "path": "ffpe_tumor/TCGA-BH-A0BF_ffpe_tumor_02.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-01Z-00-DX1.934DF984-9054-4B20-B85B-9CF94B8DC3D4.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.08667708219477642,
+        "Benign": 0.020286094239616595,
+        "InSitu": 0.06135122378850096,
+        "Invasive": 0.8316855997771061
+      },
+      "p_invasive": 0.8316855997771061,
+      "top": "Invasive",
+      "conformal_set": [
+        "Normal",
+        "Invasive"
+      ],
+      "set_size": 2,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_ffpe_tumor_03",
+      "path": "ffpe_tumor/TCGA-BH-A0BF_ffpe_tumor_03.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-01Z-00-DX1.934DF984-9054-4B20-B85B-9CF94B8DC3D4.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.015197273285135015,
+        "Benign": 0.018638340199080495,
+        "InSitu": 0.009066420398814416,
+        "Invasive": 0.9570979661169701
+      },
+      "p_invasive": 0.9570979661169701,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_ffpe_tumor_04",
+      "path": "ffpe_tumor/TCGA-BH-A0BF_ffpe_tumor_04.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-01Z-00-DX1.934DF984-9054-4B20-B85B-9CF94B8DC3D4.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.015427696413848231,
+        "Benign": 0.007611324406140982,
+        "InSitu": 0.009195741043767683,
+        "Invasive": 0.9677652381362432
+      },
+      "p_invasive": 0.9677652381362432,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    },
+    {
+      "crop_id": "TCGA-BH-A0BF_ffpe_tumor_05",
+      "path": "ffpe_tumor/TCGA-BH-A0BF_ffpe_tumor_05.png",
+      "label": "Invasive",
+      "group": "ffpe_tumor",
+      "prep": "ffpe",
+      "patient_id": "TCGA-BH-A0BF",
+      "slide_file_name": "TCGA-BH-A0BF-01Z-00-DX1.934DF984-9054-4B20-B85B-9CF94B8DC3D4.svs",
+      "qc_fallback": false,
+      "mpp_estimated": false,
+      "probs": {
+        "Normal": 0.0038076868897894806,
+        "Benign": 0.0071005409912791185,
+        "InSitu": 0.004412974370127341,
+        "Invasive": 0.9846787977488041
+      },
+      "p_invasive": 0.9846787977488041,
+      "top": "Invasive",
+      "conformal_set": [
+        "Invasive"
+      ],
+      "set_size": 1,
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "qc_tiles_kept": 12
+    }
+  ],
+  "limitations": [
+    "Model: Delta-trained UNI2-h LoRA (uni2h_ft), not the frozen uni2h512_lr production probe.",
+    "Slide-level labels only; a tumor-slide crop may show stroma or fat.",
+    "No benign or in-situ labels in TCGA-BRCA; specificity is vs frozen normal tissue only.",
+    "Normal slides are adjacent to tumor and may not be strictly normal.",
+    "Sample size is small; bootstrap intervals are wide.",
+    "Reliability combiner not applied; reliability_flag forced false.",
+    "Credit: TCGA Research Network (https://www.cancer.gov/tcga)."
+  ],
+  "data": {
+    "tcga_root": "data/tcga_brca_test",
+    "run_info": {
+      "created_utc": "2026-10-18T21:52:06.959480+00:00",
+      "source": "NCI GDC, TCGA-BRCA open-access slide images",
+      "args": {
+        "out": "data/tcga_brca_test",
+        "patients": "8",
+        "fovs": "6",
+        "target_mpp": "0.42",
+        "min_tissue": "0.75",
+        "max_slide_gb": "2.0",
+        "seed": "44",
+        "keep_slides": "False",
+        "dry_run": "False"
+      },
+      "slides_selected": 24,
+      "crops_written": 132,
+      "groups": {
+        "frozen_tumor": 8,
+        "frozen_normal": 8,
+        "ffpe_tumor": 8
+      },
+      "caveats": [
+        "Labels are slide-level (sample type), not crop-level annotations.",
+        "No benign or in-situ labels exist in TCGA-BRCA.",
+        "Normal slides are frozen sections; compare frozen tumor vs frozen normal for a fair test.",
+        "Fields of view were sampled at random among tissue-rich regions, not chosen by any model."
+      ]
+    },
+    "embedding_cache": "data/tcga_brca_test/embeddings/uni2h_ft_mps.npz"
+  }
+}
