@@ -100,7 +100,9 @@ export function render(ST, ctx, opts = {}) {
     return h + `<div id="case-panel" class="cv-tabpanel ai-tabpanel" role="tabpanel" aria-labelledby="tab-interp">${interpretPanel(ST, v.id, 'case')}</div></section>`;
   }
   const hm = ST.hm;
-  h += '<div id="case-panel" role="tabpanel" aria-labelledby="tab-evidence">';
+  h += '<div id="case-panel" class="cv-evidence-panel" role="tabpanel" aria-labelledby="tab-evidence">';
+  // the decision column comes after every evidence control in the tab order: keyboard users can jump straight to it
+  if (!hideAgent) h += '<button type="button" class="cv-skip" data-cv-skip data-testid="skip-decision">Skip to the decision</button>';
   h += '<div class="grid case-layout cv-grid"><div class="cv-main">';
   h += `<div class="card" data-testid="summary"><div class="card-h"><h2>Grounded summary</h2><span class="sub">Citations open the supporting evidence</span></div>${summary(v)}</div>`;
   h +=

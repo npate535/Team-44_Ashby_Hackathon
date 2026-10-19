@@ -54,8 +54,15 @@ function resolveKey(k) {
 }
 let lastFocus = null;
 let kbInput = false; // last interaction was the keyboard (vs a pointer)
-document.addEventListener('keydown', () => (kbInput = true), true);
-document.addEventListener('pointerdown', () => (kbInput = false), true);
+const stageKb = (on) => $$('.vw-stage').forEach((st) => st.classList.toggle('kb', on)); // focus ring for keyboard use only
+document.addEventListener('keydown', () => {
+  kbInput = true;
+  stageKb(true);
+}, true);
+document.addEventListener('pointerdown', () => {
+  kbInput = false;
+  stageKb(false);
+}, true);
 // a decision control (order, sign out, margin call…) disappears or is disabled once the decision is sent: move
 // keyboard focus to the outcome (feedback / verdict) when it appears instead of dropping it on <body>
 const DECISION = /data-act|data-call|data-cv-confirm|confirm-action/;
@@ -295,6 +302,21 @@ class PanZoom {
       const r = stage.getBoundingClientRect();
       this.zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.0018));
     }, { passive: false });
+    // Safari: a trackpad pinch arrives as gesture events (not ctrl+wheel); without this it zooms the whole page
+    let pinch = 1;
+    stage.addEventListener('gesturestart', (e) => {
+      e.preventDefault();
+      pinch = 1;
+    });
+    stage.addEventListener('gesturechange', (e) => {
+      e.preventDefault();
+      const r = stage.getBoundingClientRect();
+      const x = Number.isFinite(e.clientX) ? e.clientX - r.left : r.width / 2;
+      const y = Number.isFinite(e.clientY) ? e.clientY - r.top : r.height / 2;
+      if (e.scale > 0) this.zoomAt(x, y, e.scale / pinch);
+      pinch = e.scale || 1;
+    });
+    stage.addEventListener('gestureend', (e) => e.preventDefault());
     stage.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -524,6 +546,7 @@ function openViewer(trigger, regionIdx = null) {
   vw.pz.aspect = w / h;
   vw.returnFocus = keyOf(trigger);
   vw.d.showModal();
+  stageKb(kbInput);
   vw.pz.layout();
   vw.pz.fit();
   if (regionIdx !== null) {
@@ -654,6 +677,7 @@ function openCompare(trigger, which) {
   c.list = [...v.similar.map((x) => ({ ...x, kind: 'similar' })), ...(v.contrast ? [{ ...v.contrast, kind: 'contrast' }] : [])];
   c.returnFocus = keyOf(trigger);
   c.d.showModal();
+  stageKb(kbInput);
   showRef(which === 'contrast' ? c.list.length - 1 : Number(which) || 0);
   c.panes[1].stage.focus({ preventScroll: true });
 }
@@ -674,6 +698,11 @@ document.addEventListener('click', (e) => {
     return;
   }
   if ((d.act || d.call) && confirmState) confirmState = null; // the real action is about to be sent by app.js
+  if (d.cvSkip !== undefined) {
+    const to = $('#app [data-testid=agent-panel] button:not([disabled]), #app [data-testid=approval] button:not([disabled]), #app [data-testid=verdict]');
+    if (to) to.focus();
+    return;
+  }
   if (d.cvOpen === 'viewer') {
     openViewer(t);
     return;

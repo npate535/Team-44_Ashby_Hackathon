@@ -225,12 +225,34 @@ export function regionGrid(v, hm, { scope = 'case' } = {}) {
   return `<div class="rg-grid" role="group" data-cols="${cols}" aria-label="Image regions, ${rows} rows by ${cols} columns. Arrow keys move between regions; Enter zooms in.">${out}</div>`;
 }
 
+/** Alternative text for the case image, built only from the view model: what the field is, the suggested category with
+ *  its calibrated probability, the overlay layer and its three highest regions. */
+export function imageAlt(v, hm) {
+  const top = v.probs.find((p) => p.cls === v.top);
+  const layer = layerOf(v, hm.sel);
+  const maxA = Math.max(0, ...v.tiles.map((t) => t.attention || 0));
+  const value = (t) =>
+    layer.kind === 'contribution' ? t.contribution : layer.kind === 'risk' ? t.risk : layer.kind === 'attention' ? t.attention : (t.concepts || {})[layer.id];
+  const shown = (t) =>
+    layer.kind === 'contribution' || layer.kind === 'concept' ? sz(Number(value(t))) : layer.kind === 'risk' ? fp2(t.risk) : f2(maxA > 0 ? t.attention / maxA : null);
+  const ranked = v.tiles
+    .filter((t) => isNum(value(t)) && (layer.kind !== 'contribution' || Number(value(t)) > 0))
+    .sort((a, b) => Number(value(b)) - Number(value(a)) || a.idx - b.idx)
+    .slice(0, 3);
+  const which = layer.kind === 'contribution' ? 'regions pushing most toward invasive' : 'highest regions';
+  return (
+    `H&E image, ${v.laneLabel.toLowerCase()}, ${v.question}, ${v.id}.` +
+    (top ? ` Suggested category: ${top.label}, calibrated probability ${fp2(top.p)}.` : '') +
+    ` Overlay: ${layer.label}${ranked.length ? `; ${which}: ${ranked.map((t) => `${t.idx} (${shown(t)})`).join(', ')}` : ''}.`
+  );
+}
+
 export function heatmap(v, hm, assetUrl) {
   if (!v.image) return '<div class="note">No display image.</div>';
   const w = num(v.image.w),
     h = num(v.image.h);
   return (
-    `<div class="hm cv-hm" style="aspect-ratio:${w}/${h}"><img src="${esc(assetUrl(v.image.src))}" alt="Display image for ${esc(v.id)} with a tile heatmap overlay" data-testid="heatmap-img" data-cv-img decoding="async">` +
+    `<div class="hm cv-hm" style="aspect-ratio:${w}/${h}"><img src="${esc(assetUrl(v.image.src))}" alt="${esc(imageAlt(v, hm))}" data-testid="heatmap-img" data-cv-img decoding="async">` +
     overlaySvg(v, hm) +
     regionGrid(v, hm) +
     `<button type="button" class="hm-expand" data-cv-open="viewer" data-testid="viewer-open" aria-label="Open the full-screen image viewer"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5"/></svg><span>Full screen</span></button>` +
@@ -325,6 +347,13 @@ function segClass(m, s) {
   return { hot, cls: hot ? 'hot' : warm ? 'warm' : 'cool' };
 }
 
+/** Alternative text for the frozen-section image: the field, then each margin's read against the threshold. */
+function marginAlt(v) {
+  const m = v.margin;
+  const reads = m ? MARGINS.map((name) => `${name} ${STATUS_TEXT[marginStatus(m, name)]}`).join(', ') : 'no margin read';
+  return `H&E image, simulated frozen section, ${v.id}; its four borders stand in for inked margins: ${reads}.`;
+}
+
 /** The image with every margin segment drawn as an inked-border strip, coloured by threshold status. */
 export function marginOverlay(v, assetUrl, { names = null } = {}) {
   if (!v.image) return '<div class="note">No display image.</div>';
@@ -346,7 +375,7 @@ export function marginOverlay(v, assetUrl, { names = null } = {}) {
     names && name ? `<span class="ms-side ${pos} ${m ? marginStatus(m, name) : ''}">${esc(cap(name))}</span>` : '';
   return (
     `<div class="ms-frame${names ? ' labelled' : ''}">${side('top', n.top)}${side('bottom', n.bottom)}${side('left', n.left)}${side('right', n.right)}` +
-    `<div class="hm cv-hm surg" style="aspect-ratio:${w}/${h}"><img src="${esc(assetUrl(v.image.src))}" alt="Display image for ${esc(v.id)} with margin strips (simulated frozen section)" data-testid="surgical-img" data-cv-img decoding="async">` +
+    `<div class="hm cv-hm surg" style="aspect-ratio:${w}/${h}"><img src="${esc(assetUrl(v.image.src))}" alt="${esc(marginAlt(v))}" data-testid="surgical-img" data-cv-img decoding="async">` +
     `<svg class="hm-svg msvg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">${rects}</svg>` +
     `<button type="button" class="hm-expand" data-cv-open="viewer" data-testid="viewer-open" aria-label="Open the full-screen image viewer"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5"/></svg><span>Full screen</span></button></div></div>` +
     (m

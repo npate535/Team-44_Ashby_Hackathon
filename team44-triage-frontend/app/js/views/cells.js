@@ -37,7 +37,7 @@ function pctTrack(p) {
   const cls = q >= 0.9 ? 'hi' : q <= 0.1 ? 'lo' : 'mid';
   return (
     `<div class="pct-track ${cls}" aria-hidden="true"><span class="pct-band" title="Middle 80% of benign/normal reference cases"></span><b style="left:${(q * 100).toFixed(1)}%"></b></div>` +
-    `<div class="pct-ticks" aria-hidden="true">${[0, 10, 50, 90, 100].map((t) => `<span style="left:${t}%">${t === 100 ? '100th' : t}</span>`).join('')}</div>`
+    `<div class="pct-ticks" aria-hidden="true">${[0, 10, 50, 90, 100].map((t) => `<span style="left:${t}%">${t}</span>`).join('')}</div>`
   );
 }
 

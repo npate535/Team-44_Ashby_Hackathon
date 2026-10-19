@@ -192,18 +192,19 @@ function regionPush(v, metrics) {
   if (!top.length) return '';
   const rows = top
     .map((r) => {
-      const zs = r.concepts.map((c) => `${c.label} ${sz(c.z)}`).join(' · ');
+      // only scores above the reference average describe what a region shows; a "highest" score of −0.9 does not
+      const zs = r.concepts.filter((c) => c.z > 0).map((c) => `${c.label} ${sz(c.z)}`).join(' · ');
       return (
         `<button type="button" class="why-region" data-testid="why-region-${r.idx}" data-rg="${r.idx}" data-rg-scope="case" ` +
         `aria-label="Region ${r.idx} · ${esc(signed(r.contribution))} toward invasive.${zs ? ` Highest concept scores: ${esc(zs)}.` : ''} Opens the image viewer at this region.">` +
         `<span class="wg-n">Region ${r.idx}</span><b class="v up">${esc(signed(r.contribution))}</b>` +
-        `<span class="wg-z">${zs ? esc(zs) : 'No concept scores'}</span></button>`
+        `<span class="wg-z">${zs ? esc(zs) : r.concepts.length ? 'No feature scores above the reference average here' : 'No concept scores'}</span></button>`
       );
     })
     .join('');
   return (
     `<section class="why-regions" data-testid="why-regions"><h3>Regions with the largest push</h3>` +
-    `<p class="sub">Each region's exact additive term in the model's invasive score (centered calibrated logit), with the region's two highest concept z-scores${failed.size ? ' among features that passed their AI spot check' : ''}. Select a region to zoom to it.</p>` +
+    `<p class="sub">Each region's exact additive term in the model's invasive score (centered calibrated logit), with the region's two highest concept z-scores above the reference average${failed.size ? ' among features that passed their AI spot check' : ''}. Select a region to zoom to it.</p>` +
     `<div class="wg-list">${rows}</div></section>`
   );
 }
@@ -302,7 +303,7 @@ function probChart(v, cfg) {
         `<span class="pc-lbl">${esc(p.label)}${top ? '<span class="pc-tag">suggested</span>' : ''}</span>` +
         `<span class="pc-track" aria-hidden="true"><i style="width:${w.toFixed(1)}%"></i></span>` +
         `<span class="pc-val">${fmtPct(p.p)}</span>` +
-        `<span class="pc-set">${inSet ? '<span class="pc-in" aria-label="in the set">in set</span>' : '<span class="pc-out" aria-hidden="true">·</span>'}</span></div>`
+        `<span class="pc-set">${inSet ? '<span class="pc-in" aria-label="in the set">in set</span>' : '<span class="pc-out"><span aria-hidden="true">·</span><span class="sr-only">outside the set</span></span>'}</span></div>`
       );
     })
     .join('');
