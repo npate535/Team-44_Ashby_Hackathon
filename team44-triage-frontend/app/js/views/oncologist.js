@@ -1,9 +1,14 @@
 // Oncology inbox: one readable report card per signed-out biopsy — suggested category with calibrated probability and
 // confidence set, key associated features, the orders the pathologist placed, the sign-out time, grounded summary
 // sentences and the disclaimer. Unread/read state is a per-viewer convenience (browser storage, never required).
-// Research prototype — not for clinical use. Ground truth is never fetched or rendered.
+// Research prototype — not for clinical use. Ground truth is never fetched or rendered. Orders are simulated: approved
+// in this workspace, never sent to a laboratory system.
 import { esc, isLLM } from '../adapter.js';
-import { conformalInfo, pctText, routedKey, shortClass, suggestedLabel } from '../flow.js';
+import { conformalInfo, joinNames, pctText, routedKey, shortClass, suggestedLabel } from '../flow.js';
+import { levelOf } from './why.js';
+
+// Results drawn by the previous render: only a result that arrives while the inbox is open animates in.
+let shownKeys = null;
 
 const ORDER_TYPE = { stain: 'Stains', recut: 'Recut', deeper_levels: 'Deeper levels', new_sample: 'New sample' };
 const AGENT_NOTE = {
@@ -30,20 +35,35 @@ function topOf(s) {
   return s.classes[s.probs.indexOf(Math.max(...s.probs))];
 }
 
+// The backend lists concept findings whose spot check did not fail, then measured cell findings; a concept that failed
+// its spot check is never listed as a feature, only named underneath.
 function features(rep) {
   const list = (rep && rep.features) || [];
-  if (!list.length) return '<p class="rep-none">No associated features were recorded for this read.</p>';
+  const held = (rep && rep.features_withheld) || [];
+  const note = held.length
+    ? `<p class="rep-note" data-testid="inbox-withheld">Not listed because ${held.length === 1 ? 'its' : 'their'} spot check failed: ${esc(joinNames(held.map((w) => w.label)))}.</p>`
+    : '';
+  if (!list.length)
+    return `<p class="rep-none">${held.length ? 'No associated feature passed its spot check for this read.' : 'No associated features were recorded for this read.'}</p>${note}`;
   return (
     '<ul class="rep-feat">' +
     list
       .map((f) => {
+        if (f.kind === 'cells') {
+          // measured on segmented nuclei; compared with benign/normal reference cases, no push toward a class
+          const lvl = levelOf({ measured: true, id: f.id }, { features: { [f.id]: { ref_percentile: f.ref_percentile } } });
+          return `<li data-kind="cells"><span>${esc(f.label)}</span><span class="dir meas">Measured${lvl.long ? ` · ${esc(lvl.long)}` : ''}</span></li>`;
+        }
         const toward = Number(f.contribution) > 0;
         const dir = f.direction === 'context' ? 'context feature' : toward ? 'toward invasive' : 'away from invasive';
         const tone = f.direction === 'context' ? 'ctx' : toward ? 'up' : 'down';
-        return `<li><span>${esc(f.label)}</span><span class="dir ${tone}">${esc(dir)}</span></li>`;
+        // the case view's level word ("Below typical"): a scarce feature can push toward invasive
+        const level = levelOf({ valueStd: f.value_std }).word;
+        return `<li data-kind="concept"><span>${esc(f.label)}</span><span class="dir ${tone}">${level ? `<span class="lvl">${esc(level)}</span> · ` : ''}${esc(dir)}</span></li>`;
       })
       .join('') +
-    '</ul>'
+    '</ul>' +
+    note
   );
 }
 
@@ -55,14 +75,14 @@ function orders(r) {
     placed
       .map(
         (o) =>
-          `<li data-testid="inbox-order"><span class="otype">${esc(ORDER_TYPE[o.type] || o.type)}</span><b>${esc((o.items || []).join(', '))}</b><span class="ostatus">Ordered</span></li>`
+          `<li data-testid="inbox-order"><span class="otype">${esc(ORDER_TYPE[o.type] || o.type)}</span><b>${esc((o.items || []).join(', '))}</b><span class="ostatus">Approved</span></li>`
       )
       .join('') +
-    `</ul><p class="rep-note">${esc(AGENT_NOTE[r.agent_status] || '')}</p>`
+    `</ul><p class="rep-note">${esc(AGENT_NOTE[r.agent_status] || '')} Simulated: not sent to a laboratory system.</p>`
   );
 }
 
-function card(r, ST, conf) {
+function card(r, ST, conf, enter) {
   const key = routedKey(r);
   const unread = !ST.inboxRead.has(key);
   const s = r.suggestion || {};
@@ -87,7 +107,7 @@ function card(r, ST, conf) {
       ? '<span class="qflag">Little tissue passed quality control</span>'
       : '';
   return (
-    `<article class="rep${unread ? ' unread' : ''}" data-testid="oncologist-item" data-case-id="${esc(r.case_id)}" data-inbox-key="${esc(key)}" data-unread="${unread}">` +
+    `<article class="rep${unread ? ' unread' : ''}${enter ? ' enter' : ''}" data-testid="oncologist-item" data-case-id="${esc(r.case_id)}" data-inbox-key="${esc(key)}" data-unread="${unread}">` +
     `<header class="rep-head"><span class="udot" aria-hidden="true"></span><h2><a href="#/case/${encodeURIComponent(r.case_id)}">${esc(r.case_id)}</a></h2>` +
     `<span class="rep-kind">Breast biopsy · BACH field${r.synthetic ? ' · synthetic' : ''}</span>` +
     `<span class="rep-time" data-testid="inbox-signed-out">Signed out ${esc(when(r.at))}</span>` +
@@ -109,6 +129,9 @@ function card(r, ST, conf) {
 
 export function render(ST) {
   const items = ST.routed.oncologist;
+  const onInbox = typeof document !== 'undefined' && !!document.querySelector('[data-testid=oncologist-inbox]');
+  const prevKeys = onInbox ? shownKeys : null;
+  shownKeys = new Set(items.map(routedKey));
   if (!items.length) {
     return '<div class="inbox" data-testid="oncologist-inbox"><div class="card empty-state" data-testid="oncologist-empty"><h2>No results yet</h2><p>Biopsies appear here as soon as the pathologist signs them out, with the orders that were placed.</p></div></div>';
   }
@@ -118,5 +141,6 @@ export function render(ST) {
     `<div class="inbox-head"><p><b>${items.length}</b> signed-out result${items.length === 1 ? '' : 's'}${unread ? ` · <b class="u">${unread} unread</b>` : ''}. Newest first.</p>` +
     (unread ? '<button class="btn" data-inbox-read-all data-testid="inbox-read-all">Mark all as read</button>' : '') +
     '</div>';
-  return `<div class="inbox" data-testid="oncologist-inbox">${head}${items.map((r) => card(r, ST, conf)).join('')}</div>`;
+  const cards = items.map((r) => card(r, ST, conf, !!prevKeys && !prevKeys.has(routedKey(r)))).join('');
+  return `<div class="inbox" data-testid="oncologist-inbox">${head}${cards}</div>`;
 }

@@ -1,8 +1,16 @@
 // Operating-room board (surgeon screen): one panel per simulated OR. A frozen section's timer runs from arrival
 // until the pathologist's margin call, then stops and shows the turnaround. New calls are highlighted.
 // Live: app.js polls every 2 s and ticks timers every second. Research prototype — simulated frozen sections only.
+// Status colours follow the legend: an open frozen section is neutral (ring), a sent call takes its call's colour.
 import { esc, mmss, toView } from '../adapter.js';
 import { CALL_TONE, joinNames, routedKey, suggestedCall } from '../flow.js';
+
+// Room header text for the latest call (the legend's wording).
+const TONE_STATE = { clear: 'Margins clear', tumor: 'Tumor at margin', defer: 'Defer to permanent' };
+
+// Cards drawn by the previous render of this board. A poll re-render rebuilds the DOM, so only cards that were not
+// on screen before get the entry animation (nothing replays, and nothing animates when the board is first opened).
+let shownKeys = null;
 
 const CALL_HEAD = {
   clear: ['Margins clear', 'No tumor at the inked margins of this field'],
@@ -25,14 +33,15 @@ function variantText(v) {
   return 'frozen section';
 }
 
-function activeCard(v) {
+function activeCard(v, enter) {
   const t = v.timer;
   return (
-    `<div class="or-case live" data-testid="or-card" data-case-id="${esc(v.id)}">` +
-    `<div class="or-line"><b class="or-id">${esc(v.id)}</b><span class="or-kind">${esc(variantText(v))}</span></div>` +
+    `<div class="or-case live${enter ? ' enter' : ''}" data-testid="or-card" data-case-id="${esc(v.id)}">` +
+    `<div class="or-line"><span class="or-name"><b class="or-id">${esc(v.id)}</b> <span class="or-kind">${esc(variantText(v))}</span></span></div>` +
     `<div class="or-timer timer ${esc(t.state)}" data-timer="${esc(v.id)}" data-state="${esc(t.state)}" data-testid="or-timer">${esc(t.text)}</div>` +
     `<div class="or-bar"><i class="${t.state === 'none' ? '' : esc(t.state)}" data-timer-bar="${esc(v.id)}" style="width:${Math.round((t.usedFrac || 0) * 100)}%"></i></div>` +
-    `<div class="or-sub">Received ${esc(clock(v.arrivedAt))} · target ${esc(mmss(t.targetS || 1200))}</div>` +
+    // the countdown ("19:52 left", "Overdue 00:23") is kept live by app.js tick() through data-timer-sub
+    `<div class="or-sub">Received ${esc(clock(v.arrivedAt))} · target ${esc(mmss(t.targetS || 1200))} · <span data-timer-sub="${esc(v.id)}">${esc(t.countdown || '')}</span></div>` +
     `<div class="or-await" data-testid="or-awaiting">Awaiting the pathologist’s margin call</div>` +
     `<div class="or-ai">Model read: ${esc(suggestedCall(v.margin ? { suggested_call: v.margin.call, involved: v.margin.involved } : null))}${v.reliability.flag ? ' · <b>reliability flag</b>' : ''}</div>` +
     `<a class="case-link" href="#/case/${encodeURIComponent(v.id)}">Open case</a>` +
@@ -40,7 +49,7 @@ function activeCard(v) {
   );
 }
 
-function calledCard(v, r, fresh) {
+function calledCard(v, r, fresh, enter) {
   const [head, detail] = callParts(r);
   const tone = CALL_TONE[r.call] || 'defer';
   const turnaround = Number.isFinite(r.timer_elapsed_s) ? mmss(r.timer_elapsed_s) : null;
@@ -54,8 +63,8 @@ function calledCard(v, r, fresh) {
       ? ' · same call, different margins'
       : ' · matches the call';
   return (
-    `<div class="or-case called${fresh ? ' fresh' : ''}" data-testid="or-card" data-case-id="${esc(r.case_id)}">` +
-    `<div class="or-line"><b class="or-id">${esc(r.case_id)}</b><span class="or-kind">${esc(v ? variantText(v) : 'frozen section')}</span>${fresh ? '<span class="or-new" data-testid="or-new-call">New call</span>' : ''}</div>` +
+    `<div class="or-case called${fresh ? ' fresh' : ''}${enter ? ' enter' : ''}" data-testid="or-card" data-case-id="${esc(r.case_id)}">` +
+    `<div class="or-line"><span class="or-name"><b class="or-id">${esc(r.case_id)}</b> <span class="or-kind">${esc(v ? variantText(v) : 'frozen section')}</span></span>${fresh ? `<span class="or-new tone-${tone}" data-testid="or-new-call">New call</span>` : ''}</div>` +
     `<div class="or-call tone-${tone}" data-testid="surgeon-result" data-call="${esc(r.call)}"><b>${esc(head)}</b><span>${esc(detail)}</span></div>` +
     `<div class="or-meta"><span>Called ${esc(clock(r.at))} by the reading pathologist</span>` +
     (turnaround ? `<span>Turnaround <b class="timer stopped" data-testid="or-turnaround">${esc(turnaround)}</b> · timer stopped</span>` : '') +
@@ -67,6 +76,14 @@ function calledCard(v, r, fresh) {
 }
 
 export function render(ST, ctx) {
+  // first render of a visit (the board is not on screen yet): draw without entry animations
+  const onBoard = typeof document !== 'undefined' && !!document.querySelector('[data-testid=surgeon-screen]');
+  const prevKeys = onBoard ? shownKeys : null;
+  const keys = new Set();
+  const enters = (key) => {
+    keys.add(key);
+    return !!prevKeys && !prevKeys.has(key);
+  };
   const views = ST.items.filter((c) => c.lane === 'surgical').map((c) => {
     const v = toView(c, ctx.now, ST.cfg, ST.sim);
     v.arrivedAt = c.runtime && c.runtime.arrived_at;
@@ -85,23 +102,31 @@ export function render(ST, ctx) {
     const calls = [...latest.values()].filter((r) => r.or_room === room); // newest first
     const fresh = calls.some((r) => ST.freshCalls.has(routedKey(r)));
     const state = active.length ? 'busy' : calls.length ? 'called' : 'idle';
-    const stateText = active.length ? (active.length > 1 ? `${active.length} awaiting a call` : 'Awaiting call') : calls.length ? 'Call sent' : 'No specimen';
-    let body = active.map(activeCard).join('');
+    const tone = calls.length ? CALL_TONE[calls[0].call] || 'defer' : null;
+    const stateText = active.length
+      ? active.length > 1
+        ? `${active.length} awaiting a call`
+        : 'Awaiting call'
+      : calls.length
+        ? TONE_STATE[tone]
+        : 'Idle';
+    let body = active.map((v) => activeCard(v, enters('a:' + v.id))).join('');
     if (calls.length) {
       const [last, ...older] = calls;
-      body += calledCard(byId.get(last.case_id), last, ST.freshCalls.has(routedKey(last)));
+      body += calledCard(byId.get(last.case_id), last, ST.freshCalls.has(routedKey(last)), enters('c:' + routedKey(last)));
       if (older.length)
         body += `<details class="or-history"><summary>${older.length} earlier call${older.length === 1 ? '' : 's'}</summary><ul>${older
           .slice(0, 8)
           .map((r) => `<li data-testid="or-history-item"><a href="#/case/${encodeURIComponent(r.case_id)}">${esc(r.case_id)}</a> <span class="tone-${CALL_TONE[r.call] || 'defer'}">${esc(callParts(r)[0])}</span> <span class="sub">${esc(clock(r.at))}</span></li>`)
           .join('')}</ul></details>`;
     }
-    if (!body) body = '<div class="or-idle">No frozen section from this room.</div>';
+    if (!body) body = '<div class="or-idle">No frozen section sent from this room.</div>';
     return (
-      `<section class="room ${state}${fresh ? ' fresh' : ''}" data-testid="or-room" data-room="${esc(room)}" aria-label="${esc(room)}: ${esc(stateText)}">` +
+      `<section class="room ${state}${fresh ? ' fresh' : ''}"${tone ? ` data-tone="${tone}"` : ''} data-testid="or-room" data-room="${esc(room)}" aria-label="${esc(room)}: ${esc(stateText)}">` +
       `<header class="room-head"><h2>${esc(room)}</h2><span class="room-state">${esc(stateText)}</span></header>${body}</section>`
     );
   });
+  shownKeys = keys;
 
   const awaiting = views.filter((v) => !v.done).length;
   const intro =
