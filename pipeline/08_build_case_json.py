@@ -45,7 +45,8 @@ Blocks follow core.contract exactly (fixtures/demo_0001.json, demo_0002.json):
                spotcheck_passed, so summaries never give a failed concept as a reason);
                retrieval; quality; cells (CELLS_SPEC §7.2 extreme-percentile / non-trivial-contribution rule); margin
   summary      backend.summary.generate (template unless --max-llm-calls > 0 and a Lumen key exists, or
-               --llm-cache-only: cached LLM replies only, zero network calls, template on a cache miss)
+               --llm-cache-only: cached LLM replies only, zero network calls, template on a cache miss); template
+               sentences quote the suggested class's probability from prediction.probs (top_probability), as the UI
   agent        agent.agent.draft (rules; LLM rationales only with --llm-agent and budget)
   eval_only    true_label, split, source ids, group (+ composite margin truth) — the ONLY place ground truth appears
 
@@ -664,6 +665,14 @@ def build_findings(case: Mapping[str, Any], cfg: Mapping[str, Any], retrieval_en
     return findings
 
 
+def top_probability(case: Mapping[str, Any]) -> float:
+    """The suggested class's probability as the case stores it (prediction.probs, 4 dp): the value the UI rounds, so
+    the summary's percent matches the UI (the prediction finding keeps 3 dp)."""
+    pred = case["prediction"]
+    top = next(f["data"]["top"] for f in case["findings"] if f["kind"] == "prediction")
+    return float(pred["probs"][pred["classes"].index(top)])
+
+
 # ---- assembly ----------------------------------------------------------------------------------------------------------
 def assemble(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], rules: rules_mod.RuleSet, mpp: float,
              synthetic: bool) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
@@ -713,7 +722,7 @@ def assemble(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], rules: rule
     case["findings"] = build_findings(case, cfg, retrieval_entry, inputs.cells.meta if inputs.cells else None,
                                       inputs.spotcheck)
     case["agent"] = rules_mod.draft_orders(case, cfg, rules)
-    case["summary"] = summary_mod.template_summary(case["findings"], cfg)
+    case["summary"] = summary_mod.template_summary(case["findings"], cfg, top_p=top_probability(case))
     eval_only = {"true_label": spec.true_label, "split": spec.split, "group": spec.group,
                  "source_case_ids": list(spec.source_ids) or [spec.case_id]}
     eval_only.update(dict(spec.extra_eval))
@@ -953,7 +962,7 @@ def build(ctx: cli.StepContext, *, max_llm_calls: int = 0, llm_agent: bool = Fal
     for i in llm_order(cases, heroes):
         case = cases[i]
         if client is not None:
-            summary, info = summary_mod.generate(case["findings"], cfg, client=client)
+            summary, info = summary_mod.generate(case["findings"], cfg, client=client, top_p=top_probability(case))
             case["summary"] = summary
             summary_paths[info["path"]] = summary_paths.get(info["path"], 0) + 1
             entry = {"case_id": case["case_id"], "summary": info["path"], "summary_reason": info["reason"],
