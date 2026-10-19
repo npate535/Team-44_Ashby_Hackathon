@@ -1,65 +1,65 @@
-# Abstract — DRAFT for team review (numbers checked against `artifacts/eval/*.json`, 2026-10-18)
+# Abstract: draft for team review
 
-**Sepia: an explainable, confidence-aware breast pathology worklist built on pathology foundation models**
+Numbers checked on 2026-10-18 against `artifacts/eval/*.json` (fact sheet, metrics, calibration, conformal,
+deletion, spot check, queue simulation, human baseline, external TCGA test). Every number has a source in the table
+below.
 
-*Team 44 · 2026 Ashby Prize in Computational Science Hackathon · research prototype, not for clinical use*
+## Primary version (≤ 300 words)
 
-**Problem.** Pathologists read cases in arrival order, so an invasive carcinoma can wait behind benign biopsies, and
-AI triage tools rarely say why they flagged a case or how far to trust the flag.
+**Sepia: a confidence-aware breast pathology worklist built on pathology foundation models**
 
-**Approach.** Sepia reads each BACH breast microscopy field (Aresta et al., 2019) as a grid of tiles embedded by
-pathology foundation models on NCSA Delta (UNI2-h for the production read; CONCH and MUSK for text-aligned concepts
-and agreement). A calibrated linear probe on 512-pixel regions suggests one of four categories; split-conformal prediction (APS) returns
-the set of categories that cannot be excluded, and a safety rule sends any case with invasive carcinoma in that set
-to the top of the worklist, behind only simulated frozen sections. Each read is explained by nine named histologic
-features (e.g. tumor infiltrating stroma, nuclear pleomorphism, tubule formation) scored from text prompts and
-caption-derived concept vectors, linked to image regions and similar reference cases. A rule engine drafts
-follow-up orders (p63/calponin, ER/PR/HER2/Ki-67, deeper levels) that the pathologist approves; an LLM writes a
-summary from structured findings only, checked sentence by sentence against those findings.
+**Problem.** Biopsies are read in arrival order, so invasive carcinoma can wait behind benign cases, and AI flags
+rarely state their evidence or confidence.
 
-**Results (held-out THUNDER test split, 132 images, 95% cluster-bootstrap CIs).** Invasive-vs-rest AUROC 0.999
-[0.996, 1.000]; invasive sensitivity 100% and specificity 97% [94, 100]; four-class macro-F1 0.86 [0.68, 0.93],
-above the published UNI2-h linear probe on the same split (84.7; different protocol). After temperature
-scaling, ECE 0.055. APS sets covered the true class in 91.7% [80.8, 98.1] of images against a 90% target (method
-chosen after viewing test results; the pre-registered LAC reached 72.0%). All 31 invasive images landed in the top
-two tiers. In a simulated reading day the tiers cut mean time-to-first-look for invasive cases from 20.2 to 6.0
-minutes, at the cost of unflagged cases waiting 25 minutes longer. A reliability score ranked likely misreads across
-clean and simulated-degradation reads (error AUROC 0.71 [0.59, 0.87]), and the simulated margin read kept 100% of tumor-free composite
-margins clear while finding 45% of involved margins on annotated whole-slide windows. An AI spot check (Claude, not a
-pathologist) of top-scoring regions supported invasion, pleomorphism and tubule features (18–19 of 20) but not the normal-lobule or mitosis
-features (0 of 20).
+**Approach.** Sepia reads 400 public BACH breast microscopy images (single 2048 × 1536 fields; Aresta et al., 2019) as
+12 regions embedded by the frozen UNI2-h foundation model. A linear probe trained on 218 images suggests one of four
+categories; after temperature scaling, a conformal set fit on 50 calibration images lists the categories that cannot
+be excluded. Images with invasive carcinoma in their set move up the worklist. Each read shows exact region
+contributions, similar training cases and nine named features scored with CONCH. Three mirror Nottingham components
+(tubule formation, nuclear pleomorphism, mitotic count); no grade is computed.
 
-**Significance.** Sepia shows how foundation-model reads can be made actionable in a worklist with calibrated,
-set-valued confidence, explicit safety rules and grounded explanations, while stating what is simulated and what is
-not validated: frozen sections, margins and arrivals are simulated, the dataset is small, and no clinical validation
-is claimed.
+**Results.** On 132 held-out images (95% patient-grouped bootstrap), invasive-vs-rest AUROC was 0.999 [0.996, 1.000]
+and macro one-vs-rest AUROC 0.965 [0.883, 0.995]; all 31 invasive images were flagged (specificity 97.0% [93.6, 100]).
+Four-class accuracy was 86% [76, 94]; four BACH reader-study pathologists scored 73–96% on different images. ECE fell
+from 0.184 to 0.055. Conformal sets covered 91.7% against a 90% target (method chosen after viewing test results;
+pre-registered LAC: 72.0%). Removing the three highest-contribution regions lowered the invasive logit 0.54 [0.47,
+0.60] more than random regions. An AI spot check (Claude, not a pathologist) supported invasion (19/20 regions) but
+not mitoses (0/20). In a simulated queue, invasive cases were first read after 6.0 instead of 20.2 minutes; unflagged
+cases waited 21.4 minutes longer. On 65 TCGA-BRCA slides from other hospitals, the unchanged model called 95.7% of
+FFPE and 84.0% of frozen tumor slides invasive.
 
----
+**Significance.** Calibrated, set-valued reads with region-level evidence can order a worklist transparently. BACH is
+curated and lacks atypia, the workflow is simulated, and no clinical validation is claimed.
 
-## Condensed version (296 words, for a 300-word limit)
+*Research prototype, not for clinical use. 2026 Ashby Prize in Computational Science Hackathon.*
 
-The draft above is 411 words (Problem through Significance), over a typical 300-word abstract limit; no official
-limit was found in the inspected organizer material, so check the submission form. Same verified numbers, condensed:
+Word count (Problem through Significance): 294.
 
-**Problem.** Pathologists read cases in arrival order, so invasive carcinoma can wait behind benign biopsies, and AI
-triage tools rarely say why they flagged a case or how far to trust the flag.
+## Where each number comes from
 
-**Approach.** Sepia embeds each BACH breast microscopy image (Aresta et al., 2019) as tiles with pathology
-foundation models on NCSA Delta (UNI2-h for the prediction; CONCH and MUSK for concepts and agreement). A calibrated
-linear probe on 512-pixel regions suggests one of four categories; split-conformal APS sets list the categories that cannot be excluded,
-and any case with invasive carcinoma in its set goes to the top of the worklist, behind only simulated frozen
-sections. Nine named histologic features, scored from text prompts and caption-derived concept vectors, explain each
-read with linked regions and similar reference cases. Rules draft follow-up orders for pathologist approval; an LLM
-summary is checked sentence by sentence against structured findings.
+| Number in the abstract | Source |
+|---|---|
+| 400 images, 2048 × 1536, 12 regions per image | `artifacts/eval/fact_sheet.json` `bach` |
+| 218 / 50 / 132 images, 24 test groups | `fact_sheet.json` `splits` |
+| Invasive-vs-rest AUROC 0.999 [0.996, 1.000]; macro one-vs-rest AUROC 0.965 [0.883, 0.995] | `fact_sheet.json` `test.auroc_conventions` (`metrics.json` `production`) |
+| 31 invasive images flagged; specificity 97.0% [93.6, 100] | `metrics.json` `production.invasive_sensitivity`, `invasive_specificity` |
+| Accuracy 86% [76, 94] | `artifacts/eval/human_baseline.json` `sepia.accuracy` (= `metrics.json` `production.accuracy`) |
+| Four pathologists 73–96% on the BACH hidden test set | `human_baseline.json` `bach_readers.accuracy` (Aresta et al., 2019, Table 4; `config/literature.yaml`) |
+| ECE 0.184 → 0.055 | `calibration.json` `before.ece`, `after.ece` |
+| Coverage 91.7%; LAC 72.0%; 90% target | `conformal.json` `methods.aps_marginal_nonempty`, `methods.lac_marginal`, `target_coverage` |
+| Deletion: 0.54 [0.47, 0.60] | `deletion.json` `models.uni2h512_lr.all_eligible.contribution_minus_random_logit` |
+| Spot check 19/20, 0/20 | `spotcheck.json` (reviewer kind: AI) |
+| 20.2 → 6.0 min; +21.4 min | `queue_sim.json` `results.fifo` / `results.tiers`; `analytics.json` `queue.vs_fifo` |
+| Three of nine features mirror Nottingham components | `config/concepts.yaml` (`group: nottingham`) |
+| 65 TCGA-BRCA slides; 95.7% FFPE and 84.0% frozen tumor slides called invasive | `artifacts/eval/external_tcga.json` `n_slides`, `primary.ffpe_tumor_sensitivity`, `primary.frozen_tumor_sensitivity` (production model, protocol `docs/EXTERNAL_TCGA_R2.md`) |
 
-**Results (held-out THUNDER split, 132 images, 95% cluster-bootstrap CIs).** Invasive-vs-rest AUROC 0.999
-[0.996, 1.000]; invasive sensitivity 100%, specificity 97% [94, 100]; macro-F1 0.86 [0.68, 0.93]. ECE after
-temperature scaling 0.055. APS sets covered 91.7% [80.8, 98.1] of images against a 90% target (method chosen after
-viewing test results; pre-registered LAC: 72.0%). All 31 invasive images reached the top two tiers. In a simulated
-reading day, mean time to first look for invasive cases fell from 20.2 to 6.0 minutes while unflagged cases waited
-25 minutes longer. A reliability score ranked likely misreads with error AUROC 0.71. An AI spot check (not a
-pathologist) supported the invasion, pleomorphism and tubule features but not the mitosis or normal-lobule features.
+## Numbers corrected from the previous draft
 
-**Significance.** Foundation-model reads become actionable in a worklist through set-valued confidence, explicit
-safety rules and grounded explanations. Frozen sections, margins and arrivals are simulated, the dataset is small,
-and no clinical validation is claimed.
+- Reliability error AUROC is 0.69 [0.58, 0.87] (`reliability.json` `error_auroc_test`); the previous draft's 0.71
+  was stale. It is left out of the primary version for length.
+- Unflagged cases wait 21.4 minutes longer in the simulated queue, not 25.
+- "Nine named histologic features" now states that three mirror Nottingham components and no grade is computed.
+- Case summaries in the shipped case files are written by a template from structured findings; the previous draft
+  said an LLM writes them.
+- Sepia's 132-image test split and the BACH reader study's 100 hidden images are different images; the comparison is
+  stated as context.
