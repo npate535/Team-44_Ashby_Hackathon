@@ -234,9 +234,11 @@ nav button[aria-current='page'] {
 .rb[hidden] {
   display: none;
 }
-.rb:hover:not(:disabled) {
-  background: var(--sf2);
-  border-color: color-mix(in srgb, var(--ink) 25%, var(--ln));
+@media (hover: hover) {
+  .rb:hover:not(:disabled) {
+    background: var(--sf2);
+    border-color: color-mix(in srgb, var(--ink) 25%, var(--ln));
+  }
 }
 .rb.primary {
   background: var(--hema);
@@ -252,9 +254,11 @@ nav button[aria-current='page'] {
     color: #141320;
   }
 }
-.rb.primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--hema) 86%, var(--ink));
-  border-color: transparent;
+@media (hover: hover) {
+  .rb.primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--hema) 86%, var(--ink));
+    border-color: transparent;
+  }
 }
 .rb svg {
   width: 11px;
@@ -265,8 +269,10 @@ nav button[aria-current='page'] {
   color: var(--eos);
   border-color: color-mix(in srgb, var(--eos) 35%, var(--ln));
 }
-.inject .rb:hover:not(:disabled) {
-  background: var(--eosl);
+@media (hover: hover) {
+  .inject .rb:hover:not(:disabled) {
+    background: var(--eosl);
+  }
 }
 .rb:disabled {
   opacity: 0.45;
@@ -415,8 +421,10 @@ nav button[aria-current='page'] {
   padding: 5px 8px;
   border-radius: 6px;
 }
-.cb-back:hover {
-  background: var(--bl);
+@media (hover: hover) {
+  .cb-back:hover {
+    background: var(--bl);
+  }
 }
 .cb-pos {
   color: var(--mut);
@@ -578,8 +586,10 @@ nav button[aria-current='page'] {
   color: var(--ink);
   font-weight: 650;
 }
-.leg:hover {
-  background: var(--sf2);
+@media (hover: hover) {
+  .leg:hover {
+    background: var(--sf2);
+  }
 }
 .leg[aria-pressed='true'] {
   background: var(--bl);
@@ -662,9 +672,11 @@ nav button[aria-current='page'] {
 .wl-toolbar .seg button + button {
   border-left: 1px solid var(--ln);
 }
-.wl-toolbar .seg button:hover {
-  background: var(--sf2);
-  color: var(--ink);
+@media (hover: hover) {
+  .wl-toolbar .seg button:hover {
+    background: var(--sf2);
+    color: var(--ink);
+  }
 }
 .wl-toolbar .seg button[aria-pressed='true'] {
   background: var(--bl);
@@ -679,7 +691,7 @@ nav button[aria-current='page'] {
   padding: 5px 8px;
   border-radius: 6px;
   border: 1px solid var(--ln);
-  background: var(--sf);
+  background-color: var(--sf); /* not the shorthand: a global select chevron is a background-image */
   color: var(--ink);
   max-width: 220px;
 }
@@ -717,9 +729,13 @@ nav button[aria-current='page'] {
 .how summary::-webkit-details-marker {
   display: none;
 }
-.how summary:hover,
 .how[open] summary {
   background: var(--bl);
+}
+@media (hover: hover) {
+  .how summary:hover {
+    background: var(--bl);
+  }
 }
 .how-q {
   display: inline-grid;
@@ -906,8 +922,10 @@ tr.grp.g-done {
 .wl-table tr.row:last-child td {
   border-bottom: 0;
 }
-.wl-table tr.row:hover {
-  background: color-mix(in srgb, var(--bl) 45%, var(--sf));
+@media (hover: hover) {
+  .wl-table tr.row:hover {
+    background: color-mix(in srgb, var(--bl) 45%, var(--sf));
+  }
 }
 .wl-table tr.row:focus-visible {
   outline: 2px solid var(--hema);
@@ -1285,8 +1303,10 @@ body .kbd-help kbd {
   text-decoration: none;
   white-space: nowrap;
 }
-.toast-act:hover {
-  background: #ffffff26;
+@media (hover: hover) {
+  .toast-act:hover {
+    background: #ffffff26;
+  }
 }
 .toast-x {
   flex: none;
@@ -1299,9 +1319,11 @@ body .kbd-help kbd {
   height: 26px;
   border-radius: 6px;
 }
-.toast-x:hover {
-  background: #ffffff1a;
-  color: #fff;
+@media (hover: hover) {
+  .toast-x:hover {
+    background: #ffffff1a;
+    color: #fff;
+  }
 }
 
 /* ---- responsive ----------------------------------------------------------------------------------------------------------- */
@@ -1536,6 +1558,11 @@ body .kbd-help kbd {
     width: 100%;
   }
   .wl-toolbar .search input {
+    font-size: 16px;
+  }
+  /* iOS zooms into any focused control under 16 px; #app outranks theme.css's 11 px .sel select */
+  #app select,
+  #app .sc-field input {
     font-size: 16px;
   }
   .wl-toolbar .sort {
@@ -2083,9 +2110,11 @@ ul.sc-chips li {
   color: var(--ink);
   text-decoration: none;
 }
-.rep-head h2 a:hover {
-  color: var(--hema);
-  text-decoration: underline;
+@media (hover: hover) {
+  .rep-head h2 a:hover {
+    color: var(--hema);
+    text-decoration: underline;
+  }
 }
 .udot {
   width: 8px;
