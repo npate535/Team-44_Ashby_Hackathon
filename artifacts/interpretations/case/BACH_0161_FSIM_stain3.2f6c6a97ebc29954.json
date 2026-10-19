@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0161_FSIM_stain3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "2f6c6a97ebc29954",
+ "markdown": "## Bottom line\n**Suggests InSitu (98%)** \u00b7 Confident \u00b7 Careful review\nThe conformal set holds InSitu only, but the MUSK second model picks a different class [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 98%, Invasive 2% | Strongly favors InSitu |\n| Conformal set | {InSitu} at 90% | Single class |\n| Reliability / OOD | 0.97 / 64th percentile | Input looks typical |\n| Second-model (MUSK) agreement | No | Different top class |\n| Similar cases | 4 of 5 InSitu | Mostly supportive [F5] |\n\n## Tissue evidence\n- **Atypical cells confined in ducts** (regions 4, 5, 6) \u00b7 \u2193 invasive \u00b7 Above typical; fits in situ pattern [F3] \u00b7 Weak\n- **Tumor necrosis** (regions 3, 6) \u00b7 \u2191 invasive \u00b7 High score, but failed spot check (3/20) \u00b7 Unreliable\n- **Nuclear pleomorphism** (region 7) \u00b7 \u2191 invasive \u00b7 Near typical; one region stands out \u00b7 Validated\n- **Lymphocytic infiltrate** (region 6) \u00b7 context \u00b7 Below typical; not used as a reason [F2] \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions beats random removal (logit drop 0.54, CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0, so unproven; necrosis (3/20) is Unreliable here.\n\n## Could be wrong if\n- MUSK disagrees, and neighbor BACH_0138 (Invasive, similarity 0.89) is close.\n- Simulated stain degradation (severity 3) distorts embeddings despite high reliability.\n\n## Check on the slide\n1. **4, 5, 6**: Confirm atypical cells stay inside ducts; look for stromal breach.\n2. **7**: Highest pleomorphism and stromal-invasion scores; look for invasive foci.\n3. **3**: Necrosis hotspot at the corner of both involved margins; verify margin call [F7].",
+ "verification": {
+  "checked": 14,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T14:17:09-0500",
+ "elapsed_s": 38.4,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14192,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5617,
+  "output_tokens_details": {
+   "thinking_tokens": 4867
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14192,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5617,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14192,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14192
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 37567
+}

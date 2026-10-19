@@ -1,0 +1,60 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0073_FSIM_resample3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "6d6649586e90ef00",
+ "markdown": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Careful review\nSignals agree; simulated frozen section shows tumor at three margins [F7].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 100%, others <1% | Strongly separated |\n| Conformal set | {Invasive}, \u03b1=0.1 | Single class |\n| Reliability / OOD | 1.00 / percentile 1.0 | No input flag raised |\n| Second-model (MUSK) agreement | Same top class | Independent model agrees |\n| Similar cases | 5 of 5 Invasive | Neighbors match |\n\n## Tissue evidence\n- **Scarce benign stroma or fat** (region 8) \u00b7 \u2191 invasive \u00b7 Low score adds to invasive association [F3] \u00b7 Validated\n- **Sparse gland/tubule formation** (region 3) \u00b7 \u2191 invasive \u00b7 Low score; caption check inconsistent \u00b7 Weak\n- **Marked nuclear pleomorphism** (regions 2, 9, 11) \u00b7 \u2191 invasive \u00b7 Above-typical score, small contribution \u00b7 Validated\n- **Frequent mitotic figures** (regions 1, 2, 10) \u00b7 \u2191 invasive \u00b7 Largest concept-model term, failed spot check [F2] \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0: not shown faithful. Mitoses and normal lobules are Unreliable (0/20).\n\n## Could be wrong if\n- Image is a simulated, resample-degraded frozen section; reliability score ranks errors only modestly (AUROC 0.69).\n- Concept scores are associations from a separate model, not proof of the classifier's reasoning.\n\n## Check on the slide\n1. **Regions 1, 2, 10**: Confirm mitotic figures by eye; automated score failed spot checks.\n2. **Region 8**: Look for benign stroma, fat or normal lobules the scores call scarce.\n3. **Regions 0\u20133, 7, 8\u201311**: Confirm tumor reaches superior, inferior and lateral edges.",
+ "verification": {
+  "checked": 14,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T14:09:52-0500",
+ "elapsed_s": 50.7,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14307,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 7213,
+  "output_tokens_details": {
+   "thinking_tokens": 6432
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14307,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 7213,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14307,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14307
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 49618,
+ "markdown_original": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Careful review\nSignals agree; simulated frozen section shows tumor at three margins [F7].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 100%, others <1% | Strongly separated |\n| Conformal set | {Invasive}, \u03b1=0.1 | Single class |\n| Reliability / OOD | 1.00 / percentile 1.0 | No input flag raised |\n| Second-model (MUSK) agreement | Same top class | Independent model agrees |\n| Similar cases | 5 of 5 Invasive | Neighbors match |\n\n## Tissue evidence\n- **Scarce benign stroma or fat** (region 8) \u00b7 \u2191 invasive \u00b7 Low score adds to invasive association [F3] \u00b7 Validated\n- **Sparse gland/tubule formation** (region 3) \u00b7 \u2191 invasive \u00b7 Low score; caption check inconsistent \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 2, 9, 11) \u00b7 \u2191 invasive \u00b7 Above-typical score, small contribution \u00b7 Validated\n- **Frequent mitotic figures** (regions 1, 2, 10) \u00b7 \u2191 invasive \u00b7 Largest concept-model term, failed spot check [F2] \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0: not shown faithful. Mitoses and normal lobules are Unreliable (0/20).\n\n## Could be wrong if\n- Image is a simulated, resample-degraded frozen section; reliability score ranks errors only modestly (AUROC 0.69).\n- Concept scores are associations from a separate model, not proof of the classifier's reasoning.\n\n## Check on the slide\n1. **Regions 1, 2, 10**: Confirm mitotic figures by eye; automated score failed spot checks.\n2. **Region 8**: Look for benign stroma, fat or normal lobules the scores call scarce.\n3. **Regions 0\u20133, 7, 8\u201311**: Confirm tumor reaches superior, inferior and lateral edges.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0099_FSIM_blur3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "12ae6220fb1443e2",
+ "markdown": "## Bottom line\n**Suggests InSitu (62%)** \u00b7 Ambiguous: InSitu vs Invasive \u00b7 Careful review\nInvasive holds 38% and sits in the 90% conformal set [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 62%, Invasive 38% | Two-class split |\n| Conformal set | InSitu, Invasive (90%) | Cannot separate the two |\n| Reliability / OOD | 0.96 / 1.0 | No reliability flag |\n| Second-model (MUSK) agreement | Yes | Same top class as UNI2-h |\n| Similar cases | 2 of 5 InSitu [F5] | Three neighbors Invasive |\n\n## Tissue evidence\n- **Scarce benign stroma or fat** (region 0) \u00b7 \u2191 invasive \u00b7 Low score is associated with invasive in the concept model [F3] \u00b7 Validated\n- **Tumor necrosis** (regions 2, 6, 9) \u00b7 \u2191 invasive \u00b7 High score, but spot check was poor \u00b7 Unreliable\n- **Tumor-infiltrating stroma** (region 3) \u00b7 \u2193 invasive \u00b7 Score below typical, lowering invasive association \u00b7 Validated\n- **Marked nuclear pleomorphism** (region 9) \u00b7 \u2193 invasive \u00b7 Score below typical \u00b7 Validated\n- **Atypical cells confined to ducts** (region 5) \u00b7 \u2193 invasive \u00b7 Score above typical; fits in situ pattern \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0, so not shown to reflect the classifier. Necrosis (3/20) and normal lobules (0/20) are Unreliable.\n\n## Could be wrong if\n- Blur severity 3 may hide stromal invasion; reliability score only modestly flags errors (AUROC 0.69).\n- Necrosis, if real, would raise invasive likelihood.\n\n## Check on the slide\n1. **Regions 7, 3, 11**: highest heatmap contribution toward invasive; look for stromal invasion.\n2. **Regions 2, 6, 9**: confirm whether necrosis is real; its spot check was poor.\n3. **Region 5**: separate duct-confined cells from stromal invasion.",
+ "verification": {
+  "checked": 17,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T14:11:00-0500",
+ "elapsed_s": 54.4,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14262,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 8274,
+  "output_tokens_details": {
+   "thinking_tokens": 7448
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14262,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 8274,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14262,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14262
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 53703,
+ "markdown_original": "## Bottom line\n**Suggests InSitu (62%)** \u00b7 Ambiguous: InSitu vs Invasive \u00b7 Careful review\nInvasive holds 38% and sits in the 90% conformal set [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 62%, Invasive 38% | Two-class split |\n| Conformal set | InSitu, Invasive (90%) | Cannot separate the two |\n| Reliability / OOD | 0.96 / 1.0 | No reliability flag |\n| Second-model (MUSK) agreement | Yes | Both pick InSitu |\n| Similar cases | 2 of 5 InSitu [F5] | Three neighbors Invasive |\n\n## Tissue evidence\n- **Scarce benign stroma or fat** (region 0) \u00b7 \u2191 invasive \u00b7 Low score is associated with invasive in the concept model [F3] \u00b7 Validated\n- **Tumor necrosis** (regions 2, 6, 9) \u00b7 \u2191 invasive \u00b7 High score, but spot check was poor \u00b7 Unreliable\n- **Tumor-infiltrating stroma** (region 3) \u00b7 \u2193 invasive \u00b7 Score below typical, lowering invasive association \u00b7 Validated\n- **Marked nuclear pleomorphism** (region 9) \u00b7 \u2193 invasive \u00b7 Score below typical \u00b7 Validated\n- **Atypical cells confined to ducts** (region 5) \u00b7 \u2193 invasive \u00b7 Score above typical; fits in situ pattern \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0, so not shown to reflect the classifier. Necrosis (3/20) and normal lobules (0/20) are Unreliable.\n\n## Could be wrong if\n- Blur severity 3 may hide stromal invasion; reliability score only modestly flags errors (AUROC 0.69).\n- Necrosis, if real, would raise invasive likelihood.\n\n## Check on the slide\n1. **Regions 7, 3, 11**: highest heatmap contribution toward invasive; look for stromal invasion.\n2. **Regions 2, 6, 9**: confirm whether necrosis is real; its spot check was poor.\n3. **Region 5**: separate duct-confined cells from stromal invasion.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "The second-model (MUSK) row names InSitu, but agreement.conch_musk_same_top only says whether the production classifier and the MUSK probe agree; the JSON does not say which class the MUSK probe chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

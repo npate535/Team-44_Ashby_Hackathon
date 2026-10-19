@@ -1,0 +1,60 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0073_FSIM_stain3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "e7913476213937b8",
+ "markdown": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set [F1]; second model and all five neighbors agree.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 100%, InSitu <1% | Dominant single class |\n| Conformal set | Invasive only (\u03b1=0.1) | Unambiguous |\n| Reliability / OOD | 0.999 / percentile 1.0 | Not flagged |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5/5 Invasive [F5] | Unanimous neighbors |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 3, 8) \u00b7 \u2191 invasive \u00b7 Score above typical; strongest association [F2] \u00b7 Validated\n- **Gland / tubule formation** (region 7) \u00b7 \u2191 invasive \u00b7 Low score; scarce glands fit invasive [F4] \u00b7 Weak\n- **Benign fibrous stroma or fat** (region 1) \u00b7 \u2191 invasive \u00b7 Low score; little benign tissue \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 8, 9, 11) \u00b7 \u2191 invasive \u00b7 High score in these regions \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to classifier.\n- **Concepts**: Difference from random is 0.002 (CI \u22120.005 to 0.007), so not shown to reflect the classifier. Leans on Frequent mitotic figures (0/20 spot check): Unreliable [F3].\n\n## Could be wrong if\n- Simulated stain degradation (severity 3) distorts features; reliability AUROC only 0.69 on a small test set.\n- Margin call (tumor at all four margins) [F7] is simulated frozen-section output; verify edges directly.\n\n## Check on the slide\n1. **Regions 0, 3, 8**: confirm tumor cells infiltrating stroma.\n2. **Regions 0, 2, 11**: count mitoses yourself; the concept failed its spot check.\n3. **Region 7**: look for true glands, where the tubule score peaks.",
+ "verification": {
+  "checked": 14,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T14:10:35-0500",
+ "elapsed_s": 50.0,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14326,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 7138,
+  "output_tokens_details": {
+   "thinking_tokens": 6363
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14326,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 7138,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14326,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14326
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 49341,
+ "markdown_original": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set [F1]; second model and all five neighbors agree.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 100%, InSitu <1% | Dominant single class |\n| Conformal set | Invasive only (\u03b1=0.1) | Unambiguous |\n| Reliability / OOD | 0.999 / percentile 1.0 | Not flagged |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5/5 Invasive [F5] | Unanimous neighbors |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 3, 8) \u00b7 \u2191 invasive \u00b7 Score above typical; strongest association [F2] \u00b7 Validated\n- **Gland / tubule formation** (region 7) \u00b7 \u2191 invasive \u00b7 Low score; scarce glands fit invasive [F4] \u00b7 Validated\n- **Benign fibrous stroma or fat** (region 1) \u00b7 \u2191 invasive \u00b7 Low score; little benign tissue \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 8, 9, 11) \u00b7 \u2191 invasive \u00b7 High score in these regions \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to classifier.\n- **Concepts**: Difference from random is 0.002 (CI \u22120.005 to 0.007), so not shown to reflect the classifier. Leans on Frequent mitotic figures (0/20 spot check): Unreliable [F3].\n\n## Could be wrong if\n- Simulated stain degradation (severity 3) distorts features; reliability AUROC only 0.69 on a small test set.\n- Margin call (tumor at all four margins) [F7] is simulated frozen-section output; verify edges directly.\n\n## Check on the slide\n1. **Regions 0, 3, 8**: confirm tumor cells infiltrating stroma.\n2. **Regions 0, 2, 11**: count mitoses yourself; the concept failed its spot check.\n3. **Region 7**: look for true glands, where the tubule score peaks.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

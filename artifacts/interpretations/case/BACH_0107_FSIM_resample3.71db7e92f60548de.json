@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0107_FSIM_resample3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "71db7e92f60548de",
+ "markdown": "## Bottom line\n**Suggests Invasive (>99%)** \u00b7 Confident \u00b7 Careful review\nConformal set and reliability support this, but the second model and similar cases disagree [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive >99%, InSitu <1% | Sharply peaked |\n| Conformal set | {Invasive} (90%) | Single class |\n| Reliability / OOD | 0.99 / 1.0 | No input flag |\n| Second-model (MUSK) agreement | No | Top class differs |\n| Similar cases | 0/5 Invasive | Neighbors non-invasive |\n\n## Tissue evidence\n- **Gland/tubule formation** (region 6) \u00b7 \u2193 invasive \u00b7 Score below typical; cue against invasive absent [F3] \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 0, 9, 11) \u00b7 \u2191 invasive \u00b7 Score well above typical \u00b7 Validated\n- **Atypical cells confined within ducts** (region 0) \u00b7 \u2193 invasive \u00b7 Score well below typical \u00b7 Weak\n- **Frequent mitotic figures** (regions 0, 8) \u00b7 \u2191 invasive \u00b7 Score elevated; spot check 0/20 \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Deletion drops invasive logit 0.54 beyond random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0: not shown to reflect classifier use. Leans on Unreliable mitoses and normal lobules (0/20 each).\n\n## Could be wrong if\n- Resampling degradation distorted nuclear texture; reliability ranks errors only modestly (AUROC 0.69).\n- The second model (MUSK) is right; similar cases are all non-invasive.\n\n## Check on the slide\n1. **Regions 3, 6, 7**: lowest invasive probability (7%, 35%, 22%); look for benign tissue.\n2. **Regions 0, 9, 11**: top-scoring pleomorphism; confirm true atypia, not resampling artifact.\n3. **Regions 0, 8**: mitosis score peaks; count mitoses directly, concept failed spot check.",
+ "verification": {
+  "checked": 18,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T14:14:04-0500",
+ "elapsed_s": 108.9,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14268,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 16624,
+  "output_tokens_details": {
+   "thinking_tokens": 15853
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14268,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 16624,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14268,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14268
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 107688
+}

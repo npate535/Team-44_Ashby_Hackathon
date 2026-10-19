@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0180_FSIM_resample3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "650d1a2517db9942",
+ "markdown": "## Bottom line\n**Suggests Invasive (86%)** \u00b7 Confident \u00b7 Careful review\nConformal set holds Invasive only, but the second model and most neighbors disagree [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 86%, InSitu 13% | Clear lead |\n| Conformal set | Invasive only | Single class at 90% |\n| Reliability / OOD | 0.99 / 1.0 | No input flag |\n| Second-model (MUSK) agreement | No | Different top class |\n| Similar cases | 2/5 Invasive | Mostly InSitu neighbors |\n\n## Tissue evidence\n- **Marked nuclear pleomorphism** (regions 4, 5, 10) \u00b7 \u2191 invasive \u00b7 Above-typical score; strongest association here [F2] \u00b7 Validated\n- **Scarce gland / tubule formation** (region 7) \u00b7 \u2191 invasive \u00b7 Few tubules; associated with invasive carcinoma [F3] \u00b7 Validated\n- **Few atypical cells confined within ducts** (region 2) \u00b7 \u2191 invasive \u00b7 Low in-duct score; InSitu less supported \u00b7 Weak\n- **Tumor infiltrating stroma** (region 9) \u00b7 \u2191 invasive \u00b7 Small contribution (+0.06) \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60). Faithful to the classifier.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0, so not shown to reflect the classifier. Normal lobules (0/20), mitoses (0/20) and necrosis (3/20) are Unreliable.\n\n## Could be wrong if\n- Simulated, resample-degraded frozen section: second model disagrees and 3 of 5 neighbors are InSitu.\n- Reliability error AUROC is only 0.69 (CI 0.58\u20130.87); a clean quality score may miss errors.\n\n## Check on the slide\n1. **Regions 4, 5, 10** \u2014 confirm marked pleomorphism and invasive growth.\n2. **Region 7** \u2014 lowest-risk region (63%); look for tubules or normal lobules.\n3. **Region 2** \u2014 look for atypical cells confined within ducts, favoring InSitu.",
+ "verification": {
+  "checked": 20,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T14:24:32-0500",
+ "elapsed_s": 39.3,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14127,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5922,
+  "output_tokens_details": {
+   "thinking_tokens": 5126
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14127,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5922,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14127,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14127
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 38626
+}

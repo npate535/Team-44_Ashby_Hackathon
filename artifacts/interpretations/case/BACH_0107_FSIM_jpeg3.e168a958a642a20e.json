@@ -1,0 +1,57 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0107_FSIM_jpeg3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "e168a958a642a20e",
+ "markdown": "## Bottom line\n**Suggests Invasive (96%)** \u00b7 Confident \u00b7 Careful review\nSingle-class conformal set [F1], but the second model disagrees and only 2 of 5 similar cases are invasive.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 96%, InSitu 4% | Clear lead |\n| Conformal set | Invasive only (90% level) | Single class |\n| Reliability / OOD | 0.99 / OOD percentile 1.0 | Input not flagged |\n| Second-model (MUSK) agreement | No | Models disagree |\n| Similar cases | 2 of 5 invasive [F5] | Weak neighbor support |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 4, 8, 9) \u00b7 \u2191 invasive \u00b7 Strongest concept association with invasive carcinoma [F2] \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 9, 10, 11) \u00b7 \u2191 invasive \u00b7 High score; second-strongest association [F3] \u00b7 Validated\n- **Dense lymphocytic infiltrate** (region 3) \u00b7 context \u00b7 Below typical; descriptive only [F4] \u00b7 Weak\n- **Atypical cells confined within ducts** (region 7) \u00b7 \u2193 invasive \u00b7 Modest score, negligible weight; InSitu is runner-up \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI includes 0 (\u22120.005 to 0.007), so not shown to reflect the classifier. No Unreliable concept drives this case.\n\n## Could be wrong if\n- The second model's differing top class is correct; two of five similar cases are InSitu.\n- Image is a simulated, JPEG-degraded frozen section; the suggested margin call [F7] is simulated.\n\n## Check on the slide\n1. **Regions 4, 8, 9**: confirm tumor cells infiltrating stroma, not benign stroma.\n2. **Regions 9, 10, 11**: confirm marked pleomorphism in tumor, not reactive change.\n3. **Region 7**: look for ducts with confined atypical cells (in situ component).",
+ "verification": {
+  "checked": 11,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T14:12:27-0500",
+ "elapsed_s": 38.4,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14319,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5576,
+  "output_tokens_details": {
+   "thinking_tokens": 4796
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14319,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5576,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14319,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14319
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 37267,
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

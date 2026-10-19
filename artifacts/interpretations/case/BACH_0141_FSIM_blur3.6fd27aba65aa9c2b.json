@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0141_FSIM_blur3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "6fd27aba65aa9c2b",
+ "markdown": "## Bottom line\n**Suggests Normal (91%)** \u00b7 Confident \u00b7 Read in turn\n\nConformal set is Normal only, and every agreement check matches [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 91%, Benign 9% | Clear lead |\n| Conformal set | Normal only (\u03b1=0.1) | Single class |\n| Reliability / OOD | 0.99 / 42nd percentile | Typical, usable input |\n| Second-model (MUSK) agreement | Same top class | Models agree |\n| Similar cases | 5/5 Normal [F5] | Unanimous neighbors |\n\n## Tissue evidence\n- **Tumor-infiltrating stroma** (region 0) \u00b7 \u2193 invasive \u00b7 scarce, below typical; lowers invasive association [F2] \u00b7 Validated\n- **Normal lobules, two-layered epithelium** (regions 2, 9) \u00b7 \u2193 invasive \u00b7 above typical; linked to non-invasive tissue [F3] \u00b7 Unreliable\n- **Gland / tubule formation** (regions 1, 6, 7) \u00b7 \u2193 invasive \u00b7 prominent; linked to lower invasive likelihood [F4] \u00b7 Validated\n- **Atypical cells confined in ducts** (region 7) \u00b7 \u2191 invasive \u00b7 scarce; absence slightly raises concept-model score \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Concept deletion CI includes 0 (\u22120.005 to 0.007), so not shown to reflect the classifier; lobules concept is Unreliable (0/20).\n\n## Could be wrong if\n- Simulated blur (severity 3) hides nuclear detail the model needs.\n- Reliability ranks errors only modestly (AUROC 0.69), so 0.99 is weak reassurance.\n\n## Check on the slide\n1. **Region 0**: confirm the stroma shows no tumor infiltration.\n2. **Regions 2, 9**: verify true lobules; this concept failed its spot check.\n3. **Regions 1, 6, 7**: confirm glands are benign architecture, not neoplastic tubules.",
+ "verification": {
+  "checked": 14,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T14:13:34-0500",
+ "elapsed_s": 26.4,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13986,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 3327,
+  "output_tokens_details": {
+   "thinking_tokens": 2561
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13986,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3327,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13986,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13986
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 25499
+}

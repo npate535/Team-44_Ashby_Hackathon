@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0141_FSIM_resample3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "5df8cccb1d9649e9",
+ "markdown": "## Bottom line\n**Suggests Normal (82%)** \u00b7 Confident \u00b7 Read in turn\nThe conformal set holds Normal only, and the second model and all neighbors agree.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 82%, Benign 18% | Clear lead, Benign second |\n| Conformal set | {Normal} at 90% | Single class |\n| Reliability / OOD | 0.997 / 76th percentile | Typical input, no flag |\n| Second-model (MUSK) agreement | Yes, both Normal | Models concur |\n| Similar cases | 5/5 Normal [F5] | All neighbors agree |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 0) \u00b7 \u2191 invasive \u00b7 Low score pulls concept model away from invasive [F2] \u00b7 Validated\n- **Gland / tubule formation** (regions 5, 6) \u00b7 \u2193 invasive \u00b7 Above-typical score; linked to lower invasive likelihood \u00b7 Validated\n- **Marked nuclear pleomorphism** (region 0) \u00b7 \u2191 invasive \u00b7 Below-typical score; concept model reads lower invasive \u00b7 Validated\n- **Atypical cells confined within ducts** (region 8) \u00b7 \u2193 invasive \u00b7 Below-typical score; not given as a reason [F4] \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0, so not shown to reflect the classifier. Mitoses, necrosis and normal lobules are Unreliable; not leaned on.\n\n## Could be wrong if\n- The input is a simulated, resample-degraded frozen section; the reliability score only moderately ranks errors (AUROC 0.69).\n- Region 0 shows 77% per-region probe risk, despite a case-level invasive risk of 0%.\n\n## Check on the slide\n1. **Region 0:** probe risk 77%; look for infiltrating stroma or pleomorphism.\n2. **Regions 5, 6:** confirm gland architecture is benign.\n3. **Region 8:** check for atypical cells confined to ducts (weak concept).",
+ "verification": {
+  "checked": 15,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T14:14:10-0500",
+ "elapsed_s": 35.3,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14003,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 4990,
+  "output_tokens_details": {
+   "thinking_tokens": 4218
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14003,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 4990,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14003,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14003
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 34309
+}
