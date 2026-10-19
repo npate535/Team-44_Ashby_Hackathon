@@ -442,3 +442,37 @@ def test_tile_contrib_from_another_model_is_an_error(env):
     _write_tile_contrib(env["root"], [{**r, "model": "some_other_lr"} for r in rows])
     with pytest.raises(STEP.InputError, match="rerun pipeline.05d_tile_contrib"):
         run(env)
+
+
+# ---- contrast detail (judge feedback T4) -------------------------------------------------------------------------------
+DETAIL = [
+    {"concept": "invasion", "query_z": 1.62, "contrast_z": -0.41, "delta": 2.03,
+     "spotcheck": {"acceptable": 19, "reviewed": 20}, "reliable": True, "query_region": 5, "contrast_region": 6},
+    {"concept": "duct_confined", "query_z": -0.35, "contrast_z": 1.12, "delta": -1.47,
+     "spotcheck": {"acceptable": 3, "reviewed": 20}, "reliable": False, "query_region": None, "contrast_region": 1},
+]
+
+
+def _set_detail(env, case_id, detail):
+    path = schemas.retrieval_json(env["root"])
+    data = io.read_json(path)
+    data["cases"][case_id]["contrast"]["detail"] = detail
+    io.write_json(path, data)
+
+
+def test_contrast_detail_is_carried_with_bank_labels(env):
+    _set_detail(env, "BACH_0102", copy.deepcopy(DETAIL))
+    run(env)
+    cases = load_cases(env["art"])
+    detail = cases["BACH_0102"]["contrast_case"]["detail"]
+    labels = {c["id"]: c["label"] for c in yaml.safe_load(env["bank"].read_text())["concepts"]}
+    assert detail == [{**d, "label": labels[d["concept"]]} for d in DETAIL]
+    assert [d["concept"] for d in detail] == cases["BACH_0102"]["contrast_case"]["differs_most_in"]
+    others = [c for cid, c in cases.items() if cid != "BACH_0102" and c["contrast_case"]]
+    assert others and all(c["contrast_case"]["detail"] is None for c in others)   # absent upstream: null, never zeros
+
+
+def test_contrast_detail_out_of_order_is_an_error(env):
+    _set_detail(env, "BACH_0102", copy.deepcopy(DETAIL[::-1]))
+    with pytest.raises(STEP.InputError, match="differs_most_in"):
+        run(env)

@@ -135,7 +135,15 @@ def biopsy() -> dict:
             {"case_id": "demo_ref_05", "label": "Invasive", "similarity": 0.87, "image": "images/demo_ref_05.jpg"},
         ],
         "contrast_case": {"case_id": "demo_ref_03", "label": "InSitu", "similarity": 0.89,
-                          "differs_most_in": ["invasion", "duct_confined"], "image": "images/demo_ref_03.jpg"},
+                          "differs_most_in": ["invasion", "duct_confined"], "image": "images/demo_ref_03.jpg",
+                          "detail": [   # synthetic placeholder values (pipeline 07 computes the real ones)
+                              {"concept": "invasion", "label": LABELS["invasion"], "query_z": 1.62,
+                               "contrast_z": -0.41, "delta": 2.03, "spotcheck": {"acceptable": 19, "reviewed": 20},
+                               "reliable": True, "query_region": 5, "contrast_region": 6},
+                              {"concept": "duct_confined", "label": LABELS["duct_confined"], "query_z": -0.35,
+                               "contrast_z": 1.12, "delta": -1.47, "spotcheck": {"acceptable": 3, "reviewed": 20},
+                               "reliable": False, "query_region": 2, "contrast_region": 1},
+                          ]},
         "agreement": {"conch_musk_same_top": True, "neighbor_agreement": 0.8},
         "margin": None,
         "cells": {

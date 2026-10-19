@@ -570,3 +570,53 @@ def test_attribution_fields_are_fixed(field, value):
     case["prediction"]["attribution"] = {**ATTRIBUTION, field: value}
     with pytest.raises(ValidationError):
         contract.Case.model_validate(case)
+
+
+# ---- contrast detail (judge feedback T4) -------------------------------------------------------------------------------
+def detail_row(concept, acceptable=None, reviewed=20, **extra):
+    spot = None if acceptable is None else {"acceptable": acceptable, "reviewed": reviewed}
+    row = {"concept": concept, "label": concept.replace("_", " "), "query_z": 1.6, "contrast_z": -0.4, "delta": 2.0,
+           "spotcheck": spot, "reliable": spot is not None and acceptable / reviewed >= 0.75,
+           "query_region": 5, "contrast_region": 2}
+    row.update(extra)
+    return row
+
+
+def with_detail(*rows):
+    case = biopsy_case()
+    case["contrast_case"]["differs_most_in"] = [r["concept"] for r in rows]
+    case["contrast_case"]["detail"] = list(rows)
+    return case
+
+
+def test_contrast_detail_list_and_null_validate():
+    model = contract.Case.model_validate(with_detail(detail_row("invasion", 19), detail_row("necrosis", 3)))
+    assert [d.concept for d in model.contrast_case.detail] == ["invasion", "necrosis"]
+    assert [d.reliable for d in model.contrast_case.detail] == [True, False]
+    public = contract.to_public(model)
+    assert public["contrast_case"]["detail"][1]["spotcheck"] == {"acceptable": 3, "reviewed": 20}
+    for detail in (None, "absent"):
+        case = biopsy_case()
+        if detail is None:
+            case["contrast_case"]["detail"] = None
+        assert contract.to_public(case)["contrast_case"]["detail"] is None
+    unreviewed = with_detail(detail_row("invasion", None, query_region=None, contrast_region=None))
+    assert contract.Case.model_validate(unreviewed).contrast_case.detail[0].spotcheck is None
+
+
+def test_contrast_detail_follows_differs_most_in():
+    case = with_detail(detail_row("invasion", 19), detail_row("necrosis", 3))
+    case["contrast_case"]["differs_most_in"] = ["necrosis", "invasion"]
+    rejects(case, "differs_most_in")
+
+
+@pytest.mark.parametrize("row,match", [
+    (detail_row("necrosis", 3, reliable=True), "reliable"),       # a failed spot check is never a reason
+    (detail_row("invasion", None, reliable=True), "reliable"),    # no spot check: not reliable
+    (detail_row("tubules", 15, reliable=False), "reliable"),      # 15/20 = 0.75 meets the fixed cut-off
+    (detail_row("invasion", 21), "acceptable"),                   # more acceptable than reviewed
+    (detail_row("invasion", 19, delta=1.5), "delta"),             # delta = query_z - contrast_z
+    (detail_row("invasion", 19, query_region=12), "query_region"),  # outside the 3x4 contract grid
+])
+def test_contrast_detail_rules(row, match):
+    rejects(with_detail(row), match)

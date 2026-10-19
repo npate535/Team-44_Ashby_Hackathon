@@ -34,7 +34,8 @@ Blocks follow core.contract exactly (fixtures/demo_0001.json, demo_0002.json):
                features (contributions.csv source "cell") appear as source "cell" entries
   tiles        QC g512 tiles: risk (tile_risk.csv), concept z (concepts_tile.npz), optional ABMIL attention,
                contribution (tile_contrib.csv, 4 dp; null for a region the read did not pool)
-  similar_cases / contrast_case / agreement   retrieval.json (train reference labels may be shown)
+  similar_cases / contrast_case / agreement   retrieval.json (train reference labels may be shown); contrast_case.detail
+               = retrieval.json contrast.detail + concept bank label (null when 07 had no features)
   margin       surgical only: margins.json segments + per_margin, core.margin.suggest_call(per_margin, threshold,
                reliability_flag), threshold (kept for defer calls too, ruling M8), strip_um = margin.strip_px x core.config.effective_mpp, involved_length_um
   cells        CELLS_SPEC §7.2 block, or {"status": "disabled"} (cells.enabled false or the module did not run)
@@ -523,8 +524,23 @@ def retrieval_blocks(spec: CaseSpec, inputs: Inputs) -> tuple[list, dict | None,
     if entry.get("contrast"):
         c = entry["contrast"]
         contrast = {"case_id": c["case_id"], "label": c["label"], "similarity": rnd(c["similarity"], 3),
-                    "differs_most_in": list(c.get("differs_most_in") or []), "image": schemas.display_ref(c["case_id"])}
+                    "differs_most_in": list(c.get("differs_most_in") or []), "image": schemas.display_ref(c["case_id"]),
+                    "detail": contrast_detail(spec, c.get("detail"), inputs)}
     return similar, contrast, rnd(entry.get("neighbor_agreement"), 3), entry
+
+
+def contrast_detail(spec: CaseSpec, detail: Any, inputs: Inputs) -> list[dict[str, Any]] | None:
+    """retrieval.json contrast.detail rows (07) plus the concept bank label; None stays None (features missing)."""
+    if detail is None:
+        return None
+    by_id = inputs.bank.by_id()
+    out = []
+    for row in detail:
+        cid = row.get("concept")
+        if cid not in by_id:
+            raise InputError(f"{spec.case_id}: contrast detail concept {cid!r} is not in the concept bank")
+        out.append({"concept": cid, "label": by_id[cid].label, **{k: v for k, v in row.items() if k != "concept"}})
+    return out
 
 
 def margin_block(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], reliability_flag: bool, mpp: float
