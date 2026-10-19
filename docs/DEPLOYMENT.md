@@ -79,6 +79,23 @@ Before pushing this change to `main`:
 The laptop demo's saved SQLite workspace rejects the new cases for the same
 reason. Start it with `make demo-fresh`, which archives the old database.
 
+### October 19, 2026: summary wording needs workspace v4
+
+Branch `qa/f-summary` regenerates the template summaries of all 328 cases.
+Concept features are now described as associations in the concept model, not
+as pushes on the read, and probabilities are written as percentages. Only the
+`summary` field changes. The default key is therefore `sepia:workspace:v4`,
+which starts from the seed snapshot. `v3` and `v2` stay in Redis, untouched,
+for recovery. Generated interpretations are not part of the hash; adding them
+to `artifacts/interpretations` later needs no new key.
+
+| Workspace | Case evidence | `evidence_hash` |
+|---|---|---|
+| `v4` | the reworded summaries (merge `eeac31d`) | `802613fb154ad04d7097430648f433729813d16ae6dc41a07b57e3b01939ed4f` |
+
+The same method reproduces the `v3` hash above from the cases before this
+merge.
+
 Cursor's Linux CLI is compressed in the function bundle and extracted into
 `/tmp` when a new interpretation is requested. Cached interpretations need no
 model call. `CURSOR_API_KEY`, `CURSOR_API_KEY_BACKUP`, and
