@@ -350,8 +350,10 @@ def components(cfg: Mapping[str, Any], art: Path) -> dict[str, Any]:
 
 def timing(art: Path) -> dict[str, Any]:
     q = io.read_json(art / "eval" / "queue_sim.json")
-    ext = art / "eval" / "external_tcga_prod.json"
-    latency = io.read_json(ext).get("latency_s_per_image") if ext.is_file() else None
+    ext = art / "eval" / "external_tcga.json"
+    prod = io.read_json(art / "eval" / "model_choice.json")["production"]
+    ext_obj = io.read_json(ext) if ext.is_file() else {}
+    latency = ext_obj.get("latency_s_per_image") if ext_obj.get("model") == prod else None
     fifo = q["results"].get("fifo", {}) if isinstance(q.get("results"), Mapping) else {}
     return {
         "queue_simulation": {"what": "simulated reading day, not a measured workflow", "assumptions": q["assumptions"],
@@ -514,7 +516,7 @@ def render_md(sheet: Mapping[str, Any]) -> str:
               f"| PathGen | {co['pathgen']['role']} | {co['pathgen']['rows_selected']} rows |",
               f"| NCT-CRC-HE-100K | {co['nct_crc_he_100k']['role']} | {co['nct_crc_he_100k']['n_tiles']} tiles |",
               f"| PathMMU BACH zip | {co['pathmmu_bach_zip']['role']} | — |",
-              f"| TCGA-BRCA | {co['tcga_brca']['role']} | see `artifacts/eval/external_tcga_prod.json` |", ""]
+              f"| TCGA-BRCA | {co['tcga_brca']['role']} | see `artifacts/eval/external_tcga.json` |", ""]
     nd = sheet.get("quilt_near_duplicates")
     if nd:
         if nd.get("computed"):

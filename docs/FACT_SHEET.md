@@ -87,7 +87,7 @@ Every misread on the test split (18):
 | PathGen | same as Quilt: extra caption-matched patches for concept vectors | 69 rows |
 | NCT-CRC-HE-100K | cross-organ sanity check of concept scores (colorectal tiles); not breast, not used for training | 2700 tiles |
 | PathMMU BACH zip | inspected and NOT used: it is the 2015 Bioimaging breast set, not ICIAR 2018 BACH | — |
-| TCGA-BRCA | external test only (no training, no threshold changes) | see `artifacts/eval/external_tcga_prod.json` |
+| TCGA-BRCA | external test only (no training, no threshold changes) | see `artifacts/eval/external_tcga.json` |
 
 Near-duplicate check (Quilt/PathGen vs BACH, CONCH): highest similarity of any pair 0.9353; BACH regions with a Quilt neighbor above 0.95: 0; for scale, the median BACH region's nearest region from another BACH image scores 0.9139. Cosine similarity of L2-normalized CONCH align embeddings. The production classifier never sees Quilt images; this only checks that the explanation features were not fitted on BACH images that reappear in Quilt.
 
