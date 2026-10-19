@@ -16,7 +16,7 @@ B-Path reports, for each reference category, how often a pathologist's call was 
 
 | Reference category | B-Path pathologists vs consensus: concordant / over / under (95% CI) | B-Path experts, independent reads vs consensus: concordant | BACH counterpart | Sepia, test split: concordant / over / under |
 |---|---|---|---|---|
-| Benign without atypia | 87% (85–89) / 13% (11–15) / – | 91% | Normal + Benign (71 images) | 71/71 / 0/71 / – |
+| Benign without atypia | 87% (85–89) / 13% (11–15) / – | 91% | Normal + Benign (71 images) | 71/71 / 0/71 / – (within this pooled category Sepia swapped Normal and Benign in 12 of 71; B-Path has no such split) |
 | Atypia | 48% (44–52) / 17% (15–21) / 35% (31–39) | 80% | No BACH class | Not measured |
 | DCIS | 84% (82–86) / 3% (2–4) / 13% (12–15) | 97% | In situ carcinoma (30) | 24/30 (80.0%) / 3/30 (10.0%) called invasive / 3/30 (10.0%) called Normal or Benign |
 | Invasive carcinoma | 96% (94–97) / – / 4% (3–6) | 97% | Invasive carcinoma (31) | 31/31 (100%) / – / 0/31 |
