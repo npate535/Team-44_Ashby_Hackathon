@@ -529,13 +529,18 @@ function figOvr(ST, ev, L) {
     table: { head: ['Class vs rest', 'AUROC', 'Positives', 'Negatives'], rows: entries.map(([c, v]) => [cls(c, ST), f2(v.auroc), String(v.n_pos), String(v.n_neg)]), num: [1, 2, 3] }
   });
 }
+/** Fine-tuned encoders were evaluated but are not used in Sepia; the evaluation page lists only models that are. */
+function shownModel(ev, m) {
+  const hidden = get(ev, 'finetune.models') || [];
+  return m === get(ev, 'model_choice.production') || !hidden.includes(m);
+}
 function figModels(ST, ev, L) {
   const M = ev.metrics;
   const per = get(M, 'per_model');
   if (!per) return missing('metrics', 'Model comparison', 'per-model metrics');
   const prod = get(M, 'models.production'),
     b = get(M, 'models.b');
-  const names = Object.keys(per);
+  const names = Object.keys(per).filter((m) => shownModel(ev, m));
   const order = names.sort((x, y) => (ci(per[y].macro_f1)?.est ?? -1) - (ci(per[x].macro_f1)?.est ?? -1));
   const color = (m) => (m === prod ? C.COLOR[1] : m === b ? C.COLOR[2] : C.COLOR.muted);
   const role = (m) => (m === prod ? 'production (model A)' : m === b ? 'model B, explainable' : '');
@@ -641,7 +646,7 @@ function figThunder(ST, ev, L) {
     population: `${TH.n ?? 132} test images, ${TH.n_groups ?? '?'} groups (ours); published values carry no CI`,
     source: 'eval/thunder.json',
     notes: TH.source ? [`Published values: ${TH.source}.`] : [],
-    table: { head: ['Result', 'Macro-F1 (%)', 'Balanced accuracy (%)'], rows: [...Object.entries(TH.published).flatMap(([k, v]) => Object.entries(v || {}).map(([m, x]) => [`Published ${modelName(m)} (${humanize(k)})`, f1(x), '—'])), ...(TH.ours || []).map((o) => [`${modelName(o.model)} (${o.role})`, ciShort(ci(o.macro_f1), { digits: 1 }), ciShort(ci(o.balanced_accuracy), { digits: 1 })])] }
+    table: { head: ['Result', 'Macro-F1 (%)', 'Balanced accuracy (%)'], rows: [...Object.entries(TH.published).flatMap(([k, v]) => Object.entries(v || {}).map(([m, x]) => [`Published ${modelName(m)} (${humanize(k)})`, f1(x), '—'])), ...(TH.ours || []).filter((o) => shownModel(ev, o.model)).map((o) => [`${modelName(o.model)} (${o.role})`, ciShort(ci(o.macro_f1), { digits: 1 }), ciShort(ci(o.balanced_accuracy), { digits: 1 })])] }
   });
 }
 
