@@ -62,7 +62,7 @@ UI-relevant settings (read strictly from `config/settings.yaml`).
                       "4": "Unflagged"},
             "reasons": {"aggressive_top": "Invasive carcinoma suggested", "...": "..."},
             "classes": {"Normal": "Normal breast tissue", "...": "..."},
-            "concept_groups": {"nottingham": {"label": "Nottingham-style", "ids": ["tubules", "pleomorphism", "mitoses"]}}},
+            "concept_groups": {"nottingham": {"label": "Nottingham components (features, not a grade)", "ids": ["tubules", "pleomorphism", "mitoses"]}}},
  "margin": {"names": {"top": "superior", "bottom": "inferior", "left": "medial", "right": "lateral"},
             "note": "Anterior and posterior margins cannot be represented in a 2D field.",
             "timer": {"amber_min": 15, "red_min": 20}, "order": ["superior", "inferior", "medial", "lateral"]},
