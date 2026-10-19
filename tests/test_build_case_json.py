@@ -512,5 +512,5 @@ def test_concept_findings_without_a_review_file_are_not_reasons(env):
         for f in case["findings"]:
             if f["kind"] == "concept":
                 assert f["data"]["spotcheck"] is None and f["data"]["reliable"] is False
-        assert not any(s["text"].startswith(("Strongest push", "Feature lowering", "Features lowering"))
+        assert not any(s["text"].startswith(("Feature associated with", "Features associated with"))
                        for s in case["summary"]["sentences"])

@@ -6,7 +6,14 @@ The LLM never sees an image: it gets the structured `findings` array only and mu
     summary, info = generate(findings, cfg)                  # template (zero LLM calls)
     summary, info = generate(findings, cfg, client=client)   # Lumen; validated; template fallback
     kept, dropped = validate(sentences, findings, cfg)
-    sentences = template(findings, cfg)
+    sentences = template(findings, cfg, top_p=0.6985)        # top_p: prediction.probs of the suggested class
+
+What a concept finding is: `contribution` comes from the concept model (model_b, e.g. cb_text: a linear model on
+CONCH concept scores), never from the production classifier that made the suggestion. It is that model's exact term
+for the feature, (W_invasive - mean_k W_k) x the case's standardized feature value (pipeline.riskmodels
+centered_contributions), so it is signed toward (+) / away from (-) invasive carcinoma in the concept model only.
+Summaries therefore state concepts as associations in the concept model, never as a push on the read, its
+probability or its suggestion (which can sit at P(invasive) < 1% while a concept points toward invasive carcinoma).
 
 Validator (a sentence is dropped when any rule fails; reasons are returned):
   * it cites no finding, or a finding ID that does not exist;
@@ -16,15 +23,18 @@ Validator (a sentence is dropped when any rule fails; reasons are returned):
       - a decimal ("0.72", ".7") must be a rounding of a cited value at the same number of decimals;
       - a whole number ("4", "3150") must equal a cited value exactly, or round to one that is >= 10;
       - a percentage ("72%") must be a rounding of 100 x a cited value (or equal a cited value >= 1);
+      - a bounded percentage (">99%", "<1%", "over 99%", "less than 1%") must hold for a cited value (100 x value
+        beyond the bound);
       - counts and indices (keys tiles, agree, of, qc_tiles_kept, min_tiles_kept) support only whole numbers, never
         decimals or percentages; signs are ignored; "3,150" is 3150;
   * a number is not rounded for reading (more than two decimals, or decimals on a value >= 100), or reads "only 0%";
+    a sentence citing the prediction never quotes a probability as certain ("100%", "0%", "1.00", "0.00");
   * it matches a settings summary.banned_patterns regex (no diagnosis stated as fact, no causal claims);
   * it contradicts a cited finding's categorical facts (semantic_problem, checked last): the suggested category and
     the exact confidence set; the margin call (hedged, exact margins); the reliability flag; similar-case agreement
-    (quoted, never inflated); cell wording against the benign-reference percentile; concept level wording; and the
+    (quoted, never inflated); cell wording against the benign-reference percentile; concept level wording; the
     concept direction, which always refers to invasive carcinoma (never "associated with this result" for another
-    category);
+    category); and the concept source: a sentence giving a concept as a reason names the concept model;
   * it cites a concept finding whose AI spot check failed (data.reliable false; core.contract SPOTCHECK_RELIABLE_MIN)
     anywhere but a caveat sentence: one that cites only failed concepts, names the spot check and says the feature is
     not given as a reason;
@@ -33,18 +43,23 @@ At most summary.max_sentences survivors are kept; fewer than summary.min_valid_s
 Required facts: the prediction, the margin call and any quality concern must be cited; when the LLM omits one, its
 template sentence is added (ensure_required: the prediction first). When no kept sentence cites the strongest concept,
 its template sentence follows the prediction (replacing a similar-cases or cells sentence if there is no room): the
-push sentence when that concept passed its spot check, else the caveat sentence. Any template sentence makes the
-generator read "lumen:<model>+template".
+association sentence for its direction when that concept passed its spot check, else the caveat sentence. Any
+template sentence makes the generator read "lumen:<model>+template".
 
 Template: one sentence per finding kind in a fixed narrative order (prediction, concepts, caveat, cells, retrieval,
-quality, margin), chosen by clinical priority when more than max_sentences are possible. The "Strongest push toward"
-and "Features lowering" sentences name only concepts that passed their AI spot check. A failed concept that one of
-those sentences would have named (in the unfiltered template) is moved to one caveat sentence instead ("... failed its
-AI spot check (0/20 regions acceptable), so it is not given as a reason"); a sentence left with no reliable concept is
-omitted. The caveat takes the slot of the sentence it replaces: priority 2.5 (just below the push-toward sentence,
-above a quality concern, cells and similar cases) when a push-toward feature failed, else 6.5 (just below the
-lowering sentence). It only quotes numbers present in the findings, so its own output always passes the validator
-(tested). Concept findings without a `reliable` key (older case files) are treated as reliable.
+quality, margin), chosen by clinical priority when more than max_sentences are possible. Probabilities and
+percentiles are whole percents rounded half up, as the UI shows them (">99%" / "<1%" at the ends; with top_p the
+suggested class's probability is quoted from prediction.probs, the value the UI rounds, instead of the finding's three
+decimals). The "Features associated with invasive carcinoma in the concept model" and "Features associated with a
+lower likelihood of invasive carcinoma in the concept model" sentences name only concepts that passed their AI spot
+check. A failed concept that one of those sentences would have named (in the unfiltered template) is moved to one
+caveat sentence instead, which states only its score level and the check ("The score for frequent mitotic figures was
+above typical in this case, but the feature failed its AI spot check (0/20 regions acceptable), so it is not given as
+a reason"); a sentence left with no reliable concept is omitted. The caveat takes the slot of the sentence it
+replaces: priority 2.5 (just below the toward-invasive sentence, above a quality concern, cells and similar cases)
+when a toward-invasive feature failed, else 6.5 (just below the lower-likelihood sentence). It only quotes numbers
+present in the findings, so its own output always passes the validator (tested). Concept findings without a
+`reliable` key (older case files) are treated as reliable.
 
 Cache: the Lumen client caches by (model, exact prompt); the prompt embeds the canonical findings and
 summary.prompt_version, so changed findings never reuse stale text (a miss with no budget falls back to the template).
@@ -55,6 +70,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -69,6 +85,9 @@ _NUMBER_WORD = re.compile(
     r"seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|"
     r"percent|percentage|half|quarter|dozen|once|twice)\b", re.I)
 _NUMBER = re.compile(r"(?<![\w.])(?:(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?|\.(\d+))(\s*%)?")
+# ">99%", "<1%" (the UI's ends), "over 99%", "less than 1%": a bound, not a rounding
+_BOUND = re.compile(r"(?:([<>])\s*|\b(over|above|more than|under|below|less than)\s+)(\d+(?:\.\d+)?)\s*%", re.I)
+_CERTAIN = re.compile(r"(?<![\d.<>])(?:(?:100|0)(?:\.0+)?\s*%|[01]\.0+\b)")      # a probability read as certain
 COUNT_KEYS = frozenset({"tiles", "agree", "of", "qc_tiles_kept", "min_tiles_kept"})
 
 
@@ -138,6 +157,18 @@ def number_supported(value: float, decimals: int, percent: bool, allowed: Sequen
     return False
 
 
+def bound_supported(above: bool, value: float, allowed: Sequence[tuple[float, bool]]) -> bool:
+    """True when a bounded percentage (">99%" if above, else "<1%") holds for an allowed non-count value: 100 x value
+    (or the value itself when >= 1) lies beyond the bound."""
+    for x, is_count in allowed:
+        if is_count:
+            continue
+        for v in [100.0 * x] + ([x] if x >= 1.0 else []):
+            if (v > value) if above else (v < value):
+                return True
+    return False
+
+
 # ---- validation ---------------------------------------------------------------------------------------------------
 def _banned(cfg: Mapping[str, Any]) -> list[re.Pattern[str]]:
     return [re.compile(p, re.I) for p in cfg["summary"]["banned_patterns"]]
@@ -179,11 +210,11 @@ _DEICTIC = re.compile(
 _TOWARD_INV = re.compile(
     r"\b(toward\w*|favou?r\w*|support\w*|suggest\w*|point\w* to|in keeping with|consistent with|associated with|"
     r"more likely|higher likelihood of|increas\w* the likelihood of|rais\w* the likelihood of)\s+(an?\s+)?invasive\b"
-    r"|\bpush\w*\s+(the read\s+|this read\s+|it\s+)?(up|toward\w*)\b", re.I)
+    r"|\bpush\w*\s+(the read\s+|this read\s+|the concept[- ]model('s score)?\s+|it\s+)?(up|toward\w*)\b", re.I)
 _AWAY_INV = re.compile(
     r"\b(away from|against|lower\w* (the )?likelihood of|less likely|reduc\w* the likelihood of|decreas\w* the "
     r"likelihood of|argu\w* against|weigh\w* against)\s+(an?\s+)?invasive\b|\blower likelihood\b|\bnon-?invasive\b"
-    r"|\bpush\w*\s+(the read\s+|this read\s+|it\s+)?(down|away)\b", re.I)
+    r"|\bpush\w*\s+(the read\s+|this read\s+|the concept[- ]model('s score)?\s+|it\s+)?(down|away)\b", re.I)
 _DIRECTION_CLAUSE = re.compile(r";|,?\s*\b(while|whereas|but|although|though)\b", re.I)
 # How the concepts of the bank are written in a sentence (label words, synonyms); others fall back to the label.
 CONCEPT_MENTIONS = {
@@ -365,12 +396,14 @@ def semantic_problem(text: str, cited: Sequence[Mapping[str, Any]], aggressive_t
     tumor-at-margin and clear are hedged as suggestions). quality: a flagged read is never called reliable and vice
     versa. retrieval: minority agreement is quoted as 'N of M ... share the suggested category', never as support,
     and the total is never quoted as agreeing. cells: high/low words follow ref_percentile, bare values need it, and
-    cells are never support for a non-invasive category. concept: with every cited feature label removed, a feature
-    is called present only when its `level` is above_typical, scarce only when below_typical, and neither when typical
-    unless the sentence says typical; no contradictory wording ('scarce frequent mitotic figures'); features that all
-    push away from invasive carcinoma are never presented as support for it; and concept support is never re-targeted
-    at the suggested category ('associated with this result', 'the strongest feature') unless that category is
-    invasive carcinoma and every cited feature pushes toward it ('this finding' is always too vague)."""
+    cells are never support for a non-invasive category. concept: a failed AI spot check is cited only in a caveat;
+    any direction or association is attributed to the concept model ('in the concept model'), never stated as a push
+    on the read; with every cited feature label removed, a feature is called present only when its `level` is
+    above_typical, scarce only when below_typical, and neither when typical unless the sentence says typical; no
+    contradictory wording ('scarce frequent mitotic figures'); features that all push away from invasive carcinoma are
+    never presented as support for it; and concept support is never re-targeted at the suggested category
+    ('associated with this result', 'the strongest feature') unless that category is invasive carcinoma and every
+    cited feature pushes toward it ('this finding' is always too vague)."""
     labels = [x for f in cited if isinstance(f.get("data"), Mapping)
               for x in (str(f["data"].get("label", "")), str(f["data"].get("concept", "")).replace("_", " "))]
     rest = _without(text, labels)              # feature names ("Dense lymphocytic infiltrate") are not claims
@@ -425,6 +458,10 @@ def semantic_problem(text: str, cited: Sequence[Mapping[str, Any]], aggressive_t
         if not (_SPOT_CHECK.search(text) and _NOT_A_REASON.search(text)):
             return (f"{names} failed the AI spot check: a sentence citing it must say so and that it is not given as "
                     f"a reason")
+    if _INFLUENCE.search(rest) and not _CONCEPT_MODEL.search(text):
+        return (f"{_INFLUENCE.search(rest).group(0)!r}: concept contributions come from the concept model, not the "
+                f"classifier that made the suggestion: state the association 'in the concept model', never as a push "
+                f"on the read")
     if _CONTRADICTORY.search(text):
         return f"contradictory wording {_CONTRADICTORY.search(text).group(0)!r}: drop the label's quantity word"
     for f in concepts:                         # "Frequent mitotic figures are scarce": the label's own word says present
@@ -464,6 +501,12 @@ def _reliable(f: Mapping[str, Any]) -> bool:
 
 _SPOT_CHECK = re.compile(r"\bspot[- ]checks?\b", re.I)
 _NOT_A_REASON = re.compile(r"\bnot (given|used|offered|counted) as (a )?reasons?\b", re.I)
+# A concept's direction or association is a term of the concept model (model_b), not of the classifier that made the
+# suggestion: any such claim must say so ("in the concept model"), or it reads as a push on the read itself.
+_CONCEPT_MODEL = re.compile(r"\bconcept[- ]model\b", re.I)
+_INFLUENCE = re.compile(r"\b(push\w*|driv\w*|weigh\w*|lower\w*|rais\w*|increas\w*|decreas\w*|favou?r\w*|support\w*|"
+                        r"associat\w*|point\w* (to|toward)|toward\w*|away from|against|in keeping with|consistent with|"
+                        r"argu\w*|suggest\w*|contribut\w*|explain\w*)\b", re.I)
 
 
 def required_findings(findings: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
@@ -480,9 +523,9 @@ def required_findings(findings: Sequence[Mapping[str, Any]]) -> list[Mapping[str
 
 def _concept_backfill(findings: Sequence[Mapping[str, Any]], cited: set[str], cfg: Mapping[str, Any]
                       ) -> dict[str, Any] | None:
-    """Template sentence for the strongest concept when no kept sentence cites it, or None: the push sentence for its
-    direction (the reliable features of that direction no kept sentence cites) when it passed its AI spot check, else
-    the caveat sentence (the failed features of that direction no kept sentence cites)."""
+    """Template sentence for the strongest concept when no kept sentence cites it, or None: the concept-model
+    association sentence for its direction (the reliable features of that direction no kept sentence cites) when it
+    passed its AI spot check, else the caveat sentence (the failed features of that direction no kept sentence cites)."""
     concepts = [f for f in findings if f["kind"] == "concept" and float(f["data"]["contribution"]) != 0]
     if not concepts:
         return None
@@ -500,13 +543,13 @@ def _concept_backfill(findings: Sequence[Mapping[str, Any]], cited: set[str], cf
     return {"text": text, "findings": [f["id"] for f in fs]}
 
 
-def ensure_required(kept: list[dict[str, Any]], findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]
-                    ) -> tuple[list[dict[str, Any]], int]:
+def ensure_required(kept: list[dict[str, Any]], findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any],
+                    *, top_p: float | None = None) -> tuple[list[dict[str, Any]], int]:
     """Add the template sentence for each required finding no kept sentence cites (the prediction first, the margin
     and quality concern last), dropping trailing sentences that cite no required finding to stay within
     summary.max_sentences; then, when no kept sentence cites the strongest concept, insert the template concept sentence
     for its direction after the prediction (replacing the last similar-cases or cells sentence when there is no room).
-    Returns (sentences, n_template_sentences)."""
+    top_p: as in template(). Returns (sentences, n_template_sentences)."""
     out = list(kept)
     need = required_findings(findings)
     req_ids = {f["id"] for f in need}
@@ -515,7 +558,7 @@ def ensure_required(kept: list[dict[str, Any]], findings: Sequence[Mapping[str, 
         if any(f["id"] in s["findings"] for s in out):
             continue
         if f["kind"] == "prediction":
-            text = _prediction_sentence(f, cfg)
+            text = _prediction_sentence(f, cfg, top_p)
         elif f["kind"] == "margin":
             text = _margin_sentence(f)
         else:
@@ -571,14 +614,21 @@ def check_sentence(sentence: Any, by_id: Mapping[str, Mapping[str, Any]], banned
     if odd:
         return f"unrecognized number word or code {odd[0]!r}"
     allowed = [x for f in cited for x in finding_numbers(by_id[f].get("data"))]
-    for value, decimals, percent in numbers_in_text(text, codes):
+    bare = _strip_codes(text, codes)
+    for m in _BOUND.finditer(bare):
+        above = (m.group(1) or m.group(2)).lower() in (">", "over", "above", "more than")
+        if not bound_supported(above, float(m.group(3)), allowed):
+            return f"bound {m.group(0).strip()!r} does not hold for the cited findings"
+    for value, decimals, percent in numbers_in_text(_BOUND.sub(" ", bare), codes):
         shown = f"{value:.{decimals}f}{'%' if percent else ''}"
         if not number_supported(value, decimals, percent, allowed):
             return f"number {shown} is not in the cited findings"
         if decimals > 2 or (decimals and value >= 100):
             return f"number {shown} is not rounded for reading (at most two decimals; whole numbers from 100)"
     if re.search(r"\bonly 0(\.0+)?\s*%", text, re.I):
-        return "'only 0%' reads as a slip: say 'no benign reference case ...'"
+        return "'only 0%' reads as a slip: say 'no benign or normal reference case ...'"
+    if any(by_id[f].get("kind") == "prediction" for f in cited) and _CERTAIN.search(bare):
+        return f"{_CERTAIN.search(bare).group(0)!r} reads as certain: a calibrated probability is '>99%' or '<1%' at the ends"
     return semantic_problem(text, [by_id[f] for f in cited], aggressive_top)
 
 
@@ -634,16 +684,34 @@ def _humanize(feature: str) -> str:
     return feature.replace("__", " ").replace("_", " ")
 
 
-def _fmt_p(p: float) -> str:
-    return f"{float(p):.2f}"
+def _pct_half_up(x: float) -> int:
+    """100 x rounded half up, as the UI's Math.round(x * 100)."""
+    return int(math.floor(100.0 * float(x) + 0.5))
 
 
-def _prediction_sentence(f: Mapping[str, Any], cfg: Mapping[str, Any]) -> str:
+def _fmt_pct(p: float) -> str:
+    """A probability as the UI shows it (frontend fmtPct): a whole percent, never '100%' or '0%'."""
+    p = float(p)
+    if p >= 0.995:
+        return ">99%"
+    if p < 0.005:
+        return "<1%"
+    return f"{_pct_half_up(p)}%"
+
+
+def _upper_first(text: str) -> str:
+    return text[:1].upper() + text[1:]
+
+
+def _prediction_sentence(f: Mapping[str, Any], cfg: Mapping[str, Any], top_p: float | None = None) -> str:
     d = f["data"]
     top, members = d["top"], list(d["set"])
+    if top_p is not None and abs(float(top_p) - float(d["p"])) > 0.0005 + 1e-9:
+        raise ValueError(f"top_p {top_p} is not the prediction finding's p {d['p']} (rounded to 3 decimals)")
     level = d.get("confidence")
     set_name = f"{round(100 * float(level))}% confidence set" if level is not None else "confidence set"
-    head = f"Suggested category: {_class_label(cfg, top)} (calibrated probability {_fmt_p(d['p'])})"
+    p = d["p"] if top_p is None else top_p
+    head = f"Suggested category: {_class_label(cfg, top)} (calibrated probability {_fmt_pct(p)})"
     others = [m for m in members if m != top]
     if not members:
         return f"{head}; the {set_name} is empty, so this read is uncertain."
@@ -661,11 +729,13 @@ def _concept_label(f: Mapping[str, Any]) -> str:
 
 
 _QUANTITY_WORD = re.compile(r"^(frequent|dense|marked|numerous|extensive|abundant)\s+", re.I)
+_LEVEL_WORD = {"above_typical": "above typical", "below_typical": "below typical", "typical": "typical"}
 
 
 def _concept_phrase(f: Mapping[str, Any]) -> str:
     """Feature name with its level against training cases: 'prominent tumor infiltrating stroma', 'frequent mitotic
-    figures' (the label's own quantity word), 'scarce normal lobules ...', 'lymphocytic infiltrate (typical level)'."""
+    figures' (the label's own quantity word), 'scarce normal lobules ...', 'lymphocytic infiltrate (TILs; typical
+    level)'."""
     label = _concept_label(f)
     level = f["data"].get("level")
     if level == "above_typical":
@@ -673,7 +743,7 @@ def _concept_phrase(f: Mapping[str, Any]) -> str:
     if level == "below_typical":
         return "scarce " + _QUANTITY_WORD.sub("", label)
     if level == "typical":
-        return f"{_QUANTITY_WORD.sub('', label)} (typical level)"
+        return _with_regions(_QUANTITY_WORD.sub("", label), "typical level")
     return label
 
 
@@ -685,19 +755,22 @@ def _with_regions(phrase: str, where: str) -> str:
 
 
 def _concept_up_sentence(fs: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]) -> str:
+    """Reliable features whose concept-model term points toward the aggressive class, strongest first."""
     aggressive = _class_label(cfg, cfg["aggressive_class"])
     where = _regions(fs[0]["data"]["tiles"])
-    text = f"Strongest push toward {aggressive} in this read: {_with_regions(_concept_phrase(fs[0]), where)}"
+    noun = "Feature" if len(fs) == 1 else "Features"
+    text = f"{noun} associated with {aggressive} in the concept model: {_with_regions(_concept_phrase(fs[0]), where)}"
     if len(fs) > 1:
         text += ", then " + _join([_concept_phrase(f) for f in fs[1:]])
     return text + "."
 
 
 def _concept_down_sentence(fs: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]) -> str:
+    """Reliable features whose concept-model term points away from the aggressive class."""
     aggressive = _class_label(cfg, cfg["aggressive_class"])
     where = _regions(fs[0]["data"]["tiles"]) if len(fs) == 1 else ""
     noun = "Feature" if len(fs) == 1 else "Features"
-    return (f"{noun} lowering the likelihood of {aggressive} in this read: "
+    return (f"{noun} associated with a lower likelihood of {aggressive} in the concept model: "
             f"{_with_regions(_join([_concept_phrase(f) for f in fs]), where)}.")
 
 
@@ -706,43 +779,76 @@ def _spot_note(f: Mapping[str, Any]) -> str:
     return f"{int(sc['acceptable'])}/{int(sc['reviewed'])} regions acceptable" if sc else "no AI spot check"
 
 
+def _score_name(f: Mapping[str, Any]) -> str:
+    """Feature name for a score statement: the label's quantity word only when the score is above typical
+    ('frequent mitotic figures' / 'mitotic figures')."""
+    label = _concept_label(f)
+    return label if f["data"].get("level") in ("above_typical", None) else _QUANTITY_WORD.sub("", label)
+
+
 def _concept_caveat_sentence(fs: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]) -> str:
-    """Concepts that failed their AI spot check (or have none): named, with the count, and never given as a reason."""
-    aggressive = _class_label(cfg, cfg["aggressive_class"])
-    pushes = [float(f["data"]["contribution"]) for f in fs]
-    toward = (f" toward {aggressive}" if all(p > 0 for p in pushes)
-              else f" away from {aggressive}" if all(p < 0 for p in pushes) else "")
+    """Concepts that failed their AI spot check (or have none): the score's level against training cases and the
+    check, never given as a reason. No direction and no tissue description: the concept-model term is not the read,
+    and a failed check means the score may not show the feature."""
     if len(fs) == 1:
-        phrase = _concept_phrase(fs[0])
-        check = (f"failed its AI spot check ({_spot_note(fs[0])})" if fs[0]["data"].get("spotcheck")
-                 else "has no AI spot check")
-        return f"{phrase[:1].upper() + phrase[1:]} pushed this read{toward} but {check}, so it is not given as a reason."
-    names = _join([_with_regions(_concept_phrase(f), _spot_note(f)) for f in fs])
-    return (f"{names[:1].upper() + names[1:]} pushed this read{toward} but did not pass an AI spot check, so they are "
-            f"not given as reasons.")
+        f = fs[0]
+        check = f"failed its AI spot check ({_spot_note(f)})" if f["data"].get("spotcheck") else "has no AI spot check"
+        level = _LEVEL_WORD.get(f["data"].get("level"))
+        if level is None:
+            return f"The {_score_name(f)} feature {check}, so it is not given as a reason."
+        return (f"The score for {_score_name(f)} was {level} in this case, but the feature {check}, so it is not given "
+                f"as a reason.")
+    groups: dict[str, list[str]] = {}
+    for f in fs:
+        level = _LEVEL_WORD.get(f["data"].get("level"), "recorded")
+        groups.setdefault(level, []).append(_with_regions(_score_name(f), _spot_note(f)))
+    parts = [f"{level} for {_join(names)}" for level, names in groups.items()]
+    scores = parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + ", and " + parts[-1]
+    return (f"Scores were {scores} in this case, but these features did not pass an AI spot check, so they are not "
+            f"given as reasons.")
+
+
+_CELL_REF = "benign or normal reference"            # settings cells.reference_classes: Normal and Benign train cases
+
+
+def _cell_names(label: str) -> tuple[str, str]:
+    """(sentence subject, noun phrase) of a cell feature: 'Nuclear size' / 'nuclear size'; a plural label is a share
+    ('The share of immune cells near tumor' / 'share of immune cells near tumor')."""
+    head = re.split(r"\s+(?:near|in|of|with|within|per|at)\s+", label, maxsplit=1)[0].split()
+    if head and head[-1].lower().endswith("s") and not head[-1].lower().endswith("ss"):
+        return f"The share of {_lower_first(label)}", f"share of {_lower_first(label)}"
+    return _upper_first(label), _lower_first(label)
 
 
 def _cells_sentence(f: Mapping[str, Any]) -> str:
+    """Against benign or normal reference cases (mid-rank percentile; with under 200 reference cases a percentile
+    below 0.005 / from 0.995 means no reference case is lower / higher)."""
     d = f["data"]
-    label = str(d.get("label") or _humanize(d["feature"]))
+    subject, name = _cell_names(str(d.get("label") or _humanize(d["feature"])))
     where = _regions(d.get("tiles"))
-    suffix = f" ({where})" if where else ""
+    suffix = f" (measured in {where})" if where else ""
     pct = d.get("ref_percentile")
     if pct is None:
-        return f"{label[:1].upper() + label[1:]} was measured in this read{suffix}."
+        return f"{subject} was measured{' in ' + where if where else ''}."
     pct = float(pct)
+    if pct >= 0.995:
+        return f"No {_CELL_REF} case has a higher {name}{suffix}."
     if pct >= 0.5:
-        return f"{label[:1].upper() + label[1:]} is higher than in {round(100 * pct)}% of benign reference cases{suffix}."
-    if round(100 * pct) == 0:
-        return f"No benign reference case has a lower {_lower_first(label)}{suffix}."
-    return f"Only {round(100 * pct)}% of benign reference cases have a lower {_lower_first(label)}{suffix}."
+        return f"{subject} is higher than in {_pct_half_up(pct)}% of {_CELL_REF} cases{suffix}."
+    if pct < 0.005:
+        return f"No {_CELL_REF} case has a lower {name}{suffix}."
+    return f"Only {_pct_half_up(pct)}% of {_CELL_REF} cases have a lower {name}{suffix}."
 
 
 def _retrieval_sentence(f: Mapping[str, Any], cfg: Mapping[str, Any]) -> str:
     d = f["data"]
-    verb = "shares" if int(d["agree"]) == 1 else "share"
-    return (f"{int(d['agree'])} of {int(d['of'])} most similar reference cases {verb} the suggested category "
-            f"({_class_label(cfg, d['label'])}).")
+    agree, of, label = int(d["agree"]), int(d["of"]), _class_label(cfg, d["label"])
+    if agree == 0:
+        return f"None of the {of} most similar reference cases shares the suggested category ({label})."
+    if agree == of and of > 1:
+        return f"All {of} most similar reference cases share the suggested category ({label})."
+    verb = "shares" if agree == 1 else "share"
+    return f"{agree} of the {of} most similar reference cases {verb} the suggested category ({label})."
 
 
 def _quality_sentence(f: Mapping[str, Any]) -> tuple[str, bool]:
@@ -754,8 +860,8 @@ def _quality_sentence(f: Mapping[str, Any]) -> tuple[str, bool]:
         return (f"Only {int(kept)} tissue {noun} passed quality control (fewer than {int(minimum)}), so this read "
                 f"rests on little tissue.", True)
     if d["reliability_flag"]:
-        return ("The reliability check flagged this read (image quality or an unusual appearance), so its confidence "
-                "is reduced.", True)
+        return ("The reliability check flagged this read (image quality or an unusual appearance), so its "
+                "probabilities should be interpreted with caution.", True)
     return "The reliability check raised no image-quality concern.", False
 
 
@@ -774,7 +880,8 @@ def _margin_sentence(f: Mapping[str, Any]) -> str:
 
 def _candidates(by_kind: Mapping[str, Sequence[Mapping[str, Any]]], cfg: Mapping[str, Any],
                 ups: Sequence[Mapping[str, Any]], downs: Sequence[Mapping[str, Any]],
-                caveat: Sequence[Mapping[str, Any]]) -> list[tuple[float, str, dict[str, Any]]]:
+                caveat: Sequence[Mapping[str, Any]], top_p: float | None = None
+                ) -> list[tuple[float, str, dict[str, Any]]]:
     """(priority, narrative slot, sentence) for every possible template sentence."""
     candidates: list[tuple[float, str, dict[str, Any]]] = []
 
@@ -782,7 +889,7 @@ def _candidates(by_kind: Mapping[str, Sequence[Mapping[str, Any]]], cfg: Mapping
         candidates.append((priority, slot, {"text": text, "findings": [c["id"] for c in cited]}))
 
     for f in by_kind.get("prediction", [])[:1]:
-        add(0, "prediction", _prediction_sentence(f, cfg), [f])
+        add(0, "prediction", _prediction_sentence(f, cfg, top_p), [f])
     for f in by_kind.get("margin", [])[:1]:
         add(1, "margin", _margin_sentence(f), [f])
     if ups:
@@ -804,8 +911,11 @@ def _candidates(by_kind: Mapping[str, Sequence[Mapping[str, Any]]], cfg: Mapping
     return candidates
 
 
-def template(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]) -> list[dict[str, Any]]:
-    """Deterministic grounded sentences from the findings alone (<= summary.max_sentences)."""
+def template(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any], *, top_p: float | None = None
+             ) -> list[dict[str, Any]]:
+    """Deterministic grounded sentences from the findings alone (<= summary.max_sentences). top_p: the suggested
+    class's probability as the case stores it (prediction.probs, the value the UI rounds), so the quoted percent matches
+    the UI; it must round to the prediction finding's p. Default: that p (three decimals)."""
     by_kind: dict[str, list[Mapping[str, Any]]] = {}
     for f in findings:
         by_kind.setdefault(f["kind"], []).append(f)
@@ -822,13 +932,14 @@ def template(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]) -> l
     caveat = ([f for f in ups if not _reliable(f)] if "concept_up" in named else []) + \
              ([f for f in downs if not _reliable(f)] if "concept_down" in named else [])
     chosen = choose(_candidates(by_kind, cfg, [f for f in ups if _reliable(f)], [f for f in downs if _reliable(f)],
-                                caveat))
+                                caveat, top_p))
     chosen.sort(key=lambda c: (NARRATIVE.index(c[1]), c[0]))
     return [c[2] for c in chosen]
 
 
-def template_summary(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]) -> dict[str, Any]:
-    return {"generator": cfg["summary"]["template_generator"], "sentences": template(findings, cfg)}
+def template_summary(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any], *, top_p: float | None = None
+                     ) -> dict[str, Any]:
+    return {"generator": cfg["summary"]["template_generator"], "sentences": template(findings, cfg, top_p=top_p)}
 
 
 # ---- LLM path -------------------------------------------------------------------------------------------------------
@@ -840,41 +951,47 @@ SYSTEM_PROMPT = (
     "2. Every sentence lists the IDs of the findings it uses in its \"findings\" array, and only those findings. "
     "Never write finding IDs (F1, F2 ...) inside the text itself.\n"
     "3. Use only numbers that appear in the cited findings, written as digits and rounded for reading: probabilities "
-    "as a whole percent (72%) or two decimals (0.72), other measurements to at most two decimals, densities and "
-    "counts as whole numbers. Describe concept values and contributions in words rather than quoting them; never "
-    "quote reliability or ood_percentile.\n"
+    "as a whole percent (72%; '>99%' or '<1%' at the ends, never 100% or 0%), other measurements to at most two "
+    "decimals, densities and counts as whole numbers. Describe concept values and contributions in words rather than "
+    "quoting them; never quote reliability or ood_percentile.\n"
     "4. Order: first the suggested category (the prediction's top class, e.g. 'In situ carcinoma is suggested' or 'A "
     "benign lesion is suggested') and each OTHER class in the confidence set as 'cannot be excluded' (never the "
     "suggested class itself, never a class outside the set; an empty set, or a set without the top class, means the "
-    "read is uncertain); then the concept features that move the read most; then context (a quality concern, "
+    "read is uncertain); then the concept features with the largest contributions; then context (a quality concern, "
     "similar reference cases, cells, the margin).\n"
     "5. Never state a diagnosis as fact: say 'suggested', 'cannot be excluded'. Never claim a feature causes "
     "anything. Never mention a grade.\n"
-    "6. Concept findings measure the likelihood of invasive carcinoma only, never support for the suggested category. "
-    "'level' compares this case with training cases: above_typical = prominent, typical = typical, below_typical = "
-    "scarce. 'contribution' > 0 pushes the read toward invasive carcinoma, < 0 away from it. Name that direction, "
-    "e.g. 'Prominent tumor infiltrating stroma pushes the read toward invasive carcinoma.', 'Scarce normal lobules "
-    "push the read toward invasive carcinoma.', 'Prominent gland / tubule formation is associated with a lower "
-    "likelihood of invasive carcinoma.' Never write 'associated with this finding', 'this result', 'this category', "
-    "'supports the result' or 'the strongest feature'. When a label already holds a quantity word (Frequent mitotic "
-    "figures, Dense lymphocytic infiltrate, Marked nuclear pleomorphism), drop that word: 'frequent mitotic figures' "
-    "when prominent, 'scarce mitotic figures' when scarce, never 'scarce frequent mitotic figures'.\n"
-    "7. Similar reference cases: quote both numbers, e.g. '1 of 5 most similar reference cases shares the suggested "
-    "category'. Never say the case resembles reference cases of a class unless most of them share it.\n"
-    "8. Cell findings: compare with benign reference cases using ref_percentile, e.g. 'Tumor cell fraction is higher "
-    "than in 97% of benign reference cases' (ref_percentile >= 0.5) or 'Only 4% of benign reference cases have a "
-    "lower nuclear size' (ref_percentile < 0.5; when that rounds to 0%, say 'no benign reference case has a lower "
-    "nuclear size'). Never present a cell measurement as support for the suggested category.\n"
+    "6. Concept findings come from a separate concept model (feature scores), not from the classifier that made the "
+    "suggestion: 'contribution' is the feature's term in the concept model's score for invasive carcinoma (> 0 "
+    "toward, < 0 away from it), never support for the suggested category and never a push on this read or its "
+    "probability. Write each as an association in the concept model and name the direction, e.g. 'Prominent tumor "
+    "infiltrating stroma is associated with invasive carcinoma in the concept model.', 'Scarce normal lobules are "
+    "associated with invasive carcinoma in the concept model.', 'Prominent gland / tubule formation is associated with "
+    "a lower likelihood of invasive carcinoma in the concept model.' 'level' compares this case with training cases: "
+    "above_typical = prominent, typical = typical, below_typical = scarce. Never write 'associated with this finding', "
+    "'this result', 'this category', 'supports the result' or 'the strongest feature'. When a label already holds a "
+    "quantity word (Frequent mitotic figures, Dense lymphocytic infiltrate, Marked nuclear pleomorphism), drop that "
+    "word: 'frequent mitotic figures' when prominent, 'scarce mitotic figures' when scarce, never 'scarce frequent "
+    "mitotic figures'.\n"
+    "7. Similar reference cases: quote both numbers, e.g. '1 of the 5 most similar reference cases shares the "
+    "suggested category'. Never say the case resembles reference cases of a class unless most of them share it.\n"
+    "8. Cell findings: compare with benign or normal reference cases using ref_percentile, e.g. 'Tumor cell fraction "
+    "is higher than in 97% of benign or normal reference cases' (ref_percentile >= 0.5) or 'Only 4% of benign or "
+    "normal reference cases have a lower nuclear size' (ref_percentile < 0.5); when it rounds to 100% or 0%, say 'no "
+    "benign or normal reference case has a higher (or lower) nuclear size'. Never present a cell measurement as "
+    "support for the suggested category.\n"
     "9. Surgical cases are simulated frozen sections. Write the margin finding as 'Suggested margin call (simulated "
     "frozen section): ...' with its suggested_call: tumor_at_margin names every involved margin ('tumor at the "
     "superior and medial margins'); clear says 'margins clear'; defer says 'defer to permanent sections', because "
     "the reliability check flagged the read.\n"
     "10. If a quality finding has reliability_flag true, say the reliability check flagged the read, so its "
-    "confidence is reduced; if qc_tiles_kept < min_tiles_kept, say little tissue passed quality control.\n"
+    "probabilities should be interpreted with caution; if qc_tiles_kept < min_tiles_kept, say little tissue passed "
+    "quality control.\n"
     "11. A concept finding with reliable false failed its AI spot check (spotcheck = acceptable of reviewed top "
-    "regions): never give it as a reason or cite it with other concepts. If you mention it, write one sentence citing "
-    "only such findings, e.g. 'Frequent mitotic figures pushed this read toward invasive carcinoma but failed its AI "
-    "spot check (0/20 regions acceptable), so it is not given as a reason.'\n"
+    "regions): its score may not show the feature, so never describe the tissue with it, give it as a reason, name "
+    "its direction or cite it with other concepts. If you mention it, write one sentence citing only such findings, "
+    "e.g. 'The score for frequent mitotic figures was above typical in this case, but the feature failed its AI spot "
+    "check (0/20 regions acceptable), so it is not given as a reason.'\n"
     'Answer with JSON only: {{"sentences": [{{"text": "...", "findings": ["F1"]}}]}}'
 )
 
@@ -921,17 +1038,17 @@ def parse_reply(content: str | None) -> Any:
     return data
 
 
-def generate(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any], *, client: Any = None
-             ) -> tuple[dict[str, Any], dict[str, Any]]:
+def generate(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any], *, client: Any = None,
+             top_p: float | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
     """Contract `summary` block plus info {generator, path, reason, llm_calls, cached, dropped, findings_hash}.
 
     client=None (default) => template, zero LLM calls. With a agent.lumen.LumenClient: one findings-only call (or a
     cache hit); fewer than summary.min_valid_sentences valid sentences, a missing key, a spent budget or any error
-    => the template, with the reason recorded.
+    => the template, with the reason recorded. top_p: as in template() (template sentences only; never sent).
     """
     info: dict[str, Any] = {"findings_hash": findings_hash(findings), "llm_calls": 0, "cached": False, "dropped": []}
     if client is None:
-        return template_summary(findings, cfg), {**info, "generator": "template", "path": "template",
+        return template_summary(findings, cfg, top_p=top_p), {**info, "generator": "template", "path": "template",
                                                  "reason": "llm disabled"}
     from agent.lumen import LumenError
 
@@ -942,17 +1059,17 @@ def generate(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any], *, c
         sentences = parse_reply(reply["content"])
     except (LumenError, ValueError) as exc:
         info["llm_calls"] = client.calls - calls_before
-        return template_summary(findings, cfg), {**info, "generator": "template", "path": "template",
+        return template_summary(findings, cfg, top_p=top_p), {**info, "generator": "template", "path": "template",
                                                  "reason": f"{type(exc).__name__}: {exc}"}
     info["llm_calls"] = client.calls - calls_before
     info["cached"] = bool(reply.get("cached"))
     kept, dropped = validate(sentences, findings, cfg)
     info["dropped"] = dropped
     if len(kept) < int(cfg["summary"]["min_valid_sentences"]):
-        return template_summary(findings, cfg), {**info, "generator": "template", "path": "template",
+        return template_summary(findings, cfg, top_p=top_p), {**info, "generator": "template", "path": "template",
                                                  "reason": f"only {len(kept)} valid sentences"}
     kept = [{**k, "text": strip_inline_ids(k["text"])} for k in kept]
-    kept, added = ensure_required(kept, findings, cfg)
+    kept, added = ensure_required(kept, findings, cfg, top_p=top_p)
     info["template_sentences"] = added
     generator = f"lumen:{reply['model']}" + ("+template" if added else "")
     return {"generator": generator, "sentences": kept}, {**info, "generator": generator, "path": "llm", "reason": ""}
