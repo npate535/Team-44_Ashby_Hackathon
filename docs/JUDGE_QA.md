@@ -153,7 +153,7 @@ An AI, not a pathologist. Claude Opus 5.5 reviewed the 20 top-scoring test regio
 Source: `spotcheck.json` (`reviewer_kind: ai`); `core/contract.py`.
 
 **30. Does the reliability flag catch errors?**
-Partly. Its error AUROC is 0.69 [0.58, 0.87]. It catches 42% of test errors, against an 80% design target and 87% on the calibration data it was fit on. Its out-of-distribution and CONCH–MUSK parts do not predict errors on test (AUROC 0.46 and 0.49); set size carries the signal. At the pre-registered 20% deferral, plain top-class probability did better (91.3% vs 89.8% kept accuracy).
+Partly. Its error AUROC is 0.69 [0.58, 0.87]. It catches 42% of test errors, against an 80% design target and 87% on the calibration data it was fit on. Its out-of-distribution and second-model (MUSK) parts do not predict errors on test (AUROC 0.46 and 0.49); set size carries the signal. At the pre-registered 20% deferral, plain top-class probability did better (91.3% vs 89.8% kept accuracy).
 Source: `reliability.json` `error_recall_test`, `feature_auroc_test`; `artifacts/eval/deferral.json`; `docs/RESULTS.md` §Deferral.
 
 **31. What does the "window of five" mean?** (asked)

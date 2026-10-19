@@ -7,7 +7,7 @@ model more accurate. The work is pre-registered and reported in [ACCURACY_ROUND2
 
 - **Laptop, no GPU:** train-only cross-validation showed that larger 512-px regions beat the 256-px tiles for UNI2-h.
   The pre-registered rule adopted `uni2h512_lr`. Test macro-F1 rose from 0.830 to 0.860 (balanced accuracy 0.835 to
-  0.871), now above the published UNI2-h probe (84.7).
+  0.871). The published UNI2-h probe's 84.7 lies inside our interval [67.8, 92.8], under a different protocol.
 - **Delta GPU (A100, `bfqi-delta-gpu` / `gpuA100x4`), through the guarded `submit.sh`:**
   - Job 22988201: a LoRA fine-tune of UNI2-h, trained fold by fold on round 1's CV folds (train split only).
   - Job 22988274: the final fine-tuned model on all 218 train images, plus calibration/test predictions.
@@ -22,8 +22,8 @@ model more accurate. The work is pre-registered and reported in [ACCURACY_ROUND2
     frozen UNI2-h read through the identical pipeline on cross-validation.
   - **Test:** the gain did not carry over to four-class accuracy. The best fine-tune scored 0.852 vs 0.858–0.860
     macro-F1, inside overlapping CIs. Every fine-tune separates invasive carcinoma perfectly (AUROC 1.000 vs 0.999).
-  - **Production:** stays the 512-px probe, `uni2h512_lr`, at 86.0 macro-F1 against the published UNI2-h probe's
-    84.7.
+  - **Production:** stays the 512-px probe, `uni2h512_lr`, at 86.0 macro-F1 [67.8, 92.8]. The published UNI2-h
+    probe's 84.7 lies inside that interval, under a different protocol.
 - **Measured GPU use (`sacct`):**
   - Fine-tuning: 133.8 A100-minutes over five jobs (22988201, 22988274, 22988986, 22989463, 22989465).
   - Event total: about 4.1 A100-hours of the 10 personal GPU-hours.
@@ -54,8 +54,9 @@ GPU-hours and the remaining allocation balance are **unverified**. To confirm, l
 - **They shut down today at 6 PM CDT.**
 
 ### Lumen
-- Used for case summaries with `gemma-4-31b-it`: 656 replies generated across prompt revisions, 328 (one per case)
-  used and cached in `data/llm_cache/`. The app makes no live Lumen calls.
+- Tried for case summaries with `gemma-4-31b-it` (656 replies across prompt revisions, cached in `data/llm_cache/`).
+  The shipped summaries are written by the deterministic template instead (`backend/summary.py`); the app makes no
+  live Lumen calls.
 
 ### Shared datasets
 | Dataset | Used? | How |

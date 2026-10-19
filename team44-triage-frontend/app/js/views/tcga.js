@@ -85,6 +85,18 @@ function keepRanges(html) {
   return html.replace(/(\S+–\S+)/g, '<span class="tcga-nw">$1</span>');
 }
 
+// Frozen normal slides (ids <patient>_frozen_normal_<field>) with at least one field in tier 1 or 2.
+function normalTierCount(idx) {
+  const slides = new Map();
+  for (const it of (idx && idx.items) || []) {
+    const m = /^(.+_frozen_normal)_\d+$/.exec(String(it.case_id || ''));
+    if (m) slides.set(m[1], Math.min(slides.get(m[1]) ?? 9, Number(it.tier) || 4));
+  }
+  if (!slides.size) return null;
+  const k = [...slides.values()].filter((t) => t <= 2).length;
+  return { est: `${k} of ${slides.size}`, sub: `${pct1(k / slides.size)} of frozen normal slides; counted from the fields below` };
+}
+
 function statRow(label, { est, sub }, testid) {
   return (
     `<div${testid ? ` data-testid="${esc(testid)}"` : ''}><dt>${esc(label)}</dt>` +
@@ -227,6 +239,9 @@ function story(ST, idx) {
         (${esc(pct1(gap.ffpe))} vs ${esc(pct1(gap.frozen))}); a point estimate only${overlap ? ', and the two 95% intervals overlap' : ''}.</p>`
     : '';
 
+  // The cost side of the tier rate: normal slides that would still be escalated (counted from the specimen list).
+  const normalTier = normalTierCount(idx);
+
   const tcgaCard = `<section class="tcga-panel" data-testid="tcga-external">
       <h3>TCGA external (unchanged probe)</h3>
       <p class="tcga-panel-note">Out-of-domain · slide-level calls · not the same metric as BACH accuracy ·
@@ -237,6 +252,7 @@ function story(ST, idx) {
         ${statRow('Frozen tumor vs normal AUROC', aurocStat(disc.auroc, nTumor, nNormal), 'tcga-auroc')}
         ${statRow('Frozen normal specificity', shareStat(disc.specificity, { unit: 'slides', trueN: nNormal }), 'tcga-spec')}
         ${p.tumor_tier_1_2_rate ? statRow('Tumor slides with a field in tiers 1–2', shareStat(p.tumor_tier_1_2_rate, { unit: 'slides' })) : ''}
+        ${normalTier ? statRow('Frozen normal slides with a field in tiers 1–2', normalTier, 'tcga-normal-tier') : ''}
       </dl>
       ${gapNote}
       <p class="mx-pop tcga-src" data-testid="tcga-cohort">${cohort ? `${esc(cohort)} · ` : ''}Source: <code>eval/external_tcga.json</code></p>
@@ -245,8 +261,8 @@ function story(ST, idx) {
   const compareNote = `<p class="tcga-compare-note" role="note" data-testid="tcga-compare-note">
     <b>How to read this.</b> BACH “accuracy” is four-class image classification on the same dataset family the
     model saw in training. TCGA “sensitivity” is whether a never-seen tumor <em>slide</em> gets at least one
-    field called Invasive; specificity is whether a normal slide gets none. A drop on external data is expected
-    and is the finding — not a reason to retrain on TCGA for this demo.
+    field called Invasive; specificity is whether a normal slide gets none. Lower values on external tissue are
+    expected, and with this small cohort the TCGA intervals are wide.
   </p>`;
 
   const limits = lim
