@@ -24,7 +24,7 @@ from eval.figures import ci_blocks
 
 STEP = "eval_results_md"
 OWN = ("qc", "metrics", "calibration", "conformal", "conformal_resplit", "thunder", "queue_sim", "deferral",
-       "margin")
+       "margin", "external_tcga")
 FOREIGN = ("model_choice", "concepts", "concepts_bach", "zeroshot", "reliability", "retrieval", "deletion", "cells",
            "finetune", "spotcheck", "tile_contrib")
 
@@ -189,13 +189,20 @@ def section_qc(q: Mapping[str, Any]) -> list[str]:
             "needed; steps 04-08 and the evaluation were re-run.", ""]
 
 
-def section_thunder(t: Mapping[str, Any]) -> list[str]:
+def hidden_models(present: Mapping[str, Any]) -> set[str]:
+    """Models evaluated but not used in Sepia (eval/finetune.json `models`), never the production model: the same
+    rule as the app's evaluation page. Their numbers stay in eval/finetune.json and are not presented here."""
+    production = (present.get("model_choice") or {}).get("production")
+    return {str(m) for m in (present.get("finetune") or {}).get("models") or []} - {production}
+
+
+def section_thunder(t: Mapping[str, Any], hidden: set[str] | frozenset[str] = frozenset()) -> list[str]:
     out = ["## Benchmark anchor (THUNDER split)", "", f"Source: `eval/thunder.json` · **{t['label']}** · {t['source']}.",
            "", "| Model | Macro-F1 (%) | Balanced accuracy (%) |", "|---|---|---|"]
     for kind, title in (("linear_probe", "published linear probe"), ("zero_shot", "published zero-shot")):
         for name, v in t["published"][kind].items():
             out.append(f"| {title} · {name} | {v:.1f} (no CI) | — |")
-    for row in t["ours"]:
+    for row in (r for r in t["ours"] if r["model"] not in hidden):
         mf, ba = row["macro_f1"] or {}, row["balanced_accuracy"] or {}
         f = lambda b: "n/a" if b.get("estimate") is None else (                                         # noqa: E731
             f"{b['estimate']:.1f}" + (f" [{b['lo']:.1f}, {b['hi']:.1f}]" if b.get("lo") is not None else ""))
@@ -290,6 +297,131 @@ def section_margin(m: Mapping[str, Any]) -> list[str]:
         out += [f"- Annotated WSI windows ({w['n_windows']}, {w['n_patients']} patients): sensitivity "
                 f"{fmt(w['sensitivity'], pct=True)}, specificity {fmt(w['specificity'], pct=True)}."]
     return out + [""] + [f"- {n}" for n in m["notes"]] + [""]
+
+
+TCGA_ROWS = (("FFPE tumor slides called invasive (sensitivity)", ("ffpe_tumor_sensitivity",)),
+             ("Frozen tumor slides called invasive (sensitivity)", ("frozen_tumor_sensitivity",)),
+             ("Frozen normal slides not called invasive (specificity)", ("frozen_tumor_vs_normal", "specificity")),
+             ("Frozen tumor vs frozen normal, AUROC of the slide score", ("frozen_tumor_vs_normal", "auroc")),
+             ("Tumor slides with a crop in tier 1–2", ("tumor_tier_1_2_rate",)))
+
+
+def _get(d: Mapping[str, Any] | None, path: Sequence[str]) -> Any:
+    for key in path:
+        d = (d or {}).get(key)
+    return d
+
+
+def _tcga_cell(block: Mapping[str, Any] | None, auroc: bool) -> str:
+    return fmt(block) if auroc else fmt(block, pct=True)
+
+
+def section_external_tcga(d: Mapping[str, Any]) -> list[str]:
+    """TCGA-BRCA external test of the production model: protocol25 (top level) and same8 (cohorts.same8), BACH vs
+    TCGA, sensitivity analysis S1, parity, tile equivalence and latency, all quoted from eval/external_tcga.json.
+    S2 and S3 stay in the JSON."""
+    rec = d.get("recipe") or {}
+    cohorts = {"protocol25": d, **{k: v for k, v in (d.get("cohorts") or {}).items() if k == "same8"}}
+    names = [n for n in ("protocol25", "same8") if n in cohorts]
+    label = {"protocol25": "25 patients (tile-API crops)", "same8": "first 8 patients (openslide crops)"}
+    out = ["## TCGA-BRCA external test (production model)", "",
+           f"Source: `eval/external_tcga.json` · pre-registered in `{d.get('protocol')}` before the run · model "
+           f"`{d.get('model')}` (frozen UNI2-h, {d.get('n_views')} view per 512-px region, as in its BACH embeddings), "
+           f"BACH temperature {_num(float(rec.get('temperature', 0)), 3)}, APS q-hat "
+           f"{_num(float(rec.get('qhat_aps', 0)), 3)} (alpha {rec.get('alpha')}) with randomized sets as in the app, "
+           "unchanged tier rule · no retraining and no threshold changes.", "",
+           "TCGA-BRCA has no benign or in situ labels. Only invasive carcinoma (Primary Tumor slides) and normal "
+           "tissue (Solid Tissue Normal slides, frozen) are tested, and labels are per slide, not per crop. A "
+           "slide's score is the maximum calibrated P(Invasive) over its crops (up to 6 random tissue-rich fields); "
+           "a slide is called invasive when any crop's top class is Invasive. Intervals: 95% bootstrap over patients. "
+           "The reliability flag and the OOD percentile are not computed (CONCH and MUSK are not on this laptop), "
+           "so `reliability_flag` is false for every crop.", ""]
+    out += ["| Analysis | " + " | ".join(label[n] for n in names) + " |", "|---|" + "---|" * len(names)]
+    for text, path in TCGA_ROWS:
+        out.append(f"| {text} | " + " | ".join(_tcga_cell(_get(cohorts[n].get("primary"), path), "auroc" in path)
+                                              for n in names) + " |")
+    gaps = []
+    for n in names:
+        g = _get(cohorts[n].get("primary"), ("ffpe_vs_frozen_tumor_sensitivity_gap", "estimate"))
+        gaps.append("n/a" if g is None else f"{_num(100 * g, 1)} points")
+    out.append("| FFPE minus frozen tumor sensitivity | " + " | ".join(gaps) + " |")
+    out.append("| Patients / slides / crops | " + " | ".join(
+        f"{cohorts[n]['n_patients']} / {cohorts[n]['n_slides']} / {cohorts[n]['n_crops']}" for n in names) + " |")
+    for n in names:
+        c = cohorts[n]
+        notes = []
+        if c.get("slides_without_crops"):
+            notes.append("no tissue-rich field: " + ", ".join(f"{s['patient_id']} {s['group']}"
+                                                            for s in c["slides_without_crops"]))
+        if c.get("slides_short_crops"):
+            notes.append("fewer than 6 crops: " + ", ".join(f"{s['patient_id']} {s['group']} ({s['n_crops']})"
+                                                         for s in c["slides_short_crops"]))
+        if c.get("failed_crops"):
+            notes.append(f"{len(c['failed_crops'])} crops failed to score")
+        if notes:
+            out += ["", f"{label[n][0].upper()}{label[n][1:]}: " + "; ".join(notes) + "."]
+
+    b = d.get("bach_reference") or {}
+    if b:
+        p = d.get("primary") or {}
+        rows = (("Invasive / tumor called invasive", b.get("invasive_sensitivity_patient_bootstrap")
+                 or b.get("invasive_sensitivity"),
+                 "FFPE " + fmt(p.get("ffpe_tumor_sensitivity"), pct=True) + "; frozen "
+                 + fmt(p.get("frozen_tumor_sensitivity"), pct=True)),
+                ("Normal not called invasive", b.get("normal_specificity"),
+                 fmt(_get(p, ("frozen_tumor_vs_normal", "specificity")), pct=True)),
+                ("Invasive vs normal AUROC", b.get("invasive_vs_normal_auroc"),
+                 fmt(_get(p, ("frozen_tumor_vs_normal", "auroc")))),
+                ("Invasive / tumor in tier 1–2", b.get("invasive_tier_1_2_rate"),
+                 fmt(p.get("tumor_tier_1_2_rate"), pct=True)))
+        out += ["", "### BACH test vs TCGA (25 patients)", "",
+                f"BACH: {b.get('n_images')} held-out test images (unit: {b.get('unit')}); TCGA: slides, with frozen "
+                "normal slides as the normal comparator. The units differ, so the comparison is indicative.", "",
+                "| Statistic | BACH test | TCGA |", "|---|---|---|"]
+        for text, bach, tcga in rows:
+            auroc = "AUROC" in text
+            out.append(f"| {text} | {fmt(bach) if auroc else fmt(bach, pct=True)} | {tcga} |")
+        flag = _get(b, ("reliability_flag_rate_clean", "estimate"))
+        out.append(f"| Reliability flag rate | {'n/a' if flag is None else _num(100 * flag, 1, '%')} (clean test) | "
+                   "not computed |")
+
+    out += ["", "### Pre-registered sensitivity analysis S1: slides with exactly 6 crops", "",
+            "| Analysis | " + " | ".join(label[n] for n in names) + " |", "|---|" + "---|" * len(names)]
+    for text, path in TCGA_ROWS:
+        out.append(f"| {text} | " + " | ".join(
+            _tcga_cell(_get(cohorts[n].get("sensitivity_s1_six_crop_slides"), path), "auroc" in path)
+            for n in names) + " |")
+    out.append("| Slides analysed | " + " | ".join(
+        str(_get(cohorts[n], ("sensitivity_s1_six_crop_slides", "n_slides"))) for n in names) + " |")
+
+    out += ["", "### Checks behind the run", ""]
+    par = d.get("parity") or {}
+    if par:
+        out.append(f"- Parity gate ({par.get('image_source')}): {len(par.get('images', []))} BACH test images "
+                   f"embedded on the laptop match the stored Delta embeddings with region cosine ≥ "
+                   f"{_num(float(par['region_cosine_min']), 5)} (mean {_num(float(par['region_cosine_mean']), 5)}); "
+                   f"calibrated probabilities differ from `predictions.csv` by at most "
+                   f"{_num(float(par['max_abs_prob_diff']), 4)}; pass = {par.get('pass')}.")
+    te = d.get("tile_equivalence") or {}
+    if te:
+        out.append(f"- Tile source: re-extracting {te.get('n_crops_compared')} openslide crops from their manifest "
+                   f"coordinates through the GDC tile API gave a mean absolute pixel difference of at most "
+                   f"{te.get('mad_max')} (0–255 units). The tile path picked the same fields of view on "
+                   f"{te.get('n_slides_picks_identical')} of {te.get('n_slides')} slides; decision: {te.get('decision')}.")
+        diag = te.get("thumbnail_diagnostic") or {}
+        if diag:
+            out.append(f"- Why picks can differ (one slide downloaded and checked): {diag.get('explanation')}")
+    lat = d.get("latency_s_per_image") or {}
+    e2e = lat.get("end_to_end_s") or {}
+    if e2e.get("median") is not None:
+        emb = lat.get("embedding_only_s") or {}
+        out.append(f"- Latency per 2048 × 1536 crop ({lat.get('hardware')}): median {_num(e2e['median'], 2)} s "
+                   f"(IQR {_num(e2e['p25'], 2)}–{_num(e2e['p75'], 2)} s, n {e2e['n']}, first "
+                   f"{lat.get('warmup_excluded')} excluded); embedding alone median {_num(emb['median'], 2)} s. "
+                   "Single fields, not whole slides.")
+    if d.get("limitations"):
+        out += ["", "Limitations of this test:", ""] + [f"- {x}" for x in d["limitations"]]
+    return out + [""]
 
 
 def section_foreign(name: str, data: Mapping[str, Any]) -> list[str]:
@@ -411,11 +543,13 @@ def build(art: Path, cfg: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
     renderers = {"qc": section_qc, "metrics": section_metrics, "calibration": section_calibration, "conformal": section_conformal,
                  "conformal_resplit": section_conformal_resplit,
                  "thunder": section_thunder, "queue_sim": section_queue, "margin": section_margin,
-                 "deferral": section_deferral}
+                 "deferral": section_deferral, "external_tcga": section_external_tcga}
+    hidden = hidden_models(present)
+    renderers["thunder"] = lambda t: section_thunder(t, hidden)
     for name in OWN:
         if name in present:
             lines += renderers[name](present[name])
-    foreign = [n for n in FOREIGN if n in present and n not in ("spotcheck", "tile_contrib")]
+    foreign = [n for n in FOREIGN if n in present and n not in ("spotcheck", "tile_contrib", "finetune")]
     if foreign:
         lines += ["## Other evaluations (concepts, reliability, retrieval, deletion, cells)", ""]
         for name in foreign:

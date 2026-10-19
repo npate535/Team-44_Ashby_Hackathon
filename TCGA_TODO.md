@@ -1,5 +1,7 @@
 # External test on TCGA-BRCA — protocol
 
+> Round 1 scored a model that is not used in Sepia; superseded by docs/EXTERNAL_TCGA_R2.md.
+
 Write this down **before** running the model on the TCGA crops, and don't change it after.
 Commit this file with the date before the first run.
 
