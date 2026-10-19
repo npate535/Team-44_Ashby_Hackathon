@@ -19,6 +19,7 @@ from __future__ import annotations
 import datetime
 import json
 import logging
+import math
 import mimetypes
 import os
 import re
@@ -228,7 +229,8 @@ class Backend:
         return {"kind": "biopsy", "clock": "sim", "elapsed_s": elapsed, "target_s": target,
                 "state": "stopped" if row["done_sim_s"] is not None else "none"}
 
-    def runtime(self, row: Mapping[str, Any], case: Mapping[str, Any], wall: float, sim: float) -> dict[str, Any]:
+    def runtime(self, row: Mapping[str, Any], case: Mapping[str, Any], wall: float, sim: float,
+                rooms: Mapping[str, str] | None = None) -> dict[str, Any]:
         tier, reasons = tiers.assign_tier(self._effective(row, case), self.cfg, now=sim)
         call = json.loads(row["margin_call_json"]) if row["margin_call_json"] else None
         return {
@@ -245,11 +247,37 @@ class Backend:
             },
             "done": db.is_done(row),
             "allowed_actions": db.allowed_actions(row),
-            "or_room": self.or_room(row["case_id"]) if row["lane"] == "surgical" else None,
+            "or_room": self.or_room(row["case_id"], rooms) if row["lane"] == "surgical" else None,
         }
 
-    def or_room(self, case_id: str) -> str:
-        return f"OR-{zlib.crc32(case_id.encode('utf-8')) % self.or_rooms + 1}"
+    def or_room_map(self) -> dict[str, str]:
+        """Simulated operating room of every arrived frozen section.
+
+        Each arrival goes to the room with the fewest frozen sections still awaiting a call at that moment (ties: the
+        room used longest ago, then the lowest number), so successive injections fill OR-1..OR-n before any room holds
+        two. Derived from arrival and call times only: a case keeps its room as later cases arrive, across restarts.
+        """
+        names = [f"OR-{i + 1}" for i in range(self.or_rooms)]
+        open_calls: dict[str, list[float]] = {n: [] for n in names}   # call time (inf = still open) per room
+        last_used = {n: -1 for n in names}
+        out: dict[str, str] = {}
+        rows = sorted(self.store.rows(lane="surgical"), key=lambda r: (r["arrived_wall"] or 0.0, r["case_id"]))
+        for k, row in enumerate(rows):
+            arrived = row["arrived_wall"] or 0.0
+            for n in names:
+                open_calls[n] = [t for t in open_calls[n] if t > arrived]
+            room = min(names, key=lambda n: (len(open_calls[n]), last_used[n], names.index(n)))
+            called = row["margin_called_wall"]
+            open_calls[room].append(math.inf if called is None else float(called))
+            last_used[room] = k
+            out[row["case_id"]] = room
+        return out
+
+    def or_room(self, case_id: str, rooms: Mapping[str, str] | None = None) -> str:
+        """The room of one frozen section (pass a precomputed or_room_map() when looking up many)."""
+        found = (rooms if rooms is not None else self.or_room_map()).get(case_id)
+        # not arrived (never shown on the board): a stable room from the id
+        return found or f"OR-{zlib.crc32(case_id.encode('utf-8')) % self.or_rooms + 1}"
 
     def sort_rows(self, rows: list[Any], order: str, sim: float) -> list[Any]:
         def key(row: Any) -> tuple:
@@ -266,6 +294,7 @@ class Backend:
             self.sim.tick()
             sim, wall = self.sim.sim_now(), self.sim.wall_now()
             rows = self.store.rows(lane=None if lane == "all" else lane)
+            rooms = self.or_room_map()
             items = []
             for row in self.sort_rows(rows, order, sim):
                 case = json.loads(row["public_json"])
@@ -286,7 +315,7 @@ class Backend:
                     "agent": {"status": row["agent_status"], "n_orders": len(orders),
                               "orders_drafted": row["agent_status"] == "drafted",
                               "blocked": len(case["agent"].get("blocked") or [])},
-                    "runtime": self.runtime(row, case, wall, sim),
+                    "runtime": self.runtime(row, case, wall, sim, rooms),
                 })
             return {"server_time": wall, "server_time_iso": iso(wall), "sim": self.sim.status(), "order": order,
                     "lane": lane, "synthetic": self.synthetic, "items": items}
@@ -327,11 +356,12 @@ class Backend:
         with self.store.lock:
             self.sim.tick()
             out = []
+            rooms = self.or_room_map() if to_role == "surgeon" else {}
             for item in self.store.routed(to_role):
                 at = item.pop("at_wall")
                 item["at"] = iso(at)
                 if to_role == "surgeon":
-                    item["or_room"] = self.or_room(item["case_id"])
+                    item["or_room"] = self.or_room(item["case_id"], rooms)
                 row = self.store.row(item["case_id"])
                 if row is not None:
                     item["report"] = self.routed_report(row, json.loads(row["public_json"]), to_role)
@@ -360,10 +390,7 @@ class Backend:
             "arrived_at": iso(row["arrived_wall"]),
         }
         if to_role == "oncologist":
-            concepts = sorted(case.get("concepts") or [], key=lambda k: -abs(float(k.get("contribution") or 0.0)))
-            report["features"] = [{"id": k["id"], "label": k["label"], "contribution": k["contribution"],
-                                   "direction": k.get("direction"), "source": k.get("source") or "text"}
-                                  for k in concepts[:3]]
+            report.update(self.inbox_features(case))
         else:
             margin = case.get("margin") or {}
             report["margin"] = {"suggested_call": margin.get("suggested_call"), "involved": margin.get("involved") or [],
@@ -372,6 +399,43 @@ class Backend:
             degradation = case.get("degradation")
             report["degradation"] = dict(degradation) if isinstance(degradation, Mapping) else None
         return report
+
+    def inbox_features(self, case: Mapping[str, Any]) -> dict[str, Any]:
+        """Key associated features for the oncology report, from the case's own findings (step 08).
+
+        Concept findings (strongest first, |contribution| >= findings.min_abs_contribution) are listed only when their
+        AI spot check did not fail: a finding with reliable = false is withheld and named in `features_withheld`,
+        the same rule the summary follows. Measured cell findings (e.g. nuclear size against benign/normal reference
+        cases) fill the remaining places; with none of either, the tumor-cell fraction is shown when it was measured.
+        """
+        limit = int(self.cfg["findings"]["max_concepts"])
+        concepts = {k["id"]: k for k in case.get("concepts") or []}
+        findings = case.get("findings") or []
+        shown: list[dict[str, Any]] = []
+        withheld: list[dict[str, Any]] = []
+        for f in (f for f in findings if f["kind"] == "concept"):
+            d = f["data"]
+            k = concepts.get(d["concept"], {})
+            label = d.get("label") or k.get("label") or d["concept"]
+            if d.get("reliable") is False:
+                withheld.append({"id": d["concept"], "label": label, "spotcheck": d.get("spotcheck")})
+                continue
+            # value_std (SD vs training cases) lets the inbox say "below typical" for a feature that is scarce here
+            shown.append({"kind": "concept", "id": d["concept"], "label": label, "contribution": d["contribution"],
+                          "direction": d.get("direction", k.get("direction")), "source": k.get("source") or "text",
+                          "value_std": k.get("value_std"), "reliable": d.get("reliable")})
+        measured = (case.get("cells") or {}).get("features") or {}
+        names = self.cell_labels["features"]
+
+        def cell(fid: str, d: Mapping[str, Any]) -> dict[str, Any]:
+            m = measured.get(fid) or {}
+            return {"kind": "cells", "id": fid, "label": d.get("label") or names.get(fid, {}).get("label") or fid,
+                    "value": d.get("value", m.get("value")), "unit": d.get("unit", m.get("unit")),
+                    "ref_percentile": d.get("ref_percentile", m.get("ref_percentile"))}
+        shown += [cell(f["data"]["feature"], f["data"]) for f in findings if f["kind"] == "cells"]
+        if not shown and (measured.get("neo_fraction") or {}).get("value") is not None:
+            shown.append(cell("neo_fraction", measured["neo_fraction"]))
+        return {"features": shown[:limit], "features_withheld": withheld}
 
     def decide(self, case_id: str, action: str, payload: Mapping[str, Any]) -> dict[str, Any]:
         with self.store.lock:

@@ -234,9 +234,11 @@ nav button[aria-current='page'] {
 .rb[hidden] {
   display: none;
 }
-.rb:hover:not(:disabled) {
-  background: var(--sf2);
-  border-color: color-mix(in srgb, var(--ink) 25%, var(--ln));
+@media (hover: hover) {
+  .rb:hover:not(:disabled) {
+    background: var(--sf2);
+    border-color: color-mix(in srgb, var(--ink) 25%, var(--ln));
+  }
 }
 .rb.primary {
   background: var(--hema);
@@ -252,9 +254,11 @@ nav button[aria-current='page'] {
     color: #141320;
   }
 }
-.rb.primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--hema) 86%, var(--ink));
-  border-color: transparent;
+@media (hover: hover) {
+  .rb.primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--hema) 86%, var(--ink));
+    border-color: transparent;
+  }
 }
 .rb svg {
   width: 11px;
@@ -265,8 +269,10 @@ nav button[aria-current='page'] {
   color: var(--eos);
   border-color: color-mix(in srgb, var(--eos) 35%, var(--ln));
 }
-.inject .rb:hover:not(:disabled) {
-  background: var(--eosl);
+@media (hover: hover) {
+  .inject .rb:hover:not(:disabled) {
+    background: var(--eosl);
+  }
 }
 .rb:disabled {
   opacity: 0.45;
@@ -415,8 +421,10 @@ nav button[aria-current='page'] {
   padding: 5px 8px;
   border-radius: 6px;
 }
-.cb-back:hover {
-  background: var(--bl);
+@media (hover: hover) {
+  .cb-back:hover {
+    background: var(--bl);
+  }
 }
 .cb-pos {
   color: var(--mut);
@@ -578,8 +586,10 @@ nav button[aria-current='page'] {
   color: var(--ink);
   font-weight: 650;
 }
-.leg:hover {
-  background: var(--sf2);
+@media (hover: hover) {
+  .leg:hover {
+    background: var(--sf2);
+  }
 }
 .leg[aria-pressed='true'] {
   background: var(--bl);
@@ -662,9 +672,11 @@ nav button[aria-current='page'] {
 .wl-toolbar .seg button + button {
   border-left: 1px solid var(--ln);
 }
-.wl-toolbar .seg button:hover {
-  background: var(--sf2);
-  color: var(--ink);
+@media (hover: hover) {
+  .wl-toolbar .seg button:hover {
+    background: var(--sf2);
+    color: var(--ink);
+  }
 }
 .wl-toolbar .seg button[aria-pressed='true'] {
   background: var(--bl);
@@ -679,7 +691,7 @@ nav button[aria-current='page'] {
   padding: 5px 8px;
   border-radius: 6px;
   border: 1px solid var(--ln);
-  background: var(--sf);
+  background-color: var(--sf); /* not the shorthand: a global select chevron is a background-image */
   color: var(--ink);
   max-width: 220px;
 }
@@ -717,9 +729,13 @@ nav button[aria-current='page'] {
 .how summary::-webkit-details-marker {
   display: none;
 }
-.how summary:hover,
 .how[open] summary {
   background: var(--bl);
+}
+@media (hover: hover) {
+  .how summary:hover {
+    background: var(--bl);
+  }
 }
 .how-q {
   display: inline-grid;
@@ -906,8 +922,10 @@ tr.grp.g-done {
 .wl-table tr.row:last-child td {
   border-bottom: 0;
 }
-.wl-table tr.row:hover {
-  background: color-mix(in srgb, var(--bl) 45%, var(--sf));
+@media (hover: hover) {
+  .wl-table tr.row:hover {
+    background: color-mix(in srgb, var(--bl) 45%, var(--sf));
+  }
 }
 .wl-table tr.row:focus-visible {
   outline: 2px solid var(--hema);
@@ -918,8 +936,11 @@ tr.grp.g-done {
   color: var(--mut);
   background: color-mix(in srgb, var(--sf2) 70%, var(--sf));
 }
+/* done rows: a neutral badge (an opacity fade fell to 2.3:1 contrast) */
 .wl-table tr.row.done .tierno {
-  opacity: 0.55;
+  background: var(--sf2);
+  color: var(--mut);
+  border-color: var(--ln);
 }
 .wl-table tr.row.tr-1 td.c-tier {
   box-shadow: inset 3px 0 var(--eos);
@@ -1125,7 +1146,7 @@ tr.row.new {
 }
 .c-flags .none {
   font-size: 13px;
-  color: var(--ln);
+  color: var(--mut); /* --ln was 1.3:1 */
 }
 .wait b {
   font-weight: 650;
@@ -1192,12 +1213,22 @@ tr.row.new {
   color: var(--ink);
 }
 
+/* minimum 11 px text (theme.css sets 10 px chips and 9 px key hints; these selectors outrank it) */
+.wl-table td .chip {
+  font-size: 11px;
+}
+body .kbd-help,
+body .kbd-help kbd {
+  font-size: 11px;
+}
+
 /* ---- toasts ------------------------------------------------------------------------------------------------------------------ */
 .toasts {
   position: fixed;
   right: auto;
   bottom: 20px;
-  left: calc(var(--side, 212px) + 20px);
+  /* the content's left gutter (.wrap: max 1664 px, 32 px padding); there is no sidebar to clear */
+  left: max(32px, calc((100vw - 1664px) / 2 + 32px));
   transform: none;
   z-index: 60;
   display: flex;
@@ -1272,8 +1303,10 @@ tr.row.new {
   text-decoration: none;
   white-space: nowrap;
 }
-.toast-act:hover {
-  background: #ffffff26;
+@media (hover: hover) {
+  .toast-act:hover {
+    background: #ffffff26;
+  }
 }
 .toast-x {
   flex: none;
@@ -1286,9 +1319,11 @@ tr.row.new {
   height: 26px;
   border-radius: 6px;
 }
-.toast-x:hover {
-  background: #ffffff1a;
-  color: #fff;
+@media (hover: hover) {
+  .toast-x:hover {
+    background: #ffffff1a;
+    color: #fff;
+  }
 }
 
 /* ---- responsive ----------------------------------------------------------------------------------------------------------- */
@@ -1525,6 +1560,11 @@ tr.row.new {
   .wl-toolbar .search input {
     font-size: 16px;
   }
+  /* iOS zooms into any focused control under 16 px; #app outranks theme.css's 11 px .sel select */
+  #app select,
+  #app .sc-field input {
+    font-size: 16px;
+  }
   .wl-toolbar .sort {
     margin-left: 0;
   }
@@ -1599,8 +1639,11 @@ tr.row.new {
   margin-right: 6px;
   vertical-align: -1px;
 }
+/* open frozen section: a neutral ring; a sent call: a filled square in its call's colour */
 .k-busy::before {
-  background: var(--hema);
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--ink);
+  border-radius: 50%;
 }
 .k-clear::before {
   background: var(--grn);
@@ -1614,7 +1657,8 @@ tr.row.new {
 .orb-empty {
   margin: 0 0 12px;
   padding: 10px 12px;
-  border: 1px dashed var(--ln);
+  border: 1px solid var(--ln2); /* solid: the dashed outlines below are the empty rooms */
+  background: var(--sf2);
   border-radius: 8px;
   font-size: 12.5px;
   color: var(--mut);
@@ -1635,26 +1679,28 @@ tr.row.new {
   overflow: hidden;
 }
 .room.busy {
-  border-color: color-mix(in srgb, var(--hema) 45%, var(--ln));
+  border-color: color-mix(in srgb, var(--ink) 30%, var(--ln));
 }
+.room[data-tone='clear'] {
+  --tone: var(--grn);
+}
+.room[data-tone='tumor'] {
+  --tone: var(--eos);
+}
+.room[data-tone='defer'] {
+  --tone: var(--amb);
+}
+/* a call sent in the last 20 s: a steady ring in the call's colour (no pulse; it would replay on every poll) */
 .room.fresh {
-  border-color: var(--eos);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--eos) 18%, transparent);
-  animation: pq-call 1.4s ease-out 2;
-}
-@keyframes pq-call {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--eos) 45%, transparent);
-  }
-  100% {
-    box-shadow: 0 0 0 10px transparent;
-  }
+  border-color: var(--tone, var(--eos));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tone, var(--eos)) 20%, transparent);
 }
 .room-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  margin: 0; /* styles.css gives every <header> a 14 px bottom margin */
   padding: 9px 14px;
   background: var(--sf2);
   border-bottom: 1px solid var(--ln);
@@ -1666,27 +1712,49 @@ tr.row.new {
   letter-spacing: 0.2px;
 }
 .room-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   font-weight: 600;
   color: var(--mut);
 }
-.room.busy .room-state {
-  color: var(--hema);
+.room.busy .room-state,
+.room.called .room-state {
+  color: var(--ink);
+}
+.room.busy .room-state::before,
+.room.called .room-state::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--ink);
 }
 .room.called .room-state {
-  color: var(--grn);
+  color: var(--tone);
+}
+.room.called .room-state::before {
+  border-radius: 2px;
+  box-shadow: none;
+  background: var(--tone);
 }
 .or-case {
-  padding: 12px 14px 14px;
+  padding: 14px 14px 14px;
 }
 .or-case + .or-case {
   border-top: 1px solid var(--ln2);
 }
 .or-line {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 8px;
-  flex-wrap: wrap;
+}
+.or-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .or-id {
   font-size: 13.5px;
@@ -1697,13 +1765,34 @@ tr.row.new {
   color: var(--mut);
 }
 .or-new {
-  margin-left: auto;
+  flex: none;
   padding: 1px 7px;
   border-radius: 4px;
   font-size: 11px;
   font-weight: 700;
-  color: #fff;
+  color: var(--sf);
   background: var(--eos);
+}
+.or-new.tone-clear {
+  color: var(--sf);
+  background: var(--grn);
+}
+.or-new.tone-defer {
+  color: var(--sf);
+  background: var(--amb);
+}
+.or-new.tone-tumor {
+  color: var(--sf);
+}
+/* a card that was not on screen before this render (new arrival or new call) */
+.or-case.enter {
+  animation: or-enter 0.22s ease-out;
+}
+@keyframes or-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 .or-timer {
   font: 650 46px/1.1 var(--font);
@@ -1726,8 +1815,10 @@ tr.row.new {
 .or-bar i {
   display: block;
   height: 100%;
-  background: var(--hema);
-  transition: width 0.9s linear;
+  background: color-mix(in srgb, var(--ink) 55%, var(--sf));
+  transition:
+    width 0.9s linear,
+    background-color 0.2s;
 }
 .or-bar i.amber {
   background: var(--amb);
@@ -1749,7 +1840,7 @@ tr.row.new {
   margin-top: 8px;
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--hema);
+  color: var(--ink);
 }
 .or-call {
   margin: 10px 0 4px;
@@ -1804,9 +1895,19 @@ tr.row.new {
   font-weight: 600;
 }
 .or-idle {
-  padding: 22px 14px;
+  padding: 16px 14px 18px;
   font-size: 12.5px;
   color: var(--mut);
+}
+/* an empty room reads as an open slot: dashed outline, no fill */
+.room.idle {
+  background: transparent;
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--mut) 40%, var(--ln));
+}
+.room.idle .room-head {
+  background: transparent;
+  border-bottom: 1px dashed var(--ln);
 }
 .or-history {
   padding: 0 14px 12px;
@@ -1836,9 +1937,127 @@ tr.row.new {
   font-size: 11.5px;
 }
 
+/* surgical case view: the sent call keeps its call's colour (a tumor call is not a green "all good") */
+.verdict.cv-sent {
+  border-left: 4px solid;
+}
+.verdict.cv-sent.tone-clear {
+  background: var(--grnl);
+  color: var(--grn);
+}
+.verdict.cv-sent.tone-tumor {
+  background: var(--eosl);
+  color: var(--eos);
+}
+.verdict.cv-sent.tone-defer {
+  background: var(--ambl);
+  color: var(--amb);
+}
+/* margin form: two margins per row, and the Send / Confirm row stays at the bottom of the screen while the form is
+   partly below it (a 1280x720 projector shows the whole form once it opens) */
+.cv-surg .cv-pick {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px !important;
+}
+.cv-surg .cv-pick > :not(label) {
+  grid-column: 1 / -1;
+}
+.cv-surg .cv-pick .pick-u,
+.cv-surg .cv-pick .pick-n {
+  margin: 0;
+  font-size: 11.5px;
+}
+.cv-surg .cv-pick > .btns,
+.cv-surg .cv-call .cv-confirm > .btns {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 2px -10px -10px;
+  padding: 8px 10px 10px;
+  background: var(--sf);
+  border-radius: 0 0 8px 8px;
+}
+.cv-surg .cv-call .cv-confirm > .btns {
+  margin: 10px -14px -12px;
+  padding: 8px 14px 12px;
+  background: var(--ambl);
+  border-radius: 0 0 10px 10px;
+}
+@media (max-width: 560px) {
+  .cv-surg .cv-pick {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* single column (case.css orders the cards): the plain-language panel follows the summary, not above the timer */
+@media (max-width: 1150px) {
+  .cv-surg [data-testid='interpretation'] {
+    order: 5;
+  }
+}
+
+/* ---- evidence review: the recorded spot check vs this tab's own marks (base styles in metrics.css) ------------------------- */
+.sc-total-rec .sc-total-l {
+  line-height: 1.45;
+}
+.sc-total-rec .sc-bar span {
+  background: var(--grn);
+}
+.sc-mine {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--ln);
+}
+.sc-mine-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px 24px;
+}
+.sc-mine-head h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 600;
+}
+.sc-mine-head .sc-fine {
+  margin: 0;
+  max-width: 80ch;
+}
+.sc-mine-n {
+  display: grid;
+  gap: 6px;
+  min-width: 210px;
+  font-size: 12.5px;
+  color: var(--mut);
+  text-align: right;
+}
+.sc-mine-n b {
+  font-size: 15px;
+  color: var(--ink);
+}
+.sc-rec-line {
+  color: var(--ink);
+}
+ul.sc-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+ul.sc-chips li {
+  display: flex;
+}
+@media (max-width: 560px) {
+  .sc-mine-n {
+    min-width: 0;
+    width: 100%;
+    text-align: left;
+  }
+}
+
 /* ---- oncology inbox ---------------------------------------------------------------------------------------------------------- */
 .inbox {
-  max-width: 1080px;
+  max-width: 1376px; /* the page's content width at 1440 px; reports stay readable on wider screens */
 }
 .inbox-head {
   display: flex;
@@ -1869,11 +2088,16 @@ tr.row.new {
   border-color: color-mix(in srgb, var(--hema) 45%, var(--ln));
   box-shadow: inset 4px 0 var(--hema);
 }
+.rep.enter {
+  animation: or-enter 0.22s ease-out;
+}
 .rep-head {
   display: flex;
   align-items: baseline;
+  justify-content: flex-start; /* not the generic <header> space-between: phones wrap it into gaps */
   flex-wrap: wrap;
   gap: 4px 12px;
+  margin: 0;
   padding: 12px 16px 10px;
   border-bottom: 1px solid var(--ln2);
 }
@@ -1886,9 +2110,11 @@ tr.row.new {
   color: var(--ink);
   text-decoration: none;
 }
-.rep-head h2 a:hover {
-  color: var(--hema);
-  text-decoration: underline;
+@media (hover: hover) {
+  .rep-head h2 a:hover {
+    color: var(--hema);
+    text-decoration: underline;
+  }
 }
 .udot {
   width: 8px;
@@ -1987,6 +2213,9 @@ tr.row.new {
 .rep-feat .dir.up {
   color: var(--eos);
 }
+.rep-feat .lvl {
+  color: var(--mut);
+}
 .rep-orders li {
   display: flex;
   flex-wrap: wrap;
@@ -2084,8 +2313,12 @@ tr.row.new {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .room.fresh {
+  .or-case.enter,
+  .rep.enter {
     animation: none !important;
+  }
+  .or-bar i {
+    transition: none;
   }
 }
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 
 import pytest
@@ -211,6 +212,76 @@ def test_approve_then_sign_out_routes_to_oncologist(dev):
     assert row_for(wl, hero)["runtime"]["done"] and row_for(wl, hero)["runtime"]["allowed_actions"] == []
 
 
+
+def test_inbox_features_carry_the_case_level(tmp_path):
+    root = dev_root(tmp_path)
+    hero = dev_roles(root)["hero_biopsy"]
+    path = root / "cases" / f"{hero}.json"
+    case = json.loads(path.read_text())
+    for i, k in enumerate(case["concepts"]):
+        k["value_std"] = round(-1.2 + 0.4 * i, 2)       # "below typical" ... "above typical" in the case view
+    path.write_text(json.dumps(case))
+    client, clock = make_client(tmp_path, artifacts_root=root)
+    arrive_all_biopsies(client, clock)
+    assert decide(client, hero, "approve_orders").status_code == 200
+    assert decide(client, hero, "sign_out").status_code == 200
+    std = {k["id"]: k["value_std"] for k in client.get(f"/api/cases/{hero}").json()["concepts"]}
+    features = [f for f in client.get("/api/routed?to=oncologist").json()[0]["report"]["features"]
+                if f["kind"] == "concept"]
+    assert features and all(f["value_std"] == std[f["id"]] is not None for f in features)
+
+
+def _signed_out_report(tmp_path, edit):
+    """Inbox report of the hero biopsy after `edit(case)` rewrote its case file."""
+    root = dev_root(tmp_path)
+    hero = dev_roles(root)["hero_biopsy"]
+    path = root / "cases" / f"{hero}.json"
+    case = json.loads(path.read_text())
+    edit(case)
+    path.write_text(json.dumps(case))
+    client, clock = make_client(tmp_path, artifacts_root=root)
+    arrive_all_biopsies(client, clock)
+    assert decide(client, hero, "approve_orders").status_code == 200
+    assert decide(client, hero, "sign_out").status_code == 200
+    return client.get("/api/routed?to=oncologist").json()[0]["report"]
+
+
+def _spot(case, results):
+    """Give the concept findings AI spot checks: {concept: (acceptable, reviewed)}."""
+    for f in case["findings"]:
+        if f["kind"] == "concept" and f["data"]["concept"] in results:
+            ok, n = results[f["data"]["concept"]]
+            f["data"]["spotcheck"] = {"acceptable": ok, "reviewed": n}
+            f["data"]["reliable"] = contract.spotcheck_passed({"acceptable": ok, "reviewed": n})
+
+
+def test_inbox_never_lists_a_feature_that_failed_its_spot_check(tmp_path):
+    report = _signed_out_report(tmp_path, lambda c: _spot(c, {"invasion": (3, 20), "pleomorphism": (18, 20)}))
+    concepts = [f["id"] for f in report["features"] if f["kind"] == "concept"]
+    assert concepts == ["pleomorphism"]
+    assert [w["id"] for w in report["features_withheld"]] == ["invasion"]
+    assert report["features_withheld"][0]["spotcheck"] == {"acceptable": 3, "reviewed": 20}
+    cells = [f for f in report["features"] if f["kind"] == "cells"]          # measured findings fill the list
+    assert [f["id"] for f in cells] == ["nuc_area_cv"] and cells[0]["ref_percentile"] == 0.95
+    assert cells[0]["label"] == "Variation in nuclear size"
+
+
+def test_inbox_falls_back_to_measured_cells_when_every_concept_failed(tmp_path):
+    report = _signed_out_report(tmp_path, lambda c: _spot(c, {"invasion": (0, 20), "pleomorphism": (5, 20)}))
+    assert all(f["kind"] == "cells" for f in report["features"]) and report["features"]
+    assert {w["id"] for w in report["features_withheld"]} == {"invasion", "pleomorphism"}
+
+    def no_cell_findings(case):
+        _spot(case, {"invasion": (0, 20), "pleomorphism": (5, 20)})
+        gone = {f["id"] for f in case["findings"] if f["kind"] == "cells"}
+        case["findings"] = [f for f in case["findings"] if f["id"] not in gone]
+        case["summary"]["sentences"] = [x for x in case["summary"]["sentences"] if not gone & set(x["findings"])]
+        case["cells"]["features"]["neo_fraction"] = {"value": 0.42, "unit": "", "ref_percentile": 0.8,
+                                                     "contribution": None}
+    report = _signed_out_report(tmp_path / "b", no_cell_findings)
+    assert [(f["kind"], f["id"], f["label"], f["value"], f["ref_percentile"]) for f in report["features"]] == [
+        ("cells", "neo_fraction", "Tumor cell fraction", 0.42, 0.8)]
+
 def test_edit_orders_only_removes_drafted_items(dev):
     client, clock, roles, _ = dev
     arrive_all_biopsies(client, clock)
@@ -314,6 +385,47 @@ def test_margin_call_routes_to_surgeon_and_stops_timer(dev):
     assert detail["runtime"]["decision"]["margin_call"]["margins"] == ["superior"]
     types = [e["type"] for e in client.get(f"/api/cases/{surgical}/events").json()]
     assert types == ["injected", "timer_started", "routed", "margin_call", "timer_stopped"]
+
+
+
+
+
+def test_frozen_sections_fill_free_rooms_first(tmp_path):
+    root = dev_root(tmp_path)
+    cfg = copy.deepcopy(CFG)
+    cfg["sim"]["or_rooms"] = 3
+    client, clock = make_client(tmp_path, artifacts_root=root, cfg=cfg)
+    first = client.post("/api/sim/inject_surgical", json={"variant": "normal"}).json()["injected"]
+    clock.advance(5)
+    second = client.post("/api/sim/inject_surgical", json={"variant": "degraded"}).json()["injected"]
+    clock.advance(5)
+    third = client.post("/api/sim/inject_surgical", json={"variant": "composite"}).json()["injected"]
+    clock.advance(5)
+    room = lambda cid: row_for(client.get("/api/worklist").json(), cid)["runtime"]["or_room"]  # noqa: E731
+    assert [room(c) for c in (first, second, third)] == ["OR-1", "OR-2", "OR-3"]
+    # a call frees its room: the next frozen section goes there, not back to OR-1
+    assert decide(client, second, "margin_call", {"call": "clear"}).status_code == 200
+    clock.advance(5)
+    fourth = client.post("/api/sim/inject_surgical", json={"variant": "normal"}).json()["injected"]
+    assert room(fourth) == "OR-2"
+    # earlier cases keep their rooms; the surgeon board agrees with the worklist
+    assert [room(c) for c in (first, second, third)] == ["OR-1", "OR-2", "OR-3"]
+    board = {r["case_id"]: r["or_room"] for r in client.get("/api/routed?to=surgeon").json()}
+    assert board == {second: "OR-2"}
+    assert client.get(f"/api/cases/{fourth}").json()["runtime"]["or_room"] == "OR-2"
+
+
+def test_frozen_sections_share_the_least_recently_used_room_when_all_are_busy(tmp_path):
+    root = dev_root(tmp_path)
+    cfg = copy.deepcopy(CFG)
+    cfg["sim"]["or_rooms"] = 3
+    client, clock = make_client(tmp_path, artifacts_root=root, cfg=cfg)
+    injected = []
+    for name in ("normal", "degraded", "composite", "normal"):
+        injected.append(client.post("/api/sim/inject_surgical", json={"variant": name}).json()["injected"])
+        clock.advance(5)
+    wl = client.get("/api/worklist").json()
+    assert [row_for(wl, c)["runtime"]["or_room"] for c in injected] == ["OR-1", "OR-2", "OR-3", "OR-1"]
 
 
 def test_events_are_timestamped(dev):

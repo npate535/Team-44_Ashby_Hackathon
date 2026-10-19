@@ -4,6 +4,7 @@
 // The pathologist makes the call; it goes to the surgeon screen and stops the timer. Everything here is simulated.
 import { interpretPanel } from './interpret.js';
 import { CALL_TEXT, classLabel, esc, MARGINS, num, ordinalPct, toView } from '../adapter.js';
+import { CALL_TONE, joinNames } from '../flow.js';
 import { agentPanel } from './agent.js';
 import { activity, header } from './case_biopsy.js';
 import { keepOpen, pending, setRenderer } from './case_ui.js';
@@ -62,20 +63,37 @@ function reliabilityBlock(v, cfg, metrics) {
 
 function suggestedText(m) {
   if (!m) return 'No margin read';
-  if (m.call === 'tumor_at_margin')
-    return `Tumor at ${m.involved.length ? m.involved.map(cap).join(', ') : 'a'} margin${m.involved.length === 1 ? '' : 's'}`;
+  // same wording as the call that reaches the surgeon ("Tumor at superior and medial margins")
+  if (m.call === 'tumor_at_margin') return `Tumor at ${m.involved.length ? joinNames(m.involved) : 'a'} margin${m.involved.length > 1 ? 's' : ''}`;
   return SUGGESTED[m.call] || m.call;
+}
+
+// The margin form or confirmation that was open at the last render. When one opens, it is scrolled into view so its
+// Send / Confirm button is on screen on short displays (a 1280x720 projector); app.js restores the scroll position
+// after each render, so this runs on the next frame.
+let openForm = '';
+function revealForm(key) {
+  if (key && key !== openForm && typeof requestAnimationFrame !== 'undefined')
+    requestAnimationFrame(() => {
+      const el = document.querySelector('.cv-call [data-testid=margin-pick], .cv-call [data-testid=confirm-box]');
+      const still = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (el) el.scrollIntoView({ block: 'nearest', behavior: still ? 'auto' : 'smooth' });
+    });
+  openForm = key;
 }
 
 function callPanel(v, ST) {
   const m = v.margin;
   const done = v.decision.marginCall;
+  const p = pending(v.id);
+  revealForm(
+    done ? '' : ST.editing === 'margins' ? `${v.id}|pick` : p && (p.action === 'margin_clear' || p.action === 'margin_defer') ? `${v.id}|${p.action}` : ''
+  );
   if (done)
-    return `<div class="verdict" data-testid="verdict" role="status" tabindex="-1"><b>${esc(callText(done))}</b> — sent to the surgeon${done.at ? ` at ${esc(new Date(done.at).toLocaleTimeString())}` : ''}. Timer stopped.</div>`;
+    return `<div class="verdict cv-sent tone-${CALL_TONE[done.call] || 'defer'}" data-testid="verdict" role="status" tabindex="-1"><b>${esc(callText(done))}</b> — sent to the surgeon${done.at ? ` at ${esc(new Date(done.at).toLocaleTimeString())}` : ''}. Timer stopped.</div>`;
   const can = v.agent.allowed.includes('margin_call') && !ST.busy;
   const dis = can ? '' : ' disabled';
   const sug = m ? m.call : null;
-  const p = pending(v.id);
   const primary = (call) => (sug === call ? ' p' : '');
   let h =
     `<div class="btns call-btns" role="group" aria-label="Margin call">` +
@@ -87,12 +105,14 @@ function callPanel(v, ST) {
   if (ST.editing === 'margins') {
     h +=
       `<div class="pick cv-pick" data-testid="margin-pick" role="group" aria-label="Pick the involved margins"><b class="pick-t">Which margins? Pre-selected from the suggestion; change as needed.</b>` +
+      // per_margin is the max segment probability, shown as log-odds like the margin bars
+      (m && m.threshold !== null ? `<span class="sub pick-u">Tumour signal in log-odds; involved above ${esc(fmtLogit(m.threshold))}.</span>` : '') +
       MARGINS.map((name) => {
         const st = m ? marginStatus(m, name) : 'unknown';
-        return `<label class="${st}"><input type="checkbox" data-pick="${name}" data-testid="margin-pick-${name}"${ST.marginPick.includes(name) ? ' checked' : ''}>${cap(name)}<span class="sub">${m && m.perMargin[name] !== undefined ? esc(fmtLogit(m.perMargin[name])) : ''}</span></label>`;
+        return `<label class="${st}"><input type="checkbox" data-pick="${name}" data-testid="margin-pick-${name}"${ST.marginPick.includes(name) ? ' checked' : ''}>${cap(name)}<span class="sub">${m && m.perMargin[name] !== undefined ? `${esc(fmtLogit(m.perMargin[name]))} log-odds` : ''}</span></label>`;
       }).join('') +
-      `<div class="btns"><button class="btn p dd" data-call="confirm" data-testid="call-confirm"${can && ST.marginPick.length ? '' : ' disabled'}>Send: tumor at margin</button><button class="btn" data-call="cancel" data-testid="call-cancel">Cancel</button></div>` +
-      '<p class="sub">Sends “Tumor at the selected margin(s) — more tissue needed” to the surgeon and stops the timer.</p></div>';
+      '<p class="sub pick-n">Sends “Tumor at the selected margin(s) — more tissue needed” to the surgeon and stops the timer.</p>' +
+      `<div class="btns"><button class="btn p dd" data-call="confirm" data-testid="call-confirm"${can && ST.marginPick.length ? '' : ' disabled'}>Send: tumor at margin</button><button class="btn" data-call="cancel" data-testid="call-cancel">Cancel</button></div></div>`;
   }
   if (p && (p.action === 'margin_clear' || p.action === 'margin_defer')) {
     const clear = p.action === 'margin_clear';
