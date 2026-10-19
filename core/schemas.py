@@ -68,6 +68,7 @@ INVENTORY_MPP_KEY = "measured_mpp"
 # EVAL_ENVELOPE keys (core.io.provenance gives all but `name`) plus its payload.
 EVAL_ENVELOPE = ("name", "created_utc", "config_hash", "git_sha", "synthetic")
 EVAL_FILES: dict[str, str] = {
+    "fact_sheet": "Judge response · data units, splits, metrics, corpora, reference distributions, component roles",
     "qc": "01q · tissue-QC fix: old vs new rule, pass rates, insufficient-tissue counts, display-vs-full-res validation",
     "concepts": "Task 9 · NCT cross-organ concept AUROCs; per concept {caption_consistent, cav_auroc}",
     "concepts_bach": "Task 9 · BACH per-class concept means (test) and spot-check summary",
