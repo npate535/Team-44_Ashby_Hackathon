@@ -94,7 +94,7 @@ def test_conformal_name_and_coverage_follow_drives_tiers():
     assert out["aps"] == "APS conformal set (90% target)" and out["lac"] == "LAC conformal set (90% target)"
     assert out["none"] == "Conformal set (90% target)"
     assert "91%" in out["htmlAps"] and "not achieved" not in out["htmlAps"]
-    assert "67%" in out["htmlLac"] and "not achieved" in out["htmlLac"]
+    assert "67.4%" in out["htmlLac"] and "not achieved" in out["htmlLac"]       # one decimal: 0.674 is 67.4%
     assert "In situ carcinoma" in out["htmlAps"] and "in set" in out["htmlAps"]
     assert "no-prediction" in out["empty"]
 
@@ -232,6 +232,30 @@ def test_why_card_lists_the_regions_with_the_largest_push():
     assert "+0.42" in html and "Region 7" in html
     assert html.index("Region 7") < html.index("Region 5") < html.index("Region 6")
 
+
+
+def test_failed_spot_check_features_are_never_given_as_reasons():
+    out = run_node(_contrib_view("""
+        const failAll = Object.fromEntries(v.concepts.map(c => [c.id, {n: 20, acceptable: 0}]));
+        const metrics = {eval: {spotcheck: {summary: {concept: failAll}}}};
+        const w = {...v, spotFailed: W.failedConcepts(metrics, v)};
+        out.html = W.why(w, hm, cfg, metrics);
+        out.top = W.topRegions(w, 3, w.spotFailed).map(r => r.concepts.length);
+        out.tip = H.regionInfo(w, hm, 7).html;
+        out.how = W.howSure(v, cfg, null);
+        out.share = [W.refShare(1), W.refShare(0), W.refShare(0.5)];
+        out.failed = v.concepts.filter(c => c.source !== 'cell').map(c => c.label);
+    """))
+    html = out["html"]
+    lists = html[html.index('data-testid="why-summary"'):html.index('class="ws-skip"')]
+    assert not [label for label in out["failed"] if f"<b>{label}</b>" in lists]  # no failed feature listed as a push
+    assert "not listed here" in html                                          # measured cell features still are
+    assert out["top"] == [0, 0, 0]                                       # nor as a region's descriptor
+    assert "AI spot check failed" in out["tip"]                          # the tooltip names it only with the label
+    assert ">In situ<" in out["how"] and ">InSitu<" not in out["how"]    # set chips: display labels, never raw ids
+    assert out["share"] == ["higher than over 99% of benign/normal reference cases",
+                            "lower than over 99% of benign/normal reference cases",
+                            "higher than 50% of benign/normal reference cases"]
 
 # ---- look-alike contrast detail (judge feedback T4) ----------------------------------------------------------------------
 CONTRAST_NOTE = ("Feature scores measure similarity to written descriptions of each feature, standardized on training "

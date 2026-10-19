@@ -112,13 +112,41 @@ function afterRender() {
     const out = $('#app [data-testid=decision-feedback], #app [data-testid=verdict]');
     if (out) out.focus({ preventScroll: true }); // focusin clears focusOutcome
   }
+  markEntrances();
   // region tooltip: follow the replacement region if it is still hovered or focused, else hide it
   if (tipFor && !tipFor.isConnected) {
     const host = $('#app');
     const next = host && $(`[data-rg="${CSS.escape(tipFor.dataset.rg || '')}"][data-rg-scope="case"]`, host);
-    if (next && (next.matches(':hover') || document.activeElement === next)) showTip(next);
+    if (next && tipWanted(next)) showTip(next);
     else hideTip();
   }
+}
+// Entrance motion for what just appeared on this case (a confirmation, the decision outcome, a new heatmap layer). Every
+// re-render rebuilds #app, so the class is added here, once, never by the HTML: a poll re-render does not replay it.
+const ENTER = {
+  '[data-testid=confirm-box]': (el) => 'confirm:' + el.dataset.action,
+  '[data-testid=decision-feedback]': (el) => 'feedback:' + el.textContent.slice(0, 40),
+  '[data-testid=verdict]': () => 'verdict',
+  '.cv-hm:not(.surg) > .hm-svg': (el) => 'layer:' + (($('#app [data-testid=heatmap-select]') || {}).value || el.dataset.kind)
+};
+let shown = { caseId: null, tab: null, keys: new Set() };
+function markEntrances() {
+  const s = ST();
+  const view = $('#app [data-testid=case-view]');
+  if (!view || !s) {
+    shown = { caseId: null, tab: null, keys: new Set() };
+    return;
+  }
+  const keys = new Set();
+  const same = shown.caseId === view.dataset.caseId && shown.tab === s.tab; // first draw of a case or tab: no motion
+  for (const [sel, key] of Object.entries(ENTER)) {
+    for (const el of $$(sel, view)) {
+      const k = key(el);
+      keys.add(k);
+      if (same && !shown.keys.has(k) && !reduced()) el.classList.add('cv-enter');
+    }
+  }
+  shown = { caseId: view.dataset.caseId, tab: s.tab, keys };
 }
 function watchApp() {
   const app = $('#app');
@@ -201,14 +229,23 @@ function hideTip() {
   $$('.cv-tip').forEach((el) => (el.hidden = true));
   tipFor = null;
 }
+/** A region's tooltip belongs on screen only while the pointer is over it or the keyboard focused it. Focus that a
+ *  script moved there (closing the viewer returns focus to the region that opened it) does not count: that tooltip
+ *  would stay up after the pointer has gone, covering the panel beside the image. */
+const tipWanted = (el) => !!el && el.isConnected && (el.matches(':hover') || (kbInput && document.activeElement === el));
 window.addEventListener(
   'scroll',
   () => {
-    if (tipFor && tipFor.isConnected && (tipFor.matches(':hover') || document.activeElement === tipFor)) showTip(tipFor);
+    if (tipWanted(tipFor)) showTip(tipFor);
     else hideTip();
   },
   { passive: true }
 );
+// the pointer left the window, or the window lost focus: no tooltip can still be wanted
+document.addEventListener('pointerout', (e) => {
+  if (!e.relatedTarget && !(kbInput && tipFor && document.activeElement === tipFor)) hideTip();
+});
+window.addEventListener('blur', hideTip);
 
 // ---- cross-highlighting (finding chips, why rows) ---------------------------------------------------------------------------
 function peekTiles(ids, on) {
@@ -719,7 +756,7 @@ document.addEventListener('pointerout', (e) => {
 document.addEventListener('focusin', (e) => {
   const t = e.target;
   if (!t.closest) return;
-  if (t.matches('[data-rg]')) showTip(t);
+  if (t.matches('[data-rg]') && kbInput) showTip(t);
   if (t.matches('.fref[data-f]')) linkOn(t, true);
   const row = t.closest(PEEK_ROW);
   if (row) peekRow(row, true);
@@ -765,7 +802,7 @@ document.addEventListener('change', (e) => {
     const n = $$('#app [data-edit-item]').filter((x) => x.checked).length;
     const b = $('#app [data-testid=action-edit-save]');
     if (b) {
-      b.textContent = n ? `Order ${n} selected` : 'Select at least one item';
+      b.textContent = n ? `Approve ${n} selected` : 'Select at least one item';
       b.disabled = !n; // the backend rejects an empty edit; dismiss the flag to drop every order
     }
   }

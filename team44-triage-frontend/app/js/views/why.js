@@ -2,6 +2,7 @@
 // agreement checklist), Compared to (references + contrast case), Summary with finding references.
 // Wording rule (plan §6.4): "features associated with", never causes, never a Nottingham grade; the model suggests.
 import { classLabel, coverageStatus, esc, exactProb, FINDING_ID, humanize, num, ordinalPct, pct, signed, thumbUrl } from '../adapter.js';
+import { shortClass } from '../flow.js';
 
 /** A model probability as a percentage that never reads 100% or 0% (exact value goes in tooltips). */
 export const fmtPct = (p) => (!isNum(p) ? '—' : Number(p) >= 0.995 ? '>99%' : Number(p) < 0.005 ? '<1%' : Math.round(Number(p) * 100) + '%');
@@ -13,10 +14,20 @@ export const aggProb = (v, cfg) => {
 const SPOT_MIN = 0.75; // core.contract.SPOTCHECK_RELIABLE_MIN (the case JSON's `reliable` uses the same cut-off)
 const NEGLIGIBLE = 0.05; // |contribution| below this reads as "barely moves" (settings findings.min_abs_contribution)
 const isNum = (x) => x !== null && x !== undefined && Number.isFinite(Number(x));
+/** An evaluation rate with one decimal when it has one (0.9167 → "91.7%", 0.9 → "90%"). */
+const pct1 = (p) => (!isNum(p) ? '—' : `${Number((Number(p) * 100).toFixed(1))}%`);
 const sz = (x) => (x > 0 ? '+' : x < 0 ? '−' : '±') + Math.abs(x).toFixed(2);
 const cap = (t) => String(t).replace(/^./, (ch) => ch.toUpperCase());
 
 // ---- Why ---------------------------------------------------------------------------------------------------------------
+
+/** A reference percentile in words that never claims 100% or 0% ("higher than over 99% of …"). */
+export function refShare(p, who = 'benign/normal reference cases') {
+  const x = Number(p);
+  if (x >= 0.995) return `higher than over 99% of ${who}`;
+  if (x < 0.005) return `lower than over 99% of ${who}`;
+  return `higher than ${Math.round(x * 100)}% of ${who}`;
+}
 
 /**
  * Level of a feature in this case relative to the training cases, in words.
@@ -30,9 +41,8 @@ export function levelOf(r, cells) {
     const f = cells && cells.features ? cells.features[r.id] : null;
     const p = f ? f.ref_percentile : null;
     if (isNum(p)) {
-      const q = Math.round(p * 100);
       const word = p >= 0.9 ? 'High' : p >= 0.6 ? 'Above typical' : p > 0.4 ? 'Typical' : p > 0.1 ? 'Below typical' : 'Low';
-      return { word, cls: p >= 0.6 ? 'hi' : p > 0.4 ? 'mid' : 'lo', short: `${ordinalPct(p)} percentile`, long: `higher than ${q}% of benign/normal reference cases`, tip: '', pct: Number(p) };
+      return { word, cls: p >= 0.6 ? 'hi' : p > 0.4 ? 'mid' : 'lo', short: `${ordinalPct(p)} percentile`, long: refShare(p), tip: '', pct: Number(p) };
     }
     return { word: '', cls: 'none', short: '', long: '', tip: 'no reference percentile available' };
   }
@@ -50,12 +60,22 @@ export function levelOf(r, cells) {
 
 /** AI spot check of a concept's top regions (eval/spotcheck.json summary.concept[id] = {n, acceptable}); `failed` uses
  *  the same fixed cut-off as the case JSON's `reliable` (core.contract.SPOTCHECK_RELIABLE_MIN). */
-function spotOf(metrics, id) {
+export function spotOf(metrics, id) {
   const sc = metrics && metrics.eval && metrics.eval.spotcheck;
   const e = sc && sc.summary && sc.summary.concept ? sc.summary.concept[id] : null;
   if (!e || !isNum(e.n) || !isNum(e.acceptable) || Number(e.n) <= 0) return null;
   const failed = Number(e.acceptable) / Number(e.n) < SPOT_MIN;
   return { n: Number(e.n), ok: Number(e.acceptable), failed };
+}
+
+/** Ids of the concepts whose AI spot check failed: never given as a reason or as a region's descriptor. */
+export function failedConcepts(metrics, v) {
+  return new Set((v.concepts || []).map((c) => c.id).filter((id) => (spotOf(metrics, id) || {}).failed));
+}
+
+/** A class as a short chip label ("In situ"); the full label goes in its title. */
+export function setChip(cls, cfg, attrs = '') {
+  return `<span class="chip conf"${attrs} title="${esc(classLabel(cls, cfg))}">${esc(shortClass(cls))}</span>`;
 }
 
 /** Tiny SD track (−3…+3, typical band ±0.5) so levels scan down the column; percentiles use 0…100. */
@@ -134,7 +154,7 @@ function whyRow(r, hm, maxAbs, cells, metrics) {
   return (
     `<button type="button" class="why-row${hm.why === r.id ? ' on' : ''}${spot && spot.failed ? ' unreliable' : ''}" data-testid="why-bar-${esc(r.id)}" data-why="${esc(r.id)}" data-tiles="${esc(tiles.join(','))}"${tipText ? ` title="${esc(tipText)}"` : ''} ` +
     `aria-pressed="${hm.why === r.id}" aria-label="${esc(r.label)}. ${esc(sentence)} Contribution ${esc(isNum(r.contribution) ? signed(r.contribution) : 'not available')}.${tipText ? ' ' + esc(tipText) + '.' : ''}${spot ? ` AI spot check ${spot.ok} of ${spot.n}, not pathologist-validated${spot.failed ? '; failed, association only' : ''}.` : ''}${tiles.length ? ` Highlights regions ${esc(tiles.join(', '))}.` : ''}">` +
-    `<span class="wr-head"><span class="lbl">${esc(r.label)}</span><span class="wr-badges">${cc}${spotBadge}${context ? '<span class="src ctx" title="Plan §6.4: context, not ranked">context</span>' : ''}</span></span>` +
+    `<span class="wr-head"><span class="lbl">${esc(r.label)}</span><span class="wr-badges">${cc}${spotBadge}${context ? '<span class="src ctx" title="Context feature, not ranked as a risk criterion">context</span>' : ''}</span></span>` +
     (lvl.word
       ? `<span class="wr-level ${lvl.cls}"><b>${esc(lvl.word)}</b>${lvl.short ? `<span>${esc(lvl.short)}</span>` : ''}${sdTrack(lvl)}</span>`
       : '<span class="wr-level none"><span>—</span></span>') +
@@ -148,7 +168,7 @@ function whyRow(r, hm, maxAbs, cells, metrics) {
 }
 
 /** The k regions with the largest positive exact contributions, each with its two highest concept z-scores. */
-export function topRegions(v, k = 3) {
+export function topRegions(v, k = 3, failed = new Set()) {
   if (!v.attribution) return [];
   const label = (id) => ((v.concepts || []).find((c) => c.id === id) || {}).label || id;
   return v.tiles
@@ -159,15 +179,16 @@ export function topRegions(v, k = 3) {
       idx: t.idx,
       contribution: Number(t.contribution),
       concepts: Object.entries(t.concepts || {})
-        .filter(([, z]) => isNum(z))
+        .filter(([id, z]) => isNum(z) && !failed.has(id))
         .sort((a, b) => b[1] - a[1])
         .slice(0, 2)
         .map(([id, z]) => ({ id, label: label(id), z: Number(z) }))
     }));
 }
 
-function regionPush(v) {
-  const top = topRegions(v, 3);
+function regionPush(v, metrics) {
+  const failed = failedConcepts(metrics, v);
+  const top = topRegions(v, 3, failed);
   if (!top.length) return '';
   const rows = top
     .map((r) => {
@@ -182,14 +203,14 @@ function regionPush(v) {
     .join('');
   return (
     `<section class="why-regions" data-testid="why-regions"><h3>Regions with the largest push</h3>` +
-    '<p class="sub">Each region\'s exact additive term in the model\'s invasive score (centered calibrated logit), with the region\'s two highest concept z-scores. Select a region to zoom to it.</p>' +
+    `<p class="sub">Each region's exact additive term in the model's invasive score (centered calibrated logit), with the region's two highest concept z-scores${failed.size ? ' among features that passed their AI spot check' : ''}. Select a region to zoom to it.</p>` +
     `<div class="wg-list">${rows}</div></section>`
   );
 }
 
 export function why(v, hm, cfg, metrics) {
   const rows = v.why;
-  if (!rows.length) return regionPush(v) + '<div class="note">No criterion contributions for this case.</div>';
+  if (!rows.length) return regionPush(v, metrics) + '<div class="note">No criterion contributions for this case.</div>';
   const maxAbs = Math.max(1e-9, ...rows.map((r) => Math.abs(num(r.contribution))));
   const conceptPrediction = /^(cb_|concept_bottleneck)/.test(v.model || '');
   const explModel = metrics && metrics.eval && metrics.eval.metrics && metrics.eval.metrics.models ? metrics.eval.metrics.models.b : null;
@@ -197,19 +218,22 @@ export function why(v, hm, cfg, metrics) {
     ? `<p class="explanation-source">These contributions come from the same concept model that made the suggestion (<b>${esc(humanize(v.model))}</b>).</p>`
     : `<p class="explanation-source">Supporting associations from the concept model${explModel ? ` (<b>${esc(explModel)}</b>)` : ''}. The suggested category comes from the production model, <b>${esc(v.model || 'unavailable')}</b>. The concept model's own category is not recorded in this case file, so read these rows as context for the suggestion, not as its cause.</p>`;
   const net = rows.reduce((a, r) => a + (isNum(r.contribution) ? Number(r.contribution) : 0), 0);
-  const ups = [...rows].filter((r) => num(r.contribution) >= NEGLIGIBLE).sort((a, b) => b.contribution - a.contribution).slice(0, 2);
-  const downs = [...rows].filter((r) => num(r.contribution) <= -NEGLIGIBLE).sort((a, b) => a.contribution - b.contribution).slice(0, 2);
-  const failed = (r) => {
-    const sp = r.measured ? null : spotOf(metrics, r.id);
-    return sp && sp.failed ? `, spot check failed` : '';
-  };
-  const list = (xs) => xs.map((r) => `<b>${esc(r.label)}</b> (${signed(r.contribution)}${failed(r)})`).join(', ');
+  // a feature whose AI spot check failed is an association only: it is never listed as a push in the headline
+  const failed = (r) => !r.measured && !!(spotOf(metrics, r.id) || {}).failed;
+  const usable = rows.filter((r) => !failed(r));
+  const ups = usable.filter((r) => num(r.contribution) >= NEGLIGIBLE).sort((a, b) => b.contribution - a.contribution).slice(0, 2);
+  const downs = usable.filter((r) => num(r.contribution) <= -NEGLIGIBLE).sort((a, b) => a.contribution - b.contribution).slice(0, 2);
+  const nFailed = rows.length - usable.length;
+  const list = (xs) => xs.map((r) => `<b>${esc(r.label)}</b> (${signed(r.contribution)})`).join(', ');
   const headline =
     `<div class="why-sum" data-testid="why-summary">` +
     `<div class="ws-net ${net >= 0 ? 'up' : 'down'}"><span>Net push of all rows</span><b>${signed(net)}</b><span>${net >= NEGLIGIBLE ? 'toward invasive' : net <= -NEGLIGIBLE ? 'away from invasive' : 'about neutral'}</span></div>` +
     '<div class="ws-lists">' +
     (ups.length ? `<p><span class="ws-k up">Toward invasive</span><span>${list(ups)}</span></p>` : '') +
     (downs.length ? `<p><span class="ws-k down">Away from invasive</span><span>${list(downs)}</span></p>` : '') +
+    (nFailed
+      ? `<p class="ws-skip">${nFailed} feature${nFailed === 1 ? '' : 's'} that failed ${nFailed === 1 ? 'its' : 'their'} AI spot check ${nFailed === 1 ? 'is' : 'are'} not listed here (greyed out below).</p>`
+      : '') +
     '</div></div>';
   const groups = groupRows(v, cfg)
     .map(
@@ -226,7 +250,7 @@ export function why(v, hm, cfg, metrics) {
     ? '<p class="sub why-nolevel" data-testid="why-no-level">This case file has no training-standardized levels for the text-prompt criteria, so only each feature\'s push is shown; hover a row for its mean tile z.</p>'
     : '';
   return (
-    regionPush(v) +
+    regionPush(v, metrics) +
     provenance +
     headline +
     levelNote +
@@ -320,7 +344,11 @@ export function howSure(v, cfg, metrics, { compact = false } = {}) {
       ag.conch_musk_same_top === true ? 'ok' : ag.conch_musk_same_top === false ? 'warn' : 'na',
       'Second model (MUSK)',
       ag.conch_musk_same_top === true ? 'same top category' : ag.conch_musk_same_top === false ? 'different top category' : 'not available',
-      'The independent MUSK probe picks the same top category.'
+      ag.conch_musk_same_top === true
+        ? 'The independent MUSK probe picks the same top category.'
+        : ag.conch_musk_same_top === false
+          ? 'The independent MUSK probe picks a different top category, so the two models disagree on this case.'
+          : 'No second-model read is recorded for this case.'
     ) +
     check(
       nbFrac === null ? 'na' : nbFrac >= 0.8 ? 'ok' : 'warn',
@@ -343,10 +371,13 @@ export function howSure(v, cfg, metrics, { compact = false } = {}) {
       ' data-f-target="quality"'
     ) +
     check(
-      r.oodPct === null ? 'na' : r.oodPct >= 0.9 ? 'warn' : 'ok',
+      // one input to the reliability score, not a flag of its own: a warning only when the reliability flag is raised
+      r.oodPct === null ? 'na' : r.oodPct < 0.9 ? 'ok' : r.flag ? 'warn' : 'info',
       'Input typicality (OOD percentile)',
       r.oodPct === null ? 'not computed' : ordinalPct(r.oodPct),
-      'Distance to reference tissue, as a percentile of calibration cases. Lower is more typical; 90th and above is unusual.',
+      `Distance to reference tissue, as a percentile of calibration cases. Lower is more typical; 90th and above is unusual. One input to the reliability score${
+        r.oodPct !== null && r.oodPct >= 0.9 && !r.flag ? '; the reliability check did not flag this read' : ''
+      }.`,
       ' data-f-target="quality"'
     ) +
     check(
@@ -360,10 +391,14 @@ export function howSure(v, cfg, metrics, { compact = false } = {}) {
   const observed = coverageStatus(metrics, v.model);
   const method = conformalName(metrics, v.alphaPct);
   const validation = observed
-    ? `<div class="${observed.belowTarget ? 'flag' : 'validation-note'} cv-coverage" data-testid="coverage-validation">Held-out coverage of this method: <b>${pct(observed.coverage)}</b> across ${esc(observed.n)} test cases, against a ${pct(observed.target)} target.${observed.belowTarget ? ' The target was not achieved in this experiment, so the set is less reliable than its label suggests.' : ''}</div>`
+    ? `<div class="${observed.belowTarget ? 'flag' : 'validation-note'} cv-coverage" data-testid="coverage-validation">${
+        v.external
+          ? `Coverage of this method on the BACH held-out test split: <b>${pct1(observed.coverage)}</b> of ${esc(observed.n)} BACH test cases, against a ${pct1(observed.target)} target. It has not been measured on TCGA fields.`
+          : `Held-out coverage of this method: <b>${pct1(observed.coverage)}</b> across ${esc(observed.n)} test cases, against a ${pct1(observed.target)} target.`
+      }${observed.belowTarget ? ' The target was not achieved in this experiment, so the set is less reliable than its label suggests.' : ''}</div>`
     : '';
   const chips = v.setSize
-    ? v.set.map((cls) => `<span class="chip conf" data-testid="conformal-chip" title="${esc(classLabel(cls, cfg))}">${esc(cls)}</span>`).join('')
+    ? v.set.map((cls) => setChip(cls, cfg, ' data-testid="conformal-chip"')).join('')
     : '<span class="chip empty" data-testid="conformal-chip-empty">∅ empty set</span>';
   const head =
     `<div class="hs-head"><div class="hs-risk"><div class="bigp" data-testid="risk" title="${esc(isNum(aggProb(v, cfg)) ? exactProb(aggProb(v, cfg), 4) : '')}">${v.risk === null ? '—' : fmtPct(aggProb(v, cfg))}</div><div class="sub">calibrated P(${esc(classLabel((cfg && cfg.aggressive_class) || 'Invasive', cfg))})</div></div>` +
@@ -433,13 +468,18 @@ export function contrastTable(v, c) {
       : link
         ? `<button type="button" class="ct-rg" data-rg="${Number(idx)}" data-rg-scope="case" aria-label="Open this case at region ${Number(idx)}">strongest in region ${Number(idx)}</button>`
         : `<span class="ct-rg">strongest in region ${Number(idx)}</span>`;
+  // "This case" is the same case-level score the Why card shows as the level: one value, one rounding
+  const own = (d) => {
+    const r = v.why.find((x) => x.id === d.concept);
+    return r && isNum(r.valueStd) ? Number(r.valueStd) : num(d.query_z);
+  };
   const body = rows
     .map((d, i) => {
       const s = contrastSpot(d);
       return (
         `<tr class="ct-row${d.reliable ? '' : ' unreliable'}" data-ct="${i}" data-tiles="${isNum(d.query_region) ? Number(d.query_region) : ''}" data-testid="contrast-row">` +
         `<th scope="row">${esc(contrastLabel(v, d))}</th>` +
-        `<td data-label="This case"><span class="ct-z">${signed(num(d.query_z))}</span>${region(d.query_region, true)}</td>` +
+        `<td data-label="This case"><span class="ct-z">${signed(own(d))}</span>${region(d.query_region, true)}</td>` +
         `<td data-label="Look-alike"><span class="ct-z">${signed(num(d.contrast_z))}</span>${region(d.contrast_region, false)}</td>` +
         `<td class="ct-d" data-label="Difference (SD)">${signed(num(d.delta))}</td>` +
         `<td class="ct-spot" data-label="Spot check" title="${esc(s.tip)}">${s.count ? `${esc(s.count)} <span class="ct-ai">AI-reviewed</span>` : ''}${s.why ? `<span class="ct-why">${esc(s.why)}</span>` : ''}</td>` +

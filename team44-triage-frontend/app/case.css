@@ -83,6 +83,23 @@
     grid-template-columns: minmax(0, 1.42fr) minmax(330px, 1fr);
   }
 }
+/* The case is fetched after the first paint (app.js draws a small "Loading…" card meanwhile). The footer under that card
+   would jump down by the whole case height when it arrives (cumulative layout shift): it is left out until then. */
+#app:has(> [data-testid='state-loading']) ~ footer.quiet {
+  display: none;
+}
+/* The case bar above the case is first drawn before the worklist arrives (no "Next case" button yet) and grows when it
+   does, pushing the whole case down: it keeps its final height from the start. */
+#casebar:not([hidden]) {
+  box-sizing: border-box;
+  min-height: 51px;
+  align-content: center;
+}
+@media (max-width: 760px) {
+  #casebar:not([hidden]) {
+    min-height: 88px;
+  }
+}
 
 /* ---- header ------------------------------------------------------------------------------------------------------ */
 .cv-header {
@@ -169,7 +186,7 @@
 }
 .cv-hmctl select {
   font-size: var(--cv-fs-s);
-  max-width: 290px;
+  max-width: 420px;
 }
 .cv-hm {
   position: relative;
@@ -466,6 +483,26 @@
 }
 .cv-tip .tip-row b {
   font-variant-numeric: tabular-nums;
+}
+/* a concept whose AI spot check failed: named with its score, muted and labelled, never read as a reason */
+.cv-tip .tip-row.muted,
+.cv-tip .tip-row.muted b {
+  color: #9da1b3;
+  font-weight: 400;
+}
+.cv-tip .tip-row.muted i {
+  display: block;
+  font-style: normal;
+  font-size: 10.5px;
+  color: #e4bb75;
+}
+.cv-tip:not([hidden]) {
+  animation: cv-fade-in 0.12s ease-out;
+}
+@keyframes cv-fade-in {
+  from {
+    opacity: 0;
+  }
 }
 .cv-tip .tip-qc {
   align-self: flex-start;
@@ -2794,5 +2831,112 @@ dialog.cv-compare::backdrop {
   }
   .vw-foot {
     padding: 8px 12px 10px;
+  }
+}
+
+/* ---- polish: order rows, Why headline, look-alike table, compare panes, motion ------------------------------------- */
+.ord-rule {
+  display: block;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ws-lists p.ws-skip {
+  display: block;
+  padding-left: 136px;
+  font-size: var(--cv-fs-xs);
+  color: var(--mut);
+}
+@media (max-width: 760px) {
+  .ws-lists p.ws-skip {
+    padding-left: 0;
+  }
+}
+.ct-table .ct-rg {
+  white-space: nowrap;
+}
+/* both compare panes share one row grid, so the two images sit at the same height whatever their captions hold */
+.cmp-panes {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+.cmp-pane {
+  display: grid;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  row-gap: 0;
+}
+.cmp-pane figcaption {
+  min-height: 0;
+}
+.cmp-pane figcaption .cmp-n {
+  color: #1b1a2e;
+}
+@media (max-width: 760px) {
+  .cmp-panes {
+    grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  }
+  .hs-sugg {
+    margin-left: 0;
+  }
+}
+/* case title: a long id (TCGA-BH-A0BJ_ffpe_tumor_01) breaks anywhere rather than at its first hyphen */
+.cv-title-id {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .cv .cv-id h2[data-testid='case-title'] {
+    font-size: 20px !important;
+    letter-spacing: -0.4px;
+  }
+}
+/* tab labels: the long form needs room; phones show the short form */
+.cv .tabs .tab-short {
+  display: none;
+}
+@media (max-width: 480px) {
+  .cv .tabs .tab-long {
+    display: none;
+  }
+  .cv .tabs .tab-short {
+    display: inline;
+  }
+}
+/* motion: short ease-out entrances only for things that just appeared (case_ui.js adds .cv-enter once) */
+dialog.cv-viewer[open],
+dialog.cv-compare[open] {
+  animation: cv-dialog-in 0.18s ease-out;
+}
+dialog.cv-viewer[open]::backdrop,
+dialog.cv-compare[open]::backdrop {
+  animation: cv-fade-in 0.18s ease-out;
+}
+@keyframes cv-dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+.cv .cv-enter {
+  animation: cv-reveal 0.2s ease-out;
+}
+@keyframes cv-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.cv .hm-svg.cv-enter {
+  animation: cv-fade-in 0.2s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cv-tip:not([hidden]),
+  dialog.cv-viewer[open],
+  dialog.cv-compare[open],
+  dialog.cv-viewer[open]::backdrop,
+  dialog.cv-compare[open]::backdrop,
+  .cv .cv-enter {
+    animation: none;
   }
 }
