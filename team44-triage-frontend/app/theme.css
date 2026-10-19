@@ -211,6 +211,9 @@ html { scroll-padding-top: calc(var(--stick, 96px) + 16px); }
 .glass-nav:not([data-lens]) button[aria-current='page'] { background: var(--hema); }
 .glass-nav .nav-count { min-width: 20px; padding: 1px 5px; margin: 0; font-size: 10px; color: var(--hema); background: var(--bl); box-shadow: none; }
 .glass-nav .nav-count:empty { display: none; }
+/* counts change while the page is open: tabular digits and a floor width keep the pill from shifting */
+.glass-nav .nav-count { font-variant-numeric: tabular-nums; text-align: center; }
+.glass-nav #queue-count { min-width: 28px; }
 .glass-nav [aria-current='page'] .nav-count { background: color-mix(in srgb, var(--inkd) 30%, transparent); color: var(--on-accent); }
 :root[data-theme='dark'] .glass-nav [aria-current='page'] .nav-count { background: color-mix(in srgb, var(--on-accent) 14%, transparent); }
 @media (prefers-color-scheme: dark) {
@@ -329,7 +332,9 @@ html { scroll-padding-top: calc(var(--stick, 96px) + 16px); }
 .ai-card::before { height: 2px; background: linear-gradient(90deg, var(--hema), color-mix(in srgb, var(--hema) 20%, transparent)); }
 .ai-mark { background: var(--hema); border-radius: 50%; width: 13px; height: 13px; box-shadow: 0 0 0 4px var(--bl); }
 .ai-tabpanel { max-width: none; }
-.ai-tabpanel .ai-card { max-width: 1120px; margin-inline: auto; padding: 24px; }
+/* the plain-language card spans the panel so its edges line up with the case header; the text keeps a reading measure */
+.ai-tabpanel .ai-card { max-width: none; margin-inline: 0; padding: 24px; }
+.ai-tabpanel .ai-md { max-width: 100ch; }
 .ai-md { font-size: 14px; }
 .ai-foot { max-width: 100ch; }
 .casebar { border-radius: 12px; background: var(--glass); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
@@ -524,4 +529,18 @@ h1 .tier, h2 .tier, h1 .pill, h2 .pill, h2 .chip { font-family: var(--font); fon
 /* 200% zoom or a landscape phone: the sticky masthead would take a third of the height, so it scrolls away. */
 @media (max-height: 560px) {
   .masthead { position: static; }
+}
+
+/* Replay status: each part keeps one width whatever its text (running / paused / ready, the clock, the speed), so the
+   controls beside it do not shift; the first paint ("Checking simulator…") already has the final width. */
+.replay-state b { min-width: 81px; }
+.replay-state .rs-t { min-width: 50px; font-variant-numeric: tabular-nums; }
+.replay-state .rs-x { min-width: 26px; font-variant-numeric: tabular-nums; }
+@media (min-width: 761px) {
+  #sim { min-width: 188px; }
+}
+/* A case opened directly: the case bar's place is kept from the first paint (case.css gives it its final height). */
+:root[data-route='case'] #casebar[hidden]:not([data-off]) { display: flex; visibility: hidden; min-height: 51px; }
+@media (max-width: 760px) {
+  :root[data-route='case'] #casebar[hidden]:not([data-off]) { min-height: 88px; }
 }

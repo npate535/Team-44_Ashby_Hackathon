@@ -73,9 +73,10 @@ let lastFp = null;
 let pollTimer = null;
 let pollSeq = 0; // a response older than the latest request is dropped (lane/sort clicks race the timer)
 let dragging = false; // heatmap opacity slider held: do not re-render under it
+let tickAt = Date.now(); // the instant every timer on screen shows; it advances once a second, never between ticks
 
 const $ = (sel) => document.querySelector(sel);
-const ctx = () => ({ now: Date.now(), assetUrl: (p) => api.assetUrl(p) });
+const ctx = () => ({ now: tickAt, assetUrl: (p) => api.assetUrl(p) }); // views draw timers at the current tick
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---- toasts ---------------------------------------------------------------------------------------------------------------
@@ -254,7 +255,7 @@ async function refresh(force, seq) {
     evaluation = await api.metrics().catch(() => null);
   }
   if (seq !== pollSeq) return;
-  ST.items = wl.items || [];
+  ST.items = steadyTimers(wl.items || []);
   ST.itemsFor = JSON.stringify(worklistQuery(route)); // which query these items answer (the OR board asks for one lane)
   ST.loadedOnce = true;
   ST.sim = wl.sim || ST.sim;
@@ -264,7 +265,7 @@ async function refresh(force, seq) {
     ST.notFound = missing ? caseId : null;
     ST.notFoundAt = missing ? arrivals : null;
     if (detail) {
-      ST.cases[caseId] = detail;
+      ST.cases[caseId] = steadyTimers([detail])[0];
       ST.events[caseId] = events;
       if (interpretation && !ST.interp[caseId]) {
         ST.interp[caseId] = interpretation;
@@ -287,6 +288,44 @@ async function refresh(force, seq) {
     ST.metricsRev = (ST.metricsRev || 0) + 1; // "Reload results" with changed numbers redraws the dashboard
   }
   if (spot) ST.spot = spot;
+}
+
+// Frozen-section timers count from one local anchor (receipt time minus elapsed). Each poll's latency differs a little;
+// re-anchoring on every response nudged the display back and forth by a second. The anchor moves only for a real
+// change (a call that stops the timer, a reset), so the display advances one second per tick and never steps back.
+const anchors = new Map();
+function steadyTimers(cases) {
+  for (const c of cases) {
+    const t = c && c.runtime && c.runtime.timer;
+    if (!t || t.kind !== 'surgical' || t.state === 'stopped' || !c._fetched_ms) continue;
+    let anchor = c._fetched_ms - t.elapsed_s * 1000;
+    const prev = anchors.get(c.case_id);
+    if (prev !== undefined && Math.abs(anchor - prev) < 1500) anchor = prev;
+    else anchors.set(c.case_id, anchor);
+    // the same timer, read 2 s earlier: timerNow(c, tick) is then exactly (tick - anchor) even for a response that
+    // arrived after the last tick (timerNow never extrapolates backwards from the receipt time)
+    t.elapsed_s = Math.max(0, t.elapsed_s - 2);
+    c._fetched_ms = anchor + t.elapsed_s * 1000;
+  }
+  return cases;
+}
+// The running frozen-section timer the reader is looking at (the open case, else the first on the board), if any.
+function leadAnchor() {
+  const lead =
+    ST.route === 'case'
+      ? ST.caseId
+      : (ST.items.find((c) => c.lane === 'surgical' && c.runtime && c.runtime.timer && c.runtime.timer.state !== 'stopped') || {}).case_id;
+  return lead && anchors.has(lead) ? anchors.get(lead) : null;
+}
+// One tick per second, phase-locked so a frozen-section timer's second boundaries fall half-way between ticks (else
+// on the wall-clock second): each displayed second lasts exactly one tick, however the polls fall.
+function steadyTick() {
+  tickAt = Date.now();
+  tick();
+  const lead = leadAnchor();
+  const phase = lead === null ? 0 : (((lead + 500) % 1000) + 1000) % 1000;
+  const wait = (phase - (Date.now() % 1000) + 2000) % 1000;
+  setTimeout(steadyTick, wait < 250 ? wait + 1000 : wait);
 }
 
 // New margin calls light up on the OR board (and a toast elsewhere); results remembered per viewer.
@@ -419,9 +458,10 @@ function currentFp() {
         ST.health.assets
       ]
     ),
-    fingerprint(ST.items),
+    // the case view does not read the queue (the case bar is drawn separately): arrivals do not redraw it
+    ST.route === 'case' ? '' : fingerprint(ST.items),
     sim.running,
-    JSON.stringify(sim.pending),
+    ST.route === 'case' ? '' : JSON.stringify(sim.pending),
     JSON.stringify([ST.hm.sel, ST.hm.hl, ST.hm.why]),
     ST.cellsOverlay,
     ST.cellsTile,
@@ -628,7 +668,7 @@ function draw(forceRender = false) {
   }
   const patched = patchApp(html);
   // tab switches inside a case redraw only the panel: the page-level entrance is for a new route or case
-  animateScene(`${ST.route}/${ST.caseId || ''}`);
+  animateScene(`${ST.route}/${ST.caseId || ''}`, ST.tab);
   if (patched) {
     // the focused element is still the same node unless the poll removed it (e.g. a filtered-out row)
     if (focusSel && !$('#app').contains(document.activeElement))
@@ -791,7 +831,7 @@ function lookup(id) {
 }
 
 function tick() {
-  const now = Date.now();
+  const now = tickAt; // a poll's redraw shows the same second as the last tick, so timers never advance early
   document.querySelectorAll('[data-timer]').forEach((el) => {
     const c = lookup(el.dataset.timer);
     if (!c) return;
@@ -834,7 +874,7 @@ function tick() {
 
 function tickClock() {
   const clock = $('#clock');
-  const d = new Date();
+  const d = new Date(tickAt);
   const text = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   if (clock.textContent !== text) {
     clock.textContent = text;
@@ -843,7 +883,7 @@ function tickClock() {
   const sim = ST.sim;
   if (!sim) return;
   const offline = ST.fail >= 2;
-  const since = sim._fetched_ms && sim.running && !offline ? ((Date.now() - sim._fetched_ms) / 1000) * (Number(sim.speed) || 1) : 0;
+  const since = sim._fetched_ms && sim.running && !offline ? (Math.max(0, tickAt - sim._fetched_ms) / 1000) * (Number(sim.speed) || 1) : 0;
   const fresh = !sim.running && !(sim.sim_time_s > 0);
   const state = offline ? 'Replay status unknown' : sim.running ? 'Replay running' : fresh ? 'Replay ready' : 'Replay paused';
   const speed = Number(sim.speed) || 1;
@@ -871,8 +911,10 @@ function renderCasebar() {
       bar.hidden = true;
       bar.innerHTML = '';
     }
+    bar.dataset.off = ''; // no reserved space (theme.css) for a case that is not there
     return;
   }
+  delete bar.dataset.off;
   const c = ST.cases[ST.caseId];
   const done = !!(c && c.runtime && c.runtime.done);
   const pos = queuePosition(ST.items, ST.caseId);
@@ -941,8 +983,9 @@ function orderList(c) {
 function announceDecision(action, res) {
   const c = res.case;
   const id = c.case_id;
-  if (action === 'approve_orders') toast(`Orders placed for ${id}`, { tone: 'ok', sub: orderList(c) });
-  else if (action === 'edit_orders') toast(`Edited orders placed for ${id}`, { tone: 'ok', sub: orderList(c) });
+  // approval in this prototype: nothing is sent to a laboratory system
+  if (action === 'approve_orders') toast(`Orders approved for ${id} (not sent to a laboratory system)`, { tone: 'ok', sub: orderList(c) });
+  else if (action === 'edit_orders') toast(`Edited orders approved for ${id} (not sent to a laboratory system)`, { tone: 'ok', sub: orderList(c) });
   else if (action === 'closer_look') toast(`${id} marked for a closer look`, { sub: 'Drafted orders stay unplaced until you decide.' });
   else if (action === 'dismiss_flag') toast(`Flag dismissed for ${id}`, { sub: 'No follow-up orders were placed.' });
   else if (action === 'sign_out')
@@ -1501,7 +1544,7 @@ async function boot() {
     return;
   }
   syncStick();
-  setInterval(tick, 1000);
+  steadyTick();
   onRoute();
 }
 boot();

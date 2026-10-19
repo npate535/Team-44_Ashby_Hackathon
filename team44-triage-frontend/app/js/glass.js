@@ -66,17 +66,23 @@ export function syncGlass() {
   } else tabGeometry = null;
 }
 
-// A new page or case eases in; polling redraws of the same page do not.
-export function animateScene(key) {
+// A new page or case eases in; a tab switch eases in only the tab panel (#case-panel), not the case header and tabs;
+// polling redraws of the same page and tab do not animate.
+let panelKey = null;
+function easeIn(el, dy, duration) {
+  if (el) el.animate([
+    { opacity: 0, transform: `translateY(${dy}px)` },
+    { opacity: 1, transform: 'translateY(0)' }
+  ], { duration, easing: EASE });
+}
+export function animateScene(key, panel = '') {
   syncGlass();
-  if (scene !== null && scene !== key && !reduced()) {
-    const panel = document.querySelector('#app > section');
-    if (panel) panel.animate([
-      { opacity: 0, transform: 'translateY(6px)' },
-      { opacity: 1, transform: 'translateY(0)' }
-    ], { duration: 220, easing: EASE });
+  if (!reduced()) {
+    if (scene !== null && scene !== key) easeIn(document.querySelector('#app > section'), 6, 220);
+    else if (scene === key && panelKey !== panel) easeIn(document.querySelector('#case-panel'), 4, 200);
   }
   scene = key;
+  panelKey = panel;
 }
 
 const scheme = matchMedia('(prefers-color-scheme: dark)');

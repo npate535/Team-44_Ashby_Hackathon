@@ -36,8 +36,30 @@ export function fmtSmart(v) {
   return fmtNum(v, a >= 100 ? 0 : a >= 10 ? 1 : 2);
 }
 export const fmtPct = (v, digits = 0) => (isNum(v) ? (v * 100).toFixed(digits) + '%' : '—');
+// The estimate undercounts wide glyphs ("%", capitals, digits in bold), which left the deferral y-axis title about 1.5 px
+// from its tick labels. In a browser the text is also measured (semibold, the chart font, once the fonts are ready) and
+// the larger width wins, so nothing that fitted before gets narrower.
+let measureCtx = null;
+let measureFont = null;
+const measured = new Map();
+function measuredWidth(s, size) {
+  if (typeof document === 'undefined' || !document.fonts || document.fonts.status !== 'loaded') return 0;
+  const key = `${size}|${s}`;
+  if (!measured.has(key)) {
+    try {
+      measureCtx = measureCtx || document.createElement('canvas').getContext('2d');
+      measureFont = measureFont || getComputedStyle(document.body).fontFamily;
+      measureCtx.font = `600 ${size}px ${measureFont}`;
+      measured.set(key, measureCtx.measureText(s).width);
+    } catch (_) {
+      measured.set(key, 0);
+    }
+  }
+  return measured.get(key);
+}
 export function textWidth(s, size = FONT) {
-  return String(s).length * size * CHAR;
+  const str = String(s);
+  return Math.max(str.length * size * CHAR, measuredWidth(str, size));
 }
 /** Greedy word wrap into lines no wider than maxPx (a single long word is hard-split). */
 export function wrap(s, maxPx, size = FONT) {
@@ -64,11 +86,13 @@ export function wrap(s, maxPx, size = FONT) {
   if (cur) lines.push(cur);
   return lines.length ? lines : [''];
 }
+// Wrapped lines are separate tspans; a zero-size space between them keeps copied text readable ("512-px regions",
+// not "512-pxregions") without moving any line (it has no width, so start, middle and end anchoring are unchanged).
 function textLines(lines, x, y, { anchor = 'start', size = FONT, cls = 'cx-t', lh = 1.25, weight = null } = {}) {
   const w = weight ? ` font-weight="${weight}"` : '';
   return `<text class="${cls}" x="${r1(x)}" y="${r1(y)}" font-size="${size}" text-anchor="${anchor}"${w}>${lines
     .map((l, i) => `<tspan x="${r1(x)}" dy="${i ? size * lh : 0}">${esc(l)}</tspan>`)
-    .join('')}</text>`;
+    .join('<tspan font-size="0"> </tspan>')}</text>`;
 }
 const r1 = (v) => Math.round(v * 10) / 10;
 
