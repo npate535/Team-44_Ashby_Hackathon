@@ -121,7 +121,8 @@ function bachBlock(ST) {
   const M = get(ST, 'metrics.eval.metrics');
   if (!M) return null;
   const model = get(ST, 'metrics.eval.external_tcga.model') || get(M, 'models.production');
-  const per = get(M, ['per_model', model]) || (get(M, 'models.production') === model ? M.production : null);
+  // the production block carries the headline intervals quoted everywhere else; per_model is the comparison table's
+  const per = (get(M, 'models.production') === model ? M.production : null) || get(M, ['per_model', model]);
   if (!per) return null;
   return {
     model,
