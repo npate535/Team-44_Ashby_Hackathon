@@ -60,10 +60,16 @@ export function mmss(seconds) {
 export function cssUrl(u) {
   return encodeURI(String(u)).replace(/['()]/g, (c) => '%' + c.charCodeAt(0).toString(16));
 }
-/** A downscaled copy of a media image for thumbnails (backend `?w=`; static/mock servers ignore the query). */
+/** Widths built ahead of time at /thumbs/<w>/<kind>/<name> (backend route; static files on the deployed site). */
+export const THUMB_WIDTHS = [240, 320, 400];
+/** A downscaled copy of a media image for thumbnails: the pre-built path for those widths, else the backend's `?w=`
+ *  (mock/static servers ignore the query and serve the full image). */
 export function thumbUrl(url, width) {
   const u = String(url || '');
-  return u && !u.includes('?') ? `${u}?w=${Math.round(width)}` : u;
+  if (!u || u.includes('?')) return u;
+  const w = Math.round(width);
+  const m = THUMB_WIDTHS.includes(w) && u.match(/^(.*\/)?(images|tcga)\/([A-Za-z0-9._-]+\.jpe?g)$/i);
+  return m ? `${m[1] || ''}thumbs/${w}/${m[2]}/${m[3]}` : `${u}?w=${w}`;
 }
 /** Only #rgb / #rrggbb colors from config are inlined into styles. */
 export function cssColor(c) {

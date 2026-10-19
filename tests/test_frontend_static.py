@@ -172,3 +172,10 @@ def test_full_confidence_set_is_visible_and_uncertainty_includes_empty_sets():
     """
     res = subprocess.run(['node', '--input-type=module', '-e', script], capture_output=True, text=True, timeout=30)
     assert res.returncode == 0, res.stderr
+
+
+def test_thumbnail_widths_match_the_backend():
+    # the adapter only rewrites to /thumbs/<w>/... for widths the backend and the Vercel package build
+    from backend.app import STATIC_THUMB_WIDTHS
+    m = re.search(r"export const THUMB_WIDTHS = \[([\d, ]+)\]", (APP / "js" / "adapter.js").read_text())
+    assert m and tuple(int(x) for x in m.group(1).split(",")) == STATIC_THUMB_WIDTHS

@@ -560,6 +560,10 @@ class Backend:
 # images that sat off-screen, which left them blank in full-page captures and slow to appear (case view bug 2).
 # `?w=N` returns a downscaled JPEG (cached in memory, keyed by file + mtime); the full image is unchanged without it.
 THUMB_MIN_PX, THUMB_MAX_PX = 64, 1024
+# Widths the app requests as /thumbs/<w>/<kind>/<name>; scripts/package_vercel.py builds the same files for the CDN,
+# which ignores `?w=` (js/adapter.js THUMB_WIDTHS must match).
+STATIC_THUMB_WIDTHS = (240, 320, 400)
+STATIC_THUMB_KINDS = ("images", "tcga")
 # Bounded by bytes, not entries: any width in [64, 1024] is accepted, so 2048 near-1024-px entries would hold ~0.5 GB.
 THUMB_CACHE_BYTES = 64 * 1024 * 1024
 _THUMBS: "dict[tuple[str, float, int], bytes]" = {}
@@ -767,6 +771,15 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
 
     for kind in ("images", "cells", "eval", "spotcheck", "fixtures", "tcga"):
         app.get(f"/{kind}/{{name}}", include_in_schema=False)(media(kind))
+
+    @app.get("/thumbs/{width}/{kind}/{name}", include_in_schema=False)
+    def static_thumb(width: int, kind: str, name: str) -> Response:
+        if width not in STATIC_THUMB_WIDTHS or kind not in STATIC_THUMB_KINDS:
+            raise db.NotFoundError(f"thumbs/{width}/{kind}/{name} not found")
+        path = backend.media_path(kind, name)
+        if not path.is_file():
+            raise db.NotFoundError(f"{kind}/{name} not found")
+        return Response(thumbnail(path, width), media_type="image/jpeg")
 
     if frontend_dir is not None:
         if Path(frontend_dir).is_dir():
