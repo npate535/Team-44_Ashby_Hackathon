@@ -25,16 +25,26 @@ Validator (a sentence is dropped when any rule fails; reasons are returned):
     (quoted, never inflated); cell wording against the benign-reference percentile; concept level wording; and the
     concept direction, which always refers to invasive carcinoma (never "associated with this result" for another
     category);
+  * it cites a concept finding whose AI spot check failed (data.reliable false; core.contract SPOTCHECK_RELIABLE_MIN)
+    anywhere but a caveat sentence: one that cites only failed concepts, names the spot check and says the feature is
+    not given as a reason;
   * it is not a {"text": str, "findings": [str]} object.
 At most summary.max_sentences survivors are kept; fewer than summary.min_valid_sentences => the template.
 Required facts: the prediction, the margin call and any quality concern must be cited; when the LLM omits one, its
 template sentence is added (ensure_required: the prediction first). When no kept sentence cites the strongest concept,
-its template sentence follows the prediction (replacing a similar-cases or cells sentence if there is no room). Any
-template sentence makes the generator read "lumen:<model>+template".
+its template sentence follows the prediction (replacing a similar-cases or cells sentence if there is no room): the
+push sentence when that concept passed its spot check, else the caveat sentence. Any template sentence makes the
+generator read "lumen:<model>+template".
 
-Template: one sentence per finding kind in a fixed narrative order (prediction, concepts, cells, retrieval, quality,
-margin), chosen by clinical priority when more than max_sentences are possible. It only quotes numbers present in the
-findings, so its own output always passes the validator (tested).
+Template: one sentence per finding kind in a fixed narrative order (prediction, concepts, caveat, cells, retrieval,
+quality, margin), chosen by clinical priority when more than max_sentences are possible. The "Strongest push toward"
+and "Features lowering" sentences name only concepts that passed their AI spot check. A failed concept that one of
+those sentences would have named (in the unfiltered template) is moved to one caveat sentence instead ("... failed its
+AI spot check (0/20 regions acceptable), so it is not given as a reason"); a sentence left with no reliable concept is
+omitted. The caveat takes the slot of the sentence it replaces: priority 2.5 (just below the push-toward sentence,
+above a quality concern, cells and similar cases) when a push-toward feature failed, else 6.5 (just below the
+lowering sentence). It only quotes numbers present in the findings, so its own output always passes the validator
+(tested). Concept findings without a `reliable` key (older case files) are treated as reliable.
 
 Cache: the Lumen client caches by (model, exact prompt); the prompt embeds the canonical findings and
 summary.prompt_version, so changed findings never reuse stale text (a miss with no budget falls back to the template).
@@ -50,7 +60,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 MARGIN_ORDER = ("superior", "inferior", "medial", "lateral")
-NARRATIVE = ("prediction", "concept_up", "concept_down", "cells", "retrieval", "quality", "margin")
+NARRATIVE = ("prediction", "concept_up", "concept_down", "concept_caveat", "cells", "retrieval", "quality", "margin")
 
 _ID_TOKEN = re.compile(r"\bF[1-9][0-9]*\b")
 _HYBRID = re.compile(r"[A-Za-z][-/]?\d|\d[A-Za-z]")
@@ -406,6 +416,15 @@ def semantic_problem(text: str, cited: Sequence[Mapping[str, Any]], aggressive_t
     concepts = [f for f in cited if f.get("kind") == "concept" and isinstance(f.get("data"), Mapping)]
     if not concepts:
         return None
+    failed = [f for f in concepts if not _reliable(f)]
+    if failed:
+        names = ", ".join(str(f["data"].get("concept")) for f in failed)
+        if len(failed) < len(concepts):
+            return (f"{names} failed the AI spot check: cite it only in a caveat sentence, never together with "
+                    f"concepts given as reasons")
+        if not (_SPOT_CHECK.search(text) and _NOT_A_REASON.search(text)):
+            return (f"{names} failed the AI spot check: a sentence citing it must say so and that it is not given as "
+                    f"a reason")
     if _CONTRADICTORY.search(text):
         return f"contradictory wording {_CONTRADICTORY.search(text).group(0)!r}: drop the label's quantity word"
     for f in concepts:                         # "Frequent mitotic figures are scarce": the label's own word says present
@@ -437,6 +456,16 @@ def semantic_problem(text: str, cited: Sequence[Mapping[str, Any]], aggressive_t
     return None
 
 
+def _reliable(f: Mapping[str, Any]) -> bool:
+    """A concept finding counts as a reason unless its AI spot check failed (data.reliable false, set by step 08 from
+    eval/spotcheck.json with core.contract.spotcheck_passed). A finding without the key is treated as reliable."""
+    return (f.get("data") or {}).get("reliable", True) is not False
+
+
+_SPOT_CHECK = re.compile(r"\bspot[- ]checks?\b", re.I)
+_NOT_A_REASON = re.compile(r"\bnot (given|used|offered|counted) as (a )?reasons?\b", re.I)
+
+
 def required_findings(findings: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
     """Findings every summary must cite: the prediction (suggested category and confidence set), the margin call, and
     a quality concern (reliability flag or too few tiles)."""
@@ -451,8 +480,9 @@ def required_findings(findings: Sequence[Mapping[str, Any]]) -> list[Mapping[str
 
 def _concept_backfill(findings: Sequence[Mapping[str, Any]], cited: set[str], cfg: Mapping[str, Any]
                       ) -> dict[str, Any] | None:
-    """Template sentence for the strongest concept's direction when no kept sentence cites that concept (the features
-    of that direction no kept sentence cites), or None."""
+    """Template sentence for the strongest concept when no kept sentence cites it, or None: the push sentence for its
+    direction (the reliable features of that direction no kept sentence cites) when it passed its AI spot check, else
+    the caveat sentence (the failed features of that direction no kept sentence cites)."""
     concepts = [f for f in findings if f["kind"] == "concept" and float(f["data"]["contribution"]) != 0]
     if not concepts:
         return None
@@ -460,8 +490,13 @@ def _concept_backfill(findings: Sequence[Mapping[str, Any]], cited: set[str], cf
     if strongest["id"] in cited:
         return None
     up = float(strongest["data"]["contribution"]) > 0
-    fs = [f for f in concepts if (float(f["data"]["contribution"]) > 0) == up and f["id"] not in cited]
-    text = _concept_up_sentence(fs, cfg) if up else _concept_down_sentence(fs, cfg)
+    ok = _reliable(strongest)
+    fs = [f for f in concepts if (float(f["data"]["contribution"]) > 0) == up and f["id"] not in cited
+          and _reliable(f) == ok]
+    if not ok:
+        text = _concept_caveat_sentence(fs, cfg)
+    else:
+        text = _concept_up_sentence(fs, cfg) if up else _concept_down_sentence(fs, cfg)
     return {"text": text, "findings": [f["id"] for f in fs]}
 
 
@@ -666,6 +701,27 @@ def _concept_down_sentence(fs: Sequence[Mapping[str, Any]], cfg: Mapping[str, An
             f"{_with_regions(_join([_concept_phrase(f) for f in fs]), where)}.")
 
 
+def _spot_note(f: Mapping[str, Any]) -> str:
+    sc = f["data"].get("spotcheck")
+    return f"{int(sc['acceptable'])}/{int(sc['reviewed'])} regions acceptable" if sc else "no AI spot check"
+
+
+def _concept_caveat_sentence(fs: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]) -> str:
+    """Concepts that failed their AI spot check (or have none): named, with the count, and never given as a reason."""
+    aggressive = _class_label(cfg, cfg["aggressive_class"])
+    pushes = [float(f["data"]["contribution"]) for f in fs]
+    toward = (f" toward {aggressive}" if all(p > 0 for p in pushes)
+              else f" away from {aggressive}" if all(p < 0 for p in pushes) else "")
+    if len(fs) == 1:
+        phrase = _concept_phrase(fs[0])
+        check = (f"failed its AI spot check ({_spot_note(fs[0])})" if fs[0]["data"].get("spotcheck")
+                 else "has no AI spot check")
+        return f"{phrase[:1].upper() + phrase[1:]} pushed this read{toward} but {check}, so it is not given as a reason."
+    names = _join([_with_regions(_concept_phrase(f), _spot_note(f)) for f in fs])
+    return (f"{names[:1].upper() + names[1:]} pushed this read{toward} but did not pass an AI spot check, so they are "
+            f"not given as reasons.")
+
+
 def _cells_sentence(f: Mapping[str, Any]) -> str:
     d = f["data"]
     label = str(d.get("label") or _humanize(d["feature"]))
@@ -716,25 +772,24 @@ def _margin_sentence(f: Mapping[str, Any]) -> str:
             "check flagged this read.")
 
 
-def template(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]) -> list[dict[str, Any]]:
-    """Deterministic grounded sentences from the findings alone (<= summary.max_sentences)."""
-    by_kind: dict[str, list[Mapping[str, Any]]] = {}
-    for f in findings:
-        by_kind.setdefault(f["kind"], []).append(f)
-    candidates: list[tuple[int, str, dict[str, Any]]] = []   # (priority, narrative slot, sentence)
+def _candidates(by_kind: Mapping[str, Sequence[Mapping[str, Any]]], cfg: Mapping[str, Any],
+                ups: Sequence[Mapping[str, Any]], downs: Sequence[Mapping[str, Any]],
+                caveat: Sequence[Mapping[str, Any]]) -> list[tuple[float, str, dict[str, Any]]]:
+    """(priority, narrative slot, sentence) for every possible template sentence."""
+    candidates: list[tuple[float, str, dict[str, Any]]] = []
 
-    def add(priority: int, slot: str, text: str, cited: Sequence[Mapping[str, Any]]) -> None:
+    def add(priority: float, slot: str, text: str, cited: Sequence[Mapping[str, Any]]) -> None:
         candidates.append((priority, slot, {"text": text, "findings": [c["id"] for c in cited]}))
 
     for f in by_kind.get("prediction", [])[:1]:
         add(0, "prediction", _prediction_sentence(f, cfg), [f])
     for f in by_kind.get("margin", [])[:1]:
         add(1, "margin", _margin_sentence(f), [f])
-    concepts = by_kind.get("concept", [])
-    ups = [f for f in concepts if float(f["data"]["contribution"]) > 0]
-    downs = [f for f in concepts if float(f["data"]["contribution"]) < 0]
     if ups:
         add(2, "concept_up", _concept_up_sentence(ups, cfg), ups)
+    if caveat:
+        toward = any(float(f["data"]["contribution"]) > 0 for f in caveat)
+        add(2.5 if toward else 6.5, "concept_caveat", _concept_caveat_sentence(caveat, cfg), caveat)
     quality = by_kind.get("quality", [])[:1]
     concern = False
     if quality:
@@ -746,8 +801,28 @@ def template(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]) -> l
         add(5, "retrieval", _retrieval_sentence(f, cfg), [f])
     if downs:
         add(6, "concept_down", _concept_down_sentence(downs, cfg), downs)
+    return candidates
 
-    chosen = sorted(candidates, key=lambda c: c[0])[: int(cfg["summary"]["max_sentences"])]
+
+def template(findings: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Deterministic grounded sentences from the findings alone (<= summary.max_sentences)."""
+    by_kind: dict[str, list[Mapping[str, Any]]] = {}
+    for f in findings:
+        by_kind.setdefault(f["kind"], []).append(f)
+    n = int(cfg["summary"]["max_sentences"])
+
+    def choose(candidates: list[tuple[float, str, dict[str, Any]]]) -> list[tuple[float, str, dict[str, Any]]]:
+        return sorted(candidates, key=lambda c: c[0])[:n]
+
+    concepts = by_kind.get("concept", [])
+    ups = [f for f in concepts if float(f["data"]["contribution"]) > 0]
+    downs = [f for f in concepts if float(f["data"]["contribution"]) < 0]
+    # which concept sentences the unfiltered template would write: their failed features go to the caveat instead
+    named = {slot for _, slot, _ in choose(_candidates(by_kind, cfg, ups, downs, []))}
+    caveat = ([f for f in ups if not _reliable(f)] if "concept_up" in named else []) + \
+             ([f for f in downs if not _reliable(f)] if "concept_down" in named else [])
+    chosen = choose(_candidates(by_kind, cfg, [f for f in ups if _reliable(f)], [f for f in downs if _reliable(f)],
+                                caveat))
     chosen.sort(key=lambda c: (NARRATIVE.index(c[1]), c[0]))
     return [c[2] for c in chosen]
 
@@ -796,6 +871,10 @@ SYSTEM_PROMPT = (
     "the reliability check flagged the read.\n"
     "10. If a quality finding has reliability_flag true, say the reliability check flagged the read, so its "
     "confidence is reduced; if qc_tiles_kept < min_tiles_kept, say little tissue passed quality control.\n"
+    "11. A concept finding with reliable false failed its AI spot check (spotcheck = acceptable of reviewed top "
+    "regions): never give it as a reason or cite it with other concepts. If you mention it, write one sentence citing "
+    "only such findings, e.g. 'Frequent mitotic figures pushed this read toward invasive carcinoma but failed its AI "
+    "spot check (0/20 regions acceptable), so it is not given as a reason.'\n"
     'Answer with JSON only: {{"sentences": [{{"text": "...", "findings": ["F1"]}}]}}'
 )
 

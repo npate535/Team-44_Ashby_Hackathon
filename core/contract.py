@@ -26,6 +26,8 @@ Every model forbids unknown fields, so drift fails loudly. Cross-field rules (en
   * contrast_case.detail (optional; null when features are missing): one row per differs_most_in concept in the same
     order; delta = query_z - contrast_z; reliable iff the concept's spot check has acceptable / reviewed >=
     SPOTCHECK_RELIABLE_MIN (never with no spot check); query_region is a contract-grid index.
+  * concept findings may carry data.spotcheck ({acceptable, reviewed} or null) and data.reliable, always together,
+    with the same rule (step 08 always writes both; backend.summary never gives an unreliable concept as a reason).
 
 Wording (plan §16): fields hold suggestions, never diagnoses; the UI says "suggested", "associated with",
 "simulated", "research use only".
@@ -45,6 +47,15 @@ SCHEMA_VERSION = "1.0"
 # A concept counts as a reason in the look-alike comparison only when at least this share of its reviewed spot-check
 # regions was acceptable. Fixed before looking at which concepts pass (judge-feedback plan T4); do not tune.
 SPOTCHECK_RELIABLE_MIN = 0.75
+
+
+def spotcheck_passed(spot: Any) -> bool:
+    """The fixed reliability rule: a spot check with reviewed > 0 and acceptable / reviewed >= SPOTCHECK_RELIABLE_MIN.
+    `spot` is {acceptable, reviewed}, a SpotcheckCount, or None (no spot check: never reliable)."""
+    if spot is None:
+        return False
+    ok, n = (spot["acceptable"], spot["reviewed"]) if isinstance(spot, Mapping) else (spot.acceptable, spot.reviewed)
+    return int(n) > 0 and int(ok) / int(n) >= SPOTCHECK_RELIABLE_MIN
 
 # ---- vocabularies (mirrored as union types in frontend/src/types.ts) ---------------------------------------------------
 Lane = Literal["surgical", "biopsy"]
@@ -218,8 +229,7 @@ class ContrastDetail(_Model):
 
     @model_validator(mode="after")
     def _consistent(self) -> "ContrastDetail":
-        passed = (self.spotcheck is not None
-                  and self.spotcheck.acceptable / self.spotcheck.reviewed >= SPOTCHECK_RELIABLE_MIN)
+        passed = spotcheck_passed(self.spotcheck)
         if self.reliable != passed:
             raise ValueError(f"contrast detail {self.concept}: reliable must be {passed} (spot check "
                              f"{self.spotcheck.model_dump() if self.spotcheck else None}, cut-off {SPOTCHECK_RELIABLE_MIN})")
@@ -341,6 +351,19 @@ class Finding(_Model):
         missing = [k for k in FINDING_REQUIRED_KEYS[self.kind] if k not in self.data]
         if missing:
             raise ValueError(f"finding {self.id} ({self.kind}) data is missing {missing}")
+        spot_keys = {"spotcheck", "reliable"} & set(self.data)
+        if self.kind == "concept" and spot_keys:
+            if len(spot_keys) < 2:
+                raise ValueError(f"finding {self.id} (concept) data needs spotcheck and reliable together")
+            spot = self.data["spotcheck"]
+            if spot is not None:
+                if not isinstance(spot, Mapping):
+                    raise ValueError(f"finding {self.id} spotcheck must be {{acceptable, reviewed}} or null")
+                SpotcheckCount.model_validate(spot)
+            reliable = self.data["reliable"]
+            if not isinstance(reliable, bool) or reliable != spotcheck_passed(spot):
+                raise ValueError(f"finding {self.id} ({self.data.get('concept')}): reliable must be "
+                                 f"{spotcheck_passed(spot)} for spot check {spot} (cut-off {SPOTCHECK_RELIABLE_MIN})")
         return self
 
 
