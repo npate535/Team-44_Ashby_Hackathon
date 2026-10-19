@@ -491,7 +491,9 @@ RETRIEVAL = JsonSpec(
     required_keys=("encoder", "head", "k", "cases", "created_utc", "config_hash", "synthetic"),
     doc="cases: {case_id: {neighbors: [{case_id, label, similarity}] (k train references, cosine), predicted, agree, "
         "of, neighbor_agreement (= agree / of, neighbor labels vs the predicted class), contrast: {case_id, label, "
-        "similarity, differs_most_in: [concept ids]} or null}}.",
+        "similarity, differs_most_in: [concept ids], detail: [{concept, query_z, contrast_z, delta, spotcheck: "
+        "{acceptable, reviewed} | null, reliable, query_region, contrast_region}] (differs_most_in order) | null "
+        "(features missing)} or null}}.",
 )
 MARGINS_JSON = JsonSpec(
     "margins.json", "Task 10 · 05_risk_model (fine-scale probe)", "Task 11 · 08 (core.margin call) and margin eval",

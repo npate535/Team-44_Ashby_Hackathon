@@ -27,6 +27,47 @@ the rebuilt UNI2-h 512-pixel case evidence. The previous `v1` workspace is
 retained for recovery; no recorded routed results existed at migration time.
 Deployment packages never copy the running laptop demo's SQLite database.
 
+### October 18, 2026 (evening): look-alike detail needs workspace v3
+
+Branch `jf/t4-contrast` adds `contrast_case.detail` to all 328 case JSONs.
+Nothing else in the case evidence changed. With the detail field removed,
+every case equals the previous version. `restore()` accepts a saved snapshot
+only when its `evidence_hash` (SHA-256 of the sorted public case JSONs)
+matches the packaged cases. Left on `v2`, every API request would raise and
+return 503, including the deploy workflow's `/api/health` check. The default
+key in `backend/vercel.py` is therefore `sepia:workspace:v3`, which starts
+from the seed snapshot of the new evidence. `v2` stays in Redis, untouched,
+for recovery. Nothing was deployed and Redis was not read or written when
+this change was prepared.
+
+Evidence hashes, computed locally with `create_app` over the packaged JSON
+sections:
+
+| Workspace | Case evidence | `evidence_hash` |
+|---|---|---|
+| `v2` | commit `ef43467` (unchanged since `ea008ee`) | `7f3f72e5b5fe52dd6149f4c6c1e6a96c5235b0dcbb426845b1b9e885aa5c52a7` |
+| `v3` | with `contrast_case.detail` | `71f8923219c652ca667a60c9168d81957f386c8bbab42aed39f8f25679a85598` |
+
+Before pushing this change to `main`:
+
+1. Confirm that the Vercel project does not set `SEPIA_WORKSPACE_KEY`. An
+   explicit value overrides the new default and keeps the site on the old
+   evidence check.
+2. Read `sepia:workspace:v2` without writing to it. Decode it with base64,
+   then zlib, then JSON; the `sqlite` field is a base64 SQLite image. Count
+   the rows in `decisions`, `orders` and `routed_results`. If they are empty,
+   as at the `v2` migration, deploy as is.
+3. If they hold reviews that must stay visible, migrate explicitly before the
+   deploy. The only evidence change is display data, so re-encode the same
+   snapshot with the `v3` hash above and `SET` it as `sepia:workspace:v3`.
+   Never delete the `v2` key.
+4. If another case-evidence change is merged before this push (for example,
+   concept label edits), it shares the `v3` bump; recompute the `v3` hash
+   from the final cases. A case change after `v3` is live needs `v4`.
+
+The laptop demo's saved SQLite workspace rejects the new cases for the same
+reason. Start it with `make demo-fresh`, which archives the old database.
+
 Cursor's Linux CLI is compressed in the function bundle and extracted into
 `/tmp` when a new interpretation is requested. Cached interpretations need no
 model call. `CURSOR_API_KEY`, `CURSOR_API_KEY_BACKUP`, and

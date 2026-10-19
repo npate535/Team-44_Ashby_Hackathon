@@ -94,12 +94,32 @@
  */
 
 /**
+ * @typedef {Object} SpotcheckCount
+ * @property {number} acceptable
+ * @property {number} reviewed
+ */
+
+/**
+ * @typedef {Object} ContrastDetail
+ * @property {string} concept
+ * @property {string} label
+ * @property {number} query_z
+ * @property {number} contrast_z
+ * @property {number} delta
+ * @property {SpotcheckCount | null} spotcheck
+ * @property {boolean} reliable
+ * @property {number | null} query_region
+ * @property {number | null} contrast_region
+ */
+
+/**
  * @typedef {Object} ContrastCase
  * @property {string} case_id
  * @property {string} label
  * @property {number} similarity
  * @property {string[]} differs_most_in
  * @property {string | null} [image]
+ * @property {ContrastDetail[] | null} [detail]
  */
 
 /**

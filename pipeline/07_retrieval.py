@@ -8,6 +8,11 @@ degraded / composite variant: cosine top-k neighbors (retrieval.k), neighbor agr
 (predictions.csv `top`, never the true label), the contrast case = nearest library case whose label differs from the
 predicted class, and differs_most_in = the retrieval.differs_most_in_k concepts with the largest |delta z| between
 query and contrast case features (case_features.csv c__top<k>, z-scored on train cases; [] when absent).
+contrast.detail lists those concepts in the same order: {concept, query_z, contrast_z, delta = query_z - contrast_z
+(2 dp), spotcheck {acceptable, reviewed} | null (artifacts eval/spotcheck.json summary), reliable (acceptable /
+reviewed >= core.contract.SPOTCHECK_RELIABLE_MIN), query_region / contrast_region (contract-grid idx of the highest
+concepts_tile.npz tile z in that read, null without per-tile scores)}; detail is null when either case lacks
+features (never zeros). Step 08 adds the concept bank label.
 Writes retrieval.json (data root) and eval/retrieval.json: precision@k on the test split (neighbor label == query
 true label) with a cluster-bootstrap CI over patient groups.
 """
@@ -21,7 +26,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from core import cli, io, schemas, stats
+from core import cli, contract, io, schemas, stats
 from pipeline import riskmodels as rm
 
 STEP = "07_retrieval"
@@ -40,6 +45,87 @@ def case_embeddings(root, encoder: str, head: str, tiles: pd.DataFrame) -> pd.Da
     emb = pd.concat(frames)
     v = emb.to_numpy(np.float64)
     return pd.DataFrame(v / np.linalg.norm(v, axis=1, keepdims=True), index=emb.index)
+
+
+TileScores = dict[str, tuple[np.ndarray, np.ndarray]]   # read id -> (tile_idx [T], tile z [T, concepts])
+
+
+def tile_scores(root, concept_ids: Sequence[str]) -> TileScores:
+    """Per-tile concept z by read from concepts_tile.npz (the tiles each read's features were aggregated over);
+    {} when the file is absent."""
+    path = schemas.concepts_tile_npz(root)
+    if not path.is_file():
+        return {}
+    npz = io.load_npz(path)
+    ids = [str(c) for c in npz["concept_ids"]]
+    if ids != list(concept_ids):
+        raise ValueError(f"concepts_tile.npz concept_ids {ids} differ from settings concepts.ids {list(concept_ids)}")
+    case_ids = np.asarray(npz["case_id"]).astype(str)
+    order = np.argsort(case_ids, kind="stable")
+    starts = np.flatnonzero(np.r_[True, case_ids[order][1:] != case_ids[order][:-1]])
+    out: TileScores = {}
+    for rows in np.split(order, starts[1:]):
+        out[str(case_ids[rows[0]])] = (np.asarray(npz["tile_idx"])[rows].astype(int), np.asarray(npz["z"])[rows])
+    return out
+
+
+def spotcheck_counts(artifacts_root) -> dict[str, dict[str, int]]:
+    """Concept id -> {acceptable, reviewed} from eval/spotcheck.json (summary.concept {n, acceptable}); concepts with
+    nothing reviewed are left out. {} when the file is absent."""
+    path = schemas.eval_json(artifacts_root, "spotcheck")
+    if not path.is_file():
+        return {}
+    summary = (io.read_json(path).get("summary") or {}).get("concept") or {}
+    out = {}
+    for cid, entry in summary.items():
+        n, ok = int(entry.get("n") or 0), int(entry.get("acceptable") or 0)
+        if n > 0:
+            if not 0 <= ok <= n:
+                raise ValueError(f"eval/spotcheck.json: {cid} has {ok} acceptable of {n} reviewed")
+            out[str(cid)] = {"acceptable": ok, "reviewed": n}
+    return out
+
+
+def strongest_region(scores: TileScores, read_id: str, ci: int) -> int | None:
+    """Contract-grid idx of the read's highest tile z for concept ci (lowest idx on ties); None without scores."""
+    if read_id not in scores:
+        return None
+    idx, z = scores[read_id]
+    col = z[:, ci].astype(float)
+    keep = np.isfinite(col)
+    if not keep.any():
+        return None
+    idx, col = idx[keep], col[keep]
+    return int(idx[np.lexsort((idx, -col))[0]])
+
+
+def _r2(x: float) -> float:
+    return round(float(x), 2) + 0.0          # + 0.0 turns -0.0 into 0.0
+
+
+def contrast_detail(query: str, ref: str, z: pd.DataFrame | None, concept_ids: Sequence[str], kd: int,
+                    scores: TileScores, spot: dict[str, dict[str, int]]) -> tuple[list[str], list[dict] | None]:
+    """(differs_most_in, detail) for a query and its contrast case. z: case features z-scored on train cases, columns
+    in concept_ids order. ([], None) when either case lacks features; detail None when a selected value is not
+    finite."""
+    if z is None or query not in z.index or ref not in z.index:
+        return [], None
+    qz, rz = z.loc[query].to_numpy(float), z.loc[ref].to_numpy(float)
+    delta = qz - rz
+    order = np.argsort(-np.abs(delta), kind="stable")[:kd]
+    dz = [concept_ids[t] for t in order]
+    if not (np.isfinite(qz[order]).all() and np.isfinite(rz[order]).all()):
+        return dz, None
+    detail = []
+    for t in order:
+        cid = concept_ids[t]
+        sc = spot.get(cid)
+        reliable = sc is not None and sc["acceptable"] / sc["reviewed"] >= contract.SPOTCHECK_RELIABLE_MIN
+        detail.append({"concept": cid, "query_z": _r2(qz[t]), "contrast_z": _r2(rz[t]), "delta": _r2(delta[t]),
+                       "spotcheck": dict(sc) if sc is not None else None, "reliable": bool(reliable),
+                       "query_region": strongest_region(scores, query, int(t)),
+                       "contrast_region": strongest_region(scores, ref, int(t))})
+    return dz, detail
 
 
 def run(ctx: cli.StepContext) -> dict[str, Any]:
@@ -67,6 +153,8 @@ def run(ctx: cli.StepContext) -> dict[str, Any]:
         z = (z - train_rows.mean()) / train_rows.std(ddof=0).replace(0, 1.0)
     else:
         z = None
+    scores = tile_scores(root, concept_ids)
+    spot = spotcheck_counts(ctx.artifacts_root)
 
     comp_src: dict[str, str] = {}
     comp_csv = schemas.composites_csv(root)
@@ -91,12 +179,9 @@ def run(ctx: cli.StepContext) -> dict[str, Any]:
         diff = order[lib_labels[order] != p]
         if len(diff):
             j = int(diff[0])
-            dz: list[str] = []
-            if z is not None and q in z.index and lib_ids[j] in z.index:
-                delta = (z.loc[q] - z.loc[lib_ids[j]]).abs().to_numpy()
-                dz = [concept_ids[t] for t in np.argsort(-delta, kind="stable")[:kd]]
+            dz, detail = contrast_detail(q, lib_ids[j], z, concept_ids, kd, scores, spot)
             contrast = {"case_id": lib_ids[j], "label": str(lib_labels[j]), "similarity": round(float(sims[qi, j]), 6),
-                        "differs_most_in": dz}
+                        "differs_most_in": dz, "detail": detail}
         out[q] = {"neighbors": neighbors, "predicted": p, "agree": agree, "of": len(neighbors),
                   "neighbor_agreement": agree / len(neighbors), "contrast": contrast}
     prov = io.provenance(cfg, synthetic=ctx.synthetic)
@@ -139,7 +224,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     ev = run(ctx)
     io.write_meta(schemas.step_meta_json(ctx.data_root, STEP), step=STEP, cfg=ctx.cfg,
-                  inputs=[schemas.predictions_csv(ctx.data_root), "emb/"], outputs=outs,
+                  inputs=[schemas.predictions_csv(ctx.data_root), "emb/", schemas.case_features_csv(ctx.data_root),
+                          schemas.concepts_tile_npz(ctx.data_root), schemas.eval_json(ctx.artifacts_root, "spotcheck")],
+                  outputs=outs,
                   args={"limit": ctx.limit, "force": ctx.force}, synthetic=ctx.synthetic)
     print(f"{STEP}: precision@{ev['k']} (test) = {ev['precision_at_k_test']['estimate']:.3f}")
     return 0
