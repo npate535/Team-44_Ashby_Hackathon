@@ -352,12 +352,13 @@ def section_external_tcga(d: Mapping[str, Any]) -> list[str]:
         if c.get("failed_crops"):
             notes.append(f"{len(c['failed_crops'])} crops failed to score")
         if notes:
-            out += ["", f"{label[n].capitalize()}: " + "; ".join(notes) + "."]
+            out += ["", f"{label[n][0].upper()}{label[n][1:]}: " + "; ".join(notes) + "."]
 
     b = d.get("bach_reference") or {}
     if b:
         p = d.get("primary") or {}
-        rows = (("Invasive / tumor called invasive", b.get("invasive_sensitivity"),
+        rows = (("Invasive / tumor called invasive", b.get("invasive_sensitivity_patient_bootstrap")
+                 or b.get("invasive_sensitivity"),
                  "FFPE " + fmt(p.get("ffpe_tumor_sensitivity"), pct=True) + "; frozen "
                  + fmt(p.get("frozen_tumor_sensitivity"), pct=True)),
                 ("Normal not called invasive", b.get("normal_specificity"),

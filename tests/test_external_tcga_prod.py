@@ -266,6 +266,7 @@ def served_doc() -> dict:
             **cohort, "n_patients": 25, "n_slides": 72, "n_crops": 410,
             "cohorts": {"same8": cohort},
             "bach_reference": {"n_images": 132, "unit": "single image", "invasive_sensitivity": ci(1.0, 1.0, 1.0, 132),
+                               "invasive_sensitivity_patient_bootstrap": ci(1.0, 1.0, 1.0, 31),
                                "normal_specificity": ci(0.97, 0.9, 1.0, 33), "invasive_vs_normal_auroc": ci(1, 1, 1, 64),
                                "invasive_tier_1_2_rate": ci(1.0, 1.0, 1.0, 31),
                                "reliability_flag_rate_clean": {"estimate": 0.1667}},
@@ -283,6 +284,7 @@ def test_results_md_tcga_section_quotes_the_json():
     assert "| Patients / slides / crops | 25 / 72 / 410 | 8 / 23 / 132 |" in text
     assert "### BACH test vs TCGA (25 patients)" in text and "slides with exactly 6 crops" in text
     assert "P frozen_normal (5)" in text and "12.5 points" in text and "- Slide-level labels." in text
+    assert "| Invasive / tumor called invasive | 100.0% [100.0%, 100.0%] (n 31, 31 groups) |" in text
     for absent in ("uni2h_ft", "fine-tune", "round 1", "8-view", "deterministic"):   # production only; S2/S3 JSON only
         assert absent not in text
 

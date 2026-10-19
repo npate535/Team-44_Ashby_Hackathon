@@ -652,7 +652,8 @@ LIMITATIONS = [
     "TCGA-BRCA has no benign or in situ labels: four-class accuracy, in situ vs invasive and the p63/calponin rule are "
     "not tested; specificity is measured only against frozen normal tissue adjacent to tumor.",
     "The reliability flag and the OOD percentile are not computed (CONCH and MUSK are not on this laptop); "
-    "reliability_flag is forced false, which can only lower tiers relative to the app.",
+    "reliability_flag is forced false, which can move a crop from tier 3 to tier 4 but never changes tier 1-2 "
+    "placement.",
     "The sample is small (at most 25 patients); bootstrap intervals over patients are wide.",
     "protocol25 crops come from the GDC DeepZoom tile API rather than local openslide decoding; re-extracting 23 "
     "openslide crops through the API reproduced them pixel for pixel, but the API's thumbnails can shift which "
