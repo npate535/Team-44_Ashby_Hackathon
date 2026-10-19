@@ -440,15 +440,18 @@ def _cache_models(model: str) -> list[str]:
 
 
 def _run_claude(prompt: str, model: str) -> tuple[str, dict[str, Any]]:
-    """One headless Claude Code call: no tools, no hooks or CLAUDE.md (--bare), empty working directory."""
+    """One headless Claude Code call: no tools, hooks off, empty working directory. Uses the CLI's own login: an API
+    key in the environment is removed so the call never bills a separate API account (--bare would read only that)."""
     cli = shutil.which("claude")
     if not cli:
         raise InterpretError("claude CLI not found: install Claude Code or use the cursor provider")
-    cmd = [cli, "-p", "--bare", "--model", model, "--output-format", "json", "--tools", "",
-           "--no-session-persistence", "--strict-mcp-config"]
+    cmd = [cli, "-p", "--model", model, "--output-format", "json", "--tools", "", "--no-session-persistence",
+           "--strict-mcp-config", "--settings", '{"disableAllHooks": true}']
+    env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY" and not k.startswith("CLAUDE_CODE_")}
     with tempfile.TemporaryDirectory(prefix="pq-interp-") as scratch:   # empty workspace: nothing to read
         try:
-            proc = subprocess.run(cmd, input=prompt, cwd=scratch, capture_output=True, text=True, timeout=TIMEOUT_S)
+            proc = subprocess.run(cmd, input=prompt, cwd=scratch, capture_output=True, text=True, timeout=TIMEOUT_S,
+                                  env=env)
         except subprocess.TimeoutExpired as exc:
             raise InterpretError(f"model did not answer within {TIMEOUT_S} s") from exc
     out = (proc.stdout or "").strip()
@@ -458,8 +461,8 @@ def _run_claude(prompt: str, model: str) -> tuple[str, dict[str, Any]]:
         data = {}
     text = str(data.get("result") or "").strip()
     if proc.returncode != 0 or data.get("is_error") or not text:
-        detail = (proc.stderr or out or "no output").strip().splitlines()[-1:] or ["no output"]
-        raise InterpretError(f"model call failed (exit {proc.returncode}): {detail[0][:300]}")
+        detail = text or (proc.stderr or out or "no output").strip().splitlines()[-1]
+        raise InterpretError(f"model call failed (exit {proc.returncode}): {detail[:300]}")
     return text, {"usage": data.get("usage"), "duration_ms": data.get("duration_ms")}
 
 
