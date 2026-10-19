@@ -7,9 +7,11 @@
 import { interpretPanel } from './interpret.js';
 import { classLabel, esc, humanize } from '../adapter.js';
 import * as C from '../charts.js';
+import { atBoundary, boundaryInterval, boundaryText, exactBoundary } from '../ci.js';
 
 const OPEN = new Set(); // <details> kept open across the app's re-renders
 let renderedWidth = 0;
+let activeSection = null; // section id highlighted in the nav, kept across re-renders
 
 const SECTIONS = [
   ['summary', 'Summary'],
@@ -23,8 +25,8 @@ const SECTIONS = [
   ['limitations', 'Limitations & data']
 ];
 const MODEL_LABEL = {
-  uni2h_lr: 'UNI2-h linear probe (256-px tiles)',
-  uni2h512_lr: 'UNI2-h linear probe (512-px tiles)',
+  uni2h_lr: 'UNI2-h linear probe (256-px regions)',
+  uni2h512_lr: 'UNI2-h linear probe (512-px regions)',
   uni2h_ft: 'UNI2-h fine-tuned, recipe A (LoRA, ours)',
   uni2h_ftb: 'UNI2-h fine-tuned, recipe B head (ours)',
   uni2h_ft_lr: 'UNI2-h fine-tuned + probe (ours)',
@@ -34,8 +36,8 @@ const MODEL_LABEL = {
   uni2h_wise25_lr: 'UNI2-h WiSE-FT alpha 0.25 (ours)',
   uni2h_wise50_lr: 'UNI2-h WiSE-FT alpha 0.5 (ours)',
   conch_probe_lr: 'CONCH linear probe',
-  hoptimus0_lr: 'H-optimus-0 linear probe (256-px tiles)',
-  hoptimus0_512_lr: 'H-optimus-0 linear probe (512-px tiles)',
+  hoptimus0_lr: 'H-optimus-0 linear probe (256-px regions)',
+  hoptimus0_512_lr: 'H-optimus-0 linear probe (512-px regions)',
   musk_lr: 'MUSK linear probe',
   abmil: 'Attention MIL (ABMIL)',
   fusion_top3: 'Fusion of top-3 encoders',
@@ -91,15 +93,64 @@ const minus = (s) => (/^-0(\.0+)?%?$/.test(String(s)) ? String(s).slice(1) : Str
 function range(lo, hi, f) {
   return lo < 0 || hi < 0 ? `${minus(f(lo))} to ${minus(f(hi))}` : `${f(lo)}–${f(hi)}`;
 }
+/** Formatter for an interval: adds decimals (up to 4) while distinct bounds would print alike (0.996–0.999 is not "1.00–1.00"). */
+function ciFormat(c, pct, digits) {
+  let d = pct ? (digits === 2 ? 1 : digits) : digits;
+  const mk = (n) => (pct ? (v) => pc(v, n) : (v) => C.fmtNum(v, n));
+  while (d < 4 && isNum(c.lo) && isNum(c.hi) && c.lo !== c.hi && mk(d)(c.lo) === mk(d)(c.hi)) d++;
+  return mk(d);
+}
 function ciText(c, { pct = false, digits = 2, unit = '' } = {}) {
   if (!c) return 'not available';
-  const f = pct ? (v) => pc(v, digits === 2 ? 1 : digits) : (v) => C.fmtNum(v, digits);
+  const f = ciFormat(c, pct, digits);
   return isNum(c.lo) && isNum(c.hi) ? `${minus(f(c.est))}${unit} (95% CI ${range(c.lo, c.hi, f)}${unit})` : `${minus(f(c.est))}${unit}`;
 }
 function ciShort(c, { pct = false, digits = 2 } = {}) {
   if (!c) return '—';
-  const f = pct ? (v) => pc(v, digits === 2 ? 1 : digits) : (v) => C.fmtNum(v, digits);
+  const f = ciFormat(c, pct, digits);
   return isNum(c.lo) && isNum(c.hi) ? `${minus(f(c.est))} [${range(c.lo, c.hi, f)}]` : minus(f(c.est));
+}
+
+// ---- results at the boundary ------------------------------------------------------------------------------------------------
+// A percentile bootstrap has no spread when every case is right (or none is positive): "100% (95% CI 100–100%)" would read as
+// zero uncertainty. Those results show the count with an exact Clopper–Pearson interval instead (js/ci.js). n is always the
+// true denominator of that rate (e.g. the invasive test images), never a block's n taken blindly.
+/** {k, n, lo, hi, level} for a ci() result at 0 or 1 over n units, else null. */
+function exactOf(c, n) {
+  return c && isNum(n) && n > 0 ? boundaryInterval({ estimate: c.est, lo: c.lo, hi: c.hi }, n) : null;
+}
+/** "exact 95% CI 88.8–100%" (the interval part of boundaryText). */
+const exactCi = (iv) => boundaryText(iv).replace(/^\d+ of \d+ \((.*)\)$/, '$1');
+/** "31 of 31 invasive images (exact 95% CI 88.8–100%)". */
+const exactText = (iv, unit = '') => `${iv.k} of ${iv.n}${unit ? ` ${unit}` : ''} (${exactCi(iv)})`;
+/** Chart value column, in the style of ciShort: "100% [89%–100%]". */
+const exactShort = (iv, digits = 0) => `${pc(iv.k / iv.n, digits)} [${pc(iv.lo, digits)}–${pc(iv.hi, digits)}]`;
+const EXACT_NOTE = 'Results of 0% or 100% show their count with an exact (Clopper–Pearson) 95% interval: a bootstrap has no spread there.';
+/** Forest-row fields for an exact interval: whisker at the exact bounds, count under the label, full text in the tooltip. */
+function exactRow(iv, unit, what, digits = 0) {
+  return { lo: iv.lo, hi: iv.hi, value: exactShort(iv, digits), sub: `${iv.k} of ${iv.n}${unit ? ` ${unit}` : ''}; exact CI`, tip: [exactText(iv, unit), `${what}: exact (Clopper–Pearson) interval`] };
+}
+/** An AUROC of exactly 1 (or 0) with a zero-width bootstrap: no interval is invented; the ranking is stated instead. */
+const perfectAuc = (c) => !!c && atBoundary({ estimate: c.est, lo: c.lo, hi: c.hi });
+function rankText(c, counts) {
+  const pos = counts ? `${counts.pos} invasive images` : 'invasive images',
+    neg = counts ? `${counts.neg} others` : 'others';
+  return c.est === 1 ? `all ${pos} ranked above all ${neg}` : `all ${pos} ranked below all ${neg}`;
+}
+/** AUROC with its interval at a precision that tells the bounds apart; at the boundary, the ranking in words. */
+function aucShort(c, counts) {
+  if (!c) return '—';
+  if (perfectAuc(c)) return `${fa(c.est)} (${rankText(c, counts)}; no interval)`;
+  return aucCi(c);
+}
+/** Invasive and other test images from the production confusion matrix (rows = true class; every model shares the split). */
+function invasiveCounts(ST, ev) {
+  const mtx = get(ev, 'metrics.production.confusion.matrix');
+  const names = get(ev, 'metrics.classes') || get(ev, 'metrics.production.confusion.classes') || ST.cfg.classes;
+  const k = names.indexOf(ST.cfg.aggressive_class);
+  if (!Array.isArray(mtx) || k < 0 || !Array.isArray(mtx[k])) return null;
+  const pos = sum(mtx[k]);
+  return { pos, neg: sum(mtx.map((r) => sum(r))) - pos };
 }
 function popText(c, unit = 'images') {
   if (!c || !isNum(c.n)) return '';
@@ -107,8 +158,9 @@ function popText(c, unit = 'images') {
 }
 const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 const lowerFirst = (t) => (/^[A-Z]{2}/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1));
-/** AUROC-style values near 1 need a third decimal to be told apart. */
-const fa = (v) => C.fmtNum(v, isNum(v) && v >= 0.98 ? 3 : 2);
+const f3 = (v) => C.fmtNum(v, 3);
+const fa = f3; // AUROC, macro-F1, balanced accuracy, ECE, Brier and log-loss: three decimals everywhere on this page
+const aucCi = (c) => ciShort(c, { digits: 3 });
 /** A probability for display that is never rounded to 0 or 1: enough digits to differ from the bound, plus log-odds
  *  when it is extreme (0.999823 -> "0.99982 (log-odds +8.6)"). */
 function probText(p) {
@@ -146,11 +198,13 @@ function layout() {
 function details(id, summary, body) {
   return `<details class="mx-src" data-mx-open="${esc(id)}"${OPEN.has(id) ? ' open' : ''}><summary>${esc(summary)}</summary>${body}</details>`;
 }
-function table(head, rows, { num = [] } = {}) {
+function table(head, rows, { num = [], title = '' } = {}) {
   if (!rows.length) return '<p class="mx-muted">No rows.</p>';
   const numCol = (i) => (num.includes(i) ? ' class="mx-n"' : '');
-  // focusable + labelled so a table that scrolls sideways on a phone is reachable by keyboard (axe scrollable-region)
-  return `<div class="mx-tablewrap" tabindex="0" role="region" aria-label="Source numbers table (scrolls sideways)"><table class="mx-table"><thead><tr>${head.map((h, i) => `<th scope="col"${numCol(i)}>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows
+  const name = title ? `Source numbers for ${title}` : 'Source numbers';
+  // focusable + labelled (by its figure, so every region has its own name) so a table that scrolls sideways on a phone is
+  // reachable by keyboard (axe scrollable-region); the caption names the table for screen readers
+  return `<div class="mx-tablewrap" tabindex="0" role="region" aria-label="${esc(name)} (table, scrolls sideways)"><table class="mx-table"><caption class="sr-only">${esc(name)}</caption><thead><tr>${head.map((h, i) => `<th scope="col"${numCol(i)}>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows
     .map((r) => `<tr>${r.map((c, i) => `<td${numCol(i)}>${esc(c)}</td>`).join('')}</tr>`)
     .join('')}</tbody></table></div>`;
 }
@@ -165,7 +219,7 @@ function figure(o) {
   const chart = `<div class="mx-chart">${o.chart || unavailableInline('The chart has no plottable values in this run.')}</div>`;
   const foot = `${(o.notes || []).length ? `<ul class="mx-notes">${o.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
     <p class="mx-pop">${o.population ? `<span>Population: ${esc(o.population)}</span>` : ''}${src.length ? `<span>Source: ${src.map((s) => `<code>${esc(s)}</code>`).join(', ')}</span>` : ''}</p>
-    ${o.table ? details(`${o.id}-src`, 'Source numbers', table(o.table.head, o.table.rows, o.table)) : ''}`;
+    ${o.table ? details(`${o.id}-src`, 'Source numbers', table(o.table.head, o.table.rows, { ...o.table, title: o.title })) : ''}`;
   const klass = `mx-fig${o.wide ? ' mx-wide' : ''}${o.side ? ' mx-side' : ''}`;
   const attrs = `class="${klass}" id="fig-${esc(o.id)}"${o.testid ? ` data-testid="${esc(o.testid)}"` : ''}`;
   if (o.side) return `<figure ${attrs}><div class="mx-side-text">${head}${foot}</div>${chart}</figure>`;
@@ -220,27 +274,34 @@ function summaryTiles(ST, ev) {
   const width = 220;
   const prod = get(M, 'production') || {};
   const auc = ci(prod.invasive_vs_rest_auroc);
-  if (auc)
+  const counts = invasiveCounts(ST, ev);
+  if (auc) {
+    const perfect = perfectAuc(auc);
     tiles.push(tile({
       label: 'Separates invasive from other cases',
       value: `AUROC ${fa(auc.est)}`,
-      ci: isNum(auc.lo) ? `95% CI ${fa(auc.lo)}–${fa(auc.hi)}` : null,
-      strip: C.strip({ est: auc.est, lo: auc.lo, hi: auc.hi, min: 0.5, max: 1, width, aria: `AUROC ${fa(auc.est)} on a 0.5 to 1 scale` }),
-      sentence: `Chance is 0.50 and 1.00 is perfect ranking: the share of invasive / non-invasive pairs in which the invasive case gets the higher score.`,
+      ci: perfect ? `${rankText(auc, counts).replace(/^a/, 'A')}; no interval` : isNum(auc.lo) ? `95% CI ${range(auc.lo, auc.hi, ciFormat(auc, false, 3))}` : null,
+      strip: C.strip({ est: auc.est, lo: perfect ? null : auc.lo, hi: perfect ? null : auc.hi, min: 0.5, max: 1, width, aria: `AUROC ${fa(auc.est)} on a 0.5 to 1 scale` }),
+      sentence: `Chance is 0.50 and 1.00 is perfect ranking: the share of invasive / non-invasive pairs in which the invasive case gets the higher score.${perfect ? ' A bootstrap interval has no spread at 1.00, so none is shown.' : ''}`,
       source: 'eval/metrics.json'
     }));
+  }
   const cm = get(M, 'production.confusion');
   const k = (M && M.classes ? M.classes : ST.cfg.classes).indexOf(ST.cfg.aggressive_class);
   const sens = ci(prod.invasive_sensitivity),
     spec = ci(prod.invasive_specificity);
   if (sens) {
     const row = cm && cm.matrix && cm.matrix[k];
+    // true denominator: the invasive row of the confusion matrix (the block's n counts every test image)
+    const iv = row ? exactOf(sens, sum(row)) : null;
     tiles.push(tile({
       label: 'Invasive cases called invasive',
       value: pc(sens.est),
-      ci: isNum(sens.lo) ? `95% CI ${pc(sens.lo)}–${pc(sens.hi)}` : null,
-      strip: C.strip({ est: sens.est, lo: sens.lo, hi: sens.hi, width, aria: `Sensitivity ${pc(sens.est)}` }),
-      sentence: row ? `${row[k]} of ${sum(row)} invasive test images had Invasive as the top suggestion (sensitivity).` : 'Sensitivity for the invasive class on the test split.',
+      ci: iv ? exactText(iv) : isNum(sens.lo) ? `95% CI ${pc(sens.lo)}–${pc(sens.hi)}` : null,
+      strip: C.strip({ est: sens.est, lo: iv ? iv.lo : sens.lo, hi: iv ? iv.hi : sens.hi, width, aria: `Sensitivity ${pc(sens.est)}${iv ? `, exact 95% interval ${pc(iv.lo)} to ${pc(iv.hi)}` : ''}` }),
+      sentence: iv
+        ? `${iv.k === iv.n ? `All ${iv.n}` : `None of the ${iv.n}`} invasive test images had Invasive as the top suggestion (sensitivity). The interval is exact (Clopper–Pearson): a bootstrap has no spread ${iv.k === iv.n ? 'when every case is right' : 'at 0%'}.`
+        : row ? `${row[k]} of ${sum(row)} invasive test images had Invasive as the top suggestion (sensitivity).` : 'Sensitivity for the invasive class on the test split.',
       source: 'eval/metrics.json'
     }));
   }
@@ -248,12 +309,13 @@ function summaryTiles(ST, ev) {
     const ii = cm && cm.insitu_invasive;
     const nonInv = cm && cm.matrix ? sum(cm.matrix.filter((_, i) => i !== k).map((r) => sum(r))) : null;
     const falsePos = cm && cm.matrix ? sum(cm.matrix.filter((_, i) => i !== k).map((r) => r[k])) : null;
+    const iv = exactOf(spec, nonInv);
     tiles.push(tile({
       label: 'Other cases not called invasive',
       value: pc(spec.est),
-      ci: isNum(spec.lo) ? `95% CI ${pc(spec.lo)}–${pc(spec.hi)}` : null,
-      strip: C.strip({ est: spec.est, lo: spec.lo, hi: spec.hi, width, aria: `Specificity ${pc(spec.est)}` }),
-      sentence: isNum(falsePos) ? `${falsePos} of ${nonInv} non-invasive images were called invasive${ii ? `; ${ii.insitu_called_invasive} of them in situ carcinoma, the clinically important confusion` : ''}.` : 'Specificity for the invasive class.',
+      ci: iv ? exactText(iv) : isNum(spec.lo) ? `95% CI ${pc(spec.lo)}–${pc(spec.hi)}` : null,
+      strip: C.strip({ est: spec.est, lo: iv ? iv.lo : spec.lo, hi: iv ? iv.hi : spec.hi, width, aria: `Specificity ${pc(spec.est)}${iv ? `, exact 95% interval ${pc(iv.lo)} to ${pc(iv.hi)}` : ''}` }),
+      sentence: (isNum(falsePos) ? `${falsePos} of ${nonInv} non-invasive images were called invasive${ii && falsePos ? `; ${ii.insitu_called_invasive} of them in situ carcinoma, the clinically important confusion` : ''}.` : 'Specificity for the invasive class.') + (iv ? ' The interval is exact (Clopper–Pearson): a bootstrap has no spread at 0% or 100%.' : ''),
       source: 'eval/metrics.json'
     }));
   }
@@ -262,10 +324,10 @@ function summaryTiles(ST, ev) {
   if (f1v)
     tiles.push(tile({
       label: 'All four classes (macro-F1)',
-      value: f2(f1v.est),
-      ci: isNum(f1v.lo) ? `95% CI ${f2(f1v.lo)}–${f2(f1v.hi)}` : null,
-      strip: C.strip({ est: f1v.est, lo: f1v.lo, hi: f1v.hi, width, aria: `Macro-F1 ${f2(f1v.est)}` }),
-      sentence: `Normal, benign, in situ and invasive weighted equally${bacc ? `; balanced accuracy ${f2(bacc.est)}` : ''}.${(() => {
+      value: f3(f1v.est),
+      ci: isNum(f1v.lo) ? `95% CI ${f3(f1v.lo)}–${f3(f1v.hi)}` : null,
+      strip: C.strip({ est: f1v.est, lo: f1v.lo, hi: f1v.hi, width, aria: `Macro-F1 ${f3(f1v.est)}` }),
+      sentence: `Normal, benign, in situ and invasive weighted equally${bacc ? `; balanced accuracy ${f3(bacc.est)}` : ''}.${(() => {
         const mtx = cm && cm.matrix;
         if (!mtx) return '';
         const names = (M && M.classes) || ST.cfg.classes;
@@ -286,10 +348,10 @@ function summaryTiles(ST, ev) {
   if (eceA)
     tiles.push(tile({
       label: 'Calibration error after temperature',
-      value: `ECE ${f2(eceA.est)}`,
-      ci: isNum(eceA.lo) ? `95% CI ${f2(eceA.lo)}–${f2(eceA.hi)}` : null,
-      strip: C.strip({ est: eceA.est, lo: eceA.lo, hi: eceA.hi, min: 0, max: Math.max(0.3, eceB ? eceB.est * 1.4 : 0), target: eceB ? eceB.est : null, width, aria: `ECE ${f2(eceA.est)}; tick marks the value before temperature` }),
-      sentence: eceB ? `Was ${f2(eceB.est)} before temperature scaling (tick). Lower is better; ${CAL.ece_bins || 10}-bin ECE is biased upward at n = ${CAL.n}.` : 'Expected calibration error of the top-class confidence (lower is better).',
+      value: `ECE ${f3(eceA.est)}`,
+      ci: isNum(eceA.lo) ? `95% CI ${f3(eceA.lo)}–${f3(eceA.hi)}` : null,
+      strip: C.strip({ est: eceA.est, lo: eceA.lo, hi: eceA.hi, min: 0, max: Math.max(0.3, eceB ? eceB.est * 1.4 : 0), target: eceB ? eceB.est : null, width, aria: `ECE ${f3(eceA.est)}; tick marks the value before temperature` }),
+      sentence: eceB ? `Was ${f3(eceB.est)} before temperature scaling (tick). Lower is better; ${CAL.ece_bins || 10}-bin ECE is biased upward at n = ${CAL.n}.` : 'Expected calibration error of the top-class confidence (lower is better).',
       source: 'eval/calibration.json'
     }));
   const tm = tierMethod(ev);
@@ -336,7 +398,7 @@ function summaryTiles(ST, ev) {
       }));
   }
   if (!tiles.length) return missing('metrics', 'Headline results', 'headline metrics');
-  return inBrief(ST, ev) + `<div class="mx-kpis" data-testid="metrics-headline">${tiles.join('')}</div>`;
+  return `<div class="mx-kpis" data-testid="metrics-headline">${tiles.join('')}</div>` + inBrief(ST, ev);
 }
 /** Three to five computed sentences: what holds up, and what to be careful about. */
 function inBrief(ST, ev) {
@@ -350,11 +412,12 @@ function inBrief(ST, ev) {
   const auc = ci(get(M, 'production.invasive_vs_rest_auroc')),
     f1v = ci(get(M, 'production.macro_f1'));
   const ii = get(M, 'production.confusion.insitu_invasive');
-  if (auc) (auc.est >= 0.8 ? good : care).push(`Invasive carcinoma is separated from everything else ${auc.est >= 0.98 ? 'almost perfectly' : auc.est >= 0.9 ? 'well' : auc.est >= 0.8 ? 'moderately' : 'poorly'} on held-out images (AUROC ${fa(auc.est)}${isNum(auc.lo) ? `, CI ${fa(auc.lo)}–${fa(auc.hi)}` : ''}).`);
-  if (f1v) care.push(`The four-class call is less certain (macro-F1 ${f2(f1v.est)}, CI ${isNum(f1v.lo) ? `${f2(f1v.lo)}–${f2(f1v.hi)}` : 'n/a'})${ii ? `; ${ii.insitu_called_invasive} of ${ii.n_insitu} in situ images were called invasive` : ''}.`);
+  if (auc && perfectAuc(auc)) (auc.est === 1 ? good : care).push(`Invasive carcinoma is ranked ${auc.est === 1 ? 'perfectly' : 'inversely'} against everything else on held-out images (AUROC ${fa(auc.est)}: ${rankText(auc, invasiveCounts(ST, ev))}).`);
+  else if (auc) (auc.est >= 0.8 ? good : care).push(`Invasive carcinoma is separated from everything else ${auc.est >= 0.98 ? 'almost perfectly' : auc.est >= 0.9 ? 'well' : auc.est >= 0.8 ? 'moderately' : 'poorly'} on held-out images (AUROC ${fa(auc.est)}${isNum(auc.lo) ? `, CI ${range(auc.lo, auc.hi, ciFormat(auc, false, 3))}` : ''}).`);
+  if (f1v) care.push(`The four-class call is less certain (macro-F1 ${f3(f1v.est)}, CI ${isNum(f1v.lo) ? `${f3(f1v.lo)}–${f3(f1v.hi)}` : 'n/a'})${ii ? `; ${ii.insitu_called_invasive} of ${ii.n_insitu} in situ images were called invasive` : ''}.`);
   const eA = ci(get(CAL, 'after.ece')),
     eB = ci(get(CAL, 'before.ece'));
-  if (eA && eB) (eA.est <= eB.est ? good : care).push(`Temperature scaling ${eA.est <= eB.est ? 'reduced' : 'did not reduce'} calibration error (ECE ${f2(eB.est)} → ${f2(eA.est)}).`);
+  if (eA && eB) (eA.est <= eB.est ? good : care).push(`Temperature scaling ${eA.est <= eB.est ? 'reduced' : 'did not reduce'} calibration error (ECE ${f3(eB.est)} → ${f3(eA.est)}).`);
   const tm = tierMethod(ev);
   const cov = ci(get(tm.block, 'coverage'));
   if (cov && CF) {
@@ -376,6 +439,8 @@ function inBrief(ST, ev) {
 }
 
 // ---- classification ------------------------------------------------------------------------------------------------------
+/** 0–100% forest axis; on phones the plot is narrow, so three ticks keep "75%" and "100%" apart. */
+const pctAxis = (L, label) => ({ min: 0, max: 1, label, format: (v) => pc(v), ...(L.narrow ? { ticks: [0, 0.5, 1] } : {}) });
 function rocPoints(curve, name) {
   if (!curve || !Array.isArray(curve.fpr)) return [];
   return curve.fpr.map((x, i) => ({
@@ -402,13 +467,18 @@ function figRoc(ST, ev, L) {
     y: { min: 0, max: 1, label: 'Sensitivity (invasive cases flagged)', format: (v) => pc(v) },
     series,
     refs: [{ kind: 'diag', label: 'chance' }],
-    aria: `ROC curves, invasive versus rest. Production AUROC ${f2(curves.production.auroc)}${b && curves[b] ? `, model B ${f2(curves[b].auroc)}` : ''}.`
+    aria: `ROC curves, invasive versus rest. Production AUROC ${fa(curves.production.auroc)}${b && curves[b] ? `, model B ${fa(curves[b].auroc)}` : ''}.`
   });
   const diff = ci(get(M, 'a_vs_b.difference_a_minus_b'));
   const aucA = ci(get(M, 'production.invasive_vs_rest_auroc'));
   const noDiff = diff && isNum(diff.lo) && diff.lo <= 0 && diff.hi >= 0;
-  const take = `The production read reaches AUROC ${aucA ? ciText(aucA, { digits: aucA.est >= 0.98 ? 3 : 2 }) : fa(curves.production.auroc)}${b && curves[b] ? `; the explainable concept-bottleneck model B reaches ${fa(curves[b].auroc)}` : ''}.${diff ? ` The paired difference A − B is ${ciText(diff, { digits: 3 })}${noDiff ? ', so no difference is detectable on this test set' : ''}.` : ''} A curve hugging the top-left corner flags invasive cases without flagging others.`;
-  const rows = Object.entries(curves).map(([name, c]) => [name === 'production' ? prodName : modelName(name), f2(c.auroc), String(c.n_pos), String(c.n_neg), String((c.fpr || []).length)]);
+  const aucText = (c) => (perfectAuc(c) ? `${fa(c.est)} (${rankText(c, invasiveCounts(ST, ev))}, so no interval is shown)` : ciText(c, { digits: 3 }));
+  // model B's curve AUROC; at exactly 1 (or 0) the ranking is stated instead of a number alone
+  const aucB = b && curves[b] && isNum(curves[b].auroc) ? curves[b].auroc : null;
+  const bText = aucB === 1 || aucB === 0 ? aucText({ est: aucB, lo: aucB, hi: aucB }) : fa(aucB);
+  const take = `The production read reaches AUROC ${aucA ? aucText(aucA) : fa(curves.production.auroc)}${aucB !== null ? `; the explainable concept-bottleneck model B reaches ${bText}` : ''}.${diff ? ` The paired difference A − B is ${ciText(diff, { digits: 3 })}${noDiff ? ', so no difference is detectable on this test set' : ''}.` : ''} A curve hugging the top-left corner flags invasive cases without flagging others.`;
+  // fine-tuned encoders stay off this page (shownModel); the production read is listed under its own name
+  const rows = Object.entries(curves).filter(([name]) => name === 'production' || shownModel(ev, name)).map(([name, c]) => [name === 'production' ? prodName : modelName(name), fa(c.auroc), String(c.n_pos), String(c.n_neg), String((c.fpr || []).length)]);
   return figure({
     id: 'roc',
     title: 'ROC curve: invasive vs rest',
@@ -492,7 +562,7 @@ function figPr(ST, ev, L) {
     population: `held-out test split, ${prod.n_pos} invasive of ${prod.n} images`,
     source: 'eval/analytics.json',
     notes: ['The curve shows the best precision reachable at each recall; average precision is computed from the raw curve (scikit-learn).'],
-    table: { head: ['Model', 'Average precision', 'Positives', 'Images'], rows: Object.entries(PR).map(([m, c]) => [m === 'production' ? 'Production read (calibrated)' : modelName(m), fa(c.average_precision), String(c.n_pos), String(c.n)]), num: [1, 2, 3] }
+    table: { head: ['Model', 'Average precision', 'Positives', 'Images'], rows: Object.entries(PR).filter(([m]) => m === 'production' || shownModel(ev, m)).map(([m, c]) => [m === 'production' ? 'Production read (calibrated)' : modelName(m), fa(c.average_precision), String(c.n_pos), String(c.n)]), num: [1, 2, 3] }
   });
 }
 function figOvr(ST, ev, L) {
@@ -502,8 +572,9 @@ function figOvr(ST, ev, L) {
   if (!entries.length) return '';
   const cols = L.full < 520 ? 2 : 4;
   const pw = L.panel(L.full, cols);
+  // three decimals near 1: 0.999 must not print as a perfect 1.00
   const panels = entries.map(([c, curve]) => ({
-    title: `${shortClass(c)}: AUROC ${f2(curve.auroc)}`,
+    title: `${shortClass(c)}: AUROC ${fa(curve.auroc)}`,
     body: C.lineChart({
       width: pw,
       height: pw,
@@ -512,7 +583,7 @@ function figOvr(ST, ev, L) {
       y: { min: 0, max: 1, label: 'Sensitivity', format: (v) => pc(v), ticks: [0, 0.5, 1] },
       series: [{ name: shortClass(c), color: C.COLOR[1], step: true, markers: 'hit', points: rocPoints(curve, `${shortClass(c)} vs rest`) }],
       refs: [{ kind: 'diag' }],
-      aria: `${c} versus rest ROC, AUROC ${f2(curve.auroc)}`
+      aria: `${c} versus rest ROC, AUROC ${fa(curve.auroc)}`
     })
   }));
   const worst = entries.reduce((a, b) => (b[1].auroc < a[1].auroc ? b : a));
@@ -522,11 +593,11 @@ function figOvr(ST, ev, L) {
     id: 'ovr',
     wide: true,
     title: 'One-vs-rest ROC by class',
-    takeaway: `One-vs-rest AUROC is highest for ${shortClass(best[0])} (${f2(best[1].auroc)}) and lowest for ${shortClass(worst[0])} (${f2(worst[1].auroc)})${macro ? `; their average, the macro AUROC, is ${ciText(macro)}` : ''}.`,
+    takeaway: `One-vs-rest AUROC is highest for ${shortClass(best[0])} (${fa(best[1].auroc)}) and lowest for ${shortClass(worst[0])} (${fa(worst[1].auroc)})${macro ? `; their average, the macro AUROC, is ${ciText(macro, { digits: 3 })}` : ''}.`,
     chart: C.multiples(panels, { cols }),
     population: 'held-out test split, production calibrated probabilities',
     source: ['eval/analytics.json', 'eval/metrics.json'],
-    table: { head: ['Class vs rest', 'AUROC', 'Positives', 'Negatives'], rows: entries.map(([c, v]) => [cls(c, ST), f2(v.auroc), String(v.n_pos), String(v.n_neg)]), num: [1, 2, 3] }
+    table: { head: ['Class vs rest', 'AUROC', 'Positives', 'Negatives'], rows: entries.map(([c, v]) => [cls(c, ST), fa(v.auroc), String(v.n_pos), String(v.n_neg)]), num: [1, 2, 3] }
   });
 }
 /** Fine-tuned encoders were evaluated but are not used in Sepia; the evaluation page lists only models that are. */
@@ -536,28 +607,38 @@ function shownModel(ev, m) {
 }
 function figModels(ST, ev, L) {
   const M = ev.metrics;
-  const per = get(M, 'per_model');
-  if (!per) return missing('metrics', 'Model comparison', 'per-model metrics');
+  const raw = get(M, 'per_model');
+  if (!raw) return missing('metrics', 'Model comparison', 'per-model metrics');
   const prod = get(M, 'models.production'),
     b = get(M, 'models.b');
+  // the production model's blocks come from metrics.json `production` (the calibrated read the summary uses), so one model
+  // never shows two different intervals on this page
+  const per = prod && raw[prod] && M.production ? { ...raw, [prod]: { ...raw[prod], ...M.production } } : raw;
   const names = Object.keys(per).filter((m) => shownModel(ev, m));
   const order = names.sort((x, y) => (ci(per[y].macro_f1)?.est ?? -1) - (ci(per[x].macro_f1)?.est ?? -1));
   const color = (m) => (m === prod ? C.COLOR[1] : m === b ? C.COLOR[2] : C.COLOR.muted);
   const role = (m) => (m === prod ? 'production (model A)' : m === b ? 'model B, explainable' : '');
+  const counts = invasiveCounts(ST, ev);
   const rowsFor = (metric) => order.map((m) => {
     const c = ci(per[m][metric]);
-    return c ? { label: modelName(m), sub: role(m), est: c.est, lo: c.lo, hi: c.hi, color: color(m), emphasis: m === prod } : null;
+    if (!c) return null;
+    const row = { label: modelName(m), sub: role(m), est: c.est, lo: c.lo, hi: c.hi, color: color(m), emphasis: m === prod };
+    if (metric !== 'invasive_vs_rest_auroc') return row;
+    // AUROC: one precision per row; a perfect ranking gets no (zero-width) interval
+    if (!perfectAuc(c)) return { ...row, value: aucShort(c) };
+    return { ...row, lo: null, hi: null, value: fa(c.est), sub: [role(m), 'perfect ranking, no interval'].filter(Boolean).join('; '), tip: [fa(c.est), `${modelName(m)}: ${rankText(c, counts)}; a bootstrap interval has no spread here`] };
   }).filter(Boolean);
   const w = L.two ? L.half : L.full;
-  const f1Chart = C.forest({ width: w, rows: rowsFor('macro_f1'), x: { min: 0, max: 1, label: 'Macro-F1, four classes (higher is better)' }, aria: 'Macro-F1 by model with 95% confidence intervals' });
+  const f1Chart = C.forest({ width: w, rows: rowsFor('macro_f1'), x: { min: 0, max: 1, label: 'Macro-F1, four classes (higher is better)', valueFormat: f3 }, aria: 'Macro-F1 by model with 95% confidence intervals' });
   const aucChart = C.forest({ width: w, rows: rowsFor('invasive_vs_rest_auroc'), x: { min: 0.5, max: 1, label: 'AUROC, invasive vs rest', valueFormat: fa }, refs: [{ value: 0.5 }], aria: 'Invasive-vs-rest AUROC by model with 95% confidence intervals' });
   const pf = ci(per[prod] && per[prod].macro_f1);
   const overlap = pf ? order.filter((m) => m !== prod && isNum(ci(per[m].macro_f1)?.hi) && ci(per[m].macro_f1).hi >= pf.lo).length : 0;
   const reason = get(ev, 'model_choice.production_reason');
+  const perfect = order.filter((m) => perfectAuc(ci(per[m].invasive_vs_rest_auroc)) && ci(per[m].invasive_vs_rest_auroc).est === 1);
   const take = pf
-    ? `${modelName(prod)} has macro-F1 ${ciText(pf)}. ${overlap} of ${order.length - 1} other models have intervals that overlap it, so the test split alone cannot rank them; the choice was made by cross-validation inside train${reason ? ` (${reason})` : ''}.`
+    ? `${modelName(prod)} has macro-F1 ${ciText(pf, { digits: 3 })}. ${overlap} of ${order.length - 1} other models have intervals that overlap it, so the test split alone cannot rank them; the choice was made by cross-validation inside train${reason ? `, recorded as "${reason}"` : ''}.${perfect.length ? ` ${perfect.map(modelName).join(' and ')} ${perfect.length > 1 ? 'rank' : 'ranks'} every invasive image above every other image (AUROC 1.000); a bootstrap interval has no spread there, so none is drawn.` : ''}`
     : 'Macro-F1 and AUROC per evaluated model.';
-  const rows = order.map((m) => [modelName(m), role(m) || '—', ciShort(ci(per[m].macro_f1)), ciShort(ci(per[m].invasive_vs_rest_auroc)), ciShort(ci(per[m].balanced_accuracy)), per[m].probabilities || '']);
+  const rows = order.map((m) => [modelName(m), role(m) || '—', ciShort(ci(per[m].macro_f1), { digits: 3 }), aucShort(ci(per[m].invasive_vs_rest_auroc), counts), ciShort(ci(per[m].balanced_accuracy), { digits: 3 }), per[m].probabilities || '']);
   return figure({
     id: 'models',
     wide: true,
@@ -618,7 +699,7 @@ function figThunder(ST, ev, L) {
   rows.push({ header: true, label: 'This project, same 132 test images' });
   for (const o of TH.ours || []) {
     const c = ci(o.macro_f1);
-    if (c && (o.role || '').startsWith('production')) rows.push({ label: `${modelName(o.model)} (production, calibrated)`, est: c.est, lo: c.lo, hi: c.hi, color: C.COLOR[1], emphasis: true, value: ciShort(c, { digits: 1 }) });
+    if (c && (o.role || '').startsWith('production')) rows.push({ label: `${modelName(o.model)}, production read (calibrated)`, est: c.est, lo: c.lo, hi: c.hi, color: C.COLOR[1], emphasis: true, value: ciShort(c, { digits: 1 }) });
   }
   for (const o of TH.ours_zero_shot || []) {
     const c = ci(o.macro_f1);
@@ -640,13 +721,15 @@ function figThunder(ST, ev, L) {
   return figure({
     id: 'thunder',
     title: 'Comparison with published THUNDER results',
-    caveat: `Same split, different protocol: ${String(TH.label || '').replace(/^same split, different protocol\s*/i, '').replace(/^\(|\)$/g, '') || 'published probes resize the whole image; ours tiles the image'}. Not compared with the ICIAR 2018 challenge, which used a hidden test set.`,
+    // the protocol is stated here, not taken from thunder.json's label ("tiles + TTA"): the production read takes one view of
+    // each 512-px region (docs/RESULTS.md), so a TTA label would misdescribe it
+    caveat: 'Same split, different protocol: the published probes resize the whole image; the production read here takes one view of each 512-px region. Not compared with the ICIAR 2018 challenge, which used a hidden test set.',
     takeaway: pc_ && pubBest ? `Our production macro-F1 is ${ciText(pc_, { digits: 1, unit: '%' })}; the best published linear probe (${modelName(pubBest[0])}) is ${f1(pubBest[1])}%, which ${inside ? 'lies inside our interval' : 'lies outside our interval'}.${zsText}` : 'Published THUNDER results next to this project.',
     chart,
     population: `${TH.n ?? 132} test images, ${TH.n_groups ?? '?'} groups (ours); published values carry no CI`,
     source: 'eval/thunder.json',
     notes: TH.source ? [`Published values: ${TH.source}.`] : [],
-    table: { head: ['Result', 'Macro-F1 (%)', 'Balanced accuracy (%)'], rows: [...Object.entries(TH.published).flatMap(([k, v]) => Object.entries(v || {}).map(([m, x]) => [`Published ${modelName(m)} (${humanize(k)})`, f1(x), '—'])), ...(TH.ours || []).filter((o) => shownModel(ev, o.model)).map((o) => [`${modelName(o.model)} (${o.role})`, ciShort(ci(o.macro_f1), { digits: 1 }), ciShort(ci(o.balanced_accuracy), { digits: 1 })])] }
+    table: { head: ['Result', 'Macro-F1 (%)', 'Balanced accuracy (%)'], rows: [...Object.entries(TH.published).flatMap(([k, v]) => Object.entries(v || {}).map(([m, x]) => [`Published ${modelName(m)} (${humanize(k)})`, f1(x), '—'])), ...(TH.ours || []).filter((o) => shownModel(ev, o.model) && !(o.model === get(ev, 'model_choice.production') && !(o.role || '').startsWith('production'))).map((o) => [`${modelName(o.model)} (${o.role})`, ciShort(ci(o.macro_f1), { digits: 1 }), ciShort(ci(o.balanced_accuracy), { digits: 1 })])] }
   });
 }
 
@@ -658,44 +741,53 @@ function figHumanBaseline(ST, ev, L) {
   const spread = (xs) => ({ lo: Math.min(...xs), hi: Math.max(...xs), est: xs.reduce((a, b) => a + b, 0) / xs.length });
   const rows = [];
   const tableRows = [];
+  let exactUsed = false;
   for (const c of Object.keys(R.sensitivity)) {
     const xs = R.sensitivity[c];
     const h = spread(xs);
     const s = ci(get(S, ['recall', c]));
+    // per-class recall: the denominator is the class count (n_class), not the block's n (all test images)
+    const iv = exactOf(s, get(S, ['recall', c, 'n_class']));
+    exactUsed = exactUsed || !!iv;
     rows.push({ header: true, label: shortClass(c) });
     rows.push({ label: '4 pathologists', sub: 'range, not an interval', est: h.est, lo: h.lo, hi: h.hi, color: C.COLOR.muted, hollow: true, value: `${pc(h.lo)}–${pc(h.hi)}` });
-    if (s) rows.push({ label: 'Sepia', est: s.est, lo: s.lo, hi: s.hi, color: C.COLOR[1], emphasis: true, value: ciShort(s, { pct: true, digits: 0 }) });
-    tableRows.push([shortClass(c), xs.map((x) => pc(x)).join(' / '), s ? ciShort(s, { pct: true, digits: 0 }) : '—']);
+    if (s) rows.push({ label: 'Sepia', est: s.est, lo: s.lo, hi: s.hi, color: C.COLOR[1], emphasis: true, value: ciShort(s, { pct: true }), ...(iv ? exactRow(iv, 'images', `Sepia, ${cls(c, ST)}`, 1) : {}) });
+    tableRows.push([shortClass(c), xs.map((x) => pc(x)).join(' / '), iv ? exactText(iv) : s ? ciShort(s, { pct: true }) : '—']);
   }
   const acc = spread(R.accuracy);
-  const sa = ci(get(S, 'accuracy'));
+  const sa = ci(get(ev, 'metrics.production.accuracy')) || ci(get(S, 'accuracy')); // same block as the production read elsewhere
   rows.push({ header: true, label: 'Four-class accuracy' });
   rows.push({ label: '4 pathologists', sub: 'range, not an interval', est: acc.est, lo: acc.lo, hi: acc.hi, color: C.COLOR.muted, hollow: true, value: `${pc(acc.lo)}–${pc(acc.hi)}` });
-  if (sa) rows.push({ label: 'Sepia', est: sa.est, lo: sa.lo, hi: sa.hi, color: C.COLOR[1], emphasis: true, value: ciShort(sa, { pct: true, digits: 0 }) });
-  tableRows.push(['Four-class accuracy', R.accuracy.map((x) => pc(x)).join(' / '), sa ? ciShort(sa, { pct: true, digits: 0 }) : '—']);
-  const chart = C.forest({ width: L.two ? L.half : L.full, rows, x: { min: 0, max: 1, label: 'Sensitivity (recall) per class', format: (v) => pc(v) }, aria: 'Per-class sensitivity of four pathologists on the hidden BACH test set and of Sepia on its test split' });
+  if (sa) rows.push({ label: 'Sepia', est: sa.est, lo: sa.lo, hi: sa.hi, color: C.COLOR[1], emphasis: true, value: ciShort(sa, { pct: true }) });
+  tableRows.push(['Four-class accuracy', R.accuracy.map((x) => pc(x)).join(' / '), sa ? ciShort(sa, { pct: true }) : '—']);
+  const chart = C.forest({ width: L.two ? L.half : L.full, rows, x: pctAxis(L, 'Sensitivity (recall) per class'), aria: 'Per-class sensitivity of four pathologists on the hidden BACH test set and of Sepia on its test split' });
   const BP = get(HB, 'bpath') || {};
   const bp = ['invasive', 'dcis', 'atypia', 'benign'].filter((k) => BP[k]).map((k) => `${k === 'dcis' ? 'DCIS' : k} ${pc(BP[k].concordance)}`).join(', ');
   return figure({
     id: 'human-baseline',
     title: 'Pathologists and Sepia on the same four classes',
     caveat: (HB.not_comparable || []).join(' '),
-    takeaway: `Reading single BACH fields, four pathologists reached ${pc(acc.lo)}–${pc(acc.hi)} accuracy; Sepia reached ${sa ? pc(sa.est) : '—'} on different BACH images. Invasive carcinoma is the most consistently recognised class for both.${bp ? ` On whole slides of real biopsies, pathologists agreed with an expert consensus in ${bp} of interpretations (B-Path); BACH has no atypia class.` : ''}`,
+    takeaway: `Reading single BACH fields, four pathologists reached ${pc(acc.lo)}–${pc(acc.hi)} accuracy; Sepia reached ${sa ? pc(sa.est, 1) : '—'} on different BACH images. Invasive carcinoma is the most consistently recognised class for both.${bp ? ` On whole slides of real biopsies, pathologists agreed with an expert consensus in ${bp} of interpretations (B-Path); BACH has no atypia class.` : ''}`,
     chart,
     population: `pathologists: 100 hidden BACH test images (25 per class); Sepia: ${HB.n_test} test images, ${HB.n_groups} groups`,
     source: ['eval/human_baseline.json', 'config/literature.yaml'],
-    notes: Object.values(HB.citations || {}),
+    notes: [...(exactUsed ? [EXACT_NOTE] : []), ...Object.values(HB.citations || {})],
     table: { head: ['Class', 'Pathologists E1 / E2 / E3 / E4', 'Sepia [95% CI]'], rows: tableRows }
   });
 }
 
 // ---- confidence ----------------------------------------------------------------------------------------------------------
+/** Score range of an equal-mass bin; the top bins are narrow, so decimals are added until the ends differ. */
+const binRange = (b) => {
+  const f = ciFormat({ lo: b.lo, hi: b.hi }, false, 2);
+  return `${f(b.lo)}–${f(b.hi)}`;
+};
 function relSeries(bins, name, color, dash, xKey = 'confidence', yKey = 'accuracy') {
   return {
     name,
     color,
     dash,
-    points: (bins || []).filter((b) => isNum(b[xKey]) && isNum(b[yKey])).map((b) => ({ x: b[xKey], y: b[yKey], tip: [`observed ${pc(b[yKey])} vs predicted ${pc(b[xKey])}`, `${name}: ${b.count} images, scores ${C.fmtNum(b.lo, 2)}–${C.fmtNum(b.hi, 2)}`] }))
+    points: (bins || []).filter((b) => isNum(b[xKey]) && isNum(b[yKey])).map((b) => ({ x: b[xKey], y: b[yKey], tip: [`observed ${pc(b[yKey])} vs predicted ${pc(b[xKey])}`, `${name}: ${b.count} images, scores ${binRange(b)}`] }))
   };
 }
 function figReliability(ST, ev, L) {
@@ -708,7 +800,7 @@ function figReliability(ST, ev, L) {
   const inner = L.full;
   const pw = cols === 2 ? L.panel(inner, 2) : Math.min(inner, 520);
   const T = CAL.temperature;
-  const series = (b, a, xKey, yKey) => [b && relSeries(b, 'Before temperature', C.COLOR[3], true, xKey, yKey), relSeries(a, `After temperature${isNum(T) ? ` (T = ${f2(T)})` : ''}`, C.COLOR[1], false, xKey, yKey)].filter(Boolean);
+  const series = (b, a, xKey, yKey) => [b && relSeries(b, 'Before temperature', C.COLOR[3], true, xKey, yKey), relSeries(a, `After temperature${isNum(T) ? ` (T = ${f3(T)})` : ''}`, C.COLOR[1], false, xKey, yKey)].filter(Boolean);
   const mk = (sr, min, xl, yl, aria) => C.lineChart({
     width: pw,
     height: pw,
@@ -729,10 +821,10 @@ function figReliability(ST, ev, L) {
   const legendTop = C.legend([...top.map((sr) => ({ name: sr.name, color: sr.color, kind: sr.dash ? 'dash' : 'line' })), { name: 'Diagonal: perfect calibration', color: 'var(--mut)', kind: 'dash' }]);
   const e = (side, k) => ci(get(CAL, [side, k]));
   const nllUp = e('after', 'nll') && e('before', 'nll') && e('after', 'nll').est > e('before', 'nll').est;
-  const take = `Temperature scaling${isNum(T) ? ` (T = ${f2(T)}, fit on ${CAL.temperature_fit_on === 'train_oof' || !CAL.temperature_fit_on ? 'out-of-fold training' : CAL.temperature_fit_on} logits)` : ''} moved ECE from ${f2(e('before', 'ece')?.est)} to ${f2(e('after', 'ece')?.est)} and Brier score from ${f2(e('before', 'brier')?.est)} to ${f2(e('after', 'brier')?.est)}${nllUp ? `, while log-loss rose slightly (${f2(e('before', 'nll').est)} → ${f2(e('after', 'nll').est)})` : ''}. Points above the diagonal are under-confident; each point is an equal-count bin of about ${Math.round((CAL.n || 0) / (CAL.ece_bins || 10))} images, so single bins are noisy.`;
+  const take = `Temperature scaling${isNum(T) ? ` (T = ${f3(T)}, fit on ${CAL.temperature_fit_on === 'train_oof' || !CAL.temperature_fit_on ? 'out-of-fold training' : CAL.temperature_fit_on} logits)` : ''} moved ECE from ${f3(e('before', 'ece')?.est)} to ${f3(e('after', 'ece')?.est)} and Brier score from ${f3(e('before', 'brier')?.est)} to ${f3(e('after', 'brier')?.est)}${nllUp ? `, while log-loss rose slightly (${f3(e('before', 'nll').est)} → ${f3(e('after', 'nll').est)})` : ''}. Points above the diagonal are under-confident; each point is an equal-count bin of about ${Math.round((CAL.n || 0) / (CAL.ece_bins || 10))} images, so single bins are noisy.`;
   const rows = [];
   for (const side of ['before', 'after'])
-    for (const b of get(CAL, [side, 'reliability_diagram', 'bins']) || []) rows.push([humanize(side), `${C.fmtNum(b.lo, 2)}–${C.fmtNum(b.hi, 2)}`, String(b.count), pc(b.confidence, 1), pc(b.accuracy, 1)]);
+    for (const b of get(CAL, [side, 'reliability_diagram', 'bins']) || []) rows.push([humanize(side), binRange(b), String(b.count), pc(b.confidence, 1), pc(b.accuracy, 1)]);
   return figure({
     id: 'reliability',
     wide: true,
@@ -743,7 +835,7 @@ function figReliability(ST, ev, L) {
     population: `held-out test split, n = ${CAL.n} images, ${CAL.n_groups} groups; ${CAL.ece_bins}-bin equal-mass binning`,
     source: ['eval/calibration.json', A ? 'eval/analytics.json' : null],
     table: { head: ['Temperature', 'Confidence range', 'Images', 'Mean confidence', 'Observed accuracy'], rows, num: [2, 3, 4] },
-    notes: [`ECE ${ciShort(e('before', 'ece'))} before, ${ciShort(e('after', 'ece'))} after; Brier ${ciShort(e('before', 'brier'))} → ${ciShort(e('after', 'brier'))}; NLL ${ciShort(e('before', 'nll'))} → ${ciShort(e('after', 'nll'))} (95% CIs).`]
+    notes: [`ECE ${aucCi(e('before', 'ece'))} before, ${aucCi(e('after', 'ece'))} after; Brier ${aucCi(e('before', 'brier'))} → ${aucCi(e('after', 'brier'))}; NLL ${aucCi(e('before', 'nll'))} → ${aucCi(e('after', 'nll'))} (95% CIs).`]
   });
 }
 function figRiskHist(ST, ev, L) {
@@ -806,29 +898,37 @@ function figCoverage(ST, ev, L) {
   const classes = ST.cfg.classes;
   const rows = [];
   const color = (k) => (k === tm.key ? C.COLOR[1] : k === tm.preRegistered ? C.COLOR[2] : C.COLOR.muted);
+  // coverage blocks count the images they cover (all test images, or one class), so their n is the true denominator
+  const exactCov = (b) => exactOf(b, b && b.n);
+  let exactUsed = false;
   for (const k of methodOrder(tm)) {
     const m = CF.methods[k];
     rows.push({ header: true, label: `${methodName(k)}: ${methodTag(k, tm)}` });
     const all = ci(m.coverage);
-    if (all) rows.push({ label: 'All test images', est: all.est, lo: all.lo, hi: all.hi, color: color(k), emphasis: true, value: ciShort(all, { pct: true, digits: 0 }), tip: [ciShort(all, { pct: true }), `${methodName(k)}, all test images (${popText(all)})`] });
+    const ivAll = exactCov(all);
+    if (all) rows.push({ label: 'All test images', est: all.est, lo: all.lo, hi: all.hi, color: color(k), emphasis: true, value: ciShort(all, { pct: true }), tip: [ciShort(all, { pct: true }), `${methodName(k)}, all test images (${popText(all)})`], ...(ivAll ? exactRow(ivAll, 'images', `${methodName(k)}, all test images`, 1) : {}) });
+    exactUsed = exactUsed || !!ivAll;
     if (k !== tm.key && k !== tm.preRegistered) continue; // other methods: overall only (all rows stay in the table)
     for (const c of classes) {
       const pcov = ci(get(m, ['per_class', c]));
-      if (pcov) rows.push({ label: cls(c, ST), est: pcov.est, lo: pcov.lo, hi: pcov.hi, color: color(k), value: ciShort(pcov, { pct: true, digits: 0 }), tip: [ciShort(pcov, { pct: true }), `${methodName(k)}, ${cls(c, ST)} (${popText(pcov)})`] });
+      const iv = exactCov(pcov);
+      exactUsed = exactUsed || !!iv;
+      if (pcov) rows.push({ label: cls(c, ST), est: pcov.est, lo: pcov.lo, hi: pcov.hi, color: color(k), value: ciShort(pcov, { pct: true }), tip: [ciShort(pcov, { pct: true }), `${methodName(k)}, ${cls(c, ST)} (${popText(pcov)})`], ...(iv ? exactRow(iv, 'images', `${methodName(k)}, ${cls(c, ST)}`, 1) : {}) });
     }
   }
-  const chart = C.forest({ width: L.two ? L.half : L.full, rows, x: { min: 0, max: 1, label: 'Coverage: true class inside the set', format: (v) => pc(v) }, refs: [{ value: target, label: `${pc(target)} target` }], aria: `Conformal coverage by class and method against a ${pc(target)} target` });
+  const chart = C.forest({ width: L.two ? L.half : L.full, rows, x: pctAxis(L, 'Coverage: true class inside the set'), refs: [{ value: target, label: `${pc(target)} target` }], aria: `Conformal coverage by class and method against a ${pc(target)} target` });
   const tb = tm.block;
   const cov = ci(tb && tb.coverage);
   const per = classes.map((c) => [c, ci(get(tb, ['per_class', c]))]).filter(([, v]) => v);
   const low = per.length ? per.reduce((a, b) => (b[1].est < a[1].est ? b : a)) : null;
   const fs = CF.finite_sample;
   const take = cov
-    ? `${methodName(tm.key)} covered ${pc(cov.est, 1)} of test images against a ${pc(target)} target${cov.est < target ? ` (${f1((target - cov.est) * 100)} points short${isNum(cov.hi) && cov.hi < target ? '; even the upper CI bound is below target' : ''})` : ''}.${low ? ` Coverage was lowest for ${shortClass(low[0]).toLowerCase()} (${pc(low[1].est)}).` : ''}${tm.postHoc && ci(get(CF, ['methods', tm.preRegistered, 'coverage'])) ? ` The pre-registered ${methodName(tm.preRegistered)} covered ${pc(ci(get(CF, ['methods', tm.preRegistered, 'coverage'])).est, 1)}.` : ''}`
+    ? `${methodName(tm.key)} covered ${pc(cov.est, 1)} of test images against a ${pc(target)} target${cov.est < target ? ` (${f1((target - cov.est) * 100)} points short${isNum(cov.hi) && cov.hi < target ? '; even the upper CI bound is below target' : ''})` : ''}.${low ? ` Coverage was lowest for ${shortClass(low[0]).toLowerCase()} (${pc(low[1].est, 1)}).` : ''}${tm.postHoc && ci(get(CF, ['methods', tm.preRegistered, 'coverage'])) ? ` The pre-registered ${methodName(tm.preRegistered)} covered ${pc(ci(get(CF, ['methods', tm.preRegistered, 'coverage'])).est, 1)}.` : ''}`
     : 'Conformal coverage by method.';
   const notes = [];
   if (fs && fs.note) notes.push(`With ${fs.n_calibration} calibration images, coverage for a random calibration draw varies (Beta(${(fs.beta || []).join(', ')}), SD ${pc(fs.sd, 1)}); the guarantee is an average over calibration draws, not a promise for this test set.`);
   if (tm.postHoc) notes.push(`${methodName(tm.key)} replaced the pre-registered ${methodName(tm.preRegistered)} after the test results were seen, so its test coverage is optimistic.`);
+  if (exactUsed) notes.push(EXACT_NOTE);
   return figure({
     id: 'coverage',
     title: `Conformal coverage against the ${pc(target)} target`,
@@ -839,7 +939,8 @@ function figCoverage(ST, ev, L) {
     source: 'eval/conformal.json',
     table: { head: ['Method', 'Class', 'Coverage [95% CI]', 'n', 'Groups'], rows: methodOrder(tm).flatMap((k) => [['all', ...classes]].flat().map((c) => {
       const b = c === 'all' ? ci(CF.methods[k].coverage) : ci(get(CF.methods[k], ['per_class', c]));
-      return b ? [methodName(k), c === 'all' ? 'All' : cls(c, ST), ciShort(b, { pct: true }), String(b.n ?? ''), String(b.ng ?? '')] : null;
+      const iv = exactCov(b);
+      return b ? [methodName(k), c === 'all' ? 'All' : cls(c, ST), iv ? exactText(iv) : ciShort(b, { pct: true }), String(b.n ?? ''), String(b.ng ?? '')] : null;
     }).filter(Boolean)) }
   });
 }
@@ -868,11 +969,11 @@ function figResplit(ST, ev, L) {
     const q = RS.methods[k].coverage || {};
     if (!isNum(q.p50)) continue;
     rows.push({ header: true, label: `${methodName(k)}: ${tag(k)}` });
-    rows.push({ label: `${n} re-splits`, sub: 'median, 2.5th–97.5th percentile', est: q.p50, lo: q.p2_5, hi: q.p97_5, color: color(k), emphasis: k === tier, value: `${pc(q.p50, 1)} [${pc(q.p2_5, 0)}–${pc(q.p97_5, 0)}]`, tip: [`median ${pc(q.p50, 1)}; 95% of re-splits ${pc(q.p2_5, 1)}–${pc(q.p97_5, 1)}`, `${methodName(k)}, test coverage across ${n} re-splits`] });
+    rows.push({ label: `${n} re-splits`, sub: 'median, 2.5th–97.5th percentile', est: q.p50, lo: q.p2_5, hi: q.p97_5, color: color(k), emphasis: k === tier, value: `${pc(q.p50, 1)} [${pc(q.p2_5, 1)}–${pc(q.p97_5, 1)}]`, tip: [`median ${pc(q.p50, 1)}; 95% of re-splits ${pc(q.p2_5, 1)}–${pc(q.p97_5, 1)}`, `${methodName(k)}, test coverage across ${n} re-splits`] });
     if (isNum(orig(k))) rows.push({ label: 'Original split', est: orig(k), color: color(k), hollow: true, value: pc(orig(k), 1), tip: [pc(orig(k), 1), `${methodName(k)}, original THUNDER calibration/test split`] });
   }
   if (!rows.length) return missing('conformal_resplit', 'Conformal coverage across random re-splits', 'coverage percentiles');
-  const chart = C.forest({ width: L.two ? L.half : L.full, rows, x: { min: 0, max: 1, label: 'Test coverage: true class inside the set', format: (v) => pc(v) }, refs: [{ value: target, label: `${pc(target)} target` }], aria: `Conformal coverage across ${n} random re-splits per method against a ${pc(target)} target` });
+  const chart = C.forest({ width: L.two ? L.half : L.full, rows, x: pctAxis(L, 'Test coverage: true class inside the set'), refs: [{ value: target, label: `${pc(target)} target` }], aria: `Conformal coverage across ${n} random re-splits per method against a ${pc(target)} target` });
   const sentence = (k, lead) => {
     const m = RS.methods[k];
     const q = m.coverage;
@@ -1048,7 +1149,7 @@ function figConceptDirection(ST, ev, L) {
     if (!auc) return null;
     const v = directionVerdict(c, k);
     const expected = c.direction === 'up' ? `expected higher in ${shortClass(k).toLowerCase()}` : c.direction === 'down' ? `expected lower in ${shortClass(k).toLowerCase()}` : 'context, no expected direction';
-    return { label: (c.label || humanize(id)) + (lowSet.has(id) ? ' †' : ''), sub: `${expected}${c.weak ? ' (weak at tile scale)' : ''}${lowSet.has(id) ? '; low spot-check plausibility' : ''}`, est: auc.est, lo: auc.lo, hi: auc.hi, color: v.kind === 'bad' ? C.COLOR[2] : v.kind === 'ok' ? C.COLOR[1] : C.COLOR.muted, tip: [ciShort(auc), `${c.label}: ${v.text}`] };
+    return { label: (c.label || humanize(id)) + (lowSet.has(id) ? ' †' : ''), sub: `${expected}${c.weak ? ' (weak at tile scale)' : ''}${lowSet.has(id) ? '; low spot-check plausibility' : ''}`, est: auc.est, lo: auc.lo, hi: auc.hi, color: v.kind === 'bad' ? C.COLOR[2] : v.kind === 'ok' ? C.COLOR[1] : C.COLOR.muted, value: aucCi(auc), tip: [aucCi(auc), `${c.label}: ${v.text}`] };
   }).filter(Boolean);
   const chart = C.forest({ width: L.two ? L.half : L.full, rows, x: { min: 0, max: 1, label: `AUROC of the concept score, ${shortClass(k).toLowerCase()} vs rest` }, refs: [{ value: 0.5, label: 'no association' }], aria: 'Concept score AUROC for invasive versus rest, with expected direction' });
   const strongest = rows.reduce((a, b) => (Math.abs(b.est - 0.5) > Math.abs(a.est - 0.5) ? b : a), rows[0]);
@@ -1064,11 +1165,11 @@ function figConceptDirection(ST, ev, L) {
   return figure({
     id: 'direction',
     title: 'Concept direction against pathology expectation',
-    takeaway: rows.length ? `Above 0.5 means the concept scores higher in invasive images, below 0.5 lower. ${parts.join('; ')}. The strongest association is ${strongest.label} (${ciShort(strongest)}).` : '',
+    takeaway: rows.length ? `Above 0.5 means the concept scores higher in invasive images, below 0.5 lower. ${parts.join('; ')}. The strongest association is ${strongest.label} (${aucCi(strongest)}).` : '',
     chart: chart + C.legend([{ name: 'As expected', color: C.COLOR[1], kind: 'dot' }, { name: 'Contradicts expected direction', color: C.COLOR[2], kind: 'dot' }, { name: 'Context only', color: C.COLOR.muted, kind: 'dot' }]),
     population: `held-out test split, ${CB.n_cases} images, ${CB.n_groups} groups`,
     source: 'eval/concepts_bach.json',
-    table: { head: ['Concept', 'Expected', `AUROC ${k} vs rest [95% CI]`, 'Check'], rows: ids.map((id) => [CB.concepts[id].label || id, CB.concepts[id].direction, ciShort(ci(CB.concepts[id][`auroc_${k}_vs_rest`])), directionVerdict(CB.concepts[id], k).text]) }
+    table: { head: ['Concept', 'Expected', `AUROC ${k} vs rest [95% CI]`, 'Check'], rows: ids.map((id) => [CB.concepts[id].label || id, CB.concepts[id].direction, aucCi(ci(CB.concepts[id][`auroc_${k}_vs_rest`])), directionVerdict(CB.concepts[id], k).text]) }
   });
 }
 /** Recorded spot-check verdicts per concept (and for cell overlays), counted from eval/spotcheck.json reviews. */
@@ -1138,8 +1239,8 @@ function figNct(ST, ev, L) {
     for (const [kind, name, color] of [['text', 'Text prompt score', C.COLOR[1]], ['cav', 'Caption-trained concept vector', C.COLOR[3]]]) {
       const c = ci(b[kind]);
       if (!c) continue;
-      if (c.est < 0.5) reversed.push(`${(labels[id] && labels[id].label) || id} (${name.toLowerCase()}, ${f2(c.est)})`);
-      rows.push({ label: name, est: c.est, lo: c.lo, hi: c.hi, color, tip: [ciShort(c), `${name}, n = ${c.n} tiles`] });
+      if (c.est < 0.5) reversed.push(`${(labels[id] && labels[id].label) || id} (${name.toLowerCase()}, ${f3(c.est)})`);
+      rows.push({ label: name, est: c.est, lo: c.lo, hi: c.hi, color, value: aucCi(c), tip: [aucCi(c), `${name}, n = ${c.n} tiles`] });
     }
   }
   const chart = C.forest({ width: L.two ? L.half : L.full, rows, x: { min: 0, max: 1, label: 'AUROC for the matching colorectal tissue class' }, refs: [{ value: 0.5, label: 'chance' }], aria: 'Cross-organ concept sanity AUROCs on NCT-CRC-HE-100K' });
@@ -1152,9 +1253,9 @@ function figNct(ST, ev, L) {
     caveat: 'Cross-organ sanity check on colorectal tiles (NCT-CRC-HE-100K): evidence that tissue-level concepts transfer, not breast validation.',
     takeaway: `Text-prompt scores reach AUROC ≥ 0.80 for ${good} of ${text.length} concepts${reversed.length ? `; reversed (below chance): ${reversed.join(', ')}` : ''}.${(ci(get(nct, 'pleomorphism.text'))?.est ?? 1) < 0.7 ? ' Pleomorphism is weak here, plausibly because colorectal tumour is not breast carcinoma.' : ''}`,
     chart: chart + C.legend([{ name: 'Text prompt score', color: C.COLOR[1], kind: 'dot' }, { name: 'Caption-trained concept vector', color: C.COLOR[3], kind: 'dot' }]),
-    population: `${get(CO, 'nct.n_tiles') ?? '?'} colorectal tiles (${Object.keys(get(CO, 'nct.per_class_counts') || {}).length} tissue classes), encoder ${get(CO, 'nct.encoder') || ''}`,
+    population: `${countText(get(CO, 'nct.n_tiles') ?? '?')} colorectal tiles (${Object.keys(get(CO, 'nct.per_class_counts') || {}).length} tissue classes)${get(CO, 'nct.encoder') ? `; encoder ${modelName(get(CO, 'nct.encoder'))}` : ''}`,
     source: 'eval/concepts.json',
-    table: { head: ['Concept', 'Positive classes', 'Text AUROC', 'Vector AUROC'], rows: Object.entries(nct).map(([id, b]) => [(labels[id] && labels[id].label) || id, (b.positive_classes || []).join(', '), ciShort(ci(b.text)), ciShort(ci(b.cav))]) }
+    table: { head: ['Concept', 'Positive classes', 'Text AUROC', 'Vector AUROC'], rows: Object.entries(nct).map(([id, b]) => [(labels[id] && labels[id].label) || id, (b.positive_classes || []).join(', '), aucCi(ci(b.text)), aucCi(ci(b.cav))]) }
   });
 }
 function figCav(ST, ev, L) {
@@ -1165,7 +1266,7 @@ function figCav(ST, ev, L) {
     const c = ci(b.heldout_auroc);
     if (!c) return null;
     const label = get(ev, ['concepts', 'concepts', id, 'label']) || humanize(id);
-    return { label, sub: b.caption_consistent ? 'caption-consistent' : 'below the bar: text prompt used', est: c.est, lo: c.lo, hi: c.hi, color: b.caption_consistent ? C.COLOR[3] : C.COLOR.muted, tip: [ciShort(c), `${label}: ${b.n_pos} positive / ${b.n_neg} negative captions, ${b.n_groups} groups`] };
+    return { label, sub: b.caption_consistent ? 'caption-consistent' : 'below the bar: text prompt used', est: c.est, lo: c.lo, hi: c.hi, color: b.caption_consistent ? C.COLOR[3] : C.COLOR.muted, value: aucCi(c), tip: [aucCi(c), `${label}: ${b.n_pos} positive / ${b.n_neg} negative captions, ${b.n_groups} groups`] };
   }).filter(Boolean);
   const chart = C.forest({ width: L.two ? L.half : L.full, rows, x: { min: 0.5, max: 1, label: 'Held-out AUROC against caption co-mentions' }, refs: isNum(min) ? [{ value: min, label: 'consistency bar' }] : [], aria: 'Caption-consistency of concept vectors' });
   const pass = rows.filter((r) => r.sub === 'caption-consistent').length;
@@ -1176,9 +1277,9 @@ function figCav(ST, ev, L) {
     caveat: String(cav.label || 'Agreement with caption co-mentions, not tissue truth, not validation.'),
     takeaway: `${pass} of ${rows.length} concept vectors clear the ${isNum(min) ? f2(min) : ''} held-out AUROC bar${fail.length ? `; ${fail.join(', ')} did not, so its text prompt is used instead` : ''}. Captions mention a feature; they do not prove it is in the image.`,
     chart,
-    population: `held-out caption folds (${(cav.sets_used || []).join(', ')}), grouped by video / slide; encoder ${cav.encoder || ''}`,
+    population: `held-out caption folds (${(cav.sets_used || []).join(', ')}), grouped by video / slide${cav.encoder ? `; encoder ${modelName(cav.encoder)}` : ''}`,
     source: 'eval/concepts.json',
-    table: { head: ['Concept', 'Held-out AUROC [95% CI]', 'Positives', 'Negatives', 'Groups', 'Consistent'], rows: Object.entries(cav.concepts).map(([id, b]) => [id, ciShort(ci(b.heldout_auroc)), String(b.n_pos), String(b.n_neg), String(b.n_groups), b.caption_consistent ? 'yes' : 'no']) }
+    table: { head: ['Concept', 'Held-out AUROC [95% CI]', 'Positives', 'Negatives', 'Groups', 'Consistent'], rows: Object.entries(cav.concepts).map(([id, b]) => [id, aucCi(ci(b.heldout_auroc)), String(b.n_pos), String(b.n_neg), String(b.n_groups), b.caption_consistent ? 'yes' : 'no']) }
   });
 }
 function figDeletion(ST, ev, L) {
@@ -1298,10 +1399,11 @@ function figDegradation(ST, ev, L) {
     testid: 'metrics-reliability',
     title: 'Accuracy under simulated frozen-section artifacts',
     caveat: 'Simulated degradations of microscopy images (no frozen-section data was available). Shaded bands are 95% cluster-bootstrap intervals.',
-    takeaway: `Four-class accuracy falls from ${pc(finals[0][2])} on clean single-view reads to ${finals.map(([t, v]) => `${pc(v)} (${lowerFirst(DEGRADE_LABEL[t] || t)})`).join(', ')} at the highest severity; ${lowerFirst(DEGRADE_LABEL[worst[0]] || worst[0])} hurts most. This drop is why degraded reads carry a reliability flag and can be deferred to permanent sections.`,
+    // worded by direction: an artifact can lower accuracy, leave it unchanged or raise it within noise; only a drop is named
+    takeaway: `From ${pc(finals[0][2])} on clean reads, four-class accuracy at the highest severity ${finals.map(([t, v, c0]) => `${pc(v) === pc(c0) ? 'stays at' : v > c0 ? 'rises to' : 'falls to'} ${pc(v)} with ${lowerFirst(DEGRADE_LABEL[t] || humanize(t))}`).join(', ').replace(/, ([^,]*)$/, ' and $1')}.${worst[1] < worst[2] && pc(worst[1]) !== pc(worst[2]) ? ` ${(DEGRADE_LABEL[worst[0]] || humanize(worst[0])).replace(/^./, (m) => m.toUpperCase())} hurts most. This drop is why degraded reads carry a reliability flag and can be deferred to permanent sections.` : ''}`,
     chart: C.multiples(panels, { cols }),
     notes: skipped.length ? [`No accuracy values in this run for ${skipped.map((t) => lowerFirst(DEGRADE_LABEL[t] || humanize(t))).join(', ')}.`] : [],
-    population: `held-out test split, ${get(REL, 'accuracy_vs_degradation.model') ? modelName(get(REL, 'accuracy_vs_degradation.model')) : 'production model'}; clean = ${get(REL, 'accuracy_vs_degradation.clean_read') || 'single view'} reads`,
+    population: `held-out test split, ${get(REL, 'accuracy_vs_degradation.model') ? modelName(get(REL, 'accuracy_vs_degradation.model')) : 'production model'}; clean reads: ${/^tta\b/i.test(String(get(REL, 'accuracy_vs_degradation.clean_read') || '')) && get(REL, 'accuracy_vs_degradation.model') === get(ev, 'model_choice.production') ? 'the production read, one view of each 512-px region' : get(REL, 'accuracy_vs_degradation.clean_read') || 'single view'}`,
     source: 'eval/reliability.json',
     table: { head: ['Artifact', 'Severity', 'Accuracy [95% CI]', 'n'], rows: types.flatMap((t) => Object.entries(curve[t]).map(([s, b]) => [DEGRADE_LABEL[t] || t, s, ciShort(ci(b), { pct: true }), String(ci(b)?.n ?? '')])) }
   });
@@ -1311,11 +1413,11 @@ function figReliabilityScore(ST, ev, L) {
   if (!REL || !REL.error_auroc_test) return '';
   const rows = [];
   const comb = ci(REL.error_auroc_test);
-  rows.push({ label: 'Combined reliability score', est: comb.est, lo: comb.lo, hi: comb.hi, color: C.COLOR[1], emphasis: true });
+  rows.push({ label: 'Combined reliability score', est: comb.est, lo: comb.lo, hi: comb.hi, color: C.COLOR[1], emphasis: true, value: aucCi(comb) });
   const fl = { ood_percentile: 'Distance from training images (OOD)', set_size: 'Conformal set size', conch_musk_disagree: 'CONCH vs MUSK disagreement' };
   for (const [k, b] of Object.entries(REL.feature_auroc_test || {})) {
     const c = ci(b);
-    if (c) rows.push({ label: fl[k] || humanize(k), sub: 'single signal', est: c.est, lo: c.lo, hi: c.hi, color: C.COLOR.muted });
+    if (c) rows.push({ label: fl[k] || humanize(k), sub: 'single signal', est: c.est, lo: c.lo, hi: c.hi, color: C.COLOR.muted, value: aucCi(c) });
   }
   const chart = C.forest({ width: L.two ? L.half : L.full, rows, x: { min: 0, max: 1, label: 'AUROC for ranking wrong reads above right ones' }, refs: [{ value: 0.5, label: 'chance' }], aria: 'Reliability score error-detection AUROC' });
   const rec = ci(REL.error_recall_test);
@@ -1324,11 +1426,11 @@ function figReliabilityScore(ST, ev, L) {
   return figure({
     id: 'relscore',
     title: 'Reliability flag: error detection',
-    takeaway: `The combined score ranks wrong reads above correct ones with AUROC ${ciText(comb)}. At the threshold chosen on calibration (target: catch ${pc(REL.target_error_recall)} of errors; ${pc(REL.error_recall_calibration)} there) it caught ${rec ? ciText(rec, { pct: true, digits: 0 }) : 'n/a'} of test-read errors — weaker on held-out data. It flags ${pc(fr.clean)} of clean and ${pc(fr.degraded)} of simulated degraded reads.`,
+    takeaway: `The combined score ranks wrong reads above correct ones with AUROC ${ciText(comb, { digits: 3 })}. At the threshold chosen on calibration (target: catch ${pc(REL.target_error_recall)} of errors; ${pc(REL.error_recall_calibration)} there) it caught ${rec ? ciText(rec, { pct: true, digits: 0 }) : 'n/a'} of test-read errors — weaker on held-out data. It flags ${pc(fr.clean)} of clean and ${pc(fr.degraded)} of simulated degraded reads.`,
     chart: chart + (flags ? `<div class="cx-panel-title">Share of reads flagged</div>${flags}` : ''),
     population: `${REL.n_test_reads} test reads (clean + simulated degraded), ${REL.n_test_groups} groups`,
     source: 'eval/reliability.json',
-    table: { head: ['Signal', 'Error AUROC [95% CI]'], rows: rows.map((r) => [r.label, ciShort(r)]) }
+    table: { head: ['Signal', 'Error AUROC [95% CI]'], rows: rows.map((r) => [r.label, aucCi(r)]) }
   });
 }
 function figDeferral(ST, ev, L) {
@@ -1410,34 +1512,57 @@ function figMargin(ST, ev, L) {
   const MG = ev.margin;
   if (!MG) return missing('margin', 'Simulated margin read', 'margin evaluation');
   const rows = [];
-  const add = (label, b, color, sub) => {
-    const c = ci(b);
-    if (c) rows.push({ label, sub: sub || nShort(c), est: c.est, lo: c.lo, hi: c.hi, n: c.n, color, value: ciShort(c, { pct: true, digits: 0 }), tip: [ciShort(c, { pct: true }), `${label} (${nShort(c)})`] });
+  const byKey = {};
+  // Each block's n counts the units it rates (margins, images, composites, segments), its true denominator. At 0% or 100% a
+  // rate with one unit per field gets an exact interval over n; a pooled rate (several margins or segments per field) shows
+  // the count only: those units are not independent, so an exact interval over them would overstate the precision.
+  const add = (key, label, color, unit, pooled = false) => {
+    const c = ci(get(MG, key));
+    if (!c) return;
+    const row = { label, sub: nShort(c), est: c.est, lo: c.lo, hi: c.hi, n: c.n, color, value: ciShort(c, { pct: true, digits: 0 }), tip: [ciShort(c, { pct: true }), `${label} (${nShort(c)})`], text: ciShort(c, { pct: true }), pop: nShort(c) };
+    const iv = exactOf(c, c.n);
+    if (iv && pooled) {
+      row.countOnly = true;
+      row.text = `${iv.k} of ${iv.n} ${unit} (no interval: the ${unit} of one field are not independent)`;
+      Object.assign(row, { lo: null, hi: null, value: `${iv.k} of ${iv.n}`, sub: `${unit}, pooled; no interval`, tip: [`${iv.k} of ${iv.n} ${unit}`, `${label}: pooled over fields, so no interval is shown`] });
+    } else if (iv) {
+      row.iv = iv;
+      row.text = exactText(iv, unit);
+      Object.assign(row, { lo: iv.lo, hi: iv.hi, value: exactShort(iv), sub: `${iv.k} of ${iv.n} ${unit}; exact CI`, tip: [row.text, `${label}: exact (Clopper–Pearson) interval`] });
+    }
+    rows.push(row);
+    byKey[key] = row;
   };
+  const nComp = get(MG, 'composite.n_composites');
   rows.push({ header: true, label: 'Benign test images: false alarms (lower is better)' });
-  add('Margin wrongly called involved', get(MG, 'benign_fpr.pooled_per_margin'), C.COLOR[2]);
-  add('Any of 4 margins wrongly called', get(MG, 'benign_fpr.any_margin'), C.COLOR[2]);
+  add('benign_fpr.pooled_per_margin', 'Margin wrongly called involved', C.COLOR[2], 'margins', true);
+  add('benign_fpr.any_margin', 'Any of 4 margins wrongly called', C.COLOR[2], 'images');
   rows.push({ header: true, label: 'Composite fields: half tumour, half benign (simulated)' });
-  add('Tumour-free margin called clear', get(MG, 'composite.exact_negative_margin_clear_rate'), C.COLOR[1]);
-  add('Benign-half segments below threshold', get(MG, 'composite.benign_half_segment_clear_rate'), C.COLOR[1]);
-  add('Tumour-side margin called involved', get(MG, 'composite.tumor_side_margin_sensitivity'), C.COLOR[1]);
-  add('Carcinoma-half segments above threshold', get(MG, 'composite.carcinoma_half_segment_hit_rate'), C.COLOR[1]);
+  add('composite.exact_negative_margin_clear_rate', 'Tumour-free margin called clear', C.COLOR[1], 'margins');
+  add('composite.benign_half_segment_clear_rate', 'Benign-half segments below threshold', C.COLOR[1], 'segments', true);
+  add('composite.tumor_side_margin_sensitivity', 'Tumour-side margin called involved', C.COLOR[1], 'margins');
+  add('composite.carcinoma_half_segment_hit_rate', 'Carcinoma-half segments above threshold', C.COLOR[1], 'segments', true);
   rows.push({ header: true, label: 'Annotated whole-slide windows' });
-  add('Sensitivity (involved margins found)', get(MG, 'wsi_windows.sensitivity'), C.COLOR[3]);
-  add('Specificity (clear margins kept clear)', get(MG, 'wsi_windows.specificity'), C.COLOR[3]);
+  add('wsi_windows.sensitivity', 'Sensitivity (involved margins found)', C.COLOR[3], 'margins', true);
+  add('wsi_windows.specificity', 'Specificity (clear margins kept clear)', C.COLOR[3], 'margins', true);
   rows.push({ header: true, label: 'Carcinoma test images (diagnosis-echo check)' });
-  add('At least one margin called clear', get(MG, 'echo.p_at_least_one_clear_margin'), C.COLOR.muted);
-  const chart = C.forest({ width: L.two ? L.half : L.full, rows, x: { min: 0, max: 1, label: 'Rate', format: (v) => pc(v) }, aria: 'Simulated margin read evaluation' });
+  add('echo.p_at_least_one_clear_margin', 'At least one margin called clear', C.COLOR.muted, 'images');
+  const chart = C.forest({ width: L.two ? L.half : L.full, rows, x: pctAxis(L, 'Rate'), aria: 'Simulated margin read evaluation' });
   const g = (p) => ci(get(MG, p))?.est;
+  const neg = byKey['composite.exact_negative_margin_clear_rate'],
+    any = byKey['benign_fpr.any_margin'];
+  const negText = neg && neg.iv && neg.iv.k === neg.iv.n ? `kept all ${neg.iv.n} tumour-free margins clear (${exactCi(neg.iv)})` : `kept ${pc(g('composite.exact_negative_margin_clear_rate'))} of tumour-free margins clear`;
+  const alarmText = any && any.iv && any.iv.k === 0 ? `none of the ${any.iv.n} benign test images had a margin called involved; ${exactCi(any.iv)}` : `few false alarms on benign images, ${pc(g('benign_fpr.pooled_per_margin'))}`;
   return figure({
     id: 'margin',
     title: 'Simulated margin read',
     caveat: 'Simulation: image borders stand in for inked margins (top superior, bottom inferior, left medial, right lateral). Composite fields are synthetic constructions from test images.',
-    takeaway: `On composite fields the read kept ${pc(g('composite.exact_negative_margin_clear_rate'))} of tumour-free margins clear and called the tumour-side margin involved ${pc(g('composite.tumor_side_margin_sensitivity'))} of the time; on annotated slide windows sensitivity was ${pc(g('wsi_windows.sensitivity'))} at ${pc(g('wsi_windows.specificity'))} specificity. The threshold is conservative (few false alarms on benign images, ${pc(g('benign_fpr.pooled_per_margin'))}) and misses many involved margins, so the surgeon-facing call stays with the pathologist.`,
+    takeaway: `On composite fields the read ${negText} and called the tumour-side margin involved ${pc(g('composite.tumor_side_margin_sensitivity'))} of the time; on annotated slide windows sensitivity was ${pc(g('wsi_windows.sensitivity'))} at ${pc(g('wsi_windows.specificity'))} specificity. The threshold is conservative (${alarmText}) and misses many involved margins, so the surgeon-facing call stays with the pathologist.`,
     chart,
-    population: `test images (${get(MG, 'benign_fpr.n_benign_test') ?? '?'} benign, ${get(MG, 'echo.n_carcinoma_test') ?? '?'} carcinoma), ${get(MG, 'composite.n_composites') ?? '?'} composites, ${get(MG, 'wsi_windows.n_windows') ?? '?'} WSI windows from ${get(MG, 'wsi_windows.n_patients') ?? '?'} patients; threshold ${probText(MG.threshold)} from benign calibration images`,
+    notes: [...(rows.some((r) => r.iv) ? [EXACT_NOTE] : []), ...(rows.some((r) => r.countOnly) ? ['Pooled rates (several margins or segments per field) at 0% or 100% show the count only: the margins or segments of one field are not independent, so an exact interval over them would overstate the precision.'] : [])],
+    population: `test images (${get(MG, 'benign_fpr.n_benign_test') ?? '?'} benign, ${get(MG, 'echo.n_carcinoma_test') ?? '?'} carcinoma), ${nComp ?? '?'} composites, ${get(MG, 'wsi_windows.n_windows') ?? '?'} WSI windows from ${get(MG, 'wsi_windows.n_patients') ?? '?'} patients; threshold ${probText(MG.threshold)} from benign calibration images`,
     source: 'eval/margin.json',
-    table: { head: ['Check', 'Rate [95% CI]', 'Population'], rows: rows.filter((r) => !r.header).map((r) => [r.label, ciShort(r, { pct: true }), r.sub || '']) }
+    table: { head: ['Check', 'Rate [95% CI]', 'Population'], rows: rows.filter((r) => !r.header).map((r) => [r.label, r.text, r.pop]) }
   });
 }
 
@@ -1469,7 +1594,11 @@ function figTiers(ST, ev, L) {
   return figure({
     id: 'tiers',
     title: 'Worklist tier by true class',
-    takeaway: ki >= 0 ? `${counts[ki][0] + counts[ki][1]} of ${totals[ki]} invasive test images land in tier 1 or 2 (${counts[ki][0]} through the simulated surgical lane); ${T.aggressive_not_flagged ?? counts[ki][2] + counts[ki][3]} would wait in tiers 3–4. ${nonInvT2} non-invasive images were sent to tier 2, the price of the safety rule.` : '',
+    // all (or none) flagged: the count carries its exact interval, the bootstrap-free way to state the uncertainty
+    takeaway: ki >= 0 ? `${(() => {
+      const iv = exactBoundary(counts[ki][0] + counts[ki][1], totals[ki]);
+      return iv ? exactText(iv, 'invasive test images') : `${counts[ki][0] + counts[ki][1]} of ${totals[ki]} invasive test images`;
+    })()} land in tier 1 or 2 (${counts[ki][0]} through the simulated surgical lane); ${T.aggressive_not_flagged ?? counts[ki][2] + counts[ki][3]} would wait in tiers 3–4. ${nonInvT2} non-invasive images were sent to tier 2, the price of the safety rule.` : '',
     chart: chart + C.scaleLegend({ caption: 'Shade = share of the row', lo: '0%', hi: '100%' }),
     notes: L.full < 520 ? [`Tiers: ${tiers.map((t) => `${t} ${lowerFirst(tierLabel(t))}`).join(', ')}.`] : [],
     population: `held-out test split, ${T.n ?? sum(totals)} images; static tiers (no aging)`,
@@ -1548,7 +1677,7 @@ function figQueue(ST, ev, L) {
     ? `unflagged cases waited ${f1(get(fifo, 'non_flagged_mean.mean'))} → ${f1(get(tiers, 'non_flagged_mean.mean'))} min${dN && isNum(dN.share_days_higher) ? ` (longer on ${pc(dN.share_days_higher)} of days)` : ''}`
     : '';
   const compare = firstLook && unflagged ? `${firstLook}, while ${unflagged}.` : firstLook || unflagged ? `${firstLook || unflagged}.` : 'the arrival-order and Sepia-tier results are not both present in this run, so no comparison is drawn.';
-  const take = `In ${isNum(Q.reps) ? Q.reps + ' ' : ''}simulated reading days, ${compare} ${isNum(promo.tiers_aging) && promo.tiers_aging === 0 ? 'The configured aging guard never promoted a case within an 8-hour day, so it has no measured effect here.' : ''}`;
+  const take = `In ${isNum(Q.reps) ? countText(Q.reps) + ' ' : ''}simulated reading days, ${compare} ${isNum(promo.tiers_aging) && promo.tiers_aging === 0 ? 'The configured aging guard never promoted a case within an 8-hour day, so it has no measured effect here.' : ''}`;
   const a = Q.assumptions || {};
   const assumptions = [a.arrivals, a.reader, isNum(a.utilization) ? `reader utilization ${pc(a.utilization)}` : null, a.tiers, a.interval, a.truth_use].filter(Boolean);
   const rows = [];
@@ -1568,7 +1697,7 @@ function figQueue(ST, ev, L) {
       { title: '', body: box('non_flagged_mean', 'Unflagged (tier 4) cases: mean wait per day', 'Wait for unflagged cases by policy') }
     ], { cols: L.two ? 2 : 1 })}</div>`,
     notes: assumptions.map((s) => `Assumption: ${String(s).replace(/\b(aps_marginal_nonempty|lac_marginal|aps_marginal)\b/g, (m) => methodName(m))}.`),
-    population: `${Q.n_cases} clean test cases drawn with replacement; ${Q.reps} simulated days${AQ && get(AQ, 'consistency.matches_queue_sim') ? ' (distributions replayed and checked against queue_sim.json)' : ''}`,
+    population: `${Q.n_cases} clean test cases drawn with replacement; ${countText(Q.reps)} simulated days${AQ && get(AQ, 'consistency.matches_queue_sim') ? ' (distributions replayed and checked against queue_sim.json)' : ''}`,
     source: ['eval/queue_sim.json', AQ ? 'eval/analytics.json' : null],
     table: { head: ['Policy', 'Measure (minutes)', 'Mean', '95% of days'], rows, num: [2] }
   });
@@ -1631,7 +1760,7 @@ function figRetrieval(ST, ev, L) {
     title: 'Retrieval precision of reference cases',
     takeaway: `On average ${pc(p.est)} of each test image's ${R.k} nearest training images share its label (95% CI ${range(p.lo, p.hi, (v) => pc(v))}).${per.length >= 2 ? ` Best for ${per.slice(0, 2).map(([c, v]) => `${shortClass(c).toLowerCase()} (${pc(v)})`).join(' and ')}; weakest for ${per.slice(-2).map(([c, v]) => `${shortClass(c).toLowerCase()} (${pc(v)})`).join(' and ')}, so reference cases are context for the reader, not a vote.` : ''}`,
     chart,
-    population: `held-out test split queries against a library of ${R.library || 'training cases'}; encoder ${R.encoder || ''}`,
+    population: `held-out test split queries against a library of ${R.library || 'training cases'}${R.encoder ? `; encoder ${modelName(R.encoder)}` : ''}`,
     source: 'eval/retrieval.json',
     table: { head: ['Group', `Precision@${R.k}`], rows: rows.map((r) => [r.label, r.value]) }
   });
@@ -1659,7 +1788,7 @@ function figDataQuality(ST, ev, L) {
     title: 'Tissue QC before and after the fix',
     takeaway: `A tissue-mask fix ${grids.length ? `raised the tile QC pass rate ${grids.map((g) => `${pc(qp.old[g])} → ${pc((qp.new || {})[g])} (${g})`).join(', ')} and ` : ''}${isNum(it.old) && isNum(it.new) ? `reduced images flagged "insufficient tissue" from ${it.old} to ${it.new}` : 'changed which images are flagged "insufficient tissue"'}${isNum(it.old) && it.old_by_class && isNum(it.old_by_class.Invasive) && it.old_by_class.Invasive * 2 > it.old ? `; ${it.old_by_class.Invasive} of the ${it.old} were invasive, so the bug mostly hid real tumour tissue` : ''}.`,
     chart,
-    population: `all ${DQ.n_cases ?? ''} BACH images (every split), ${DQ.n_tiles ?? ''} tiles; tile-level QC, not a model result`,
+    population: `all ${DQ.n_cases ?? ''} BACH images (every split), ${isNum(DQ.n_tiles) ? countText(DQ.n_tiles) : ''} tiles; tile-level QC, not a model result`,
     source: 'eval/qc.json',
     notes: DQ.validation_old_rule_display_vs_fullres ? [`Check: the old rule recomputed on display images matches the full-resolution tissue fractions (Pearson r ${C.fmtNum(DQ.validation_old_rule_display_vs_fullres.pearson_r, 3)}).`] : [],
     table: { head: ['Class', 'Insufficient before', 'Insufficient after'], rows: classes.map((c) => [cls(c, ST), String(it.old_by_class[c]), String((it.new_by_class || {})[c] ?? '')]), num: [1, 2] }
@@ -1694,12 +1823,12 @@ const CITATIONS = [
 function limitationsSection(ST, ev, m, L, ctx) {
   const files = Object.entries(ev)
     .filter(([, d]) => d && typeof d === 'object')
-    .map(([k, d]) => [`eval/${k}.json`, d.created_utc || '—', d.git_sha ? String(d.git_sha).slice(0, 7) + (d.git_dirty ? ' (uncommitted changes)' : '') : '—', d.synthetic ? 'synthetic' : 'pipeline output']);
+    .map(([k, d]) => [`eval/${k}.json`, d.created_utc || '—', d.git_sha ? String(d.git_sha).slice(0, 7) : '—', d.synthetic ? 'synthetic' : 'pipeline output']);
   const expected = Object.keys(m.expected || {}).filter((k) => !ev[k]);
   return `<figure class="mx-fig mx-wide" data-testid="limitations"><figcaption><h3>Limitations</h3></figcaption><ul class="mx-limits">${LIMITATIONS.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></figure>` +
     figDataQuality(ST, ev, L) +
     `<figure class="mx-fig"><figcaption><h3>Datasets, models and methods</h3></figcaption><dl class="mx-cite">${CITATIONS.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></figure>` +
-    `<figure class="mx-fig mx-wide"><figcaption><h3>Data provenance</h3><p class="mx-take">Every number on this page is read from these files at page load; re-running the pipeline updates the page.${expected.length ? ` Not produced in this run: ${esc(expected.map((e) => `${e}.json`).join(', '))}.` : ''}</p></figcaption>${table(['File', 'Created (UTC)', 'Git commit', 'Kind'], files)}${(m.figures || []).length ? details('figures-png', `Static PNG figures (${m.figures.length})`, `<div class="mx-pngs">${m.figures.map((f) => `<a href="${esc(ctx && ctx.assetUrl ? ctx.assetUrl(f.url) : f.url)}" target="_blank" rel="noopener">${esc(f.file)}</a>`).join('')}</div>`) : ''}</figure>`;
+    `<figure class="mx-fig mx-wide"><figcaption><h3>Data provenance</h3><p class="mx-take">Every number on this page is read from these files at page load; re-running the pipeline updates the page.${expected.length ? ` Not produced in this run: ${esc(expected.map((e) => `${e}.json`).join(', '))}.` : ''}</p></figcaption>${table(['File', 'Created (UTC)', 'Git commit', 'Kind'], files, { title: 'Data provenance' })}${(m.figures || []).length ? details('figures-png', `Static PNG figures (${m.figures.length})`, `<div class="mx-pngs">${m.figures.map((f) => `<a href="${esc(ctx && ctx.assetUrl ? ctx.assetUrl(f.url) : f.url)}" target="_blank" rel="noopener">${esc(f.file)}</a>`).join('')}</div>`) : ''}</figure>`;
 }
 
 // ---- page -------------------------------------------------------------------------------------------------------------
@@ -1712,14 +1841,14 @@ function scope(ST, ev) {
   const prod = get(M, 'models.production') || get(A, 'models.production');
   const parts = [];
   if (isNum(n)) parts.push(`<b>${n}</b> held-out test images from <b>${esc(ng ?? '?')}</b> patient or pseudo-patient groups`);
-  if (isNum(vx)) parts.push(`${vx} simulated degraded / composite variants kept out of headline numbers`);
-  parts.push(`intervals are 95% cluster-bootstrap CIs over ${isNum(n) ? 'those groups' : 'patient or pseudo-patient groups'}`);
+  if (isNum(vx)) parts.push(`${countText(vx)} simulated degraded / composite variants kept out of headline numbers`);
+  parts.push(`intervals are 95% cluster-bootstrap CIs over ${isNum(n) ? 'those groups' : 'patient or pseudo-patient groups'}, except that a result of 0% or 100% shows its count with an exact Clopper–Pearson interval (a bootstrap has no spread there)`);
   if (prod) parts.push(`production read: ${esc(modelName(prod))}`);
   const text = parts.join('; ');
   return `<p class="mx-scope">${text.charAt(0).toUpperCase() + text.slice(1)}.</p>`;
 }
 function nav() {
-  return `<nav class="mx-nav" aria-label="Evaluation sections"><div class="mx-nav-inner">${SECTIONS.map(([id, label]) => `<button type="button" data-mx-jump="mx-${id}">${esc(label)}</button>`).join('')}</div></nav>`;
+  return `<nav class="mx-nav" aria-label="Evaluation sections"><div class="mx-nav-inner">${SECTIONS.map(([id, label]) => `<button type="button" data-mx-jump="mx-${id}"${activeSection === `mx-${id}` ? ' aria-current="true"' : ''}>${esc(label)}</button>`).join('')}</div></nav>`;
 }
 
 export function render(ST, ctx) {
@@ -1735,8 +1864,8 @@ export function render(ST, ctx) {
     h += '<div class="mock" data-testid="metrics-synthetic"><b>Synthetic data.</b> These numbers come from generated inputs and say nothing about model performance.</div>';
   if ((m.errors || []).length) h += `<div class="flag" role="alert">Unreadable eval files: ${m.errors.map((e) => esc(e.file)).join(', ')}</div>`;
   h += nav();
-  h += `<div class="mx-interp">${interpretPanel(ST, '__results', 'results')}</div>`;
-  h += section('summary', 'Summary', 'The headline numbers, each with its uncertainty. The two workflow tiles come from a simulation, not measured clinical use.', safe(() => summaryTiles(ST, ev), 'metrics', 'Summary'));
+  // the language-model restatement follows the measured headline numbers it restates, never precedes them
+  h += section('summary', 'Summary', 'The headline numbers, each with its uncertainty. The two workflow tiles come from a simulation, not measured clinical use.', safe(() => summaryTiles(ST, ev), 'metrics', 'Summary') + `<div class="mx-interp">${interpretPanel(ST, '__results', 'results')}</div>`);
   h += section('classification', 'Classification', 'Separation of invasive carcinoma from the other classes, error patterns, and model selection.',
     S(figRoc, 'analytics', 'ROC') + `<div class="mx-stack">${S(figConfusion, 'metrics', 'Confusion matrix') + S(figPr, 'analytics', 'Precision-recall')}</div>` + S(figOvr, 'analytics', 'One-vs-rest ROC') + S(figModels, 'metrics', 'Model comparison') + S(figSelection, 'model_choice', 'Model selection') + S(figThunder, 'thunder', 'Benchmark') + S(figHumanBaseline, 'human_baseline', 'Human readers'));
   h += section('confidence', 'Confidence', 'Calibration of the probabilities and coverage of the conformal sets.',
@@ -1769,7 +1898,10 @@ function install() {
     const el = document.getElementById(b.dataset.mxJump);
     if (!el) return;
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    pinned = b.dataset.mxJump;
+    pinSeen = false;
     el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    markActive();
     const h = el.querySelector('h2');
     if (h) {
       h.setAttribute('tabindex', '-1');
@@ -1777,16 +1909,36 @@ function install() {
     }
   });
   let raf = 0;
-  const markActive = () => {
+  // section chosen in the nav: highlighted while the page scrolls to it and while it is on screen (smooth scrolling passes
+  // other sections on the way, and the last sections may never reach the top)
+  let pinned = null;
+  let pinSeen = false;
+  function markActive() {
     raf = 0;
     const navEl = document.querySelector('.mx-nav');
     if (!navEl) return;
     const offset = navEl.getBoundingClientRect().bottom + 24; // the nav sits below the sticky header
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const rect = (id) => {
+      const s = document.getElementById(id);
+      return s ? s.getBoundingClientRect() : null;
+    };
+    const onScreen = (r) => r && r.top < vh && r.bottom > offset;
     let current = null;
     for (const [id] of SECTIONS) {
-      const s = document.getElementById(`mx-${id}`);
-      if (s && s.getBoundingClientRect().top - offset <= 0) current = `mx-${id}`;
+      const r = rect(`mx-${id}`);
+      if (r && r.top - offset <= 0) current = `mx-${id}`;
     }
+    // at the end of the page the last sections can never reach the top: the lowest section on screen is the one being read
+    const atEnd = window.scrollY + vh >= document.documentElement.scrollHeight - 2;
+    if (atEnd) for (const [id] of SECTIONS) if (onScreen(rect(`mx-${id}`))) current = `mx-${id}`;
+    if (pinned) {
+      const on = onScreen(rect(pinned));
+      if (on || !pinSeen) current = pinned;
+      if (on) pinSeen = true;
+      else if (pinSeen) pinned = null;
+    }
+    activeSection = current;
     navEl.querySelectorAll('[data-mx-jump]').forEach((btn) => {
       if (btn.dataset.mxJump === current) {
         if (btn.getAttribute('aria-current') !== 'true') {
@@ -1797,10 +1949,12 @@ function install() {
         }
       } else btn.removeAttribute('aria-current');
     });
-  };
+  }
   window.addEventListener('scroll', () => {
     if (!raf) raf = requestAnimationFrame(markActive);
   }, { passive: true });
+  // the reader scrolling by hand releases the section chosen in the nav
+  for (const type of ['wheel', 'touchstart', 'keydown']) window.addEventListener(type, () => { pinned = null; }, { passive: true });
   // Charts are drawn for the measured width; when it changes materially, ask the app to re-render this route.
   let timer = 0;
   const onResize = () => {
