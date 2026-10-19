@@ -1,8 +1,8 @@
 {
   "name": "fact_sheet",
-  "created_utc": "2026-10-19T00:58:59Z",
+  "created_utc": "2026-10-19T02:01:54Z",
   "config_hash": "8ae0753b3d60f5dcc622674d8675711313e45d9e763090b15c4ba38e4666ae2f",
-  "git_sha": "f769530f8b52ed102d2ba4e9e1bfa721b76b1db0",
+  "git_sha": "b2873563e4dd0c66d54815789521599539e0f8a2",
   "synthetic": false,
   "git_dirty": true,
   "bach": {
@@ -1256,8 +1256,78 @@
         }
       }
     },
-    "model_latency": null,
+    "model_latency": {
+      "cohort": "protocol25",
+      "warmup_excluded": 2,
+      "hardware": "Apple M3 Max; macOS 27.0.1; torch 2.14.1; device mps; bf16 autocast",
+      "definition": "wall time per 2048 x 1536 crop: PNG read, QC, 12 regions x 1 view preprocessed, one MPS batch, pooling, calibrated probabilities, a one-row APS set and the tier",
+      "end_to_end_s": {
+        "median": 0.7293072500033304,
+        "p25": 0.6939015630050562,
+        "p75": 0.8177011874940945,
+        "iqr": 0.12379962448903825,
+        "mean": 0.7650949832774531,
+        "n": 351
+      },
+      "embedding_only_s": {
+        "median": 0.6322467909776606,
+        "p25": 0.601080082997214,
+        "p75": 0.7242953750101151,
+        "iqr": 0.12321529201290105,
+        "mean": 0.6713431069855094,
+        "n": 351
+      }
+    },
     "clinical_turnaround": "see config/literature.yaml (cited benchmarks); not measured by Sepia"
+  },
+  "external_test": {
+    "model": "uni2h512_lr",
+    "protocol": "docs/EXTERNAL_TCGA_R2.md",
+    "n_patients": 25,
+    "n_slides": 65,
+    "n_crops": 353,
+    "metrics": {
+      "ffpe_tumor_sensitivity": {
+        "value": 0.9565217391304348,
+        "ci": [
+          0.8695652173913043,
+          1.0
+        ],
+        "n": 23
+      },
+      "frozen_tumor_sensitivity": {
+        "value": 0.84,
+        "ci": [
+          0.68,
+          0.96
+        ],
+        "n": 25
+      },
+      "frozen_tumor_vs_normal_auroc": {
+        "value": 1.0,
+        "ci": [
+          1.0,
+          1.0
+        ],
+        "n": 42
+      },
+      "frozen_normal_specificity": {
+        "value": 1.0,
+        "ci": [
+          1.0,
+          1.0
+        ],
+        "n": 17
+      },
+      "tumor_slides_tier_1_2": {
+        "value": 0.9791666666666666,
+        "ci": [
+          0.9361702127659575,
+          1.0
+        ],
+        "n": 48
+      }
+    }
   },
   "case_examples": {
     "BACH_0087": {

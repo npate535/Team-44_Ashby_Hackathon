@@ -364,6 +364,25 @@ def timing(art: Path) -> dict[str, Any]:
     }
 
 
+def external_test(art: Path) -> dict[str, Any] | None:
+    """Headline of the TCGA-BRCA external test, only when it scored the production model."""
+    path = art / "eval" / "external_tcga.json"
+    if not path.is_file():
+        return None
+    ext = io.read_json(path)
+    if ext.get("model") != io.read_json(art / "eval" / "model_choice.json")["production"]:
+        return None
+    p = ext["primary"]
+    pick = {"ffpe_tumor_sensitivity": p["ffpe_tumor_sensitivity"],
+            "frozen_tumor_sensitivity": p["frozen_tumor_sensitivity"],
+            "frozen_tumor_vs_normal_auroc": p["frozen_tumor_vs_normal"]["auroc"],
+            "frozen_normal_specificity": p["frozen_tumor_vs_normal"]["specificity"],
+            "tumor_slides_tier_1_2": p["tumor_tier_1_2_rate"]}
+    return {"model": ext["model"], "protocol": ext.get("protocol"), "n_patients": ext["n_patients"],
+            "n_slides": ext["n_slides"], "n_crops": ext["n_crops"],
+            "metrics": {k: {"value": v["estimate"], "ci": [v["lo"], v["hi"]], "n": v["n"]} for k, v in pick.items()}}
+
+
 def case_example(case: Mapping[str, Any]) -> dict[str, Any]:
     pred = case["prediction"]
     probs = {c: round(100 * float(p), 1) for c, p in zip(pred["classes"], pred["probs"])}
@@ -408,6 +427,7 @@ def build_fact_sheet(data_root: Path, art: Path, cfg: Mapping[str, Any] | None =
         "reference_distributions": reference_distributions(cfg),
         "components": components(cfg, art),
         "timing": timing(art),
+        "external_test": external_test(art),
         "case_examples": examples,
     }
 
@@ -547,9 +567,28 @@ def render_md(sheet: Mapping[str, Any]) -> str:
         L += ["## Three different time numbers", "",
               f"1. **Queue simulation** ({tm['queue_simulation']['what']}): {a.get('arrivals')}; reader: "
               f"{a.get('reader')}. Results in `artifacts/eval/queue_sim.json`.",
-              f"2. **Model latency** (measured): "
-              f"{tm['model_latency'] if tm['model_latency'] else 'pending the TCGA production run'}.",
+              "2. **Model latency** (measured): " + (
+                  f"median {lat['end_to_end_s']['median']:.2f} s per 2048 x 1536 image "
+                  f"(IQR {lat['end_to_end_s']['p25']:.2f}–{lat['end_to_end_s']['p75']:.2f} s, n {lat['end_to_end_s']['n']}); "
+                  f"embedding alone {lat['embedding_only_s']['median']:.2f} s; {lat['hardware']}; measured on the "
+                  f"TCGA crops." if (lat := tm.get('model_latency')) else "not measured."),
               f"3. **Clinical turnaround**: {tm['clinical_turnaround']}.", ""]
+    et = sheet.get("external_test")
+    if et:
+        names = {"ffpe_tumor_sensitivity": "FFPE tumor slides called invasive",
+                 "frozen_tumor_sensitivity": "Frozen tumor slides called invasive",
+                 "frozen_tumor_vs_normal_auroc": "Frozen tumor vs frozen normal AUROC (slide score)",
+                 "frozen_normal_specificity": "Frozen normal slides not called invasive",
+                 "tumor_slides_tier_1_2": "Tumor slides with a field in tier 1–2"}
+        L += ["## External test on TCGA-BRCA (production model, unchanged)", "",
+              f"{et['n_patients']} patients, {et['n_slides']} slides, {et['n_crops']} fields of view; slide-level, "
+              f"95% bootstrap over patients; protocol `{et['protocol']}`. TCGA has no benign or in situ labels.", "",
+              "| Measure | Value [95% CI] | Slides |", "|---|---|---|"]
+        for k, v in et["metrics"].items():
+            L.append(f"| {names.get(k, k)} | {_pct(v['value'])} [{_pct(v['ci'][0])}, {_pct(v['ci'][1])}] | {v['n']} |"
+                     if "auroc" not in k else
+                     f"| {names.get(k, k)} | {v['value']:.3f} [{v['ci'][0]:.3f}, {v['ci'][1]:.3f}] | {v['n']} |")
+        L.append("")
     ex = sheet.get("case_examples")
     if ex:
         L += ["## Cases shown to the judges", ""]

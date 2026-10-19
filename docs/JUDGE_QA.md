@@ -161,10 +161,30 @@ It is a simulation. One reader takes 9 minutes per case; cases arrive at 6 per h
 - The mean wait before an invasive case is first read falls from 20.2 to 6.0 minutes.
 - Unflagged cases wait 21.4 minutes longer.
 
-It is not model runtime, not a measured hospital result, and not a turnaround time. Measured model latency on a laptop is reported separately in `docs/RESULTS.md` (TCGA section). For comparison, the CAP benchmark is 90% of frozen sections within 20 minutes from receipt to the call to the surgeon (Novis 1997), and routine biopsies were 95% reported within 2 working days (Zarbo 1996). These are end-to-end turnaround times, which the simulated queue wait is not. The 20.2-minute queue number and the 20-minute benchmark are close by coincidence. Sources: `docs/HUMAN_BASELINE.md`.
+It is not model runtime, not a measured hospital result, and not a turnaround time. Measured model latency is separate: a median 0.73 s per image on an Apple M3 Max laptop (0.63 s of it embedding), measured on the TCGA fields. For comparison, the CAP benchmark is 90% of frozen sections within 20 minutes from receipt to the call to the surgeon (Novis 1997), and routine biopsies were 95% reported within 2 working days (Zarbo 1996). These are end-to-end turnaround times, which the simulated queue wait is not. The 20.2-minute queue number and the 20-minute benchmark are close by coincidence. Sources: `docs/HUMAN_BASELINE.md`.
 
 **14. What happens on a different site, scanner, stain or protocol?**
-The production model was tested unchanged on TCGA-BRCA slides from other hospitals and scanners, including real frozen sections: no retraining and no threshold changes. The analysis was pre-registered in `docs/EXTERNAL_TCGA_R2.md`, and the results are in `docs/RESULTS.md`. TCGA has only invasive tumor and adjacent normal tissue, so four-class accuracy and the in situ vs invasive distinction cannot be tested there.
+The production model was tested unchanged on TCGA-BRCA slides from other hospitals and scanners, including real frozen sections: same model, same thresholds, no retraining. The analysis was pre-registered in `docs/EXTERNAL_TCGA_R2.md` before any TCGA field was scored. Before scoring, a parity check confirmed that the laptop reproduces the Delta embeddings.
+
+The cohort was 25 patients and 65 slides, with 6 random tissue-rich fields per slide. Results are at slide level, with 95% bootstrap intervals over patients:
+
+| Measure | Result |
+|---|---|
+| FFPE tumor slides called invasive | 95.7% [87.0, 100] (23 slides) |
+| Frozen tumor slides called invasive | 84.0% [68.0, 96.0] (25 slides) |
+| Frozen tumor vs frozen normal AUROC | 1.000 |
+| Frozen normal slides not called invasive | 100% (17 slides) |
+| Tumor slides with a field in the top two tiers | 97.9% |
+
+The drop from FFPE to frozen sections (about 12 points) is the measured cost of real frozen-section artifacts.
+
+Limits:
+
+- TCGA has only invasive tumor and adjacent normal tissue, so four-class accuracy and the in situ vs invasive distinction cannot be tested there.
+- 8 of 25 frozen normal slides had no field with enough tissue, so specificity rests on 17 slides.
+- The reliability flag was not computed, because the models it needs are not on the laptop.
+
+Source: `artifacts/eval/external_tcga.json`, `docs/RESULTS.md`.
 
 **15. Are the stain orders and frozen-section timers connected to real systems?**
 No.
