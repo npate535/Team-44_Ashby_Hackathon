@@ -1274,14 +1274,54 @@
   background: var(--glass, rgba(255, 255, 255, 0.55));
   border-radius: 12px;
   padding: 1rem 1.1rem 1.05rem;
+  display: flex;
+  flex-direction: column;
 }
 .tcga-panel h3 { margin: 0 0 0.35rem; font-size: 1.05rem; }
 .tcga-panel-note { margin: 0 0 0.75rem; color: var(--mut); font-size: 0.88rem; line-height: 1.4; }
-.tcga-dl { margin: 0; display: grid; gap: 0.55rem; }
-.tcga-dl > div { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 0.5rem; align-items: baseline; }
-.tcga-dl dt { margin: 0; color: var(--mut); font-size: 0.86rem; }
-.tcga-dl dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
-.tcga-gap { margin: 0.65rem 0 0; font-size: 0.9rem; color: var(--mut); }
+.tcga-dl { margin: 0; display: grid; }
+/* One stat per row: label and estimate on the first line, the interval (or its exact replacement) muted below. */
+.tcga-dl > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 0.75rem;
+  row-gap: 0.15rem;
+  align-items: baseline;
+  padding: 0.6rem 0;
+}
+.tcga-dl > div + div { border-top: 1px solid var(--ln2, var(--ln, #e7e5e4)); }
+.tcga-dl > div:first-child { padding-top: 0.2rem; }
+.tcga-dl dt { margin: 0; color: var(--mut); font-size: 0.86rem; line-height: 1.35; }
+.tcga-dl dd { margin: 0; font-variant-numeric: tabular-nums; }
+.tcga-dl dd.tcga-est { font-weight: 650; font-size: 1.02rem; text-align: right; white-space: nowrap; }
+.tcga-dl dd.tcga-ci {
+  grid-column: 1 / -1;
+  justify-self: end;
+  max-width: 34rem;
+  text-align: right;
+  color: var(--mut);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+.tcga-nw { white-space: nowrap; }
+.tcga-foot { margin: 0.5rem 0 0; font-size: 0.82rem; line-height: 1.45; color: var(--mut); }
+/* .mx-pop is a flex row; these lines are running text with an inline code chip. */
+.tcga-src { display: block; line-height: 1.6; }
+.tcga-panel .tcga-src { margin-top: auto; padding-top: 0.75rem; }
+.tcga-cc { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+.tcga-wl .tcga-cc .cid { max-width: 100%; }
+.tcga-fld { font-size: 11px; color: var(--mut); font-variant-numeric: tabular-nums; letter-spacing: 0.1px; }
+@media (max-width: 1100px) {
+  /* The tier header already states the reason; a phone card keeps id, prep, suggestion, P and the set. */
+  .tcga-wl .wl-table tr.row td.c-flags { display: none; }
+  .tcga-wl .wl-table tr.row { grid-template-areas: 'tier case lane lane' 'tier sugg sugg p' 'tier set set set'; }
+  .tcga-wl .wl-table tr.row td.c-lane { text-align: right; }
+}
+@media (max-width: 520px) {
+  .tcga-panel { padding: 0.9rem 0.95rem 0.95rem; }
+  .tcga-dl dd.tcga-ci { max-width: none; }
+}
 .tcga-compare-note {
   margin: 0 0 1.25rem;
   padding: 0.85rem 1rem;

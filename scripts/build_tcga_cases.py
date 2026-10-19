@@ -29,6 +29,7 @@ from pipeline import common
 
 ROOT = Path(__file__).resolve().parents[1]
 CLASSES = ["Normal", "Benign", "InSitu", "Invasive"]
+GRID = (3, 4)                     # g512 regions of a 2048 x 1536 field
 
 
 def tiles(crop: dict) -> tuple[list[dict], dict | None]:
@@ -52,7 +53,54 @@ def tiles(crop: dict) -> tuple[list[dict], dict | None]:
                  "unit": att["unit"]}
 
 
-def case_json(crop: dict, model: str, alpha: float) -> dict:
+def _label(cls: str, labels: dict) -> str:
+    """Display name in running text, as backend.summary writes it: 'invasive carcinoma', 'in situ carcinoma'."""
+    text = str(labels.get(cls, cls))
+    return text[:1].lower() + text[1:] if len(text) > 1 and text[1:2].islower() else text
+
+
+def _join(words: list[str]) -> str:
+    return words[0] if len(words) == 1 else ", ".join(words[:-1]) + " and " + words[-1]
+
+
+def _pct(p: float) -> str:
+    """Probability as the case header shows it (why.js fmtPct): '>99%', '<1%', else the rounded percent."""
+    if p >= 0.995:
+        return ">99%"
+    if p < 0.005:
+        return "<1%"
+    return f"{int(100 * p + 0.5)}%"
+
+
+def summary_sentences(top: str, p_aggr: float, conf: list[str], alpha: float, n_qc: int, min_qc: int,
+                      labels: dict, aggressive: str) -> list[dict]:
+    """Template summary in the BACH template's wording, with display labels and the header's percent format.
+    Sentence 1 cites the prediction (F1); sentence 2 cites the quality finding (F2) and says what is not computed."""
+    level = f"{round(100 * (1 - alpha))}% confidence set"
+    head = (f"Suggested category: {_label(top, labels)} (calibrated probability of {_label(aggressive, labels)} "
+            f"{_pct(p_aggr)})")
+    others = [c for c in conf if c != top]
+    if not conf:
+        first = f"{head}; the {level} is empty, so this read is uncertain."
+    elif top not in conf:
+        held = _join([_label(c, labels) for c in conf])
+        first = f"{head}; the {level} holds {held} instead, so this read is uncertain."
+    elif not others:
+        first = f"{head}; the {level} holds this category only."
+    else:
+        verb = "is" if len(others) == 1 else "are"
+        first = f"{head}; {_join([_label(c, labels) for c in others])} {verb} also in the {level}."
+    if n_qc < min_qc:
+        second = (f"Only {n_qc} tissue {'region' if n_qc == 1 else 'regions'} passed quality control (fewer than "
+                  f"{min_qc}), so this read rests on little tissue.")
+    else:
+        second = (f"{n_qc} of {GRID[0] * GRID[1]} regions passed tissue quality control; the reliability score and "
+                  f"input typicality are not computed for TCGA fields.")
+    return [{"text": first, "findings": ["F1"]}, {"text": second, "findings": ["F2"]}]
+
+
+def case_json(crop: dict, model: str, alpha: float, labels: dict | None = None, aggressive: str = "Invasive",
+              min_qc: int = 3) -> dict:
     classes = CLASSES
     probs = [float(crop["probs"][c]) for c in classes]
     inv = float(crop["p_invasive"])
@@ -61,7 +109,7 @@ def case_json(crop: dict, model: str, alpha: float) -> dict:
     tier = int(crop["tier"])
     reasons = list(crop.get("tier_reasons") or [])
     prep = crop["prep"]
-    prep_label = "frozen section" if prep == "frozen" else "FFPE"
+    prep_label = "frozen-section" if prep == "frozen" else "FFPE"
     n_qc = int(crop["qc_tiles_kept"])
     cid = crop["crop_id"]
     tile_rows, attribution = tiles(crop)
@@ -69,7 +117,9 @@ def case_json(crop: dict, model: str, alpha: float) -> dict:
         {
             "id": "F1",
             "kind": "prediction",
-            "data": {"top": top, "p": round(inv, 3), "set": conf, "alpha": alpha},
+            # same keys as a BACH read's prediction finding: p is P(top class), risk is P(aggressive class)
+            "data": {"top": top, "p": round(float(crop["probs"][top]), 3), "set": conf,
+                     "confidence": round(1 - alpha, 4), "risk": round(inv, 3)},
         },
         {
             "id": "F2",
@@ -79,11 +129,11 @@ def case_json(crop: dict, model: str, alpha: float) -> dict:
                 "reliability": None,
                 "ood_percentile": None,
                 "qc_tiles_kept": n_qc,
-                "min_tiles_kept": 3,
+                "min_tiles_kept": min_qc,
             },
         },
     ]
-    set_txt = ", ".join(conf) if conf else "empty"
+    labels = labels or {}
     return {
         "schema_version": "1.0",
         "synthetic": False,
@@ -95,7 +145,8 @@ def case_json(crop: dict, model: str, alpha: float) -> dict:
         "source_case_ids": [],
         "arrived_offset_s": 0.0,
         "cohort": "tcga",
-        "specimen_question": f"TCGA-BRCA external field · {prep_label}",
+        # the header already says "TCGA-BRCA external" (adapter laneLabel); this names the slide only
+        "specimen_question": f"Field from {'a' if prep == 'frozen' else 'an'} {prep_label} slide",
         "tcga_meta": {
             "patient_id": crop["patient_id"],
             "prep": prep,
@@ -106,7 +157,7 @@ def case_json(crop: dict, model: str, alpha: float) -> dict:
             "width": 2048,
             "height": 1536,
             "tile_size": 512,
-            "grid": [3, 4],
+            "grid": list(GRID),
         },
         # Not computed for TCGA (needs CONCH and MUSK): null, never a placeholder value.
         "quality": {
@@ -135,15 +186,7 @@ def case_json(crop: dict, model: str, alpha: float) -> dict:
         "findings": findings,
         "summary": {
             "generator": "template",
-            "sentences": [
-                {
-                    "text": (
-                        f"External TCGA field ({prep_label}). Suggested category: {top} "
-                        f"(calibrated P(Invasive) {inv:.2f}); 90% confidence set: {set_txt}."
-                    ),
-                    "findings": ["F1"],
-                }
-            ],
+            "sentences": summary_sentences(top, inv, conf, alpha, n_qc, min_qc, labels, aggressive),
         },
         "agent": {"status": "none", "orders": [], "blocked": [], "n_orders": 0},
         # Read-only external specimens: no queue decisions (not part of the arrival replay).
@@ -185,7 +228,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"crop root {tcga} not found (pass --tcga-root)", file=sys.stderr)
         return 1
     crops = payload.get("crops") or []
-    display = config.load_settings()["tiles"]["display"]
+    settings = config.load_settings()
+    display = settings["tiles"]["display"]
+    labels = dict(settings["ui"]["class_labels"])
+    aggressive = str(settings.get("aggressive_class") or "Invasive")
+    min_qc = int(settings["qc"]["min_tiles_kept"])
     long_side, quality = int(display["long_side"]), int(display["jpeg_quality"])
     alpha = float((payload.get("recipe") or {}).get("alpha", 0.1))
     out_img, out_case = a.out / "images", a.out / "cases"
@@ -200,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
         with Image.open(src) as handle:              # display JPEG exactly as 01_build_cases makes BACH's
             io.save_image(out_img / f"{cid}.jpg", common.to_display(handle.convert("RGB"), long_side), quality=quality)
-        case = case_json(crop, model, alpha)
+        case = case_json(crop, model, alpha, labels, aggressive, min_qc)
         (out_case / f"{cid}.json").write_text(json.dumps(case, indent=2) + "\n")
         index.append({
             "case_id": cid,
@@ -211,6 +258,7 @@ def main(argv: list[str] | None = None) -> int:
             "p_invasive": crop["p_invasive"],
             "conformal_set": list(crop.get("conformal_set") or []),
             "tier_reasons": list(crop.get("tier_reasons") or []),
+            "qc_tiles_kept": int(crop["qc_tiles_kept"]),
             "image": f"tcga/{cid}.jpg",
             "probs": {c: float(crop["probs"][c]) for c in CLASSES},
             "model": model,

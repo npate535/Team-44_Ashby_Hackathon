@@ -9,7 +9,7 @@
   "source_case_ids": [],
   "arrived_offset_s": 0.0,
   "cohort": "tcga",
-  "specimen_question": "TCGA-BRCA external field \u00b7 FFPE",
+  "specimen_question": "Field from an FFPE slide",
   "tcga_meta": {
     "patient_id": "TCGA-E2-A15K",
     "prep": "ffpe",
@@ -190,12 +190,13 @@
       "kind": "prediction",
       "data": {
         "top": "Normal",
-        "p": 0.009,
+        "p": 0.679,
         "set": [
           "Normal",
           "InSitu"
         ],
-        "alpha": 0.1
+        "confidence": 0.9,
+        "risk": 0.009
       }
     },
     {
@@ -214,9 +215,15 @@
     "generator": "template",
     "sentences": [
       {
-        "text": "External TCGA field (FFPE). Suggested category: Normal (calibrated P(Invasive) 0.01); 90% confidence set: Normal, InSitu.",
+        "text": "Suggested category: normal breast tissue (calibrated probability of invasive carcinoma 1%); in situ carcinoma is also in the 90% confidence set.",
         "findings": [
           "F1"
+        ]
+      },
+      {
+        "text": "10 of 12 regions passed tissue quality control; the reliability score and input typicality are not computed for TCGA fields.",
+        "findings": [
+          "F2"
         ]
       }
     ]

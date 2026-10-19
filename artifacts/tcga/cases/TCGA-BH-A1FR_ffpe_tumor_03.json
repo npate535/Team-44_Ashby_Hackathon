@@ -9,7 +9,7 @@
   "source_case_ids": [],
   "arrived_offset_s": 0.0,
   "cohort": "tcga",
-  "specimen_question": "TCGA-BRCA external field \u00b7 FFPE",
+  "specimen_question": "Field from an FFPE slide",
   "tcga_meta": {
     "patient_id": "TCGA-BH-A1FR",
     "prep": "ffpe",
@@ -216,7 +216,8 @@
         "set": [
           "Invasive"
         ],
-        "alpha": 0.1
+        "confidence": 0.9,
+        "risk": 0.963
       }
     },
     {
@@ -235,9 +236,15 @@
     "generator": "template",
     "sentences": [
       {
-        "text": "External TCGA field (FFPE). Suggested category: Invasive (calibrated P(Invasive) 0.96); 90% confidence set: Invasive.",
+        "text": "Suggested category: invasive carcinoma (calibrated probability of invasive carcinoma 96%); the 90% confidence set holds this category only.",
         "findings": [
           "F1"
+        ]
+      },
+      {
+        "text": "12 of 12 regions passed tissue quality control; the reliability score and input typicality are not computed for TCGA fields.",
+        "findings": [
+          "F2"
         ]
       }
     ]

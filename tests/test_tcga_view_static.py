@@ -1,0 +1,137 @@
+"""Browser-free checks of the Outside BACH page (js/views/tcga.js) via node, and of the TCGA case summaries written by
+scripts/build_tcga_cases.py: boundary results get exact intervals over their true denominators, never a collapsed
+"100.0%–100.0%" bootstrap; the cohort is stated once; summaries use display labels and the header's percent format."""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import re
+import shutil
+import subprocess
+import textwrap
+
+import pytest
+
+from core import config
+
+APP = config.REPO_ROOT / "team44-triage-frontend" / "app"
+node = pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
+
+
+def boot(estimate: float, lo: float, hi: float, n: int, n_groups: int) -> dict:
+    return {"estimate": estimate, "lo": lo, "hi": hi, "ci": 0.95, "n_boot": 2000, "n": n, "n_groups": n_groups}
+
+
+def state(confusion: bool = True) -> dict:
+    production = {
+        "accuracy": boot(114 / 132, 0.7600, 0.9444, 132, 24),
+        "balanced_accuracy": boot(0.8705, 0.6765, 0.9375, 132, 24),
+        "invasive_sensitivity": boot(1.0, 1.0, 1.0, 132, 24),      # n counts every test image: not the denominator
+        "invasive_vs_rest_auroc": boot(0.9990, 0.9961, 1.0, 132, 24),
+    }
+    if confusion:
+        production["confusion"] = {"classes": ["Normal", "Benign", "InSitu", "Invasive"],
+                                   "matrix": [[20, 3, 0, 0], [9, 39, 0, 0], [2, 1, 24, 3], [0, 0, 0, 31]]}
+    per_model = {k: v for k, v in production.items() if k != "confusion"}
+    external = {
+        "model": "m", "quantized": False, "n_patients": 25, "n_slides": 65, "n_crops": 353,
+        "groups": {"ffpe_tumor": 23, "frozen_normal": 17, "frozen_tumor": 25},
+        "primary": {
+            "ffpe_tumor_sensitivity": boot(22 / 23, 0.8696, 1.0, 23, 23),
+            "frozen_tumor_sensitivity": boot(0.84, 0.68, 0.96, 25, 25),
+            "ffpe_vs_frozen_tumor_sensitivity_gap": {"estimate": 22 / 23 - 0.84, "ffpe": 22 / 23, "frozen": 0.84},
+            "frozen_tumor_vs_normal": {"auroc": boot(1.0, 1.0, 1.0, 42, 25),
+                                       "sensitivity": boot(0.84, 0.68, 0.96, 25, 25),
+                                       "specificity": boot(1.0, 1.0, 1.0, 17, 17)},
+            "tumor_tier_1_2_rate": boot(47 / 48, 0.9362, 1.0, 48, 25),
+        },
+        "bach_reference": {"model": "m", "invasive_sensitivity_patient_bootstrap": boot(1.0, 1.0, 1.0, 31, 17)},
+        "limitations": [],
+    }
+    item = {"case_id": "TCGA-A7-A4SD_frozen_normal_02", "prep": "frozen", "patient_id": "TCGA-A7-A4SD", "tier": 3,
+            "top": "Normal", "p_invasive": 0.04, "conformal_set": ["Normal", "InSitu"],
+            "tier_reasons": ["set_size_gt_1"], "image": "tcga/x.jpg", "model": "m",
+            "probs": {"Normal": 0.6, "Benign": 0.01, "InSitu": 0.35, "Invasive": 0.04}}
+    return {
+        "metrics": {"eval": {"metrics": {"n": 132, "n_groups": 24, "split": "test", "models": {"production": "m"},
+                                         "production": production, "per_model": {"m": per_model}},
+                             "external_tcga": external}},
+        "tcga": {"available": True, "n": 1, "model": "m", "items": [item]},
+        "caseId": None, "cases": {},
+    }
+
+
+def render(st: dict) -> str:
+    script = textwrap.dedent(f"""
+        const noop = () => {{}};
+        globalThis.document = {{addEventListener: noop, removeEventListener: noop, querySelector: () => null,
+                               querySelectorAll: () => [], documentElement: {{dataset: {{}}}}, body: {{}}}};
+        globalThis.window = globalThis;
+        globalThis.addEventListener = noop;
+        globalThis.matchMedia = () => ({{matches: false, addEventListener: noop}});
+        const T = await import({json.dumps((APP / 'js' / 'views' / 'tcga.js').as_uri())});
+        const ST = {json.dumps(st)};
+        ST.cfg = {json.dumps(json.loads((APP / 'mock' / 'config.json').read_text()))};
+        console.log(JSON.stringify({{html: T.render(ST, {{}})}}));
+    """)
+    res = subprocess.run(["node", "--no-warnings", "--input-type=module", "-e", script], capture_output=True,
+                         text=True, timeout=30)
+    assert res.returncode == 0, res.stderr
+    return json.loads(res.stdout.strip().splitlines()[-1])["html"]
+
+
+def text_of(html: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", html))
+
+
+@node
+def test_boundary_results_get_exact_intervals_over_true_denominators():
+    html = render(state())
+    text = text_of(html)
+    assert "100.0%–100.0%" not in text and "1.000–1.000" not in text and "100.0–100.0" not in text
+    assert "17 of 17 slides (exact 95% CI 80.5–100%)" in text                # frozen normal specificity
+    assert "31 of 31 invasive images (exact 95% CI 88.8–100%)" in text       # Invasive row of the confusion, not 132
+    assert "of 132 invasive" not in text
+    assert "come from 17 patients, so it is optimistic" in text            # images are clustered within patients
+    assert "All 25 frozen tumor slides scored above all 17 frozen normal slides." in text
+    assert "21 of 25 slides · 95% CI 68.0–96.0%" in text                     # non-boundary keeps its bootstrap
+    assert "114 of 132 images · 95% CI 76.0–94.4%" in text
+    assert "47 of 48 slides" in text
+    assert "a point estimate only, and the two 95% intervals overlap" in text
+    # the cohort is stated once, in fields (not crops)
+    assert text.count("25 patients") == 1 and "353 fields" in text and "crop" not in text.lower()
+    assert "23 FFPE tumor, 25 frozen tumor, 17 frozen normal" in text
+    # the specimen id is split, never truncated, and a row renders without quality placeholders
+    assert '<b class="cid">TCGA-A7-A4SD</b><span class="tcga-fld">_frozen_normal_02</span>' in html
+    assert 'data-testid="tcga-row"' in html
+
+
+@node
+def test_bach_denominator_falls_back_to_the_patient_bootstrap_reference():
+    text = text_of(render(state(confusion=False)))
+    assert "31 of 31 invasive images (exact 95% CI 88.8–100%)" in text
+
+
+def _build():
+    path = config.REPO_ROOT / "scripts" / "build_tcga_cases.py"
+    spec = importlib.util.spec_from_file_location("build_tcga_cases", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_tcga_summary_uses_display_labels_and_header_percent():
+    build = _build()
+    labels = dict(config.load_settings()["ui"]["class_labels"])
+    s = build.summary_sentences("Invasive", 0.9937, ["Invasive"], 0.1, 12, 3, labels, "Invasive")
+    assert s[0]["text"] == ("Suggested category: invasive carcinoma (calibrated probability of invasive carcinoma "
+                            "99%); the 90% confidence set holds this category only.")
+    assert s[0]["findings"] == ["F1"] and s[1]["findings"] == ["F2"]
+    assert "not computed" in s[1]["text"] and "12 of 12 regions" in s[1]["text"]
+    s = build.summary_sentences("Normal", 0.001, ["Normal", "InSitu"], 0.1, 2, 3, labels, "Invasive")
+    assert "normal breast tissue (calibrated probability of invasive carcinoma <1%)" in s[0]["text"]
+    assert "in situ carcinoma is also in the 90% confidence set" in s[0]["text"]
+    assert s[1]["text"].startswith("Only 2 tissue regions passed quality control")
+    assert not any(raw in s[0]["text"] for raw in ("InSitu", "P(Invasive)", "0.99"))
+    assert build._pct(0.995) == ">99%" and build._pct(0.0049) == "<1%" and build._pct(0.125) == "13%"
