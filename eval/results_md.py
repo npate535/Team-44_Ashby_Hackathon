@@ -24,7 +24,7 @@ from eval.figures import ci_blocks
 
 STEP = "eval_results_md"
 OWN = ("qc", "metrics", "calibration", "conformal", "conformal_resplit", "thunder", "queue_sim", "deferral",
-       "margin")
+       "margin", "external_tcga_prod")
 FOREIGN = ("model_choice", "concepts", "concepts_bach", "zeroshot", "reliability", "retrieval", "deletion", "cells",
            "finetune", "spotcheck", "tile_contrib")
 
@@ -292,6 +292,165 @@ def section_margin(m: Mapping[str, Any]) -> list[str]:
     return out + [""] + [f"- {n}" for n in m["notes"]] + [""]
 
 
+TCGA_ROWS = (("FFPE tumor slides called invasive (sensitivity)", ("ffpe_tumor_sensitivity",)),
+             ("Frozen tumor slides called invasive (sensitivity)", ("frozen_tumor_sensitivity",)),
+             ("Frozen normal slides not called invasive (specificity)", ("frozen_tumor_vs_normal", "specificity")),
+             ("Frozen tumor vs frozen normal, AUROC of the slide score", ("frozen_tumor_vs_normal", "auroc")),
+             ("Tumor slides with a crop in tier 1–2", ("tumor_tier_1_2_rate",)))
+
+
+def _get(d: Mapping[str, Any] | None, path: Sequence[str]) -> Any:
+    for key in path:
+        d = (d or {}).get(key)
+    return d
+
+
+def _tcga_cell(block: Mapping[str, Any] | None, auroc: bool) -> str:
+    return fmt(block) if auroc else fmt(block, pct=True)
+
+
+def section_external_tcga_prod(d: Mapping[str, Any]) -> list[str]:
+    """Round-2 TCGA-BRCA external test: both cohorts, BACH vs TCGA, the same-crops comparison with round 1, the
+    pre-registered sensitivity analyses, tile equivalence, parity and latency (all quoted from the JSON)."""
+    rec = d.get("recipe") or {}
+    cohorts = d.get("cohorts") or {}
+    names = [n for n in ("same8", "protocol25") if n in cohorts]
+    label = {"same8": "same8: round-1 crops", "protocol25": "protocol25: tile-API crops"}
+    out = ["## TCGA-BRCA external test (production model)", "",
+           f"Source: `eval/external_tcga_prod.json` · pre-registered in `{d.get('protocol')}` before the run · model "
+           f"`{d.get('model')}` (frozen UNI2-h, {d.get('n_views')} view per 512-px region, as its BACH embeddings), "
+           f"BACH temperature {_num(float(rec.get('temperature', 0)), 3)}, APS q-hat "
+           f"{_num(float(rec.get('qhat_aps', 0)), 3)} (alpha {rec.get('alpha')}) with randomized sets as in the app, "
+           "tier rule unchanged · no retraining and no threshold changes.", "",
+           "TCGA-BRCA has no benign or in situ labels: only invasive carcinoma (Primary Tumor slides) and normal tissue "
+           "(Solid Tissue Normal slides, frozen) are tested, and labels are per slide, not per crop. A slide's score is "
+           "the maximum calibrated P(Invasive) over its crops; a slide is called invasive when any crop's top class "
+           "is Invasive. Intervals: 95% bootstrap over patients. The reliability flag and the OOD percentile are not "
+           "computed (CONCH and MUSK are not on this laptop), so `reliability_flag` is false for every crop.", ""]
+    out += ["| Analysis | " + " | ".join(label[n] for n in names) + " |", "|---|" + "---|" * len(names)]
+    for text, path in TCGA_ROWS:
+        out.append(f"| {text} | " + " | ".join(_tcga_cell(_get(cohorts[n].get("primary"), path), "auroc" in path)
+                                              for n in names) + " |")
+    gaps = []
+    for n in names:
+        g = _get(cohorts[n].get("primary"), ("ffpe_vs_frozen_tumor_sensitivity_gap", "estimate"))
+        gaps.append("n/a" if g is None else f"{_num(100 * g, 1)} points")
+    out.append("| FFPE minus frozen tumor sensitivity | " + " | ".join(gaps) + " |")
+    out.append("| Patients / slides / crops | " + " | ".join(
+        f"{cohorts[n]['n_patients']} / {cohorts[n]['n_slides']} / {cohorts[n]['n_crops']}" for n in names) + " |")
+    for n in names:
+        c = cohorts[n]
+        notes = []
+        if c.get("slides_without_crops"):
+            notes.append("no tissue-rich field: " + ", ".join(f"{s['patient_id']} {s['group']}"
+                                                            for s in c["slides_without_crops"]))
+        if c.get("slides_short_crops"):
+            notes.append("fewer than 6 crops: " + ", ".join(f"{s['patient_id']} {s['group']} ({s['n_crops']})"
+                                                         for s in c["slides_short_crops"]))
+        if c.get("failed_crops"):
+            notes.append(f"{len(c['failed_crops'])} crops failed to score")
+        if notes:
+            out += ["", f"`{n}` slides: " + "; ".join(notes) + "."]
+
+    b = d.get("bach_reference") or {}
+    if b and names:
+        p = cohorts[names[-1]].get("primary") or {}
+        n8 = cohorts.get("same8", {}).get("primary") or {}
+        rows = (("Invasive / tumor called invasive", b.get("invasive_sensitivity"),
+                 "FFPE " + fmt(p.get("ffpe_tumor_sensitivity"), pct=True) + "; frozen "
+                 + fmt(p.get("frozen_tumor_sensitivity"), pct=True)),
+                ("Normal not called invasive", b.get("normal_specificity"),
+                 fmt(_get(p, ("frozen_tumor_vs_normal", "specificity")), pct=True)),
+                ("Invasive vs normal AUROC", b.get("invasive_vs_normal_auroc"),
+                 fmt(_get(p, ("frozen_tumor_vs_normal", "auroc")))),
+                ("Invasive / tumor in tier 1–2", b.get("invasive_tier_1_2_rate"),
+                 fmt(p.get("tumor_tier_1_2_rate"), pct=True)))
+        out += ["", f"### BACH test vs TCGA ({names[-1]})", "",
+                f"BACH: {b.get('n_images')} held-out test images ({b.get('unit')}); TCGA: slides (frozen normal as the "
+                "normal comparator). The units differ, so the comparison is indicative.", "",
+                "| Statistic | BACH test | TCGA |", "|---|---|---|"]
+        for text, bach, tcga in rows:
+            auroc = "AUROC" in text
+            out.append(f"| {text} | {fmt(bach) if auroc else fmt(bach, pct=True)} | {tcga} |")
+        flag = _get(b, ("reliability_flag_rate_clean", "estimate"))
+        out.append(f"| Reliability flag rate | {'n/a' if flag is None else _num(100 * flag, 1, '%')} (clean test) | "
+                   "not computed |")
+        if n8 and names[-1] != "same8":
+            out += ["", "On the 8-patient round-1 crops the same statistics are: FFPE "
+                    f"{fmt(n8.get('ffpe_tumor_sensitivity'), pct=True)}; frozen tumor "
+                    f"{fmt(n8.get('frozen_tumor_sensitivity'), pct=True)}; frozen normal specificity "
+                    f"{fmt(_get(n8, ('frozen_tumor_vs_normal', 'specificity')), pct=True)}; AUROC "
+                    f"{fmt(_get(n8, ('frozen_tumor_vs_normal', 'auroc')))}."]
+
+    h = (cohorts.get("same8") or {}).get("head_to_head")
+    if h:
+        r1 = f"round1_{h['round1_model']}"
+        out += ["", "### Same crops: fine-tune (round 1) vs production", "",
+                f"Both rows score the identical 132 round-1 crops. Round 1 (`{h['round1_file']}`) used the LoRA "
+                f"fine-tune `{h['round1_model']}`, one view and {h['round1_sets']}.", "",
+                f"| Analysis | `{h['round1_model']}` (round 1) | `{d.get('model')}` (production) |", "|---|---|---|"]
+        for text, path in TCGA_ROWS:
+            m = h["metrics"].get(".".join(path)) or {}
+            auroc = "auroc" in path
+            out.append(f"| {text} | {_tcga_cell(m.get(r1), auroc)} | {_tcga_cell(m.get('production'), auroc)} |")
+        like = h.get("tier_like_for_like") or {}
+        out.append(f"| Tumor slides in tier 1–2, deterministic sets (round-1 rule) | "
+                   f"{fmt(like.get('round1'), pct=True)} | {fmt(like.get('production_deterministic_sets'), pct=True)} |")
+        a = h.get("slide_called_invasive_agreement") or {}
+        out += ["", f"Called-invasive agreement over {a.get('n_slides')} slides: both {a.get('both_called')}, "
+                    f"neither {a.get('neither')}, round 1 only {a.get('round1_only')}, production only "
+                    f"{a.get('production_only')}."]
+        for s in h.get("discordant_slides") or []:
+            out.append(f"- {s['patient_id']} {s['group']}: round 1 {'called' if s['round1_called'] else 'not called'} "
+                       f"(score {_num(s['round1_score'], 3)}), production "
+                       f"{'called' if s['production_called'] else 'not called'} (score {_num(s['production_score'], 3)}).")
+
+    out += ["", "### Pre-registered sensitivity analyses", "",
+            "| Analysis | Statistic | " + " | ".join(names) + " |", "|---|---|" + "---|" * len(names)]
+    for key, text in (("sensitivity_s1_six_crop_slides", "S1: slides with exactly 6 crops"),
+                      ("sensitivity_s2_tta8", "S2: 8-view read (mean of the dihedral views per region)")):
+        for stat, path in TCGA_ROWS:
+            cells = [_tcga_cell(_get((cohorts[n].get(key) or {}).get("primary") if key.endswith("tta8")
+                                     else cohorts[n].get(key), path), "auroc" in path) for n in names]
+            out.append(f"| {text} | {stat} | " + " | ".join(cells) + " |")
+    out.append("| S3: deterministic APS sets (U = 1) | Tumor slides with a crop in tier 1–2 | " + " | ".join(
+        fmt(_get(cohorts[n], ("sensitivity_s3_deterministic_sets", "tumor_tier_1_2_rate")), pct=True)
+        for n in names) + " |")
+
+    out += ["", "### Checks behind the run", ""]
+    par = d.get("parity") or {}
+    if par:
+        out.append(f"- Parity gate ({par.get('image_source')}): {len(par.get('images', []))} BACH test images "
+                   f"embedded on the laptop match the stored Delta embeddings with region cosine ≥ "
+                   f"{_num(float(par['region_cosine_min']), 5)} (mean {_num(float(par['region_cosine_mean']), 5)}); "
+                   f"calibrated probabilities differ from `predictions.csv` by at most "
+                   f"{_num(float(par['max_abs_prob_diff']), 4)}; pass = {par.get('pass')}.")
+    te = d.get("tile_equivalence") or {}
+    if te:
+        out.append(f"- Tile source: re-extracting {te.get('n_crops_compared')} round-1 crops from their manifest "
+                   f"coordinates through the GDC tile API gave a mean absolute pixel difference of at most "
+                   f"{te.get('mad_max')} (0–255 units). The tile path picked the same fields of view on "
+                   f"{te.get('n_slides_picks_identical')} of {te.get('n_slides')} slides; decision: {te.get('decision')}.")
+        diag = te.get("thumbnail_diagnostic") or {}
+        if diag:
+            out.append(f"- Why picks can differ (one slide downloaded and checked): {diag.get('explanation')}")
+        net = te.get("network_test") or {}
+        if net:
+            out.append(f"- `{net.get('test', '').split('::')[-1]}` ({net.get('run_utc')}): {net.get('result')}, mean "
+                       f"absolute difference {net.get('mean_abs_diff_0_255')}.")
+    lat = d.get("latency_s_per_image") or {}
+    e2e = lat.get("end_to_end_s") or {}
+    if e2e.get("median") is not None:
+        emb = lat.get("embedding_only_s") or {}
+        out.append(f"- Latency per 2048 × 1536 crop ({lat.get('hardware')}): median {_num(e2e['median'], 2)} s "
+                   f"(IQR {_num(e2e['p25'], 2)}–{_num(e2e['p75'], 2)} s, n {e2e['n']}, first "
+                   f"{lat.get('warmup_excluded')} excluded); embedding alone median {_num(emb['median'], 2)} s. "
+                   "Single fields, not whole slides.")
+    if d.get("limitations"):
+        out += ["", "Limitations of this test:", ""] + [f"- {x}" for x in d["limitations"]]
+    return out + [""]
+
+
 def section_foreign(name: str, data: Mapping[str, Any]) -> list[str]:
     blocks = ci_blocks({k: v for k, v in data.items() if k not in schemas.EVAL_ENVELOPE})
     out = [f"### `eval/{name}.json`", ""]
@@ -411,7 +570,7 @@ def build(art: Path, cfg: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
     renderers = {"qc": section_qc, "metrics": section_metrics, "calibration": section_calibration, "conformal": section_conformal,
                  "conformal_resplit": section_conformal_resplit,
                  "thunder": section_thunder, "queue_sim": section_queue, "margin": section_margin,
-                 "deferral": section_deferral}
+                 "deferral": section_deferral, "external_tcga_prod": section_external_tcga_prod}
     for name in OWN:
         if name in present:
             lines += renderers[name](present[name])
