@@ -51,7 +51,7 @@ function glance(v, cfg) {
     `<div><dt>Suggested</dt><dd><b>${esc(classLabel(v.top, cfg) || '—')}</b></dd></div>` +
     `<div><dt>P(${esc(classLabel((cfg && cfg.aggressive_class) || 'Invasive', cfg))})</dt><dd><b title="${esc(v.risk === null ? '' : exactProb(aggProb(v, cfg), 4))}">${v.risk === null ? '—' : fmtPct(aggProb(v, cfg))}</b> calibrated</dd></div>` +
     `<div><dt>Conformal set</dt><dd class="chips">${chips}</dd></div>` +
-    `<div><dt>Reliability</dt><dd>${r.score === null ? '—' : `<b>${r.score.toFixed(2)}</b>`}${r.flag ? ' <span class="pill warn">flag</span>' : ' no flag'}</dd></div>` +
+    `<div><dt>Reliability</dt><dd>${r.score === null ? 'not computed' : `<b>${r.score.toFixed(2)}</b>${r.flag ? ' <span class="pill warn">flag</span>' : ' no flag'}`}</dd></div>` +
     '</dl>'
   );
 }

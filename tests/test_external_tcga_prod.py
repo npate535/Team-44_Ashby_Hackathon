@@ -344,11 +344,15 @@ def test_build_tcga_cases_uses_production_and_drops_stale(tmp_path):
     (art / "eval").mkdir(parents=True)
     (art / "eval" / "model_choice.json").write_text(json.dumps({"production": "uni2h512_lr"}))
     (crops_root / "frozen_tumor").mkdir(parents=True)
-    Image.new("RGB", (64, 48), (200, 120, 160)).save(crops_root / "frozen_tumor" / "P1_frozen_tumor_00.png")
+    Image.new("RGB", (2048, 1536), (200, 120, 160)).save(crops_root / "frozen_tumor" / "P1_frozen_tumor_00.png")
+    contrib = {"0": 0.12345, "1": -0.2, "5": 0.4}
     crop = {"crop_id": "P1_frozen_tumor_00", "path": "frozen_tumor/P1_frozen_tumor_00.png", "prep": "frozen",
             "patient_id": "P1", "probs": {"Normal": 0.1, "Benign": 0.1, "InSitu": 0.2, "Invasive": 0.6},
             "p_invasive": 0.6, "top": "Invasive", "conformal_set": ["InSitu", "Invasive"], "tier": 2,
-            "tier_reasons": ["aggressive_top"], "qc_tiles_kept": 12, "slide_file_name": "x.svs"}
+            "tier_reasons": ["aggressive_top"], "qc_tiles_kept": 3, "qc_regions": [0, 1, 5],
+            "region_contributions": contrib, "slide_file_name": "x.svs",
+            "attribution": {"method": "exact_linear", "target": "Invasive", "constant": -0.0612,
+                            "unit": "centered calibrated logit", "centered_logit": 0.26225}}
     doc = {"model": "uni2h512_lr", "crops": [crop], "data": {"tcga_root": str(crops_root)}, "n_patients": 1}
     (art / "eval" / "external_tcga.json").write_text(json.dumps(doc))
     stale = art / "tcga" / "cases" / "OLD_frozen_tumor_00.json"
@@ -360,6 +364,16 @@ def test_build_tcga_cases_uses_production_and_drops_stale(tmp_path):
     assert not stale.exists()
     case = json.loads((art / "tcga" / "cases" / "P1_frozen_tumor_00.json").read_text())
     assert case["prediction"]["model"] == "uni2h512_lr" and case["flag"]["tier"] == 2
+    assert case["quality"] == {"qc_tiles_kept": 3, "ood_percentile": None, "reliability": None,
+                               "reliability_flag": False}                       # not computed: null, no placeholder
+    assert [t["idx"] for t in case["tiles"]] == [0, 1, 5]                      # QC-failed regions are not listed
+    assert all(t["risk"] is None for t in case["tiles"])                       # no tile probe on TCGA: never filled
+    assert [t["contribution"] for t in case["tiles"]] == [0.1235, -0.2, 0.4]
+    assert case["prediction"]["attribution"] == {"method": "exact_linear", "target": "Invasive", "constant": -0.0612,
+                                                 "unit": "centered calibrated logit"}
+    assert case["image"]["width"] == 2048 and case["image"]["height"] == 1536
+    with Image.open(art / "tcga" / "images" / "P1_frozen_tumor_00.jpg") as jpg:  # display JPEG as BACH's
+        assert jpg.format == "JPEG" and jpg.size == (1536, 1152)
     assert json.loads((art / "tcga" / "index.json").read_text())["model"] == "uni2h512_lr"
     doc["model"] = "uni2h_ft"                                       # another model is refused
     (art / "eval" / "external_tcga.json").write_text(json.dumps(doc))
@@ -386,3 +400,28 @@ def test_results_md_hides_models_sepia_does_not_use():
     real = config.REPO_ROOT / "docs" / "RESULTS.md"
     if real.is_file():                                              # the committed document presents no fine-tune
         assert not any(m in real.read_text() for m in ("uni2h_ft", "uni2h_frz", "uni2h_wise", "eval/finetune.json"))
+
+
+def test_tcga_contributions_reproduce_each_read():
+    """constant + sum(region contributions) == the crop's centered calibrated logit (05d identity, 1e-6), using the
+    served probabilities; and every built specimen carries the same terms (rounded to 4 dp) on its QC regions."""
+    art = config.REPO_ROOT / "artifacts"
+    served = json.loads((art / "eval" / "external_tcga.json").read_text())
+    for crops in (served["crops"], served["cohorts"]["same8"]["crops"]):
+        for c in crops:
+            att, probs = c["attribution"], np.array([c["probs"][k] for k in CFG["classes"]])
+            assert att["method"] == "exact_linear" and att["target"] == CFG["aggressive_class"]
+            assert sorted(int(k) for k in c["region_contributions"]) == sorted(c["qc_regions"])
+            if probs.min() <= 1e-12:
+                continue
+            want = math.log(c["probs"][att["target"]]) - float(np.log(probs).mean())
+            assert abs(att["constant"] + sum(c["region_contributions"].values()) - want) <= 1e-6, c["crop_id"]
+    assert served["attribution_identity"]["passed"] and served["attribution_identity"]["max_abs_error"] <= 1e-6
+    for root in artifact_roots():
+        for path in sorted((root / "tcga" / "cases").glob("*.json")):
+            case = json.loads(path.read_text())
+            crop = next(c for c in served["crops"] if c["crop_id"] == case["case_id"])
+            assert [t["idx"] for t in case["tiles"]] == sorted(crop["qc_regions"])
+            for t in case["tiles"]:
+                assert t["risk"] is None and t["contribution"] == round(crop["region_contributions"][str(t["idx"])], 4)
+            assert case["quality"]["ood_percentile"] is None and case["quality"]["reliability"] is None

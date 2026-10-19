@@ -33,11 +33,16 @@ export function contributionLine(idx, c) {
   return `Region ${idx} · ${sz(x)} ${x > 0 ? 'toward' : x < 0 ? 'away from' : 'neutral for'} invasive`;
 }
 
-/** Heatmap layers available for a case: exact contribution (first, the default) when present, risk, every concept with
- * tile values, attention when present. */
+/** True when at least one region carries a tile P(Invasive) (the CONCH tile probe; not computed for TCGA specimens). */
+export function hasRisk(v) {
+  return v.tiles.some((t) => isNum(t.risk));
+}
+
+/** Heatmap layers available for a case: exact contribution (first, the default) when present, risk when any region has
+ * a value, every concept with tile values, attention when present. */
 export function layers(v) {
   const out = hasContributions(v) ? [{ id: 'contribution', label: 'Region contribution (exact)', kind: 'contribution' }] : [];
-  out.push({ id: 'risk', label: 'Overall risk (tile P(Invasive))', kind: 'risk' });
+  if (hasRisk(v) || !out.length) out.push({ id: 'risk', label: 'Overall risk (tile P(Invasive))', kind: 'risk' });
   const tileConcepts = new Set(v.tiles.flatMap((t) => Object.keys(t.concepts || {})));
   for (const c of v.concepts) if (tileConcepts.has(c.id)) out.push({ id: c.id, label: c.label, kind: 'concept' });
   if (v.tiles.some((t) => t.attention !== null && t.attention !== undefined))
@@ -88,7 +93,8 @@ export function regionInfo(v, hm, idx) {
     const text =
       `${line} (${where}). ` +
       (strongestText(v, zs) ? `Strongest concept scores: ${strongestText(v, zs)}. ` : '') +
-      `Tile P(Invasive) ${fp2(t.risk)}. Passed tissue QC.` +
+      (isNum(t.risk) ? `Tile P(Invasive) ${fp2(t.risk)}. ` : '') +
+      'Passed tissue QC.' +
       (linked ? ` Linked to ${linked}.` : '');
     const html =
       `<b>${esc(line)}</b><span class="tip-sub">${esc(where)}</span>` +
@@ -98,7 +104,7 @@ export function regionInfo(v, hm, idx) {
             .map(([id, z]) => `<span class="tip-row"><span>${esc(conceptLabel(v, id))}</span><b>${esc(sz(z))}</b></span>`)
             .join('')}`
         : '') +
-      `<span class="tip-row"><span>Tile P(Invasive)</span><b>${fp2(t.risk)}</b></span>` +
+      (isNum(t.risk) ? `<span class="tip-row"><span>Tile P(Invasive)</span><b>${fp2(t.risk)}</b></span>` : '') +
       `<span class="tip-qc ok">Passed tissue QC</span>` +
       (linked ? `<span class="tip-link">Linked to: ${esc(linked)}</span>` : '');
     return { text, html };
@@ -111,14 +117,17 @@ export function regionInfo(v, hm, idx) {
         : null;
   const strongest = zs.map(([id, z]) => `${conceptLabel(v, id)} ${sz(z)}`);
   const text =
-    `Region ${idx} (${where}). Tile P(Invasive) ${fp2(t.risk)} (${exactProb(t.risk)}). ` +
+    `Region ${idx} (${where}). ` +
+    (isNum(t.risk) ? `Tile P(Invasive) ${fp2(t.risk)} (${exactProb(t.risk)}). ` : '') +
     (cur ? `${cur.k} ${cur.v}. ` : '') +
     (strongest.length ? `Strongest concept scores: ${strongest.join('; ')}. ` : '') +
     'Passed tissue QC.' +
     (linked ? ` Linked to ${linked}.` : '');
   const html =
     `<b>Region ${idx}</b><span class="tip-sub">${esc(where)}</span>` +
-    `<span class="tip-row"><span>Tile P(Invasive)</span><b>${fp2(t.risk)} <span class="tip-sub">(${esc(exactProb(t.risk))})</span></b></span>` +
+    (isNum(t.risk)
+      ? `<span class="tip-row"><span>Tile P(Invasive)</span><b>${fp2(t.risk)} <span class="tip-sub">(${esc(exactProb(t.risk))})</span></b></span>`
+      : '') +
     (cur ? `<span class="tip-row"><span>${esc(cur.k)}</span><b>${esc(cur.v)}</b></span>` : '') +
     (strongest.length
       ? `<span class="tip-h">Strongest concept scores (z vs. reference regions)</span>${zs

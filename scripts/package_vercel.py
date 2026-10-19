@@ -45,6 +45,22 @@ def main():
                 continue
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(path, dest)
+    # TCGA external specimens: case JSON stays private under artifacts/ (served by /api/tcga), display JPEGs go to the
+    # CDN at /tcga/<name>, the URL the case JSON's image.display ("tcga/<name>") resolves to (backend media kind 'tcga').
+    tcga = ROOT / 'artifacts' / 'tcga'
+    for path in [tcga / 'index.json', *sorted((tcga / 'cases').glob('*.json'))]:
+        if path.is_file():
+            dest = out / 'artifacts' / path.relative_to(ROOT / 'artifacts')
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, dest)
+    for path in sorted((tcga / 'images').glob('*')):
+        if not path.is_file() or path.suffix.lower() not in ('.jpg', '.jpeg', '.png'):
+            continue
+        relative = Path('tcga') / path.name
+        dest = out / 'public' / relative
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, dest)
+        manifest[str(relative)] = hashlib.sha256(path.read_bytes()).hexdigest()
     for section in ('images', 'cells'):
         for path in (ROOT / 'artifacts' / section).rglob('*'):
             if not path.is_file() or path.suffix.lower() not in ('.jpg', '.jpeg', '.png'):

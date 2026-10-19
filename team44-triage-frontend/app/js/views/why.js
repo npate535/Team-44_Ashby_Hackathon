@@ -338,14 +338,14 @@ export function howSure(v, cfg, metrics, { compact = false } = {}) {
     check(
       r.score === null ? 'na' : r.flag ? 'warn' : 'ok',
       'Reliability',
-      (r.score === null ? '—' : r.score.toFixed(2)) + (r.flag ? ' <span class="pill warn" data-testid="reliability-flag">flag raised</span>' : ' · no flag'),
+      r.score === null ? 'not computed' : r.score.toFixed(2) + (r.flag ? ' <span class="pill warn" data-testid="reliability-flag">flag raised</span>' : ' · no flag'),
       `Score = 1 − estimated error probability.${relThr !== null ? ` Flag when the estimate reaches ${relThr.toFixed(2)} (score ≤ ${(1 - relThr).toFixed(2)}).` : ''}`,
       ' data-f-target="quality"'
     ) +
     check(
       r.oodPct === null ? 'na' : r.oodPct >= 0.9 ? 'warn' : 'ok',
       'Input typicality (OOD percentile)',
-      r.oodPct === null ? '—' : ordinalPct(r.oodPct),
+      r.oodPct === null ? 'not computed' : ordinalPct(r.oodPct),
       'Distance to reference tissue, as a percentile of calibration cases. Lower is more typical; 90th and above is unusual.',
       ' data-f-target="quality"'
     ) +

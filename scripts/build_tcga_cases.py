@@ -5,9 +5,13 @@
 
 Reads the served eval file <artifacts>/eval/external_tcga.json (production model, eval/external_tcga_prod.py) and
 the crop PNGs under its data.tcga_root (the 25-patient cohort, data/tcga_brca_prod/protocol25). Refuses an eval file
-whose model is not eval/model_choice.json `production`. Writes <artifacts>/tcga/images/<crop_id>.jpg,
-<artifacts>/tcga/cases/<crop_id>.json (case-shaped for the biopsy UI; no ground-truth labels in the public payload)
-and <artifacts>/tcga/index.json, and removes specimens of earlier builds that are not in this eval file.
+whose model is not eval/model_choice.json `production`. Writes:
+  <artifacts>/tcga/images/<crop_id>.jpg   display JPEG made as 01_build_cases makes BACH's (long side
+                                          tiles.display.long_side, LANCZOS, tiles.display.jpeg_quality);
+  <artifacts>/tcga/cases/<crop_id>.json   case-shaped for the biopsy UI, coordinates in 2048 x 1536 source pixels,
+                                          exact region contributions, nulls for what is not computed, no labels;
+  <artifacts>/tcga/index.json,
+and removes specimens of earlier builds that are not in this eval file.
 <artifacts> is $PATHQUEUE_ARTIFACTS_ROOT when set, else <repo>/artifacts.
 """
 from __future__ import annotations
@@ -20,26 +24,32 @@ from pathlib import Path
 
 from PIL import Image
 
+from core import config, io
+from pipeline import common
+
 ROOT = Path(__file__).resolve().parents[1]
 CLASSES = ["Normal", "Benign", "InSitu", "Invasive"]
 
 
-def tiles(p_invasive: float, n_qc: int) -> list[dict]:
-    """3x4 g512 grid; risk filled with the case invasive score (no per-tile probe on this path)."""
+def tiles(crop: dict) -> tuple[list[dict], dict | None]:
+    """(tiles, prediction.attribution) as 08_build_case_json builds them for BACH reads: one tile per QC-passing g512
+    region (QC-failed regions are not listed, so the UI hatches them), each with the read's exact region contribution
+    (eval/external_tcga_prod.region_contributions, 4 dp). `risk` stays null: BACH's tile risk is the CONCH tile probe,
+    which is not computed for TCGA, and no other quantity is shown under that label. The attribution is null when the
+    read pooled regions the case does not list (no QC-passing region), exactly as for BACH."""
+    qc = sorted(int(t) for t in crop.get("qc_regions") or [])
+    contrib = {int(k): float(v) for k, v in (crop.get("region_contributions") or {}).items()}
+    att = crop.get("attribution")
     out = []
-    for idx in range(12):
+    for idx in qc:
         row, col = divmod(idx, 4)
-        out.append({
-            "idx": idx, "row": row, "col": col,
-            "x": col * 512, "y": row * 512,
-            "risk": float(p_invasive),
-            "concepts": {},
-            "attention": None,
-            "contribution": None,
-        })
-    # Contract-style: qc_tiles_kept == len(tiles). Keep all 12; QC count is recorded in quality.
-    _ = n_qc
-    return out
+        out.append({"idx": idx, "row": row, "col": col, "x": col * 512, "y": row * 512, "risk": None,
+                    "concepts": {}, "attention": None,
+                    "contribution": round(contrib[idx], 4) if idx in contrib else None})
+    if not att or not contrib or not set(contrib) <= set(qc):
+        return out, None
+    return out, {"method": att["method"], "target": att["target"], "constant": round(float(att["constant"]), 4),
+                 "unit": att["unit"]}
 
 
 def case_json(crop: dict, model: str, alpha: float) -> dict:
@@ -52,8 +62,9 @@ def case_json(crop: dict, model: str, alpha: float) -> dict:
     reasons = list(crop.get("tier_reasons") or [])
     prep = crop["prep"]
     prep_label = "frozen section" if prep == "frozen" else "FFPE"
-    n_qc = int(crop.get("qc_tiles_kept") or 12)
+    n_qc = int(crop["qc_tiles_kept"])
     cid = crop["crop_id"]
+    tile_rows, attribution = tiles(crop)
     findings = [
         {
             "id": "F1",
@@ -97,10 +108,11 @@ def case_json(crop: dict, model: str, alpha: float) -> dict:
             "tile_size": 512,
             "grid": [3, 4],
         },
+        # Not computed for TCGA (needs CONCH and MUSK): null, never a placeholder value.
         "quality": {
-            "qc_tiles_kept": 12,
-            "ood_percentile": 0.5,
-            "reliability": 0.5,
+            "qc_tiles_kept": n_qc,
+            "ood_percentile": None,
+            "reliability": None,
             "reliability_flag": False,
         },
         "prediction": {
@@ -110,10 +122,10 @@ def case_json(crop: dict, model: str, alpha: float) -> dict:
             "risk_score": inv,
             "conformal_alpha": alpha,
             "conformal_set": conf,
-            "attribution": None,
+            "attribution": attribution,
         },
         "concepts": [],
-        "tiles": tiles(inv, n_qc),
+        "tiles": tile_rows,
         "similar_cases": [],
         "contrast_case": None,
         "agreement": {},
@@ -173,6 +185,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"crop root {tcga} not found (pass --tcga-root)", file=sys.stderr)
         return 1
     crops = payload.get("crops") or []
+    display = config.load_settings()["tiles"]["display"]
+    long_side, quality = int(display["long_side"]), int(display["jpeg_quality"])
     alpha = float((payload.get("recipe") or {}).get("alpha", 0.1))
     out_img, out_case = a.out / "images", a.out / "cases"
     out_img.mkdir(parents=True, exist_ok=True)
@@ -184,8 +198,8 @@ def main(argv: list[str] | None = None) -> int:
         if not src.is_file():
             print(f"skip missing image {src}", file=sys.stderr)
             continue
-        with Image.open(src) as handle:
-            handle.convert("RGB").save(out_img / f"{cid}.jpg", quality=92, optimize=True)
+        with Image.open(src) as handle:              # display JPEG exactly as 01_build_cases makes BACH's
+            io.save_image(out_img / f"{cid}.jpg", common.to_display(handle.convert("RGB"), long_side), quality=quality)
         case = case_json(crop, model, alpha)
         (out_case / f"{cid}.json").write_text(json.dumps(case, indent=2) + "\n")
         index.append({

@@ -293,3 +293,35 @@ def test_contrast_falls_back_to_chips_without_detail():
         html = _compared(detail)
         assert 'data-testid="contrast-detail"' not in html and "Differs most in" in html
         assert 'class="chip"' in html
+
+
+# ---- TCGA specimens: exact contributions, no tile risk, quality not computed -------------------------------------------
+def test_tcga_shaped_case_shows_contributions_and_no_risk_layer():
+    out = run_node("""
+        const vals = {0: 0.05, 1: -0.1, 2: -0.21, 4: 0.12, 5: 0.3, 7: 0.42};
+        const raw = {...biopsy, cohort: 'tcga',
+                     quality: {qc_tiles_kept: 6, ood_percentile: null, reliability: null, reliability_flag: false},
+                     prediction: {...biopsy.prediction, attribution: {method: 'exact_linear', target: 'Invasive',
+                                                                      constant: -0.05, unit: 'centered calibrated logit'}},
+                     tiles: biopsy.tiles.filter(t => t.idx in vals)
+                                        .map(t => ({...t, risk: null, concepts: {}, attention: null, contribution: vals[t.idx]}))};
+        const v = A.toView({...raw, _fetched_ms: 0}, 0, cfg, null);
+        const hm = {sel: 'risk', hl: [], opacity: 0.6, why: null};      // a stale risk selection falls back
+        out.layers = H.layers(v).map(l => l.id);
+        out.selected = H.layerOf(v, 'risk').id;
+        out.svgKind = /data-kind="([a-z]+)"/.exec(H.overlaySvg(v, hm))[1];
+        out.controls = H.heatmapControls(v, hm);
+        out.tip = H.regionInfo(v, hm, 7);
+        out.tipQc = H.regionInfo(v, hm, 3).text;
+        out.how = W.howSure(v, cfg, null);
+        const bach = A.toView({...biopsy, _fetched_ms: 0}, 0, cfg, null);
+        out.bachLayers = H.layers(bach).map(l => l.id);
+    """)
+    assert out["layers"] == ["contribution"] and out["selected"] == "contribution" and out["svgKind"] == "contribution"
+    assert "Overall risk" not in out["controls"]
+    assert out["tip"]["text"].startswith("Region 7 · +0.42 toward invasive")
+    assert "Tile P(Invasive)" not in out["tip"]["text"] and "Tile P(Invasive)" not in out["tip"]["html"]
+    assert "failed tissue quality control" in out["tipQc"]                   # QC-failed regions stay hatched
+    assert out["how"].count("not computed") == 2                            # reliability and OOD percentile
+    assert "no flag" not in out["how"]
+    assert "risk" in out["bachLayers"]                                       # BACH cases keep the risk layer
