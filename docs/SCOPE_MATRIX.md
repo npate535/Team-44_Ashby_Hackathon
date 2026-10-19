@@ -14,14 +14,14 @@ Research prototype, not for clinical use. Each feature gets one status from the 
 
 | Feature | Status | Evidence | What would validate it |
 |---|---|---|---|
-| Four-class read (Normal, Benign, In situ, Invasive) from UNI2-h region embeddings and a linear probe | Evaluated (BACH) | Macro-F1 0.86 [0.68, 0.93]; invasive-vs-rest AUROC 0.999; 31/31 invasive images flagged | Multi-site test sets with all four classes; reader study |
-| Same read on tissue from other hospitals, scanners and real frozen sections | Evaluated (external) | 25 TCGA-BRCA patients, 65 slides: FFPE tumor slides called invasive 95.7%, frozen tumor 84.0%, frozen normal not called 100%; tumor vs normal AUROC 1.000 (`artifacts/eval/external_tcga.json`). TCGA has no benign or in situ labels | Larger external cohorts with benign and in situ cases |
-| Calibrated class percentages (temperature scaling) | Evaluated (BACH) | ECE 0.18 → 0.055 | Calibration on each new site before use |
+| Four-class read (Normal, Benign, In situ, Invasive) from UNI2-h region embeddings and a linear probe | Evaluated (BACH) | Macro-F1 0.860 [0.678, 0.928]; accuracy 86.4%; invasive-vs-rest AUROC 0.999 [0.996, 1.000]; 31 of 31 invasive images called invasive (exact 95% CI 88.8–100%) | Multi-site test sets with all four classes; reader study |
+| Same read on tissue from other hospitals, scanners and real frozen sections | Evaluated (external) | 25 TCGA-BRCA patients, 65 slides: FFPE tumor slides called invasive 95.7% (22 of 23), frozen tumor 84.0% (21 of 25), frozen normal not called 17 of 17 (exact 95% CI 80.5–100%); every frozen tumor slide scored above every frozen normal slide (AUROC 1.000) (`artifacts/eval/external_tcga.json`). TCGA has no benign or in situ labels | Larger external cohorts with benign and in situ cases |
+| Calibrated class percentages (temperature scaling) | Evaluated (BACH) | ECE 0.184 → 0.055 | Calibration on each new site before use |
 | Conformal set ("cannot be excluded") and the safety rule | Evaluated (BACH) | Tier-set coverage 91.7% (method chosen after viewing test results, disclosed); 94.5% mean over 1,000 re-splits | Prospective coverage monitoring |
-| Reliability flag and deferral | Evaluated (BACH), including simulated degradations | Error AUROC 0.69; deferring 20% raises kept accuracy 85.8% → 89.8% | Real artifacts (frozen, poor stain) with errors adjudicated |
-| Region contributions (heatmap) | Evaluated (BACH) | Removing the top 3 regions lowers the centered logit 0.54 more than removing random regions (deletion test) | Pathologist agreement with highlighted regions |
+| Reliability flag and deferral | Evaluated (BACH), including simulated degradations | Error AUROC 0.69; deferring the least reliable 20% of all test reads (132 clean + 1,584 simulated degraded) raises kept accuracy 85.8% → 89.8%; on the 132 clean images alone 86.4% → 90.6% | Real artifacts (frozen, poor stain) with errors adjudicated |
+| Region contributions (heatmap) | Evaluated (BACH) | Removing the top 3 regions lowers the centered logit 0.46 [0.38, 0.56] more than removing random regions in the 34 images called invasive (pre-registered subset); 0.54 [0.47, 0.60] over all 132 (deletion test) | Pathologist agreement with highlighted regions |
 | Nine named features (3 related to Nottingham components + 6 others) | Evaluated (BACH), as associations | AI spot check (Claude, not a pathologist): invasion 19/20, tubules 18/20, pleomorphism 18/20; mitoses 0/20, normal lobules 0/20. Concept regions fail the deletion test | Pathologist annotation of feature regions |
-| Similar training cases and the look-alike with a different label | Evaluated (BACH) | Precision@5 0.67 | Reader study: does the comparison change decisions? |
+| Similar training cases and the look-alike with a different label | Evaluated (BACH) | Precision@5 0.67 [0.58, 0.83] | Reader study: does the comparison change decisions? |
 | Look-alike contrast table (which features differ, by how much, spot-check status) | App only | Computed from the same feature scores; no new evidence | Same as above |
 | Cell segmentation features (HoVer-Net) | Evaluated (BACH), weak | Cells-only model macro-F1 0.33 on CV; shown as measured context only | — |
 
@@ -32,7 +32,7 @@ Research prototype, not for clinical use. Each feature gets one status from the 
 | Priority tiers in the worklist | Simulated | Simulated day: invasive first look 20.2 → 6.0 min; unflagged cases wait 21.4 min longer | Silent-mode deployment with real timestamps |
 | Aging guard (promotes long-waiting cases) | Simulated | No measured effect at the configured targets | Real queue data |
 | Frozen-section lane and operating-room board with elapsed-time timer (amber at 15 min, red at 20 min) | Simulated | Arrivals are replayed; frozen-section appearance is simulated by degrading microscopy images. Real frozen tissue is tested only in the TCGA external test, not in the OR workflow | Intraoperative silent trial (see `docs/WSI_AND_EXTENSION.md`) |
-| Simulated margin read (image borders as inked margins) | Simulated | Composite fields: clear margins kept clear 100%; annotated WSI windows: sensitivity 45.4%, specificity 98.5% | Real inked margins with permanent-section outcome |
+| Simulated margin read (image borders as inked margins) | Simulated | Composite fields: clear margins kept clear in 64 of 64 (exact 95% CI 94.4–100%); benign test images: no margin wrongly called involved, 0 of 71 (exact 95% CI 0–5.1%); annotated WSI windows: sensitivity 45.4%, specificity 98.5% | Real inked margins with permanent-section outcome |
 | Follow-up orders (p63/calponin, ER/PR/HER2/Ki-67, deeper levels, recuts) | App only | Drafted by rules. The pathologist approves or edits them in Sepia, and the approval is stored in Sepia's own database. Nothing is sent to a laboratory or ordering system | Pathologist review of the rules; integration test against a sandboxed laboratory information system |
 | Case summary text | App only | Written by a deterministic template from structured findings and checked sentence by sentence | — |
 | "In plain language" explanation | App only | Generated by a language model through Cursor (cached: Gemini 4 for 330 cases, Claude for 2), with every number checked against the evidence. It summarizes evidence and is not evidence | — |
@@ -42,7 +42,7 @@ Research prototype, not for clinical use. Each feature gets one status from the 
 
 | Item | Status | Plan |
 |---|---|---|
-| Whole-slide reading for the four-class read | Proposed | `docs/WSI_AND_EXTENSION.md`. Today: single fields; BACH whole slides only for margin windows; TCGA slides sampled as 6 fields |
+| Whole-slide reading for the four-class read | Proposed | `docs/WSI_AND_EXTENSION.md`. Today: single fields; BACH whole slides only for margin windows; TCGA slides sampled as up to 6 fields |
 | Other organs | Proposed | Swap points listed in `docs/WSI_AND_EXTENSION.md`; nothing validated beyond breast |
 | Prognosis (recurrence, survival, metastasis) | Not claimed | BACH labels are diagnostic categories. Displayed percentages are not risks of progression |
 | Reader study with pathologists | Proposed | `docs/WSI_AND_EXTENSION.md` |

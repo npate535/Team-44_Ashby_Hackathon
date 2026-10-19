@@ -1,5 +1,7 @@
 # Overnight polish — 2026-10-17 23:40 to 2026-10-18 07:00 CDT
 
+> **Superseded numbers.** This is a dated log of the earlier production model (`uni2h_lr`, 256-px tiles). The production model is now `uni2h512_lr` (512-px regions): test accuracy 86.4% [76.0, 94.4], macro-F1 0.860 [0.678, 0.928], invasive-vs-rest AUROC 0.999 [0.996, 1.000], tier-set coverage 91.7% (pre-registered LAC 72.0%). Current numbers: [FACT_SHEET.md](FACT_SHEET.md) and [RESULTS.md](RESULTS.md).
+
 Research prototype, not for clinical use. Every number below comes from the eval files in `artifacts/eval/`
 (95% cluster-bootstrap CIs over patient / pseudo-patient groups, held-out THUNDER test split, n = 132 images,
 24 groups). "Before" is the pipeline state at commit `b58ddbc` (preserved at `.worktrees/backup-pre-overnight/`).

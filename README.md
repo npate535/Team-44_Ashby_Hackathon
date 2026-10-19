@@ -73,9 +73,10 @@ make analyze DATA=data ART=artifacts
 Tile QC on the laptop: `uv run python -m pipeline.01q_requalify_qc` recomputes tissue fractions from the display
 JPEGs with the corrected mask (the original value cut rejected pale tissue; see [docs/OVERNIGHT.md](docs/OVERNIGHT.md)).
 Worklist tiers use the APS conformal set with the argmax added to empty sets (`conformal.method`/`nonempty` in
-`config/settings.yaml`); pre-registered LAC is still reported, and the switch is disclosed as post-hoc. Grounded
-summaries are generated once with `08_build_case_json --max-llm-calls N` (Lumen, cached) and checked against the
-findings for citations, numbers and categorical facts (margin call, reliability flag, feature level).
+`config/settings.yaml`); pre-registered LAC is still reported, and the switch is disclosed as post-hoc. The shipped
+case summaries are written by a deterministic template from structured findings. The optional Lumen path
+(`08_build_case_json --max-llm-calls N`, cached) checks any generated summary against the findings for citations,
+numbers and categorical facts (margin call, reliability flag, feature level).
 
 Analytics steps can report missing candidates, skip unavailable optional modules, or fail on required inputs. Read their logs and metadata before calling the experiment complete. Do not use `data_synthetic` to produce real-data results. Limit smoke runs with `--limit 5`; rerun complete steps with `--force` after inputs change.
 
@@ -101,14 +102,14 @@ measured effect: [docs/OVERNIGHT.md](docs/OVERNIGHT.md).
 
 - BACH: Aresta et al., *BACH: Grand challenge on breast cancer histology images*, Medical Image Analysis (2019), ICIAR 2018 dataset; CC BY-NC-ND 4.0. Cite the original release in presentations.
 - CONCH: Mahmood Lab; MUSK: Stanford Li Lab. Model checkpoints remain subject to their respective licenses and individual gated access.
-- UNI2-h (Mahmood Lab) is the production prediction encoder; since accuracy round 2 ([docs/ACCURACY_ROUND2.md](docs/ACCURACY_ROUND2.md)) the production read is a linear probe on its embeddings of 512-px regions (`uni2h512_lr`). H-optimus-0 was a model-selection candidate and PathGen-CLIP a zero-shot comparison. Virchow2 and Phikon-v2 were embedded on Delta but are not production candidates (Virchow2's terms exclude clinical-support use). A LoRA fine-tune of UNI2-h (`pipeline/05c_finetune.py`, weights kept private under CC-BY-NC-ND) is judged by the same cross-validation rule and always reported as its own row. The selected prediction model is recorded in each case and in the model-choice evaluation.
+- UNI2-h (Mahmood Lab) is the production prediction encoder; since accuracy round 2 ([docs/ACCURACY_ROUND2.md](docs/ACCURACY_ROUND2.md)) the production read is a linear probe on its embeddings of 512-px regions (`uni2h512_lr`). H-optimus-0 was a model-selection candidate and PathGen-CLIP a zero-shot comparison. Virchow2 and Phikon-v2 were embedded on Delta but are not production candidates (Virchow2's terms exclude clinical-support use). A LoRA fine-tune of UNI2-h (`pipeline/05c_finetune.py`, weights kept private under CC-BY-NC-ND) was judged by the same cross-validation rule; it beat the frozen probe on cross-validation but not on the test split, so it is not the production model and is not presented as a comparison (`docs/ACCURACY_ROUND2.md`). The selected prediction model is recorded in each case and in the model-choice evaluation.
 - [THUNDER](https://mics-lab.github.io/thunder/leaderboards/): split/benchmark reference; published comparison values were checked against the authors’ leaderboard. See [verification](docs/research/benchmark-verification.md).
 - NCT-CRC-HE-100K provides cross-organ concept sanity checks; it is not breast validation.
 - PathMMU: the shared `pathmmu/BACH` folder was inventoried, but it is the 2015 Bioimaging breast set, not ICIAR 2018 BACH, so the official BACH release is the dataset of record.
 - Quilt and PathGen provide caption-based concept candidates when their actual feature outputs are available. Caption consistency is not pathologist validation.
 - HoVer-Net / PanNuke and TIAToolbox support the optional cell module; model and weight licensing is recorded in configuration.
-- Summaries: `gemma-4-31b-it` via NCSA Lumen, generated offline from structured findings only and validated.
-- AI spot check of concept tiles and cell overlays: Claude (Anthropic), recorded as AI review, not a pathologist.
+- Case summaries: all 328 shipped case files use a deterministic template that restates structured findings. The optional "In plain language" tab holds cached explanations generated through Cursor (Gemini 4 for 330 cases, Claude for 2), with every number checked against the evidence; it is not evidence. `gemma-4-31b-it` via NCSA Lumen remains an optional, validated summary path. Counts: [docs/FACT_SHEET.md](docs/FACT_SHEET.md).
+- AI spot check of concept regions and cell overlays: Claude (Anthropic), recorded as AI review, not a pathologist.
 - Conformal prediction: APS (Romano, Sesia & Candès, NeurIPS 2020) and LAC (Sadinle, Lei & Wasserman, JASA 2019).
 - NCSA Delta, Lumen, and the MIT-licensed `ncsa/ashby-hackathon-2026` tooling under `resources/official/`.
 - Original teammate worklist by adas286, extended with the API adapter, workflow views, and cohesive Sepia workspace.

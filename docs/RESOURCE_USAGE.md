@@ -6,7 +6,7 @@ The morning recommendation below (skip fine-tuning) was reversed at the user's r
 model more accurate. The work is pre-registered and reported in [ACCURACY_ROUND2.md](ACCURACY_ROUND2.md).
 
 - **Laptop, no GPU:** train-only cross-validation showed that larger 512-px regions beat the 256-px tiles for UNI2-h.
-  The pre-registered rule adopted `uni2h512_lr`. Test macro-F1 rose from 0.83 to 0.86 (balanced accuracy 0.835 to
+  The pre-registered rule adopted `uni2h512_lr`. Test macro-F1 rose from 0.830 to 0.860 (balanced accuracy 0.835 to
   0.871), now above the published UNI2-h probe (84.7).
 - **Delta GPU (A100, `bfqi-delta-gpu` / `gpuA100x4`), through the guarded `submit.sh`:**
   - Job 22988201: a LoRA fine-tune of UNI2-h, trained fold by fold on round 1's CV folds (train split only).
@@ -85,6 +85,9 @@ GPU-hours and the remaining allocation balance are **unverified**. To confirm, l
 the frozen results.
 
 ### Skip: fine-tuning (LoRA)
+
+(Morning numbers, earlier 256-px model; current production numbers are in [FACT_SHEET.md](FACT_SHEET.md).)
+
 - **Small data.** BACH has 400 images; fine-tuning is likely to overfit, and gains would sit inside the already wide
   four-class interval (macro-F1 0.83, CI 0.61–0.93).
 - **Invalidates everything downstream.** New embeddings mean redoing calibration, conformal sets, the reliability flag,

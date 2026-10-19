@@ -16,10 +16,10 @@ B-Path reports, for each reference category, how often a pathologist's call was 
 
 | Reference category | B-Path pathologists vs consensus: concordant / over / under (95% CI) | B-Path experts, independent reads vs consensus: concordant | BACH counterpart | Sepia, test split: concordant / over / under |
 |---|---|---|---|---|
-| Benign without atypia | 87% (85–89) / 13% (11–15) / – | 91% | Normal + Benign (71 images) | 71/71 / 0/71 / – (within this pooled category Sepia swapped Normal and Benign in 12 of 71; B-Path has no such split) |
+| Benign without atypia | 87% (85–89) / 13% (11–15) / – | 91% | Normal + Benign (71 images) | 71/71 (exact 95% CI 94.9–100%) / 0/71 (exact 95% CI 0–5.1%) / – (within this pooled category Sepia swapped Normal and Benign in 12 of 71; B-Path has no such split) |
 | Atypia | 48% (44–52) / 17% (15–21) / 35% (31–39) | 80% | No BACH class | Not measured |
 | DCIS | 84% (82–86) / 3% (2–4) / 13% (12–15) | 97% | In situ carcinoma (30) | 24/30 (80.0%) / 3/30 (10.0%) called invasive / 3/30 (10.0%) called Normal or Benign |
-| Invasive carcinoma | 96% (94–97) / – / 4% (3–6) | 97% | Invasive carcinoma (31) | 31/31 (100%) / – / 0/31 |
+| Invasive carcinoma | 96% (94–97) / – / 4% (3–6) | 97% | Invasive carcinoma (31) | 31/31 (100%; exact 95% CI 88.8–100%) / – / 0/31 |
 
 B-Path columns: Elmore 2015, abstract and Table 3 (pathologists, 663–2097 interpretations per category); Table 1 (three experts, 23–73 cases per category).
 
@@ -30,10 +30,10 @@ B-Path columns: Elmore 2015, abstract and Table 3 (pathologists, 663–2097 inte
 | Normal | 0.96 / 0.96 / 0.88 / 0.40 | 0.80 ± 0.23 | 20/23 (87.0%) |
 | Benign | 0.92 / 0.88 / 0.76 / 0.84 | 0.85 ± 0.06 | 39/48 (81.3%) |
 | In situ carcinoma | 1.0 / 1.0 / 0.56 / 0.76 | 0.83 ± 0.18 | 24/30 (80.0%) |
-| Invasive carcinoma | 0.96 / 0.92 / 0.92 / 0.92 | 0.93 ± 0.02 | 31/31 (100%) |
-| Four-class accuracy | 0.96 / 0.94 / 0.78 / 0.73 | 0.85 ± 0.10 | 0.86 [0.76, 0.94] |
+| Invasive carcinoma | 0.96 / 0.92 / 0.92 / 0.92 | 0.93 ± 0.02 | 31/31 (100%; exact 95% CI 88.8–100%) |
+| Four-class accuracy | 0.96 / 0.94 / 0.78 / 0.73 | 0.85 ± 0.10 | 0.864 [0.760, 0.944] (114/132) |
 
-The pathologist columns are from Aresta 2019, Table 4. Sepia's accuracy interval is the 95% cluster bootstrap from `metrics.json`. Sepia's invasive-vs-rest AUROC is 0.999 [0.996, 1.000] and its macro-F1 is 0.86 [0.68, 0.93].
+The pathologist columns are from Aresta 2019, Table 4. Sepia's accuracy interval is the 95% cluster bootstrap from `metrics.json`. For 31/31 the bootstrap collapses to a single point, so the exact Clopper–Pearson interval is given (`core.stats.exact_boundary_ci`). Sepia's invasive-vs-rest AUROC is 0.999 [0.996, 1.000] and its macro-F1 is 0.860 [0.678, 0.928].
 
 ### Why these are not directly comparable
 
@@ -43,7 +43,7 @@ The pathologist columns are from Aresta 2019, Table 4. Sepia's accuracy interval
 - **Different reference standards.** B-Path used a three-expert consensus by modified Delphi. BACH labels came from two experts who could see other regions of the patient's tissue and, potentially, immunohistochemistry. The BACH readers saw only the field.
 - **Category mapping is approximate.** B-Path's "benign without atypia" covers both non-proliferative and proliferative lesions; BACH splits Normal from Benign. B-Path's DCIS is ductal; BACH's class is "in situ carcinoma".
 - **Different images.** The BACH reader study used the 100 hidden test images. Sepia's test split is 132 of the 400 public images. The source and protocol match, but no image is shared.
-- **Wide intervals at n = 132.** Sepia's classes have 23–48 test images, so one image moves a class's recall by 2.1–4.3 percentage points. The accuracy interval spans 0.76 to 0.94. The BACH reader study had 25 images per class; B-Path had 663–2097 interpretations per category.
+- **Wide intervals at n = 132.** Sepia's classes have 23–48 test images, so one image moves a class's recall by 2.1–4.3 percentage points. The accuracy interval spans 0.760 to 0.944. The BACH reader study had 25 images per class; B-Path had 663–2097 interpretations per category.
 - **Different reading conditions.** B-Path readers had no time limit and read a whole slide. BACH readers saw only the field image.
 
 ### What the comparison shows and does not show
@@ -51,7 +51,7 @@ The pathologist columns are from Aresta 2019, Table 4. Sepia's accuracy interval
 It shows:
 
 - On BACH's own images and classes, single-field reading by pathologists is not near-perfect. Accuracy ranged from 73% to 96% across four pathologists. In situ sensitivity ranged from 0.56 to 1.0 and Normal sensitivity from 0.40 to 0.96.
-- For both pathologists and Sepia, invasive carcinoma is the most consistently recognised class: BACH readers 0.92–0.96, B-Path 96%, Sepia 31/31. Sepia's invasive-vs-rest AUROC of 0.999 is measured on the easiest boundary.
+- For both pathologists and Sepia, invasive carcinoma is the most consistently recognised class: BACH readers 0.92–0.96, B-Path 96%, Sepia 31/31 (exact 95% CI 88.8–100%). Sepia's invasive-vs-rest AUROC of 0.999 is measured on the easiest boundary.
 - Human disagreement concentrates in atypia (48% concordance) and, to a lesser extent, DCIS (84%). BACH excludes atypia, and it labels in situ carcinoma with curation (disagreements discarded, doubtful cases confirmed by immunohistochemistry).
 - Sepia's main error is calling in situ carcinoma invasive: 3 of 30 (10.0%). B-Path pathologists overcalled DCIS as invasive in 3% (2–4%) of interpretations. The point estimate is higher for Sepia, but it rests on 30 images in a different setting.
 

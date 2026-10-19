@@ -1,5 +1,7 @@
 # Sepia verification
 
+> **Superseded numbers.** This is a dated log of the earlier production model (`uni2h_lr`, 256-px tiles). The production model is now `uni2h512_lr` (512-px regions): test accuracy 86.4% [76.0, 94.4], macro-F1 0.860 [0.678, 0.928], invasive-vs-rest AUROC 0.999 [0.996, 1.000], tier-set coverage 91.7% (pre-registered LAC 72.0%). Current numbers: [FACT_SHEET.md](FACT_SHEET.md) and [RESULTS.md](RESULTS.md).
+
 Verified locally on October 18, 2026, 03:00–07:00 (America/Chicago). Research prototype, not a clinically validated
 system. Overnight changes and their measured effect: [OVERNIGHT.md](OVERNIGHT.md). Numbers: [RESULTS.md](RESULTS.md).
 

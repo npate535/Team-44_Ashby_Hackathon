@@ -16,13 +16,14 @@ import ast
 import glob
 import sys
 from collections.abc import Mapping, Sequence
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
-from core import cli, io, schemas
+from core import cli, io, schemas, stats
 from eval.metrics import write_eval
 
 STEP = "eval_fact_sheet"
@@ -158,6 +159,21 @@ def heldout_block(art: Path, data_root: Path, cases: pd.DataFrame, classes: Sequ
     clean = preds[preds["case_id"].isin(test_ids)]
     truth = cases.set_index("case_id")["label"]
     est = {k: v.get("estimate") if isinstance(v, Mapping) else v for k, v in prod.items()}
+    rates = per_class_rates(confusion["counts"], confusion["classes"])
+    inv = rates.get("Invasive", {})
+    total = int(np.asarray(confusion["counts"]).sum())
+    n_neg = total - inv.get("n", 0)
+    # True denominators: metrics.json stores n = all test images for every block; a rate's denominator is the class.
+    counts = {"accuracy": (int(np.trace(np.asarray(confusion["counts"]))), total),
+              "invasive_sensitivity": (inv.get("correct"), inv.get("n")),
+              "invasive_specificity": (n_neg - (inv.get("called_this_class", 0) - inv.get("correct", 0)), n_neg)}
+
+    def rate(key: str) -> dict[str, Any]:
+        k, n = counts[key]
+        out = {"value": est.get(key), "ci": _ci(prod, key), "k": k, "n": n}
+        out["exact_ci"] = exact_at_boundary(out["value"], out["ci"], k, n)
+        return out
+
     return {
         "model": io.read_json(art / "eval" / "model_choice.json")["production"],
         "n": int(metrics["n"]), "n_groups": int(metrics["n_groups"]),
@@ -170,11 +186,11 @@ def heldout_block(art: Path, data_root: Path, cases: pd.DataFrame, classes: Sequ
         },
         "macro_f1": {"value": est.get("macro_f1"), "ci": _ci(prod, "macro_f1")},
         "balanced_accuracy": {"value": est.get("balanced_accuracy"), "ci": _ci(prod, "balanced_accuracy")},
-        "accuracy": {"value": est.get("accuracy"), "ci": _ci(prod, "accuracy")},
-        "invasive_sensitivity": {"value": est.get("invasive_sensitivity"), "ci": _ci(prod, "invasive_sensitivity")},
-        "invasive_specificity": {"value": est.get("invasive_specificity"), "ci": _ci(prod, "invasive_specificity")},
+        "accuracy": rate("accuracy"),
+        "invasive_sensitivity": rate("invasive_sensitivity"),
+        "invasive_specificity": rate("invasive_specificity"),
         "confusion": confusion,
-        "per_class": per_class_rates(confusion["counts"], confusion["classes"]),
+        "per_class": rates,
         "errors": error_rows(clean, truth, classes),
         "interval_method": metrics["notes"][1] if len(metrics.get("notes", [])) > 1 else None,
     }
@@ -183,6 +199,28 @@ def heldout_block(art: Path, data_root: Path, cases: pd.DataFrame, classes: Sequ
 def _ci(block: Mapping[str, Any], key: str) -> list[float] | None:
     v = block.get(key)
     return [v["lo"], v["hi"]] if isinstance(v, Mapping) and "lo" in v else None
+
+
+def collapsed(value: float | None, ci: Sequence[float] | None) -> bool:
+    """True when a percentile bootstrap collapsed to a point on 0 or 1 (every replicate gave the same result)."""
+    return value is not None and ci is not None and value in (0.0, 1.0) and ci[0] == ci[1] == value
+
+
+def exact_at_boundary(value: float | None, ci: Sequence[float] | None, k: int | None, n: int | None,
+                      level: float = 0.95) -> dict[str, Any] | None:
+    """Exact Clopper–Pearson interval for a rate k/n whose bootstrap interval collapsed at 0 or 1; else None.
+
+    n must be the rate's true denominator (e.g. invasive test images for invasive sensitivity), not the test size.
+    """
+    if not collapsed(value, ci) or k is None or n is None or not n:
+        return None
+    if round(float(value) * n) != k:
+        raise ValueError(f"rate {value} does not match {k} of {n}")
+    iv = stats.exact_boundary_ci(int(k), int(n), level)
+    if iv is None:
+        return None
+    return {"k": int(k), "n": int(n), "lo": iv[0], "hi": iv[1], "level": level,
+            "method": "Clopper-Pearson exact interval (treats the n cases as independent)"}
 
 
 # ---- model selection, calibration, conformal ------------------------------------------------------------------------
@@ -378,9 +416,19 @@ def external_test(art: Path) -> dict[str, Any] | None:
             "frozen_tumor_vs_normal_auroc": p["frozen_tumor_vs_normal"]["auroc"],
             "frozen_normal_specificity": p["frozen_tumor_vs_normal"]["specificity"],
             "tumor_slides_tier_1_2": p["tumor_tier_1_2_rate"]}
+    groups = ext.get("groups") or {}
+    metrics = {}
+    for key, v in pick.items():
+        m = {"value": v["estimate"], "ci": [v["lo"], v["hi"]], "n": v["n"]}
+        if "auroc" in key:
+            m["collapsed"] = collapsed(m["value"], m["ci"])
+            m["n_pos"], m["n_neg"] = groups.get("frozen_tumor"), groups.get("frozen_normal")
+        else:
+            m["k"] = int(round(v["estimate"] * v["n"]))
+            m["exact_ci"] = exact_at_boundary(m["value"], m["ci"], m["k"], m["n"])
+        metrics[key] = m
     return {"model": ext["model"], "protocol": ext.get("protocol"), "n_patients": ext["n_patients"],
-            "n_slides": ext["n_slides"], "n_crops": ext["n_crops"],
-            "metrics": {k: {"value": v["estimate"], "ci": [v["lo"], v["hi"]], "n": v["n"]} for k, v in pick.items()}}
+            "n_slides": ext["n_slides"], "n_crops": ext["n_crops"], "metrics": metrics}
 
 
 def case_example(case: Mapping[str, Any]) -> dict[str, Any]:
@@ -433,12 +481,34 @@ def build_fact_sheet(data_root: Path, art: Path, cfg: Mapping[str, Any] | None =
 
 
 # ---- Markdown ---------------------------------------------------------------------------------------------------------
+def _half_up(x: float, digits: int) -> str:
+    """Fixed-point text rounded half away from zero (39/48 = 81.25% -> 81.3%), as the hand-written docs round."""
+    q = Decimal(1).scaleb(-digits)
+    return str(Decimal(repr(float(x))).quantize(q, rounding=ROUND_HALF_UP))
+
+
 def _pct(x: float | None, digits: int = 1) -> str:
-    return "n/a" if x is None else f"{100 * x:.{digits}f}%"
+    return "n/a" if x is None else f"{_half_up(100 * x, digits)}%"
 
 
 def _num(x: Any, digits: int = 3) -> str:
     return "n/a" if x is None else f"{x:.{digits}f}"
+
+
+def _pc_short(x: float) -> str:
+    """Percent with one decimal, dropping a trailing .0 (100, 88.8, 5.1, 0)."""
+    text = _half_up(100 * x, 1)
+    return text[:-2] if text.endswith(".0") else text
+
+
+def exact_text(iv: Mapping[str, Any]) -> str:
+    """'31 of 31 (exact 95% CI 88.8–100%)'."""
+    return (f"{iv['k']} of {iv['n']} (exact {round(100 * iv['level'])}% CI {_pc_short(iv['lo'])}–"
+            f"{_pc_short(iv['hi'])}%)")
+
+
+def _counts_text(counts: Mapping[str, int]) -> str:
+    return "; ".join(f"{k} {v}" for k, v in counts.items()) or "none"
 
 
 def render_md(sheet: Mapping[str, Any]) -> str:
@@ -490,15 +560,30 @@ def render_md(sheet: Mapping[str, Any]) -> str:
         L += ["## Test results (held-out, n = 132)", "", "| Metric | Value | 95% CI | Definition |", "|---|---|---|---|"]
         for k, v in conv.items():
             ci = v.get("ci")
-            L.append(f"| {names.get(k, k)} | {_num(v['value'])} | {'' if not ci else f'{ci[0]:.3f}–{ci[1]:.3f}'} | "
-                     f"{v.get('definition', '')} |")
+            if collapsed(v.get("value"), ci):
+                ci_text = ("none: all positives ranked above all negatives" if v["value"] == 1 else
+                           "none: all negatives ranked above all positives")
+            else:
+                ci_text = "" if not ci else f"{ci[0]:.3f}–{ci[1]:.3f}"
+            L.append(f"| {names.get(k, k)} | {_num(v['value'])} | {ci_text} | {v.get('definition', '')} |")
     if t:
+        defs = {"accuracy": "images whose top class is the reference label",
+                "invasive_sensitivity": "invasive images called invasive (denominator: invasive test images)",
+                "invasive_specificity": "non-invasive images not called invasive (denominator: non-invasive test "
+                                        "images)"}
         for key, name in (("macro_f1", "Macro-F1"), ("balanced_accuracy", "Balanced accuracy"),
                           ("accuracy", "Accuracy"), ("invasive_sensitivity", "Invasive sensitivity"),
                           ("invasive_specificity", "Invasive specificity")):
             v = t[key]
             ci = v.get("ci")
-            L.append(f"| {name} | {_num(v['value'])} | {'' if not ci else f'{ci[0]:.3f}–{ci[1]:.3f}'} | |")
+            value = _num(v["value"]) + (f" ({v['k']} of {v['n']})" if v.get("n") else "")
+            ci_text = exact_text(v["exact_ci"]) if v.get("exact_ci") else ("" if not ci else
+                                                                            f"{ci[0]:.3f}–{ci[1]:.3f}")
+            L.append(f"| {name} | {value} | {ci_text} |" + (f" {defs[key]} |" if key in defs else " |"))
+        L += ["", "Intervals are 95% percentile cluster bootstraps over patient / pseudo-patient groups. Where a "
+                  "result is 0% or 100% the bootstrap collapses to a single point, so the exact Clopper–Pearson "
+                  "interval for the count is shown instead (it treats the images as independent). An AUROC of "
+                  "exactly 1 gets no interval."]
         conf = t["confusion"]
         L += ["", f"Confusion matrix (rows = true class, columns = predicted; production model `{t['model']}`):", "",
               "| True \\ Predicted | " + " | ".join(CLASS_NAMES.get(c, c) for c in conf["classes"]) + " | Recall |",
@@ -558,15 +643,28 @@ def render_md(sheet: Mapping[str, Any]) -> str:
         L += [f"- Trained by the team: {x}" for x in comp["trained_by_team"]]
         L += [f"- Rule-based: {x}" for x in comp["rule_based"]]
         lm = comp["language_models"]
-        L += [f"- Case summaries: {lm['case_summaries']['generators']}; {lm['case_summaries']['note']}.",
-              f"- 'In plain language' tab (cached explanations by model and provider): "
-              f"{lm['plain_language_tab']['models']}; {lm['plain_language_tab']['note']}.", ""]
+        L += [f"- Case summaries (case files by generator: {_counts_text(lm['case_summaries']['generators'])}): "
+              f"{lm['case_summaries']['note']}.",
+              f"- 'In plain language' tab (cached explanations by model and provider: "
+              f"{_counts_text(lm['plain_language_tab']['models'])}): {lm['plain_language_tab']['note']}.", ""]
     tm = sheet.get("timing")
     if tm:
         a = tm["queue_simulation"]["assumptions"]
+        res = tm["queue_simulation"].get("results") or {}
+        fifo, tiers = res.get("fifo") or {}, res.get("tiers") or {}
+        head = ""
+        try:
+            fa, ta = fifo["aggressive_mean"], tiers["aggressive_mean"]
+            nf = tiers["vs_fifo"]["non_flagged_mean"]
+            head = (f" Mean wait of invasive cases {fa['mean']:.1f} min first-in-first-out vs {ta['mean']:.1f} min "
+                    f"with the tiers (2.5–97.5 percentiles over {ta['n_reps']} simulated days: {fa['lo']:.1f}–"
+                    f"{fa['hi']:.1f} and {ta['lo']:.1f}–{ta['hi']:.1f}); non-flagged cases wait {nf['mean']:.1f} min "
+                    f"longer on average ({nf['lo']:.1f}–{nf['hi']:.1f}).")
+        except (KeyError, TypeError):
+            pass
         L += ["## Three different time numbers", "",
               f"1. **Queue simulation** ({tm['queue_simulation']['what']}): {a.get('arrivals')}; reader: "
-              f"{a.get('reader')}. Results in `artifacts/eval/queue_sim.json`.",
+              f"{a.get('reader')}.{head} Results in `artifacts/eval/queue_sim.json`.",
               "2. **Model latency** (measured): " + (
                   f"median {lat['end_to_end_s']['median']:.2f} s per 2048 x 1536 image "
                   f"(IQR {lat['end_to_end_s']['p25']:.2f}–{lat['end_to_end_s']['p75']:.2f} s, n {lat['end_to_end_s']['n']}); "
@@ -585,10 +683,19 @@ def render_md(sheet: Mapping[str, Any]) -> str:
               f"95% bootstrap over patients; protocol `{et['protocol']}`. TCGA has no benign or in situ labels.", "",
               "| Measure | Value [95% CI] | Slides |", "|---|---|---|"]
         for k, v in et["metrics"].items():
-            L.append(f"| {names.get(k, k)} | {_pct(v['value'])} [{_pct(v['ci'][0])}, {_pct(v['ci'][1])}] | {v['n']} |"
-                     if "auroc" not in k else
-                     f"| {names.get(k, k)} | {v['value']:.3f} [{v['ci'][0]:.3f}, {v['ci'][1]:.3f}] | {v['n']} |")
-        L.append("")
+            if "auroc" in k and v.get("collapsed"):
+                who = (f"all {v['n_pos']} frozen tumor slides ranked above all {v['n_neg']} frozen normal slides"
+                       if v.get("n_pos") and v.get("n_neg") else "all positives ranked above all negatives")
+                cell = f"{v['value']:.3f} ({who}; no interval)" if v["value"] == 1 else f"{v['value']:.3f}"
+            elif "auroc" in k:
+                cell = f"{v['value']:.3f} [{v['ci'][0]:.3f}, {v['ci'][1]:.3f}]"
+            elif v.get("exact_ci"):
+                cell = exact_text(v["exact_ci"])
+            else:
+                cell = f"{_pct(v['value'])} [{_pct(v['ci'][0])}, {_pct(v['ci'][1])}] ({v['k']} of {v['n']})"
+            L.append(f"| {names.get(k, k)} | {cell} | {v['n']} |")
+        L += ["", "Rates at 0% or 100% show the exact Clopper–Pearson interval for the count (slides treated as "
+                  "independent); the patient bootstrap collapses to a single point there.", ""]
     ex = sheet.get("case_examples")
     if ex:
         L += ["## Cases shown to the judges", ""]
