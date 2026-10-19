@@ -61,3 +61,17 @@ def test_serve_only_mode_never_starts_a_model_call(tmp_path, monkeypatch):
     monkeypatch.setattr(I, "_run", lambda *a, **k: called.append(a) or ("x", {}))
     out = I.Interpreter(tmp_path).case(_case(), generate=True, force=True)
     assert out == {"status": "none", "model": I._model(), "on_demand": False} and not called
+
+
+def test_cached_text_says_whether_it_can_be_regenerated(tmp_path, monkeypatch):
+    # the card hides Regenerate on the deployed site: a POST there could only return "none"
+    monkeypatch.setenv(I.ENV_MODEL, "m")
+    monkeypatch.setenv(I.ENV_ON_DEMAND, "0")
+    interp = I.Interpreter(tmp_path)
+    case = _case()
+    payload = (json.dumps(I.case_evidence(case), indent=1, sort_keys=True, ensure_ascii=False) + "\n\nVALIDATION JSON:\n"
+               + json.dumps({}, indent=1, sort_keys=True, ensure_ascii=False))
+    path = interp._path("case", "X1", I._cache_key("case", payload, "m"))
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({"status": "ok", "model": "m", "markdown": "x"}))
+    assert interp.case(case)["on_demand"] is False

@@ -545,7 +545,7 @@ class Interpreter:
             for cached in _cache_models(model):
                 hit = self._path(kind, name, _cache_key(kind, payload, cached))
                 if hit.is_file():
-                    return {**json.loads(hit.read_text()), "cached": True}
+                    return {**json.loads(hit.read_text()), "cached": True, "on_demand": on_demand}
         if not generate:
             return {"status": "none", "model": model, "on_demand": on_demand}
         started = time.time()
