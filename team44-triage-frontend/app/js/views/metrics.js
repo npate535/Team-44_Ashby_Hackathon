@@ -198,11 +198,13 @@ function layout() {
 function details(id, summary, body) {
   return `<details class="mx-src" data-mx-open="${esc(id)}"${OPEN.has(id) ? ' open' : ''}><summary>${esc(summary)}</summary>${body}</details>`;
 }
-function table(head, rows, { num = [] } = {}) {
+function table(head, rows, { num = [], title = '' } = {}) {
   if (!rows.length) return '<p class="mx-muted">No rows.</p>';
   const numCol = (i) => (num.includes(i) ? ' class="mx-n"' : '');
-  // focusable + labelled so a table that scrolls sideways on a phone is reachable by keyboard (axe scrollable-region)
-  return `<div class="mx-tablewrap" tabindex="0" role="region" aria-label="Source numbers table (scrolls sideways)"><table class="mx-table"><thead><tr>${head.map((h, i) => `<th scope="col"${numCol(i)}>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows
+  const name = title ? `Source numbers for ${title}` : 'Source numbers';
+  // focusable + labelled (by its figure, so every region has its own name) so a table that scrolls sideways on a phone is
+  // reachable by keyboard (axe scrollable-region); the caption names the table for screen readers
+  return `<div class="mx-tablewrap" tabindex="0" role="region" aria-label="${esc(name)} (table, scrolls sideways)"><table class="mx-table"><caption class="sr-only">${esc(name)}</caption><thead><tr>${head.map((h, i) => `<th scope="col"${numCol(i)}>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows
     .map((r) => `<tr>${r.map((c, i) => `<td${numCol(i)}>${esc(c)}</td>`).join('')}</tr>`)
     .join('')}</tbody></table></div>`;
 }
@@ -217,7 +219,7 @@ function figure(o) {
   const chart = `<div class="mx-chart">${o.chart || unavailableInline('The chart has no plottable values in this run.')}</div>`;
   const foot = `${(o.notes || []).length ? `<ul class="mx-notes">${o.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
     <p class="mx-pop">${o.population ? `<span>Population: ${esc(o.population)}</span>` : ''}${src.length ? `<span>Source: ${src.map((s) => `<code>${esc(s)}</code>`).join(', ')}</span>` : ''}</p>
-    ${o.table ? details(`${o.id}-src`, 'Source numbers', table(o.table.head, o.table.rows, o.table)) : ''}`;
+    ${o.table ? details(`${o.id}-src`, 'Source numbers', table(o.table.head, o.table.rows, { ...o.table, title: o.title })) : ''}`;
   const klass = `mx-fig${o.wide ? ' mx-wide' : ''}${o.side ? ' mx-side' : ''}`;
   const attrs = `class="${klass}" id="fig-${esc(o.id)}"${o.testid ? ` data-testid="${esc(o.testid)}"` : ''}`;
   if (o.side) return `<figure ${attrs}><div class="mx-side-text">${head}${foot}</div>${chart}</figure>`;
@@ -697,7 +699,7 @@ function figThunder(ST, ev, L) {
   rows.push({ header: true, label: 'This project, same 132 test images' });
   for (const o of TH.ours || []) {
     const c = ci(o.macro_f1);
-    if (c && (o.role || '').startsWith('production')) rows.push({ label: `${modelName(o.model)} (production, calibrated)`, est: c.est, lo: c.lo, hi: c.hi, color: C.COLOR[1], emphasis: true, value: ciShort(c, { digits: 1 }) });
+    if (c && (o.role || '').startsWith('production')) rows.push({ label: `${modelName(o.model)}, production read (calibrated)`, est: c.est, lo: c.lo, hi: c.hi, color: C.COLOR[1], emphasis: true, value: ciShort(c, { digits: 1 }) });
   }
   for (const o of TH.ours_zero_shot || []) {
     const c = ci(o.macro_f1);
@@ -1826,7 +1828,7 @@ function limitationsSection(ST, ev, m, L, ctx) {
   return `<figure class="mx-fig mx-wide" data-testid="limitations"><figcaption><h3>Limitations</h3></figcaption><ul class="mx-limits">${LIMITATIONS.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></figure>` +
     figDataQuality(ST, ev, L) +
     `<figure class="mx-fig"><figcaption><h3>Datasets, models and methods</h3></figcaption><dl class="mx-cite">${CITATIONS.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></figure>` +
-    `<figure class="mx-fig mx-wide"><figcaption><h3>Data provenance</h3><p class="mx-take">Every number on this page is read from these files at page load; re-running the pipeline updates the page.${expected.length ? ` Not produced in this run: ${esc(expected.map((e) => `${e}.json`).join(', '))}.` : ''}</p></figcaption>${table(['File', 'Created (UTC)', 'Git commit', 'Kind'], files)}${(m.figures || []).length ? details('figures-png', `Static PNG figures (${m.figures.length})`, `<div class="mx-pngs">${m.figures.map((f) => `<a href="${esc(ctx && ctx.assetUrl ? ctx.assetUrl(f.url) : f.url)}" target="_blank" rel="noopener">${esc(f.file)}</a>`).join('')}</div>`) : ''}</figure>`;
+    `<figure class="mx-fig mx-wide"><figcaption><h3>Data provenance</h3><p class="mx-take">Every number on this page is read from these files at page load; re-running the pipeline updates the page.${expected.length ? ` Not produced in this run: ${esc(expected.map((e) => `${e}.json`).join(', '))}.` : ''}</p></figcaption>${table(['File', 'Created (UTC)', 'Git commit', 'Kind'], files, { title: 'Data provenance' })}${(m.figures || []).length ? details('figures-png', `Static PNG figures (${m.figures.length})`, `<div class="mx-pngs">${m.figures.map((f) => `<a href="${esc(ctx && ctx.assetUrl ? ctx.assetUrl(f.url) : f.url)}" target="_blank" rel="noopener">${esc(f.file)}</a>`).join('')}</div>`) : ''}</figure>`;
 }
 
 // ---- page -------------------------------------------------------------------------------------------------------------

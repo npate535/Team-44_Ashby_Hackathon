@@ -1,13 +1,13 @@
 /* PathQueue Model evaluation dashboard (#/metrics) and its SVG charts (js/charts.js). Loaded after workspace.css;
    reuses its page tokens (ink / paper / hematoxylin / eosin) and adds chart tokens scoped to .mx.
    Chart series (validated with the dataviz palette checks, all-pairs CVD + normal-vision + contrast):
-     light on #fff     #5a55c0 hematoxylin indigo, #d4573b eosin coral, #16967a teal
+     light on #fff     #4b44ae hematoxylin indigo, #d4573b eosin coral, #16967a teal
      dark  on #202631  #7f79e8, #db6542, #1a9f7d
    Layout breakpoints are container queries on .mx and must match layout() in js/views/metrics.js. */
 
 .mx {
   container: mx / inline-size;
-  --cx1: #5a55c0;
+  --cx1: #4b44ae; /* deepened from #5a55c0 for label contrast on the mixed heatmap shades */
   --cx2: #d4573b;
   --cx3: #16967a;
   --cx-mute: #8d909b;
@@ -124,7 +124,8 @@
 /* ---- sections ------------------------------------------------------------------------------------------------------- */
 .mx-section {
   margin-top: 34px;
-  scroll-margin-top: calc(var(--stick, 0px) + 58px);
+  /* html scroll-padding-top (theme.css) already clears the sticky header; this clears the section nav below it */
+  scroll-margin-top: 48px;
 }
 .mx-section-head {
   margin-bottom: 14px;
@@ -893,7 +894,7 @@
   font: inherit;
   font-size: 13px;
   color: var(--ink);
-  background: var(--sf);
+  background-color: var(--sf); /* not the shorthand: a global select rule supplies the chevron background image */
   border: 1px solid var(--ln);
   border-radius: 8px;
   padding: 8px 10px;
