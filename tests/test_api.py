@@ -438,6 +438,17 @@ def test_image_thumbnails_are_downscaled_jpegs(tmp_path):
     assert client.get("/images/demo_0001.jpg").content == (FIXTURES / "demo_0001.jpg").read_bytes()
 
 
+def test_static_thumbnail_paths_match_the_query_thumbnails(tmp_path):
+    # /thumbs/<w>/<kind>/<name> is what the app requests; the deployed CDN serves the same paths as pre-built files
+    client, _ = make_client(tmp_path, cases_dir=FIXTURES)
+    res = client.get("/thumbs/320/images/demo_0001.jpg")
+    assert res.status_code == 200 and res.headers["content-type"] == "image/jpeg"
+    assert res.content == client.get("/images/demo_0001.jpg?w=320").content
+    assert client.get("/thumbs/128/images/demo_0001.jpg").status_code == 404           # only the pre-built widths
+    assert client.get("/thumbs/320/eval/demo_0001.jpg").status_code == 404
+    assert client.get("/thumbs/320/images/missing.jpg").status_code == 404
+
+
 def test_thumbnail_cache_is_bounded_by_bytes(tmp_path, monkeypatch):
     from backend import app as app_module
 

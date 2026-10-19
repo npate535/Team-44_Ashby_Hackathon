@@ -11,8 +11,11 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from backend.app import STATIC_THUMB_WIDTHS, thumbnail  # noqa: E402  (same encoder as the local /thumbs route)
 
 
 def main():
@@ -70,6 +73,17 @@ def main():
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(path, dest)
             manifest[str(relative)] = hashlib.sha256(path.read_bytes()).hexdigest()
+    # The CDN ignores `?w=`: pre-build the thumbnail widths the app requests at /thumbs/<w>/<kind>/<name>.
+    n_thumbs = 0
+    for kind, folder in (('images', ROOT / 'artifacts' / 'images'), ('tcga', tcga / 'images')):
+        for path in sorted(folder.glob('*')):
+            if not path.is_file() or path.suffix.lower() not in ('.jpg', '.jpeg'):
+                continue
+            for width in STATIC_THUMB_WIDTHS:
+                dest = out / 'public' / 'thumbs' / str(width) / kind / path.name
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(thumbnail(path, width))
+                n_thumbs += 1
     (out / 'media-manifest.json').write_text(json.dumps(manifest, sort_keys=True))
     shutil.copy2(ROOT / 'deploy/requirements.txt', out / 'requirements.txt')
     shutil.copy2(ROOT / 'deploy/build_vercel.sh', out / 'build.sh')
@@ -81,13 +95,16 @@ def main():
     settings = {'framework': 'fastapi', 'regions': ['iad1'], 'buildCommand': 'sh build.sh',
                 'functions': {'backend/vercel.py': {'maxDuration': 400, 'excludeFiles': 'public/**'}},
                 'env': {'PATHQUEUE_RELEASE_SHA': revision, 'PATHQUEUE_SITE': 'local'},
-                'headers': [{'source': '/(.*)', 'headers': [{'key': 'Cache-Control', 'value': 'no-store'}]}]}
+                # static files revalidate (304 when unchanged, never stale); API responses are never stored
+                'headers': [{'source': '/((?!api/).*)', 'headers': [{'key': 'Cache-Control', 'value': 'no-cache'}]},
+                            {'source': '/api/(.*)', 'headers': [{'key': 'Cache-Control', 'value': 'no-store'}]}]}
     (out / 'vercel.json').write_text(json.dumps(settings, indent=2) + '\n')
     # Review state belongs to the shared Redis workspace. Never upload a running
     # laptop demo database, which may describe an older set of case evidence.
     for database in (out / 'artifacts').glob('*.sqlite*'):
         database.unlink()
-    print(f'Packaged private Vercel upload: {out}; {len(manifest)} verified CDN assets; source {revision}')
+    print(f'Packaged private Vercel upload: {out}; {len(manifest)} verified CDN assets; {n_thumbs} thumbnails; '
+          f'source {revision}')
 
 
 if __name__ == '__main__':
