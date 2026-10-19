@@ -56,8 +56,27 @@ The headline is **invasive vs rest AUROC 0.999 [0.996, 1.000]**: a binary AUROC 
 
 Every error is listed in `docs/FACT_SHEET.md`. The "benign false positives" mentioned aloud are mostly benign images read as normal, not as cancer.
 
-**5. Isn't BACH too clean?**
-Yes, and this is the main limitation. BACH's two annotators discarded every image they disagreed on, so the hard cases where pathologists disagree are under-represented. The training-set cross-validation (macro-F1 0.955) is higher than the test result (0.86), and the calibration split was easier than the test split, which broke the pre-registered conformal method. That is why Sepia was also tested on TCGA tissue it never saw (question 14). See `docs/HUMAN_BASELINE.md` for how this compares with pathologists.
+**5. Isn't BACH too clean? Can a pathologist tell these apart easily?**
+BACH is curated, and that is the main limitation. The dataset page says images the two annotators disagreed on were discarded. The paper says Normal-versus-Benign disagreements were discarded and other doubtful cases were confirmed by immunohistochemistry. Either way, the hard cases where pathologists disagree are under-represented.
+
+Signs that within-BACH numbers overstate real-world performance:
+
+- Training-set cross-validation scored macro-F1 0.955, against 0.86 on the test split.
+- The calibration split was easier than the test split, which broke the pre-registered conformal method.
+
+The closest human baseline is the BACH paper's own reader study (Aresta 2019, Table 4). Four pathologists read BACH's 100 hidden test images, seeing only the field image.
+
+| Reader | Four-class accuracy |
+|---|---|
+| Four pathologists, BACH hidden test images | 96%, 94%, 78%, 73% (mean 85%) |
+| Best challenge algorithm, same images | 87% |
+| Sepia, THUNDER test split (132 images, different images) | 86% [76, 94] |
+
+On whole slides of real biopsies, pathologists agreed with an expert consensus in 96% of invasive, 84% of DCIS and 48% of atypia cases (Elmore 2015, B-Path). Disagreement concentrates in atypia, which BACH does not contain.
+
+Sepia's main error, calling in situ carcinoma invasive, happened in 3 of 30 images (10%), against 3% of B-Path DCIS readings, in a different setting with wide intervals. Sepia does not resolve the borderline cases where pathologists differ. A reader study on uncurated material would be needed to show that.
+
+This is also why Sepia was tested on TCGA tissue it never saw (question 14). Details: `docs/HUMAN_BASELINE.md`.
 
 ## Models and components
 
@@ -142,7 +161,7 @@ It is a simulation. One reader takes 9 minutes per case; cases arrive at 6 per h
 - The mean wait before an invasive case is first read falls from 20.2 to 6.0 minutes.
 - Unflagged cases wait 21.4 minutes longer.
 
-It is not model runtime, not a measured hospital result, and not a turnaround time. Measured model latency on a laptop is reported separately in `docs/RESULTS.md` (TCGA section). Published clinical turnaround benchmarks are in `docs/HUMAN_BASELINE.md`.
+It is not model runtime, not a measured hospital result, and not a turnaround time. Measured model latency on a laptop is reported separately in `docs/RESULTS.md` (TCGA section). For comparison, the CAP benchmark is 90% of frozen sections within 20 minutes from receipt to the call to the surgeon (Novis 1997), and routine biopsies were 95% reported within 2 working days (Zarbo 1996). These are end-to-end turnaround times, which the simulated queue wait is not. The 20.2-minute queue number and the 20-minute benchmark are close by coincidence. Sources: `docs/HUMAN_BASELINE.md`.
 
 **14. What happens on a different site, scanner, stain or protocol?**
 The production model was tested unchanged on TCGA-BRCA slides from other hospitals and scanners, including real frozen sections: no retraining and no threshold changes. The analysis was pre-registered in `docs/EXTERNAL_TCGA_R2.md`, and the results are in `docs/RESULTS.md`. TCGA has only invasive tumor and adjacent normal tissue, so four-class accuracy and the in situ vs invasive distinction cannot be tested there.
