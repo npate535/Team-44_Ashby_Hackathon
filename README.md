@@ -4,6 +4,21 @@ Sepia is Team 44’s research workspace for confidence-aware breast pathology tr
 
 **Research prototype. Not for clinical use.** BACH labels are diagnostic categories, not Nottingham grades. “Likely invasive” is a triage suggestion. Frozen sections, image-border margins, arrivals, and operating-room assignments are simulated. Approval records and inbox routing are local to this application; no hospital order system is connected.
 
+Live application: https://sepia-ashby.xyz (also https://sepia-ashby.vercel.app).
+
+## Evidence and reviewer documents
+
+| Document | Contents |
+|---|---|
+| [docs/FACT_SHEET.md](docs/FACT_SHEET.md) | Data units, splits, test metrics with AUROC conventions, every test misread, dataset roles, reference distributions, which parts are pretrained or trained (generated) |
+| [docs/RESULTS.md](docs/RESULTS.md) | Every evaluation with 95% patient-grouped intervals (generated) |
+| [docs/HUMAN_BASELINE.md](docs/HUMAN_BASELINE.md) | Published pathologist reader studies and clinical turnaround benchmarks, with their limits as comparisons |
+| [docs/EXTERNAL_TCGA_R2.md](docs/EXTERNAL_TCGA_R2.md) | Pre-registered external test of the production model on TCGA-BRCA |
+| [docs/SCOPE_MATRIX.md](docs/SCOPE_MATRIX.md) | What is evaluated, simulated, app-only or proposed |
+| [docs/ATTENTION_COMPARISON.md](docs/ATTENTION_COMPARISON.md) | Attention-based MIL vs the production linear probe on identical inputs (generated) |
+| [docs/WSI_AND_EXTENSION.md](docs/WSI_AND_EXTENSION.md) | Whole-slide path, other organs, reader-study and frozen-section study designs |
+| [docs/JUDGE_QA.md](docs/JUDGE_QA.md) | Answers to the judges' questions with sources |
+
 ## Run the application
 
 Requires Python 3.13 and [uv](https://docs.astral.sh/uv/).
