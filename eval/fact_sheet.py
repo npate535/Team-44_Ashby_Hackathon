@@ -32,11 +32,20 @@ CLASS_NAMES = {"Normal": "Normal", "Benign": "Benign", "InSitu": "In situ carcin
 
 
 # ---- data units and splits ----------------------------------------------------------------------------------------
+def production_views(data_root: Path, art: Path, cfg: Mapping[str, Any]) -> dict[str, Any]:
+    """Views per region behind the production features, from the embedding meta (not the manifest setting)."""
+    prod = io.read_json(art / "eval" / "model_choice.json")["production"]
+    src = cfg["risk_model"]["embedding_candidates"][prod]
+    meta = io.read_json(data_root / "emb" / src["encoder"] / "meta.json")
+    return {"model": prod, "encoder": src["encoder"], "set": src["set"],
+            "views": int(meta["sets"][src["set"]]["n_views"]),
+            "manifest_views_setting": int(cfg["encoders"]["views"][cfg["tiles"]["contract_grid"]])}
+
+
 def bach_units(cases: pd.DataFrame, tiles: pd.DataFrame, cfg: Mapping[str, Any],
-               inventory: Mapping[str, Any]) -> dict[str, Any]:
+               inventory: Mapping[str, Any], views: int) -> dict[str, Any]:
     grid_name = cfg["tiles"]["contract_grid"]
     grid = cfg["tiles"]["grids"][grid_name]
-    views = int(cfg["encoders"]["views"][grid_name])
     per_image = tiles[tiles["grid"] == grid_name].groupby("case_id").size()
     n_regions = int(per_image.sum())
     qc = tiles[tiles["grid"] == grid_name]["qc_pass"].astype(bool)
@@ -377,13 +386,15 @@ def build_fact_sheet(data_root: Path, art: Path, cfg: Mapping[str, Any] | None =
     cases = pd.read_csv(schemas.cases_csv(data_root), dtype={"patient_id": str}).fillna({"patient_id": ""})
     tiles = pd.read_csv(data_root / "tiles.csv")
     inventory = io.read_json(data_root / "inventory.json")
+    pv = production_views(data_root, art, cfg)
     examples = {}
     for cid in EXAMPLE_CASES:
         path = art / "cases" / f"{cid}.json"
         if path.is_file():
             examples[cid] = case_example(io.read_json(path))
     return {
-        "bach": bach_units(cases, tiles, cfg, inventory),
+        "bach": bach_units(cases, tiles, cfg, inventory, pv["views"]),
+        "production_features": pv,
         "splits": split_table(cases, classes),
         "split_scheme": "THUNDER benchmark split (fixed source-index ranges), 218 / 50 / 132",
         "disjointness": disjointness(cases),
@@ -419,8 +430,11 @@ def render_md(sheet: Mapping[str, Any]) -> str:
               f"each {b['image_px'][0]} x {b['image_px'][1]} px at {b['mpp']} µm/px. These are single microscopy "
               f"fields, **not whole-slide images**.",
               f"- Each image is read as a {b['grid']} grid of {b['region_px']}-px regions: "
-              f"{b['regions_per_image']} regions per image, {b['n_regions']:,} regions in total. Each region is "
-              f"embedded under {b['views']} rotations/flips and averaged ({b['n_region_views']:,} region views).",
+              f"{b['regions_per_image']} regions per image, {b['n_regions']:,} regions in total. "
+              + (f"The production model reads each region once (no rotation/flip averaging); CONCH and MUSK "
+                 f"features average 8 rotations/flips per region." if b['views'] == 1 else
+                 f"Each region is embedded under {b['views']} rotations/flips and averaged "
+                 f"({b['n_region_views']:,} region views)."),
               f"- BACH also ships {b['wsi']['n_svs']} whole-slide images ({b['wsi']['n_annotated']} annotated); "
               f"Sepia uses them only for the simulated margin windows and concept checks."]
         if "patients" in b:

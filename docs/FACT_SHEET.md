@@ -5,7 +5,7 @@
 ## Data units
 
 - **400 BACH microscopy images** (100 Benign, 100 InSitu, 100 Invasive, 100 Normal), each 2048 x 1536 px at 0.42 µm/px. These are single microscopy fields, **not whole-slide images**.
-- Each image is read as a 3 x 4 grid of 512-px regions: 12 regions per image, 4,800 regions in total. Each region is embedded under 8 rotations/flips and averaged (38,400 region views).
+- Each image is read as a 3 x 4 grid of 512-px regions: 12 regions per image, 4,800 regions in total. The production model reads each region once (no rotation/flip averaging); CONCH and MUSK features average 8 rotations/flips per region.
 - BACH also ships 30 whole-slide images (10 annotated); Sepia uses them only for the simulated margin windows and concept checks.
 - Patient IDs are known for 145 images (29 patients); images without a patient ID are grouped in blocks of 5 consecutive file numbers. Intervals resample these groups.
 

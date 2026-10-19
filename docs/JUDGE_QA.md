@@ -8,7 +8,7 @@ Research prototype, not for clinical use. Each answer gives the number and the f
 They are 400 original BACH microscopy images (100 per class), each 2048 × 1536 px at 0.42 µm/px. They are not whole-slide images.
 
 - Each image is read as a 3 × 4 grid of 512-px regions: 12 per image, 4,800 regions in total.
-- Each region is embedded under 8 rotations or flips and averaged.
+- The production model embeds each region once with UNI2-h.
 
 Patient IDs come from the official BACH patient workbook, which covers 145 images from 29 patients. All 132 test images are among them (24 patients). Images without an ID are grouped in blocks of 5 consecutive file numbers, so that intervals and folds never split a block. BACH also has 30 whole-slide images; Sepia uses only the 10 annotated ones, and only for the simulated margin windows. Source: `docs/FACT_SHEET.md` §Data units.
 

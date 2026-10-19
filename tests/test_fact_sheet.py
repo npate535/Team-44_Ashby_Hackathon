@@ -80,13 +80,14 @@ def test_case_example_keeps_every_class_probability():
 
 def test_render_md_states_units_and_conventions():
     sheet = {"bach": {"n_images": 400, "per_class": {c: 100 for c in CLASSES}, "image_px": [2048, 1536],
-                      "mpp": 0.42, "regions_per_image": 12, "grid": "3 x 4", "region_px": 512, "views": 8,
-                      "n_regions": 4800, "n_region_views": 38400, "wsi": {"n_svs": 30, "n_annotated": 10}},
+                      "mpp": 0.42, "regions_per_image": 12, "grid": "3 x 4", "region_px": 512, "views": 1,
+                      "n_regions": 4800, "n_region_views": 4800, "wsi": {"n_svs": 30, "n_annotated": 10}},
              "auroc_conventions": {"invasive_vs_rest": {"value": 0.999, "definition": "binary"}}}
     md = fs.render_md(sheet)
     assert "not whole-slide images" in md
     assert "4,800" in md
     assert "invasive_vs_rest" not in md  # rendered with readable names
+    assert "reads each region once" in md
 
 
 DATA = Path(os.environ.get("PATHQUEUE_DATA_ROOT", "/nonexistent"))
@@ -103,3 +104,4 @@ def test_real_data_fact_sheet():
     conf = np.array(sheet["test"]["confusion"]["counts"])
     assert conf.sum() == 132 and conf[3, 3] == 31
     assert sheet["bach"]["n_regions"] == 4800
+    assert sheet["production_features"]["views"] == 1  # uni2h bach512 was embedded at view 0 only

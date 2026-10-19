@@ -4,7 +4,7 @@ Research prototype, not for clinical use. This file explains how Sepia would mov
 
 ## Today
 
-- **Read unit.** One 2048 × 1536 microscopy field at 0.42 µm/px, read as 12 regions of 512 px. Each region is embedded under 8 rotations or flips. The case read pools the regions that pass the tissue check.
+- **Read unit.** One 2048 × 1536 microscopy field at 0.42 µm/px, read as 12 regions of 512 px. Each region is embedded once with UNI2-h. The case read pools the regions that pass the tissue check.
 - **Whole slides in use now.**
   - **BACH:** 84 annotated windows from 10 BACH whole slides test the simulated margin read (`artifacts/eval/margin.json`).
   - **TCGA:** each slide is sampled as 6 random tissue-rich fields at BACH resolution. The slide score is the maximum calibrated P(invasive) over its fields (`docs/EXTERNAL_TCGA_R2.md`).
@@ -14,7 +14,7 @@ Research prototype, not for clinical use. This file explains how Sepia would mov
 
 1. **Tissue detection** on a low-resolution thumbnail, using the same saturation rule as the field-level tissue check.
 2. **Tiling.** Tile all tissue at 0.42 µm/px into 512-px regions on a fixed grid, keeping slide coordinates. A 15 × 15 mm tissue area holds about 4,900 such regions (arithmetic below).
-3. **Embedding.** UNI2-h once per region. The 8-view averaging could be kept for the top-ranked regions only, to bound cost.
+3. **Embedding.** UNI2-h once per region, as today.
 4. **Aggregation.** Region → slide → specimen:
    - **Region to slide:** the mean-pool linear read applied to sliding fields of 12 regions (the unit it was trained on), followed by the maximum over fields. This is the rule the TCGA test already uses with 6 fields. Attention pooling is an alternative.
    - **Slide to specimen:** the maximum over the specimen's slides.
