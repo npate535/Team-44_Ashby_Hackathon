@@ -1,0 +1,113 @@
+{
+  "name": "attention_comparison",
+  "created_utc": "2026-10-19T00:24:35Z",
+  "config_hash": "54f522670b9e3597a011a17410ba7d9d0cbfe705b7bfd2a92c565473ad712ebd",
+  "git_sha": "fd95bd7ddad5f39dac5cccb4a0d45324cb2e3dc0",
+  "synthetic": false,
+  "git_dirty": true,
+  "attention_model": "abmil",
+  "production": "uni2h512_lr",
+  "attention_features": {
+    "built_on": "uni2h512_lr",
+    "encoder": "uni2h",
+    "set": "bach512",
+    "head": "probe"
+  },
+  "attention_params": {
+    "hidden": 128,
+    "attn_dim": 64,
+    "dropout": 0.25,
+    "epochs": 40,
+    "lr": 0.0005,
+    "weight_decay": 0.0001,
+    "seed": 44
+  },
+  "held_fixed": [
+    "training images (218) and labels",
+    "patient-grouped CV folds (5 x 3 repeats, seed 44)",
+    "fold loss: held-out log-loss after temperature fit on the other folds",
+    "test split (132 images), scored once",
+    "tile embeddings (uni2h512_lr)"
+  ],
+  "differs": [
+    "pooling: learned gated attention over tiles vs the mean of tiles",
+    "capacity: a small neural network trained by gradient descent vs L2 logistic regression"
+  ],
+  "cv": {
+    "abmil": {
+      "cv_log_loss": 0.1825160478021046,
+      "cv_log_loss_se": 0.05127046725735437,
+      "config": {
+        "encoder": "uni2h"
+      },
+      "complexity_rank": 8,
+      "n_fold_scores": 15,
+      "log_loss": 0.18124034831903488,
+      "auroc_invasive": 1.0,
+      "balanced_accuracy": 0.9460759950724269,
+      "macro_f1": 0.9455753554518402,
+      "macro_auroc": 0.9924279407868247
+    },
+    "uni2h512_lr": {
+      "cv_log_loss": 0.1784032343011987,
+      "cv_log_loss_se": 0.058972126587419446,
+      "config": {
+        "C": 0.001
+      },
+      "complexity_rank": 5,
+      "n_fold_scores": 15,
+      "log_loss": 0.35945509743539983,
+      "auroc_invasive": 1.0,
+      "balanced_accuracy": 0.953281508856888,
+      "macro_f1": 0.9552439703954856,
+      "macro_auroc": 0.9930232831164818
+    }
+  },
+  "test_paired": {
+    "macro_f1": {
+      "estimate": -0.023397252476948904,
+      "lo": -0.0729763794740626,
+      "hi": 0.04445078375893827,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 132,
+      "n_groups": 24,
+      "a": 0.8367574076777112,
+      "b": 0.8601546601546601
+    },
+    "balanced_accuracy": {
+      "estimate": -0.022916666666666696,
+      "lo": -0.06780303182917008,
+      "hi": 0.04493466791360816,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 132,
+      "n_groups": 24,
+      "a": 0.8475996376811594,
+      "b": 0.8705163043478261
+    },
+    "invasive_vs_rest_auroc": {
+      "estimate": 0.0003193867773874093,
+      "lo": 0.0,
+      "hi": 0.0012712403959597826,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 132,
+      "n_groups": 24,
+      "a": 0.9993612264452252,
+      "b": 0.9990418396678378
+    },
+    "disagreements": 10
+  },
+  "selection_rule": "one_se: simplest (settings risk_model.complexity, then smaller C) within 1 SE of the best",
+  "attention_eligible": true,
+  "n_test": 132,
+  "n_groups": 24,
+  "interpretation": "The complexity explanation (more parameters than 218 training images can support) is a hypothesis; this comparison does not test it."
+}
