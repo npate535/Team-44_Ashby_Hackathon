@@ -1,7 +1,7 @@
-"""External test, round 2: the production model on TCGA-BRCA crops (pre-registration: docs/EXTERNAL_TCGA_R2.md).
+"""External test of the production model on TCGA-BRCA crops (pre-registration: docs/EXTERNAL_TCGA_R2.md).
 
     python -m eval.external_tcga_prod --stage parity    # BACH parity gate -> <data>/tcga_brca_prod/parity.json
-    python -m eval.external_tcga_prod --stage score     # both cohorts -> <artifacts>/eval/external_tcga_prod.json
+    python -m eval.external_tcga_prod --stage score     # both cohorts -> <artifacts>/eval/external_tcga.json (served)
 
 The recipe is the production model's BACH calibration/test read, checked at run time against the stored artifacts:
 
@@ -15,9 +15,12 @@ The recipe is the production model's BACH calibration/test read, checked at run 
     crop matrix sorted by crop_id, then nonempty (exactly how 05_risk_model builds BACH test sets);
   * tier: core.tiers.assign_tier, biopsy lane, reliability_flag false (CONCH and MUSK are not on this laptop).
 
-Slide-level analyses, bootstrap intervals and the slide table come from eval/external_tcga.py (round 1), imported.
-Cohorts: `same8` = the round-1 crops (data/tcga_brca_test); `protocol25` = data/tcga_brca_prod/protocol25 (25
-patients, TCGA_script.py --source tiles). Region embeddings are cached under data/tcga_brca_prod/embeddings/.
+Slide-level analyses, bootstrap intervals and the slide table are imported from eval/external_tcga.py.
+The served file keeps the top-level layout the app reads (model, primary, slides, crops, n_*, limitations, data) for
+the `protocol25` cohort (data/tcga_brca_prod/protocol25: 25 patients, TCGA_script.py --source tiles) and adds the
+`same8` cohort (the 132 openslide crops of the first 8 patients, data/tcga_brca_test) under `cohorts`, plus parity,
+tile equivalence, BACH reference, latency and the pre-registered sensitivity analyses. Only the production model is
+reported. Region embeddings are cached under data/tcga_brca_prod/embeddings/.
 """
 
 from __future__ import annotations
@@ -50,7 +53,7 @@ from pipeline import encoders as E
 from pipeline import riskmodels as rm
 
 STEP = "eval_external_tcga_prod"
-NAME = "external_tcga_prod"
+NAME = "external_tcga"
 PROTOCOL = "docs/EXTERNAL_TCGA_R2.md"
 PROD_DIR = "tcga_brca_prod"
 SAME8_DIR = "tcga_brca_test"
@@ -229,7 +232,8 @@ def tier_of(probs: np.ndarray, members: list[str], classes: Sequence[str], qc_ke
 
 
 def slide_table(crops: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    """Slide rows (round-1 helper): invasive score = max crop P(Invasive); called = any crop with top Invasive."""
+    """Slide rows (eval/external_tcga.slide_rows): invasive score = max crop P(Invasive); called = any crop with top
+    class Invasive."""
     return X.slide_rows(crops)
 
 
@@ -353,7 +357,7 @@ def rate_block(slides: Sequence[Mapping[str, Any]], key: str, boot: Mapping[str,
 
 def analyze_cohort(crops: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any], bach_flag: float | None
                    ) -> dict[str, Any]:
-    """Primary 1-3, secondary 6-7 (round-1 analyze), secondary 4-5 as not computable, S1 and S3."""
+    """Primary 1-3, secondary 6-7 (eval/external_tcga.analyze), secondary 4-5 as not computable, S1 and S3."""
     boot = cfg["bootstrap"]
     slides = slide_table(crops)
     primary = X.analyze(slides, crops, boot, bach_flag)
@@ -373,7 +377,7 @@ def analyze_cohort(crops: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any], b
         "secondary_5_ood_percentile": {"computable": False, "reason": "needs CONCH embeddings (not on this laptop)"},
         "sensitivity_s1_six_crop_slides": {"n_slides": len(six), **s1},
         "sensitivity_s3_deterministic_sets": {
-            "rule": "APS sets with U = 1 (round-1 rule), nonempty; tier 1-2 share of tumor slides",
+            "rule": "deterministic APS sets (U = 1), nonempty; tier 1-2 share of tumor slides",
             "tumor_tier_1_2_rate": rate_block(tumor_det, "any_tier_1_2", boot)},
         "slides": slides,
     }
@@ -416,49 +420,7 @@ def tta8_block(crops: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any], n_vie
                                           "any_tier_1_2")} for s in slides]}
 
 
-# ---- comparisons -------------------------------------------------------------------------------------------------------
-H2H_METRICS = (("ffpe_tumor_sensitivity",), ("frozen_tumor_sensitivity",), ("frozen_tumor_vs_normal", "auroc"),
-               ("frozen_tumor_vs_normal", "sensitivity"), ("frozen_tumor_vs_normal", "specificity"),
-               ("tumor_tier_1_2_rate",))
-
-
-def _dig(d: Mapping[str, Any] | None, path: Sequence[str]) -> Any:
-    for k in path:
-        d = (d or {}).get(k)
-    return d
-
-
-def head_to_head(same8: Mapping[str, Any], round1: Mapping[str, Any] | None) -> dict[str, Any] | None:
-    if not round1:
-        return None
-    ci_keys = ("estimate", "lo", "hi", "n", "n_groups")
-    metrics = {".".join(p): {"round1_" + str(round1.get("model")): {k: (_dig(round1["primary"], p) or {}).get(k)
-                                                                    for k in ci_keys},
-                             "production": {k: (_dig(same8["primary"], p) or {}).get(k) for k in ci_keys}}
-               for p in H2H_METRICS}
-    prod_slides = {(s["patient_id"], s["group"]): s for s in same8["slides"]}
-    r1_slides = {(s["patient_id"], s["group"]): s for s in round1.get("slides", [])}
-    both = sorted(set(prod_slides) & set(r1_slides))
-    agree = Counter((r1_slides[k]["called_invasive"], prod_slides[k]["called_invasive"]) for k in both)
-    discordant = [{"patient_id": k[0], "group": k[1], "round1_called": r1_slides[k]["called_invasive"],
-                   "production_called": prod_slides[k]["called_invasive"],
-                   "round1_score": r1_slides[k]["slide_invasive_score"],
-                   "production_score": prod_slides[k]["slide_invasive_score"]}
-                  for k in both if r1_slides[k]["called_invasive"] != prod_slides[k]["called_invasive"]]
-    return {
-        "round1_model": round1.get("model"), "round1_file": "eval/external_tcga.json",
-        "round1_n_views": 1, "round1_sets": "deterministic APS (U = 1) with a randomized-fit q-hat",
-        "metrics": metrics,
-        "tier_like_for_like": {"round1": _dig(round1["primary"], ("tumor_tier_1_2_rate",)),
-                               "production_deterministic_sets": same8["sensitivity_s3_deterministic_sets"][
-                                   "tumor_tier_1_2_rate"]},
-        "slide_called_invasive_agreement": {"n_slides": len(both),
-                                            "both_called": agree[(True, True)], "neither": agree[(False, False)],
-                                            "round1_only": agree[(True, False)], "production_only": agree[(False, True)]},
-        "discordant_slides": discordant,
-    }
-
-
+# ---- BACH reference ------------------------------------------------------------------------------------------------------
 def bach_reference(data_root: Path, art_root: Path, cfg: Mapping[str, Any]) -> dict[str, Any]:
     """BACH test (single images): the slide-comparable statistics, from eval files where they exist."""
     boot = cfg["bootstrap"]
@@ -692,8 +654,9 @@ LIMITATIONS = [
     "The reliability flag and the OOD percentile are not computed (CONCH and MUSK are not on this laptop); "
     "reliability_flag is forced false, which can only lower tiers relative to the app.",
     "The sample is small (at most 25 patients); bootstrap intervals over patients are wide.",
-    "protocol25 crops come from the GDC DeepZoom tile API rather than local openslide decoding; the tile equivalence "
-    "block quantifies the difference on the round-1 crops.",
+    "protocol25 crops come from the GDC DeepZoom tile API rather than local openslide decoding; re-extracting 23 "
+    "openslide crops through the API reproduced them pixel for pixel, but the API's thumbnails can shift which "
+    "tissue-rich fields are sampled (tile_equivalence).",
     "BACH reference values are per image; TCGA values are per slide (maximum over up to 6 fields), so the "
     "BACH-vs-TCGA comparison is indicative, not a matched test.",
     "Latency is measured on one laptop (Apple MPS) for single 2048 x 1536 fields, not whole slides.",
@@ -720,9 +683,9 @@ def tile_equivalence_block(data_root: Path) -> dict[str, Any] | None:
     slides = [{k: s.get(k) for k in ("file_name", "group", "picks_identical", "n_candidates", "n_picks", "n_ref_crops",
                                      "thumb_slide_level", "thumb_dz_downsample", "mpp_matches_manifest")}
               for s in eq.get("slides", [])]
-    decision = ("reuse round-1 crops for the 8 patients" if eq.get("reuse_allowed") else
-                "re-extract all 25 patients through tiles (pre-registered branch: FOV picks not identical on every "
-                "round-1 slide)")
+    decision = ("reuse the earlier openslide crops for the first 8 patients" if eq.get("reuse_allowed") else
+                "extract all 25 patients through tiles (pre-registered branch: FOV picks were not identical on every "
+                "earlier openslide slide)")
     return {**{k: eq.get(k) for k in keep}, "decision": decision, "source_file": str(path.relative_to(data_root)),
             "crops": eq.get("crops"), "slides": slides, **extra}
 
@@ -764,11 +727,13 @@ def run_score(ctx: cli.StepContext, device: str, skip_tta8: bool) -> Path:
             feats8 = featurize(rows, root, enc, prod, cfg, cache8, tta_views, timed=False)
             payload["sensitivity_s2_tta8"] = tta8_block(score_crops(rows, feats8, prod, cfg), cfg, tta_views, bach_flag)
         cohorts[name] = payload
-    r1_path = schemas.eval_json(art, "external_tcga")
-    cohorts["same8"]["head_to_head"] = head_to_head(cohorts["same8"], io.read_json(r1_path) if r1_path.is_file()
-                                                    else None)
+    p25 = cohorts["protocol25"]
+    top_keys = [k for k in p25 if k not in ("name", "root", "run_info", "slides", "crops")]
     out = {
-        "protocol": PROTOCOL, "model": prod.name, "n_views": v["n_views"], "views": v["views"],
+        "protocol": PROTOCOL, "model": prod.name, "encoder": v["encoder"], "head": v["head"], "device": device,
+        "quantized": False, "temperature": prod.temperature, "qhat_aps": prod.qhat, "n_views": v["n_views"],
+        "views": v["views"], "cohort": "protocol25",
+        **{k: p25[k] for k in top_keys},
         "recipe": {
             "encoder": v["encoder"], "encoder_revision": enc.info.get("revision"), "set": v["set"], "head": v["head"],
             "grid": v["grid"], "views_source": f"data/emb/{v['encoder']}/meta.json sets.{v['set']}.n_views and the "
@@ -788,18 +753,22 @@ def run_score(ctx: cli.StepContext, device: str, skip_tta8: bool) -> Path:
         },
         "parity": parity,
         "tile_equivalence": tile_equivalence_block(data_root),
-        "cohorts": cohorts,
+        "cohorts": {"same8": cohorts["same8"]},
         "bach_reference": bach_reference(data_root, art, cfg),
         "latency_s_per_image": latency_summary(cache, p25_keys, hardware),
         "tcga_labels_note": "TCGA-BRCA provides no benign or in situ labels; only Invasive (primary tumor) and Normal "
                             "(solid tissue normal) slide labels are tested.",
         "limitations": LIMITATIONS,
+        "slides": p25["slides"],
+        "crops": p25["crops"],
+        "data": {"tcga_root": p25["root"], "run_info": p25["run_info"], "embedding_cache": str(cache.path),
+                 "same8_root": cohorts["same8"]["root"]},
     }
     return emetrics.write_eval(art, NAME, out, cfg, synthetic=False)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = cli.step_parser("eval.external_tcga_prod", "TCGA-BRCA external test of the production model (round 2).")
+    parser = cli.step_parser("eval.external_tcga_prod", "TCGA-BRCA external test of the production model.")
     parser.add_argument("--stage", choices=("parity", "score"), required=True)
     parser.add_argument("--device", default=None, help="mps | cuda | cpu (default: best available)")
     parser.add_argument("--skip-tta8", action="store_true", help="skip sensitivity analysis S2 (8-view read)")

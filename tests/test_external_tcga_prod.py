@@ -8,6 +8,7 @@ production embeddings, the same APS q-hat and set construction as the app, and s
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import json
 import math
 import os
@@ -249,9 +250,7 @@ def ci(est: float, lo: float, hi: float, n: int) -> dict:
     return {"estimate": est, "lo": lo, "hi": hi, "n": n, "n_groups": n}
 
 
-def test_results_md_tcga_section_quotes_the_json():
-    from eval import results_md as R
-
+def served_doc() -> dict:
     primary = {"ffpe_tumor_sensitivity": ci(0.875, 0.625, 1.0, 8), "frozen_tumor_sensitivity": ci(0.75, 0.5, 1.0, 8),
                "ffpe_vs_frozen_tumor_sensitivity_gap": {"estimate": 0.125},
                "frozen_tumor_vs_normal": {"auroc": ci(0.93, 0.8, 1.0, 15), "sensitivity": ci(0.75, 0.5, 1.0, 8),
@@ -259,29 +258,114 @@ def test_results_md_tcga_section_quotes_the_json():
                "tumor_tier_1_2_rate": ci(0.9375, 0.8125, 1.0, 16)}
     cohort = {"primary": primary, "n_patients": 8, "n_slides": 23, "n_crops": 132, "slides_without_crops": [],
               "slides_short_crops": [{"patient_id": "P", "group": "frozen_normal", "n_crops": 5}], "failed_crops": [],
-              "sensitivity_s1_six_crop_slides": primary, "sensitivity_s2_tta8": {"primary": primary},
+              "sensitivity_s1_six_crop_slides": {**primary, "n_slides": 20},
+              "sensitivity_s2_tta8": {"primary": primary},
               "sensitivity_s3_deterministic_sets": {"tumor_tier_1_2_rate": ci(0.9, 0.8, 1.0, 16)}}
-    doc = {"protocol": "docs/EXTERNAL_TCGA_R2.md", "model": "uni2h512_lr", "n_views": 1,
-           "recipe": {"temperature": 0.3415, "qhat_aps": 0.9308, "alpha": 0.1},
-           "cohorts": {"same8": {**cohort, "head_to_head": {
-               "round1_model": "uni2h_ft", "round1_file": "eval/external_tcga.json", "round1_sets": "deterministic APS",
-               "metrics": {".".join(p): {"round1_uni2h_ft": ci(0.5, 0.25, 0.75, 8), "production": ci(0.875, 0.6, 1, 8)}
-                           for _, p in R.TCGA_ROWS},
-               "tier_like_for_like": {"round1": ci(0.9, 0.8, 1, 16), "production_deterministic_sets": ci(1, 1, 1, 16)},
-               "slide_called_invasive_agreement": {"n_slides": 23, "both_called": 13, "neither": 7, "round1_only": 1,
-                                                   "production_only": 2},
-               "discordant_slides": []}},
-                       "protocol25": cohort},
-           "bach_reference": {"n_images": 132, "unit": "single image", "invasive_sensitivity": ci(1.0, 1.0, 1.0, 132),
-                              "normal_specificity": ci(0.97, 0.9, 1.0, 33), "invasive_vs_normal_auroc": ci(1, 1, 1, 64),
-                              "invasive_tier_1_2_rate": ci(1.0, 1.0, 1.0, 31),
-                              "reliability_flag_rate_clean": {"estimate": 0.1667}},
-           "limitations": ["Slide-level labels."]}
-    text = "\n".join(R.section_external_tcga_prod(doc))
+    return {"protocol": "docs/EXTERNAL_TCGA_R2.md", "model": "uni2h512_lr", "n_views": 1,
+            "recipe": {"temperature": 0.3415, "qhat_aps": 0.9308, "alpha": 0.1},
+            **cohort, "n_patients": 25, "n_slides": 72, "n_crops": 410,
+            "cohorts": {"same8": cohort},
+            "bach_reference": {"n_images": 132, "unit": "single image", "invasive_sensitivity": ci(1.0, 1.0, 1.0, 132),
+                               "normal_specificity": ci(0.97, 0.9, 1.0, 33), "invasive_vs_normal_auroc": ci(1, 1, 1, 64),
+                               "invasive_tier_1_2_rate": ci(1.0, 1.0, 1.0, 31),
+                               "reliability_flag_rate_clean": {"estimate": 0.1667}},
+            "limitations": ["Slide-level labels."]}
+
+
+def test_results_md_tcga_section_quotes_the_json():
+    from eval import results_md as R
+
+    text = "\n".join(R.section_external_tcga(served_doc()))
     assert "## TCGA-BRCA external test (production model)" in text
     assert "no benign or in situ labels" in text
     assert "| FFPE tumor slides called invasive (sensitivity) | 87.5% [62.5%, 100.0%] (n 8, 8 groups) |" in text
     assert "0.930 [0.800, 1.000] (n 15, 15 groups)" in text           # AUROC on the probability scale
-    assert "### BACH test vs TCGA (protocol25)" in text and "### Same crops: fine-tune (round 1) vs production" in text
-    assert "| 50.0% [25.0%, 75.0%] (n 8, 8 groups) | 87.5% [60.0%, 100.0%] (n 8, 8 groups) |" in text
+    assert "| Patients / slides / crops | 25 / 72 / 410 | 8 / 23 / 132 |" in text
+    assert "### BACH test vs TCGA (25 patients)" in text and "slides with exactly 6 crops" in text
     assert "P frozen_normal (5)" in text and "12.5 points" in text and "- Slide-level labels." in text
+    for absent in ("uni2h_ft", "fine-tune", "round 1", "8-view", "deterministic"):   # production only; S2/S3 JSON only
+        assert absent not in text
+
+
+# ---- only the production model is served ---------------------------------------------------------------------------------
+def artifact_roots() -> list[Path]:
+    roots = [config.REPO_ROOT / "artifacts"]
+    env = os.environ.get(config.ENV_ARTIFACTS_ROOT)
+    if env and config.resolve_repo_path(env).resolve() != roots[0].resolve():
+        roots.append(config.resolve_repo_path(env))
+    return roots
+
+
+def test_served_external_tcga_is_the_production_model():
+    art = config.REPO_ROOT / "artifacts"
+    production = json.loads((art / "eval" / "model_choice.json").read_text())["production"]
+    served = json.loads((art / "eval" / "external_tcga.json").read_text())
+    assert served["name"] == "external_tcga" and served["model"] == production
+    assert served["synthetic"] is False and served["primary"] and served["crops"]
+    assert {c["crop_id"] for c in served["crops"]} and all("uni2h_ft" not in json.dumps(c) for c in served["crops"])
+    assert "uni2h_ft" not in json.dumps({k: v for k, v in served.items() if k != "tile_equivalence"})
+    for path in (art / "eval").glob("*.json"):                     # nothing served under eval/ reports another model
+        doc = json.loads(path.read_text())
+        if isinstance(doc, dict) and path.stem.startswith("external_tcga"):
+            assert doc.get("model") == production, path.name
+
+
+def test_tcga_specimens_carry_the_production_model():
+    checked = 0
+    for art in artifact_roots():
+        cases = sorted((art / "tcga" / "cases").glob("*.json"))
+        if not cases:
+            continue
+        production = json.loads((art / "eval" / "model_choice.json").read_text())["production"]
+        index = json.loads((art / "tcga" / "index.json").read_text())
+        assert index["model"] == production and all(i["model"] == production for i in index["items"])
+        assert {p.stem for p in cases} == {i["case_id"] for i in index["items"]}
+        for path in cases:
+            assert json.loads(path.read_text())["prediction"]["model"] == production, path.name
+            checked += 1
+    if not checked:
+        pytest.skip("no artifacts/tcga/cases built on this checkout")
+
+
+def test_round1_script_writes_only_the_archive(tmp_path):
+    from eval import external_tcga as R1
+
+    out = R1.write_archive(tmp_path, {"model": "uni2h_ft", "primary": {}}, CFG)
+    assert out == tmp_path / "archive" / "eval" / "external_tcga_round1.json"
+    assert not (tmp_path / "eval").exists()
+    assert json.loads(out.read_text())["name"] == "external_tcga_round1"
+
+
+def test_build_tcga_cases_uses_production_and_drops_stale(tmp_path):
+    build = _load_script("build_tcga_cases")
+    art, crops_root = tmp_path / "art", tmp_path / "crops"
+    (art / "eval").mkdir(parents=True)
+    (art / "eval" / "model_choice.json").write_text(json.dumps({"production": "uni2h512_lr"}))
+    (crops_root / "frozen_tumor").mkdir(parents=True)
+    Image.new("RGB", (64, 48), (200, 120, 160)).save(crops_root / "frozen_tumor" / "P1_frozen_tumor_00.png")
+    crop = {"crop_id": "P1_frozen_tumor_00", "path": "frozen_tumor/P1_frozen_tumor_00.png", "prep": "frozen",
+            "patient_id": "P1", "probs": {"Normal": 0.1, "Benign": 0.1, "InSitu": 0.2, "Invasive": 0.6},
+            "p_invasive": 0.6, "top": "Invasive", "conformal_set": ["InSitu", "Invasive"], "tier": 2,
+            "tier_reasons": ["aggressive_top"], "qc_tiles_kept": 12, "slide_file_name": "x.svs"}
+    doc = {"model": "uni2h512_lr", "crops": [crop], "data": {"tcga_root": str(crops_root)}, "n_patients": 1}
+    (art / "eval" / "external_tcga.json").write_text(json.dumps(doc))
+    stale = art / "tcga" / "cases" / "OLD_frozen_tumor_00.json"
+    stale.parent.mkdir(parents=True)
+    stale.write_text("{}")
+    args = ["--eval", str(art / "eval" / "external_tcga.json"), "--model-choice", str(art / "eval" / "model_choice.json"),
+            "--out", str(art / "tcga")]
+    assert build.main(args) == 0
+    assert not stale.exists()
+    case = json.loads((art / "tcga" / "cases" / "P1_frozen_tumor_00.json").read_text())
+    assert case["prediction"]["model"] == "uni2h512_lr" and case["flag"]["tier"] == 2
+    assert json.loads((art / "tcga" / "index.json").read_text())["model"] == "uni2h512_lr"
+    doc["model"] = "uni2h_ft"                                       # another model is refused
+    (art / "eval" / "external_tcga.json").write_text(json.dumps(doc))
+    assert build.main(args) == 1
+
+
+def _load_script(name: str):
+    spec = importlib.util.spec_from_file_location(name, config.REPO_ROOT / "scripts" / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
