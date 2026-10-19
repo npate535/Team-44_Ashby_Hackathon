@@ -284,7 +284,10 @@ def test_results_md_tcga_section_quotes_the_json():
     assert "| Patients / slides / crops | 25 / 72 / 410 | 8 / 23 / 132 |" in text
     assert "### BACH test vs TCGA (25 patients)" in text and "slides with exactly 6 crops" in text
     assert "P frozen_normal (5)" in text and "12.5 points" in text and "- Slide-level labels." in text
-    assert "| Invasive / tumor called invasive | 100.0% [100.0%, 100.0%] (n 31, 31 groups) |" in text
+    # collapsed bootstraps become exact counts / words; the BACH block with n = all images is never counted
+    assert "| Invasive / tumor called invasive | 31 of 31 (exact 95% CI 88.8–100%) |" in text
+    assert "1.000: all 31 invasive images ranked above all 33 normal images (no interval)" in text
+    assert "100.0%, 100.0%]" not in text and "1.000 [1.000, 1.000]" not in text
     for absent in ("uni2h_ft", "fine-tune", "round 1", "8-view", "deterministic"):   # production only; S2/S3 JSON only
         assert absent not in text
 

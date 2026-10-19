@@ -10,6 +10,12 @@ Eval files owned by Agents 1-3 (concepts, concepts_bach, zeroshot, model_choice,
 finetune) are rendered generically: every {estimate, lo, hi} block they contain, labelled by its key path. The
 deletion test has its own table (four removal arms in probability and logit units), with the exact-contribution
 identity check from tile_contrib.json beside it.
+
+A percentile bootstrap collapses to a single point when every case is right or none is ("100.0% [100.0%, 100.0%]"),
+which reads as zero uncertainty. Such rates are printed as a count with the exact Clopper–Pearson interval
+(core.stats.exact_boundary_ci) using the rate's true denominator: for eval/metrics.json that comes from the confusion
+matrix (metrics.json stores n = all test images on every block); elsewhere the block's n is the denominator. A
+collapsed AUROC of exactly 1 is described in words ("all ... ranked above all ..."), without an interval.
 """
 
 from __future__ import annotations
@@ -19,7 +25,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from core import cli, config, io, schemas
+from core import cli, config, io, schemas, stats
 from eval.figures import ci_blocks
 
 STEP = "eval_results_md"
@@ -55,6 +61,71 @@ def fmt(block: Mapping[str, Any] | None, *, pct: bool = False, digits: int | Non
     return text + (f" ({', '.join(extra)})" if extra else "")
 
 
+def collapsed(block: Mapping[str, Any] | None) -> bool:
+    """True when a bootstrap block sits on 0 or 1 with a zero-width interval (every replicate gave the same value)."""
+    if not isinstance(block, Mapping):
+        return False
+    e = block.get("estimate")
+    return isinstance(e, (int, float)) and e in (0, 1) and block.get("lo") == e and block.get("hi") == e
+
+
+def _pc_short(x: float) -> str:
+    """Percent with one decimal, dropping a trailing .0 (100, 88.8, 5.1, 0)."""
+    text = _num(100 * x, 1)
+    return text[:-2] if text.endswith(".0") else text
+
+
+def exact_count(k: int, n: int, *, unit: str = "", note: str = "", level: float = 0.95) -> str:
+    """'31 of 31 (exact 95% CI 88.8–100%)'; unit goes after n, note inside the parentheses."""
+    lo, hi = stats.exact_boundary_ci(int(k), int(n), level)
+    return (f"{k} of {n}{' ' + unit if unit else ''} (exact {round(100 * level)}% CI {_pc_short(lo)}–"
+            f"{_pc_short(hi)}%{note})")
+
+
+def rate(block: Mapping[str, Any] | None, *, unit: str = "", note: str = "") -> str:
+    """fmt(block, pct=True), or the count with its exact interval when the bootstrap collapsed at 0% or 100%.
+    The block's n must be the rate's denominator."""
+    if collapsed(block) and block.get("n"):
+        n = int(block["n"])
+        return exact_count(int(round(block["estimate"] * n)), n, unit=unit, note=note)
+    return fmt(block, pct=True)
+
+
+def count_rate(block: Mapping[str, Any] | None, k: int | None, n: int | None, *, unit: str = "") -> str:
+    """A rate whose true denominator is n (not the block's n): '0.864 [0.760, 0.944] (114 of 132; 24 groups)', or
+    the exact count when the bootstrap collapsed."""
+    if not block or block.get("estimate") is None or k is None or not n:
+        return fmt(block, digits=3)
+    if collapsed(block):
+        return exact_count(k, n, unit=unit)
+    text = fmt({key: block.get(key) for key in ("estimate", "lo", "hi")}, digits=3)
+    groups = f"; {block['n_groups']} groups" if block.get("n_groups") is not None else ""
+    return f"{text} ({k} of {n}{' ' + unit if unit else ''}{groups})"
+
+
+def auroc_text(block: Mapping[str, Any] | None, positives: str, negatives: str) -> str:
+    """fmt(block), or words when an AUROC of exactly 1 (or 0) has a collapsed interval."""
+    if collapsed(block):
+        first, second = (positives, negatives) if block["estimate"] == 1 else (negatives, positives)
+        return f"{_num(float(block['estimate']), 3)}: all {first} ranked above all {second} (no interval)"
+    return fmt(block)
+
+
+def _confusion_counts(p: Mapping[str, Any], target: str) -> dict[str, int] | None:
+    """Accuracy, sensitivity and specificity counts for the target class from production.confusion."""
+    conf = p.get("confusion") or {}
+    classes, matrix = conf.get("classes"), conf.get("matrix")
+    if not classes or not matrix or target not in classes:
+        return None
+    i = list(classes).index(target)
+    total = sum(sum(row) for row in matrix)
+    n_pos = sum(matrix[i])
+    called = sum(row[i] for row in matrix)
+    tp = matrix[i][i]
+    return {"total": total, "correct": sum(matrix[j][j] for j in range(len(classes))), "n_pos": n_pos, "tp": tp,
+            "n_neg": total - n_pos, "tn": total - n_pos - (called - tp)}
+
+
 def sim_fmt(block: Mapping[str, Any] | None) -> str:
     if not block or block.get("mean") is None:
         return "n/a"
@@ -67,14 +138,27 @@ def section_metrics(m: Mapping[str, Any]) -> list[str]:
            f"Source: `eval/metrics.json` · test n = {m['n']}, {m['n_groups']} patient / pseudo-patient groups · "
            f"{m['variants_excluded']} simulated variants excluded · production model `{m['models']['production']}`.", "",
            "| Metric | Estimate [95% CI] |", "|---|---|"]
+    target = str(m.get("aggressive_class") or "Invasive")
+    cc = _confusion_counts(p, target)
+    pos = f"{cc['n_pos']} {target.lower()} images" if cc else f"{target.lower()} images"
+    neg = f"{cc['n_neg']} others" if cc else "others"
+    cells = {
+        "invasive_vs_rest_auroc": auroc_text(p.get("invasive_vs_rest_auroc"), pos, neg),
+        "accuracy": count_rate(p.get("accuracy"), cc and cc["correct"], cc and cc["total"]),
+        "invasive_sensitivity": count_rate(p.get("invasive_sensitivity"), cc and cc["tp"], cc and cc["n_pos"],
+                                           unit=f"{target.lower()} test images"),
+        "invasive_specificity": count_rate(p.get("invasive_specificity"), cc and cc["tn"], cc and cc["n_neg"],
+                                           unit=f"non-{target.lower()} test images"),
+    }
     for key, label in (("invasive_vs_rest_auroc", "Invasive vs rest AUROC"), ("macro_auroc", "Macro AUROC"),
                        ("macro_f1", "Macro-F1"), ("balanced_accuracy", "Balanced accuracy"), ("accuracy", "Accuracy"),
                        ("invasive_sensitivity", "Invasive sensitivity"), ("invasive_specificity", "Invasive specificity")):
-        out.append(f"| {label} | {fmt(p.get(key))} |")
+        out.append(f"| {label} | {cells.get(key) or fmt(p.get(key), digits=3)} |")
     ab = m.get("a_vs_b")
     if ab:
-        out += ["", f"Model A `{ab['a']}` vs Model B `{ab['b']}` ({ab['metric']}): A {fmt(ab['auroc_a'])}; "
-                    f"B {fmt(ab['auroc_b'])}; paired difference A − B {fmt(ab['difference_a_minus_b'])}."]
+        out += ["", f"Model A `{ab['a']}` vs Model B `{ab['b']}` ({ab['metric']}): A {auroc_text(ab['auroc_a'], pos, neg)}; "
+                    f"B {auroc_text(ab['auroc_b'], pos, neg)}; paired difference A − B "
+                    f"{fmt(ab['difference_a_minus_b'], digits=3)}."]
     ii = (p.get("confusion") or {}).get("insitu_invasive")
     if ii:
         out += ["", f"In situ ↔ invasive confusion: {ii['insitu_called_invasive']} of {ii['n_insitu']} in situ cases "
@@ -90,7 +174,8 @@ def section_calibration(c: Mapping[str, Any]) -> list[str]:
            "| | ECE | Brier | NLL |", "|---|---|---|---|"]
     for side in ("before", "after"):
         if side in c:
-            out.append(f"| {side} temperature | {fmt(c[side]['ece'])} | {fmt(c[side]['brier'])} | {fmt(c[side]['nll'])} |")
+            out.append(f"| {side} temperature | {fmt(c[side]['ece'], digits=3)} | {fmt(c[side]['brier'], digits=3)} | "
+                       f"{fmt(c[side]['nll'], digits=3)} |")
     return out + [""]
 
 
@@ -99,17 +184,17 @@ def section_conformal(c: Mapping[str, Any]) -> list[str]:
            f"{100 * c['target_coverage']:.0f}%) · tiers use {c['drives_tiers']}.", "",
            "| Method | Coverage | Mean set size | Empty sets |", "|---|---|---|---|"]
     for name, b in c["methods"].items():
-        out.append(f"| {name} | {fmt(b['coverage'], pct=True)} | {fmt(b['mean_set_size'])} | "
+        out.append(f"| {name} | {rate(b['coverage'])} | {fmt(b['mean_set_size'])} | "
                    f"{100 * b['empty_set_rate']:.1f}% |")
     # conformal.json keys plain marginal APS as "aps" (set_tier is only added when it is a distinct set)
     tier = c["methods"].get(c["drives_tiers"]) or (c["methods"].get("aps") if c["drives_tiers"] == "aps_marginal" else None)
     if tier and c["drives_tiers"] != "lac_marginal":
         out += ["", f"Per-class coverage of the tier set ({c['drives_tiers']}): "
-                + "; ".join(f"{k} {fmt(v, pct=True)}" for k, v in tier["per_class"].items()) + "."]
+                + "; ".join(f"{k} {rate(v)}" for k, v in tier["per_class"].items()) + "."]
     lac = c["methods"].get("lac_marginal")
     if lac:
         out += ["", "Per-class LAC coverage (pre-registered): "
-                + "; ".join(f"{k} {fmt(v, pct=True)}" for k, v in lac["per_class"].items()) + "."]
+                + "; ".join(f"{k} {rate(v)}" for k, v in lac["per_class"].items()) + "."]
     fs = c.get("finite_sample") or {}
     if c["drives_tiers"] != "lac_marginal" and lac:
         # every number and qualifier comes from conformal.json, so a re-run cannot leave a stale claim here
@@ -276,20 +361,45 @@ def section_deferral(d: Mapping[str, Any]) -> list[str]:
 def section_margin(m: Mapping[str, Any]) -> list[str]:
     ci = m.get("threshold_ci") if isinstance(m.get("threshold_ci"), Mapping) else {}
     threshold = fmt({**ci, "estimate": m["threshold"]}, digits=5)    # P near 1: 0.99982, not 1.000
+    bf = m["benign_fpr"]
+    target = f"{100 * bf['target_max_fpr']:.0f}%"
+    scored = f"{bf['n_scored']} of {bf['n_benign_test']} benign test images scored"
+    per = list((bf.get("per_margin") or {}).items())
+    n_margins = len(per) or 4
+    pooled, any_margin = bf.get("pooled_per_margin"), bf.get("any_margin")
+    if collapsed(pooled) and pooled.get("n"):
+        # the pooled rate counts each image's margins separately, so they are not independent: no exact interval
+        benign = (f"- Benign test images, false tumor-at-margin: {int(round(pooled['estimate'] * pooled['n']))} of "
+                  f"{pooled['n']} margins ({n_margins} per image, so not independent; no interval). ")
+        blocks = [b for _, b in per]
+        same = blocks and all(collapsed(b) and b.get("n") == blocks[0].get("n")
+                              and b.get("estimate") == blocks[0].get("estimate") for b in blocks)
+        if blocks:
+            benign += (f"Each margin separately: {rate(blocks[0])}; " if same else
+                       "Per margin: " + "; ".join(f"{name} {rate(b)}" for name, b in per) + "; ")
+        benign += f"the threshold targets ≤ {target} per margin; {scored}."
+    else:
+        benign = (f"- Benign test images, false tumor-at-margin per margin (pooled over {n_margins} margins): "
+                  f"{fmt(pooled, pct=True)} (the threshold targets ≤ {target} per margin; {scored}).")
+    benign += f" Image-level, any of {n_margins} margins: " + (
+        rate(any_margin, unit="images", note=f"; no {target} target at image level") + "."
+        if collapsed(any_margin) and any_margin.get("n") else
+        f"{fmt(any_margin, pct=True)} (no {target} target at image level).")
     out = ["## Simulated margin read", "", f"Source: `eval/margin.json` · threshold P = {threshold}, from "
-           f"{m.get('n_benign_cal_images')} benign calibration images.", "",
-           f"- Benign test images, false tumor-at-margin per margin (pooled over 4 margins): "
-           f"{fmt(m['benign_fpr'].get('pooled_per_margin'), pct=True)} (the threshold targets ≤ "
-           f"{100 * m['benign_fpr']['target_max_fpr']:.0f}% per margin; {m['benign_fpr']['n_scored']} of "
-           f"{m['benign_fpr']['n_benign_test']} benign test images scored). Image-level, any of 4 margins: "
-           f"{fmt(m['benign_fpr'].get('any_margin'), pct=True)} (no 5% target at image level).",
+           f"{m.get('n_benign_cal_images')} benign calibration images.", "", benign,
            f"- Carcinoma test images with ≥ 1 margin called clear: {fmt(m['echo'].get('p_at_least_one_clear_margin'), pct=True)}; "
            f"Spearman(max margin score, case risk) {fmt(m['echo'].get('spearman_max_margin_vs_risk'))}."]
     if "composite" in m:
         c = m["composite"]
+        neg, seg = c["exact_negative_margin_clear_rate"], c["benign_half_segment_clear_rate"]
+        neg_text = ("in " + rate(neg, note=f", treating the composites as independent although they reuse "
+                                           f"{neg.get('n_groups')} source groups")
+                    if collapsed(neg) and neg.get("n") else fmt(neg, pct=True))
+        seg_text = (f"{int(round(seg['estimate'] * seg['n']))} of {seg['n']} (segments of the same field are not "
+                    "independent; no interval)" if collapsed(seg) and seg.get("n") else fmt(seg, pct=True))
         out += [f"- Composite fields ({c['n_composites']} of {c['n_expected']} scored): exact-negative margin called clear "
-                f"{fmt(c['exact_negative_margin_clear_rate'], pct=True)}; benign-half segments below threshold "
-                f"{fmt(c['benign_half_segment_clear_rate'], pct=True)}; carcinoma-half segments above threshold "
+                f"{neg_text}; benign-half segments below threshold "
+                f"{seg_text}; carcinoma-half segments above threshold "
                 f"{fmt(c['carcinoma_half_segment_hit_rate'], pct=True)}; tumor-side margin involved "
                 f"{fmt(c['tumor_side_margin_sensitivity'], pct=True)}. An echo of the diagnosis would score ~0% clear."]
     w = m.get("wsi_windows")
@@ -312,8 +422,14 @@ def _get(d: Mapping[str, Any] | None, path: Sequence[str]) -> Any:
     return d
 
 
-def _tcga_cell(block: Mapping[str, Any] | None, auroc: bool) -> str:
-    return fmt(block) if auroc else fmt(block, pct=True)
+def _tcga_cell(analysis: Mapping[str, Any] | None, path: Sequence[str]) -> str:
+    """One TCGA table cell; a collapsed AUROC names the frozen tumor and normal slide counts of the same analysis."""
+    block = _get(analysis, path)
+    if "auroc" not in path:
+        return rate(block)
+    n_tumor = _get(analysis, ("frozen_tumor_vs_normal", "sensitivity", "n"))
+    n_normal = _get(analysis, ("frozen_tumor_vs_normal", "specificity", "n"))
+    return auroc_text(block, f"{n_tumor} frozen tumor slides", f"{n_normal} frozen normal slides")
 
 
 def section_external_tcga(d: Mapping[str, Any]) -> list[str]:
@@ -338,8 +454,7 @@ def section_external_tcga(d: Mapping[str, Any]) -> list[str]:
            "so `reliability_flag` is false for every crop.", ""]
     out += ["| Analysis | " + " | ".join(label[n] for n in names) + " |", "|---|" + "---|" * len(names)]
     for text, path in TCGA_ROWS:
-        out.append(f"| {text} | " + " | ".join(_tcga_cell(_get(cohorts[n].get("primary"), path), "auroc" in path)
-                                              for n in names) + " |")
+        out.append(f"| {text} | " + " | ".join(_tcga_cell(cohorts[n].get("primary"), path) for n in names) + " |")
     gaps = []
     for n in names:
         g = _get(cohorts[n].get("primary"), ("ffpe_vs_frozen_tumor_sensitivity_gap", "estimate"))
@@ -364,23 +479,25 @@ def section_external_tcga(d: Mapping[str, Any]) -> list[str]:
     b = d.get("bach_reference") or {}
     if b:
         p = d.get("primary") or {}
-        rows = (("Invasive / tumor called invasive", b.get("invasive_sensitivity_patient_bootstrap")
-                 or b.get("invasive_sensitivity"),
-                 "FFPE " + fmt(p.get("ffpe_tumor_sensitivity"), pct=True) + "; frozen "
-                 + fmt(p.get("frozen_tumor_sensitivity"), pct=True)),
-                ("Normal not called invasive", b.get("normal_specificity"),
-                 fmt(_get(p, ("frozen_tumor_vs_normal", "specificity")), pct=True)),
-                ("Invasive vs normal AUROC", b.get("invasive_vs_normal_auroc"),
-                 fmt(_get(p, ("frozen_tumor_vs_normal", "auroc")))),
-                ("Invasive / tumor in tier 1–2", b.get("invasive_tier_1_2_rate"),
-                 fmt(p.get("tumor_tier_1_2_rate"), pct=True)))
+        # invasive_sensitivity_patient_bootstrap counts invasive images (n 31); the plain invasive_sensitivity block
+        # carries n = all test images, so it is never turned into a count
+        inv = b.get("invasive_sensitivity_patient_bootstrap")
+        normal = b.get("normal_specificity")
+        bach_auroc = auroc_text(b.get("invasive_vs_normal_auroc"), f"{(inv or {}).get('n')} invasive images",
+                                f"{(normal or {}).get('n')} normal images")
+        rows = (("Invasive / tumor called invasive",
+                 rate(inv) if inv else fmt(b.get("invasive_sensitivity"), pct=True),
+                 "FFPE " + rate(p.get("ffpe_tumor_sensitivity")) + "; frozen " + rate(p.get("frozen_tumor_sensitivity"))),
+                ("Normal not called invasive", rate(normal), rate(_get(p, ("frozen_tumor_vs_normal", "specificity")))),
+                ("Invasive vs normal AUROC", bach_auroc, _tcga_cell(p, ("frozen_tumor_vs_normal", "auroc"))),
+                ("Invasive / tumor in tier 1–2", rate(b.get("invasive_tier_1_2_rate")),
+                 rate(p.get("tumor_tier_1_2_rate"))))
         out += ["", "### BACH test vs TCGA (25 patients)", "",
                 f"BACH: {b.get('n_images')} held-out test images (unit: {b.get('unit')}); TCGA: slides, with frozen "
                 "normal slides as the normal comparator. The units differ, so the comparison is indicative.", "",
                 "| Statistic | BACH test | TCGA |", "|---|---|---|"]
         for text, bach, tcga in rows:
-            auroc = "AUROC" in text
-            out.append(f"| {text} | {fmt(bach) if auroc else fmt(bach, pct=True)} | {tcga} |")
+            out.append(f"| {text} | {bach} | {tcga} |")
         flag = _get(b, ("reliability_flag_rate_clean", "estimate"))
         out.append(f"| Reliability flag rate | {'n/a' if flag is None else _num(100 * flag, 1, '%')} (clean test) | "
                    "not computed |")
@@ -389,8 +506,7 @@ def section_external_tcga(d: Mapping[str, Any]) -> list[str]:
             "| Analysis | " + " | ".join(label[n] for n in names) + " |", "|---|" + "---|" * len(names)]
     for text, path in TCGA_ROWS:
         out.append(f"| {text} | " + " | ".join(
-            _tcga_cell(_get(cohorts[n].get("sensitivity_s1_six_crop_slides"), path), "auroc" in path)
-            for n in names) + " |")
+            _tcga_cell(cohorts[n].get("sensitivity_s1_six_crop_slides"), path) for n in names) + " |")
     out.append("| Slides analysed | " + " | ".join(
         str(_get(cohorts[n], ("sensitivity_s1_six_crop_slides", "n_slides"))) for n in names) + " |")
 
@@ -429,7 +545,25 @@ def section_foreign(name: str, data: Mapping[str, Any]) -> list[str]:
     out = [f"### `eval/{name}.json`", ""]
     if not blocks:
         return out + ["(no estimate/CI blocks; see the file)", ""]
-    return out + [f"- {label}: {fmt(b)}" for label, b in blocks] + [""]           # every block, no truncation
+    return out + [f"- {label}: {_foreign_cell(name, label, b)}" for label, b in blocks] + [""]   # every block, no truncation
+
+
+def _foreign_cell(name: str, label: str, block: Mapping[str, Any]) -> str:
+    """fmt(block); a collapsed AUROC in words. Other collapsed blocks keep their value (their n may not be the
+    denominator) and say that the interval collapsed."""
+    if not collapsed(block):
+        return fmt(block)
+    extra = [f"n {block['n']}"] if block.get("n") is not None else []
+    if block.get("n_groups") is not None:
+        extra.append(f"{block['n_groups']} groups")
+    where = ", ".join(extra)
+    if "auroc" in label.lower() and block["estimate"] == 1:
+        oof = name == "model_choice" and label.startswith("cv_metrics")        # out-of-fold training predictions
+        who = ((f"all invasive {'training ' if oof else ''}images ranked above all others"
+                f"{' out of fold' if oof else ''}") if "invasive" in label.lower() else
+               "all positives ranked above all negatives")
+        return f"{_num(1.0, 3)}, {who} ({where + '; ' if where else ''}no interval)"
+    return f"{fmt({'estimate': block['estimate']})} ({where + '; ' if where else ''}bootstrap interval collapsed)"
 
 
 DELETION_ARMS = (("random", "{n} random regions"), ("risk", "Top {n} tile-probe regions"),
@@ -537,7 +671,10 @@ def build(art: Path, cfg: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
     if synthetic:
         lines += ["> **SYNTHETIC DATA — these numbers come from generated test data and are NOT results.**", ""]
     lines += ["> Research prototype — not for clinical use. Every number below is quoted from the eval file named "
-              "beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.", ""]
+              "beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated. Where that "
+              "bootstrap collapses to a single point at 0% or 100%, the result is given as a count with its exact "
+              "Clopper–Pearson 95% interval (which treats the cases as independent); an AUROC of exactly 1 is "
+              "described in words, without an interval.", ""]
     sha = sorted({str(d["git_sha"]) for d in present.values() if d.get("git_sha") not in (None, "", "None")})
     lines += [f"Generated {io.utc_now()} from {len(present)} eval files (git {', '.join(sha) or 'n/a'}).", ""]
     renderers = {"qc": section_qc, "metrics": section_metrics, "calibration": section_calibration, "conformal": section_conformal,
