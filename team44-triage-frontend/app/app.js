@@ -201,6 +201,8 @@ async function refresh(force, seq) {
   } else if (route === 'metrics' && (force || !ST.metrics)) evaluation = await api.metrics();
   else if (route === 'spotcheck' && (force || !ST.spot)) spot = await api.spotcheckItems();
   else if (route === 'tcga') {
+    // Story panel needs BACH held-out + external_tcga aggregates alongside the specimen index.
+    if (force || !ST.metrics) evaluation = await api.metrics().catch(() => null);
     if (force || !ST.tcga) {
       try {
         ST.tcga = await api.tcga();
@@ -339,7 +341,13 @@ function currentFp() {
         JSON.stringify(ST.hm),
         ST.interpRev
       ].join('|');
-    return ['tcga', ST.tcga ? ST.tcga.n : 'none', !!(ST.tcga && ST.tcga.available)].join('|');
+    return [
+      'tcga',
+      ST.tcga ? ST.tcga.n : 'none',
+      !!(ST.tcga && ST.tcga.available),
+      ST.metricsRev || 0,
+      !!(ST.metrics && ST.metrics.eval && ST.metrics.eval.external_tcga)
+    ].join('|');
   }
   if (ST.route === 'spotcheck')
     return [
@@ -523,7 +531,7 @@ const PAGE = {
   surgeon: 'Operating rooms',
   oncologist: 'Oncology inbox',
   metrics: 'Model evaluation',
-  tcga: 'TCGA external',
+  tcga: 'Outside BACH',
   spotcheck: 'Evidence review'
 };
 
@@ -546,7 +554,7 @@ function pageDescription() {
   if (ST.route === 'tcga') {
     if (ST.caseId) return ST.caseId;
     const n = ST.tcga && ST.tcga.n;
-    return n ? `${n} external specimens` : 'External generalization';
+    return n ? `BACH-only model · ${n} TCGA fields` : 'BACH-only model on external tissue';
   }
   return 'Model-highlighted regions';
 }
