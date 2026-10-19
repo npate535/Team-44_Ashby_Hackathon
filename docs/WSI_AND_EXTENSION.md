@@ -4,11 +4,11 @@ Research prototype, not for clinical use. This file explains how Sepia would mov
 
 ## Today
 
-- **Read unit.** One 2048 × 1536 microscopy field at 0.42 µm/px, read as 12 regions of 512 px. Each region is embedded once with UNI2-h. The case read pools the regions that pass the tissue check.
+- **Read unit.** One 2048 × 1536 microscopy field at 0.42 µm/px (0.86 × 0.65 mm), read as 12 regions of 512 px. Each region is resized to 224 px and embedded once with UNI2-h, so the encoder sees about 0.96 µm per pixel. The case read pools the regions that pass the tissue check.
 - **Whole slides in use now.**
   - **BACH:** 84 annotated windows from 10 BACH whole slides test the simulated margin read (`artifacts/eval/margin.json`).
   - **TCGA:** each slide is sampled as 6 random tissue-rich fields at BACH resolution. The slide score is the maximum calibrated P(invasive) over its fields (`docs/EXTERNAL_TCGA_R2.md`).
-- **Region evidence.** Each region carries an exact contribution to the read's invasive logit; constant plus contributions reproduce the read to within 1e-6. These contributions pass a deletion test, so they stay meaningful when regions are aggregated.
+- **Region evidence.** Each region carries an exact contribution to the read's invasive logit; constant plus contributions reproduce the read to within 1e-6. Because the read is linear in the mean of region embeddings, the contributions are exact by construction and stay exact when regions are pooled into larger units. The deletion test shows the evidence is concentrated (0.46 logit more than random regions), but for a linear read that arm cannot fail, so it says nothing about whether the regions are the diagnostically right ones.
 
 ## Proposed whole-slide path
 
@@ -18,7 +18,7 @@ Research prototype, not for clinical use. This file explains how Sepia would mov
 4. **Aggregation.** Region → slide → specimen:
    - **Region to slide:** the mean-pool linear read applied to sliding fields of 12 regions (the unit it was trained on), followed by the maximum over fields. This is the rule the TCGA test already uses with 6 fields. Attention pooling is an alternative.
    - **Slide to specimen:** the maximum over the specimen's slides.
-   - **Recalibration:** temperature and conformal threshold refit on a slide-level calibration set, because field-level calibration does not transfer to slide-level maxima.
+   - **Recalibration:** temperature and conformal threshold refit on a slide-level calibration set, because field-level calibration does not transfer to slide-level maxima. TCGA already shows the problem: no frozen normal slide was called invasive, but 7 of 17 had at least one field in tiers 1–2, because a maximum over fields gives every slide several chances to be flagged. With deterministic conformal sets (pre-registered sensitivity analysis S3) no frozen normal field reached tier 2, so a slide-level rule should also fix the set construction.
 5. **Evidence navigation.** Store the top-contribution regions with slide coordinates. The case view opens them in a tiled viewer, using DeepZoom tiles as the GDC tile service does, so the pathologist can jump from the flag to the regions behind it.
 6. **Throughput.** Measured on an Apple M3 Max laptop (MPS, bf16), one 12-region field takes a median 0.73 s end to end, 0.63 s of it embedding (`artifacts/eval/external_tcga.json`). That is about 0.053 s of embedding per region, so the 4,900 regions of a 15 × 15 mm tissue area would take roughly 4–5 minutes on the laptop. This is an arithmetic estimate from the measured per-region cost, not a whole-slide measurement; a data-center GPU would be faster.
 
@@ -42,6 +42,7 @@ How unevenly the features transfer is already measured. On colorectal tiles (NCT
 
 - **Design.** Multi-reader, multi-case crossover. Pathologists read the same cases with and without Sepia, with a washout of at least four weeks, in randomized order.
 - **Cases.** Consecutive breast biopsies from at least two sites, enriched for atypia and in situ carcinoma, where human disagreement concentrates (`docs/HUMAN_BASELINE.md`).
+- **Sample size counts patients, not images.** On BACH the normal, benign and in situ test classes came from 6 patients each, and images within a patient were correlated (design effect about 2.4). As a floor, showing invasive sensitivity above 95% with an exact lower bound, even with no misses, takes at least 72 independent patients with invasive carcinoma.
 - **Reference standard.** Expert panel consensus.
 - **Endpoints.**
   - Agreement with the reference standard, per category.

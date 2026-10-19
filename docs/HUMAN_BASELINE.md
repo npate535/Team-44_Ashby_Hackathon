@@ -1,6 +1,6 @@
 # Human reader baseline and clinical timing benchmarks
 
-> Research prototype, not for clinical use. Published figures below come from `config/literature.yaml`, which records for each figure the abstract, section or table it was read from. Sepia figures come from `artifacts/eval/metrics.json` (production model, held-out THUNDER test split of the BACH microscopy images, n = 132 images, 24 patient / pseudo-patient groups) and `artifacts/eval/queue_sim.json`. No human figure on this page was measured by the team.
+> Research prototype, not for clinical use. Published figures below come from `config/literature.yaml`, which records for each figure the abstract, section or table it was read from. Sepia figures come from `artifacts/eval/metrics.json` (production model, held-out THUNDER test split of the BACH microscopy images, n = 132 images from 24 identified patients: invasive images from 17 patients, normal, benign and in situ images from 6 patients each) and `artifacts/eval/queue_sim.json`. No human figure on this page was measured by the team.
 
 ## Human readers on the same diagnostic categories
 
@@ -27,13 +27,14 @@ B-Path columns: Elmore 2015, abstract and Table 3 (pathologists, 663–2097 inte
 
 | Class | BACH pathologists E1 / E2 / E3 / E4 (hidden test set, 25 images per class) | Mean ± SD of the four | Sepia recall (THUNDER test split) |
 |---|---|---|---|
-| Normal | 0.96 / 0.96 / 0.88 / 0.40 | 0.80 ± 0.23 | 20/23 (87.0%) |
-| Benign | 0.92 / 0.88 / 0.76 / 0.84 | 0.85 ± 0.06 | 39/48 (81.3%) |
-| In situ carcinoma | 1.0 / 1.0 / 0.56 / 0.76 | 0.83 ± 0.18 | 24/30 (80.0%) |
-| Invasive carcinoma | 0.96 / 0.92 / 0.92 / 0.92 | 0.93 ± 0.02 | 31/31 (100%; exact 95% CI 88.8–100%) |
+| Normal | 0.96 / 0.96 / 0.88 / 0.40 | 0.80 ± 0.23 | 20/23 (87.0%) [63.6, 100]; 6 patients |
+| Benign | 0.92 / 0.88 / 0.76 / 0.84 | 0.85 ± 0.06 | 39/48 (81.3%) [42.3, 100]; 6 patients |
+| In situ carcinoma | 1.0 / 1.0 / 0.56 / 0.76 | 0.83 ± 0.18 | 24/30 (80.0%) [33.3, 87.1]; 6 patients, 26 of the 30 images from two of them |
+| Invasive carcinoma | 0.96 / 0.92 / 0.92 / 0.92 | 0.93 ± 0.02 | 31/31 (100%; exact 95% CI 88.8–100% by image, 80.5–100% by patient); 17 patients |
 | Four-class accuracy | 0.96 / 0.94 / 0.78 / 0.73 | 0.85 ± 0.10 | 0.864 [0.760, 0.944] (114/132) |
+| Balanced accuracy (mean of the four recalls; equals accuracy on a set with 25 per class) | 0.96 / 0.94 / 0.78 / 0.73 | 0.85 ± 0.10 | 0.871 [0.676, 0.938] |
 
-The pathologist columns are from Aresta 2019, Table 4. Sepia's accuracy interval is the 95% cluster bootstrap from `metrics.json`. For 31/31 the bootstrap collapses to a single point, so the exact Clopper–Pearson interval is given (`core.stats.exact_boundary_ci`). Sepia's invasive-vs-rest AUROC is 0.999 [0.996, 1.000] and its macro-F1 is 0.860 [0.678, 0.928].
+The pathologist columns are from Aresta 2019, Table 4. Sepia's recall intervals are the 95% patient bootstrap from `artifacts/eval/human_baseline.json` (`sepia.recall`) and its accuracy and balanced-accuracy intervals the same bootstrap from `metrics.json`. With six patients per class these per-class intervals are themselves unstable. Because the BACH readers saw 25 images per class and Sepia's test split is unbalanced (23 / 48 / 30 / 31), Sepia's balanced accuracy is the closer analogue to the readers' accuracy. For 31/31 the bootstrap collapses to a single point, so the exact Clopper–Pearson interval is given (`core.stats.exact_boundary_ci`). Sepia's invasive-vs-rest AUROC is 0.999 [0.996, 1.000] and its macro-F1 is 0.860 [0.678, 0.928].
 
 ### Why these are not directly comparable
 
@@ -42,8 +43,8 @@ The pathologist columns are from Aresta 2019, Table 4. Sepia's accuracy interval
 - **Atypia is not a BACH class.** Atypia is where B-Path pathologists agreed least (48%). Sepia has never seen it, and the comparison says nothing about it.
 - **Different reference standards.** B-Path used a three-expert consensus by modified Delphi. BACH labels came from two experts who could see other regions of the patient's tissue and, potentially, immunohistochemistry. The BACH readers saw only the field.
 - **Category mapping is approximate.** B-Path's "benign without atypia" covers both non-proliferative and proliferative lesions; BACH splits Normal from Benign. B-Path's DCIS is ductal; BACH's class is "in situ carcinoma".
-- **Different images.** The BACH reader study used the 100 hidden test images. Sepia's test split is 132 of the 400 public images. The source and protocol match, but no image is shared.
-- **Wide intervals at n = 132.** Sepia's classes have 23–48 test images, so one image moves a class's recall by 2.1–4.3 percentage points. The accuracy interval spans 0.760 to 0.944. The BACH reader study had 25 images per class; B-Path had 663–2097 interpretations per category.
+- **Different images and patients.** The BACH reader study used the 100 hidden test images, which come from a completely different set of patients than the 400 public images (Aresta 2019, Section 2.2.1). Sepia's test split is 132 of the 400 public images. The source and protocol match, but no image or patient is shared.
+- **Wide intervals at n = 132.** Sepia's classes have 23–48 test images but only 6 patients each for normal, benign and in situ, so one image moves a class's recall by 2.1–4.3 percentage points and one patient can move it much more. Images from the same patient are correlated (design effect about 2.4 for accuracy), so the 132 images carry roughly the information of 55 independent ones. The accuracy interval spans 0.760 to 0.944. The BACH reader study had 25 images per class; B-Path had 663–2097 interpretations per category.
 - **Different reading conditions.** B-Path readers had no time limit and read a whole slide. BACH readers saw only the field image.
 
 ### What the comparison shows and does not show
@@ -53,7 +54,7 @@ It shows:
 - On BACH's own images and classes, single-field reading by pathologists is not near-perfect. Accuracy ranged from 73% to 96% across four pathologists. In situ sensitivity ranged from 0.56 to 1.0 and Normal sensitivity from 0.40 to 0.96.
 - For both pathologists and Sepia, invasive carcinoma is the most consistently recognised class: BACH readers 0.92–0.96, B-Path 96%, Sepia 31/31 (exact 95% CI 88.8–100%). Sepia's invasive-vs-rest AUROC of 0.999 is measured on the easiest boundary.
 - Human disagreement concentrates in atypia (48% concordance) and, to a lesser extent, DCIS (84%). BACH excludes atypia, and it labels in situ carcinoma with curation (disagreements discarded, doubtful cases confirmed by immunohistochemistry).
-- Sepia's main error is calling in situ carcinoma invasive: 3 of 30 (10.0%). B-Path pathologists overcalled DCIS as invasive in 3% (2–4%) of interpretations. The point estimate is higher for Sepia, but it rests on 30 images in a different setting.
+- Sepia's in situ errors run both ways. It called 3 of 30 in situ images invasive (10.0%; exact 2.1–26.5%), from 2 of the 6 in situ patients; B-Path pathologists overcalled DCIS as invasive in 3% (2–4%) of interpretations. It called 3 of 30 normal or benign, and one of these (BACH_0112) was read as normal with 99% confidence, was not flagged and sat in the lowest tier. The point estimates rest on 30 images from 6 patients in a different setting.
 
 It does not show:
 
@@ -92,6 +93,8 @@ Sepia's figure comes from a simulated queue, not a measured turnaround (`queue_s
 - Under arrival order, invasive test images waited a mean of 20.2 minutes before first being read. Under Sepia's tiers, they waited 6.0 minutes.
 - The cost falls on everything else: the mean wait of unflagged cases rose from 20.0 to 41.4 minutes.
 - The intervals (20.2 [3.5, 60.1] vs 6.0 [1.9, 12.9]) reflect simulation variability only.
+- The gain depends on how busy the reader is. At 6 arrivals per hour and 9 minutes per read the reader is 90% busy. Re-running the same simulation at 4 arrivals per hour (60% busy) gives 5.7 → 3.3 minutes, with unflagged cases waiting 3.5 minutes longer; at 5 per hour (75%), 10.6 → 4.6 and 8.9 minutes (computed with `eval/queue_sim.py`; see `docs/JUDGE_QA.md` appendix A7).
+- Only invasive carcinoma is escalated. A confidently called in situ carcinoma with a one-class set goes to the lowest tier (12 of the 23 in situ biopsy images on the test split).
 
 This figure measures one interval: time waiting in a single reader's queue. It leaves out grossing, processing, sectioning, staining, transport and reporting, which are all inside the published turnaround benchmarks above. It cannot be compared with them.
 
@@ -103,7 +106,7 @@ The 20.2-minute arrival-order wait and the 20-minute frozen-section benchmark ar
 - **Khazai 2015.** Second review of 1970 breast pathology referrals in one year found a significant discrepancy, defined as one that affected patient care, in 226 cases (11.47%). Histologic category was the most common area of discrepancy (66 cases, 33%). Intraductal lesions were among the most problematic categories.
 - **Elmore 2016.** On the B-Path data, a second opinion on every case lowered overall misclassification from 24.7% to 18.1%. Atypia remained misclassified in more than 34% of cases under every strategy. Second opinions limited to invasive cancer did not significantly reduce misclassification; every other strategy did.
 
-Expert review changes breast diagnoses most often in in situ and borderline lesions. Those are the categories where Sepia's evidence is weakest: atypia is absent from BACH, and in situ recall is 24/30.
+Expert review changes breast diagnoses most often in in situ and borderline lesions. Those are the categories where Sepia's evidence is weakest: atypia is absent from BACH, and in situ recall is 24/30 from 6 patients.
 
 Sepia should therefore be described as a confirmation and ordering aid. It puts likely invasive fields first and shows the evidence for each read. It is not a second pathologist, it renders no diagnosis, and it has not been validated as a second reader.
 
