@@ -151,7 +151,7 @@ Feature scores are standardized against training images: "above normal" means ab
 **12. Why is the benign look-alike different? Does Sepia name the distinguishing features?**
 Each look-alike now shows a table of the two features that differ most between the case and the look-alike, with their values and the spot-check status of each feature. A feature that failed its spot check is greyed out and not offered as a reason.
 
-These are associations measured by feature similarity, not a pathologist's reasoning. The region heatmap is the evidence that passes a faithfulness test: removing the top 3 regions lowers the centered logit by 0.54 more than removing random regions. The feature regions do not pass that test. See question 14 and the case view.
+These are associations measured by feature similarity, not a pathologist's reasoning. Across the 328 cases in the app, 48 look-alikes differ in two features that passed the spot check, 170 in one and 110 in none. For BACH_0087 the passing difference is benign stroma or fat: +1.06 SD in the case against −1.95 SD in its invasive look-alike, a difference of +3.01 SD. For BACH_0167 neither differing feature passed, and the table says it offers no reliable feature-level reason. The region heatmap is the evidence that passes a faithfulness test: removing the top 3 regions lowers the centered logit by 0.54 more than removing random regions. The feature regions do not pass that test. See question 14 and the case view.
 
 ## Workflow claims
 
