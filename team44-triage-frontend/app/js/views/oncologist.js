@@ -117,7 +117,7 @@ function card(r, ST, conf, enter) {
     `<section class="rep-cell"><h3>Suggested category</h3><p class="rep-cat${top === 'Invasive' ? ' inv' : ''}" data-testid="inbox-category">${esc(suggestedLabel(top))}</p>` +
     `<p class="rep-sub">P(Invasive) <b>${pctText(pInv)}</b>, calibrated</p></section>` +
     `<section class="rep-cell"><h3>${esc(conf.label)}</h3><p class="chips">${chips}</p>` +
-    `<p class="rep-sub">${set.length > 1 ? 'More than one category cannot be ruled out.' : set.length === 1 ? 'One category in the set.' : 'No category reached the threshold.'}${conf.coverage !== null ? ` Held-out coverage ${Math.round(conf.coverage * 100)}%${conf.n ? ` (n = ${conf.n})` : ''}.` : ''}</p></section>` +
+    `<p class="rep-sub">${set.length > 1 ? 'More than one category cannot be ruled out.' : set.length === 1 ? 'One category in the set.' : 'No category reached the threshold.'}${conf.coverage !== null ? ` Held-out coverage ${(conf.coverage * 100).toFixed(1)}%${conf.n ? ` (n = ${conf.n})` : ''}.` : ''}</p></section>` +
     `<section class="rep-cell"><h3>Key associated features</h3>${features(rep)}</section>` +
     `<section class="rep-cell"><h3>Follow-up orders</h3>${orders(r)}</section>` +
     '</div>' +

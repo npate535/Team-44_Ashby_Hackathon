@@ -4,7 +4,10 @@
 // real data-act that app.js sends to the backend. Approval is recorded in Sepia only: nothing is sent to a laboratory or
 // ordering system (docs/SCOPE_MATRIX.md).
 // Surgical: only the visibly blocked actions (stains are never drafted in the simulated frozen-section lane).
-import { esc } from '../adapter.js';
+import { esc, humanize } from '../adapter.js';
+
+// Agent actions that can be blocked, in plain words (the raw action id is never shown).
+const ACTION_LABEL = { draft_stains: 'Stain orders', draft_deeper_levels: 'Deeper levels', draft_recuts: 'Recuts' };
 import { pending } from './case_ui.js';
 
 const STATUS = {
@@ -25,7 +28,7 @@ const TESTID = { approve_orders: 'approve', edit_orders: 'edit', closer_look: 'c
 function blockedRows(v) {
   const rows = v.agent.blocked.map(
     (b) =>
-      `<div class="act blk" data-testid="agent-blocked"><b>Blocked</b> ${esc(b.action)}<div class="sub">${esc(b.reason)}${b.rule_id ? ' · ' + esc(b.rule_id) : ''}</div></div>`
+      `<div class="act blk" data-testid="agent-blocked"><b>Not drafted</b> ${esc(ACTION_LABEL[b.action] || humanize(b.action))}<div class="sub">${esc(b.reason)}${b.rule_id ? ' · ' + esc(b.rule_id) : ''}</div></div>`
   );
   if (v.lane === 'surgical') {
     rows.push(
