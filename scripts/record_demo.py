@@ -51,7 +51,7 @@ with sync_playwright() as p:
     pg.click(T('call-confirm')); pause(pg, 2200)
     pg.goto(base + '/#/surgeon'); pause(pg, 3500)
     pg.get_by_role('button', name='Send a degraded simulated frozen section').click(); pause(pg, 2500)
-    pg.goto(base + '/#/case/BACH_0301_FSIM_resample3'); pause(pg, 3000)
+    pg.goto(base + '/#/case/BACH_0225_FSIM_resample3'); pause(pg, 3000)
     scroll_to_text(pg, 'Reliability flag raised', 3500)
     pg.click(T('call-defer')); pause(pg, 1500)
     pg.click(T('confirm-action')); pause(pg, 2500)

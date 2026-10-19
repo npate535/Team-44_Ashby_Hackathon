@@ -154,7 +154,7 @@ function story(ST, idx) {
   const model = (T && T.model) || (idx && idx.model) || '—';
 
   const claim = `<header class="mx-head tcga-claim" data-testid="tcga-claim">
-    <h1>Outside BACH</h1>
+    <h2 class="tcga-title">Outside BACH</h2>
     <p class="mx-lede">Same probe, trained <b>only on BACH</b> — applied unchanged to never-seen
       TCGA-BRCA tissue (other hospitals, scanners, stains, and real frozen sections).
       No TCGA training, no threshold retuning on this set. Research prototype — not clinically validated.</p>
@@ -342,10 +342,17 @@ function row(item, ST, model) {
 }
 
 function specimenTable(ST, idx) {
-  if (!idx || !idx.available || !(idx.items || []).length) {
+  if (!idx) {
+    // the index request is still in flight: reserve the table's space instead of showing a missing-data message
+    return `<section class="tcga-specimens tcga-specimens-loading" data-testid="tcga-specimens-loading" aria-busy="true">
+      <h2>Browse external specimens</h2>
+      <p class="mx-muted">Loading specimens…</p>
+    </section>`;
+  }
+  if (!idx.available || !(idx.items || []).length) {
     return `<section class="tcga-specimens" data-testid="tcga-specimens-empty">
       <h2>Browse external specimens</h2>
-      <p class="mx-muted">Specimen images are not on disk yet. After the eval, run
+      <p class="mx-muted">No TCGA specimens are available in this workspace. They are built by
         <code>python scripts/build_tcga_cases.py</code>.</p>
     </section>`;
   }
@@ -394,7 +401,7 @@ function specimenTable(ST, idx) {
 function worklist(ST) {
   const idx = ST.tcga;
   if (!idx && !ST.metrics) {
-    return `<div class="mx tcga-page" data-testid="tcga-loading"><header class="mx-head"><h1>Outside BACH</h1>
+    return `<div class="mx tcga-page" data-testid="tcga-loading"><header class="mx-head"><h2 class="tcga-title">Outside BACH</h2>
       <p class="mx-lede">Loading external generalization results…</p></header></div>`;
   }
   return `<div class="mx tcga-page" data-testid="tcga-page">
