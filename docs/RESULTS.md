@@ -2,7 +2,7 @@
 
 > Research prototype — not for clinical use. Every number below is quoted from the eval file named beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated. Where that bootstrap collapses to a single point at 0% or 100%, the result is given as a count with its exact Clopper–Pearson 95% interval (which treats the cases as independent); an AUROC of exactly 1 is described in words, without an interval.
 
-Generated 2026-10-19T02:09:36Z from 21 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 7045b84ab1fb8b386c44e0e9a60a98e9f974c330, bc76a1db582cac260a8734e7437050686420d0c2, e465ed396ce0c448c7c11f1a32260a779d3fd525).
+Generated 2026-10-19T04:41:37Z from 21 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 7045b84ab1fb8b386c44e0e9a60a98e9f974c330, bc76a1db582cac260a8734e7437050686420d0c2, e465ed396ce0c448c7c11f1a32260a779d3fd525).
 
 ## Tissue quality control (fixed in this run)
 
@@ -22,7 +22,7 @@ Source: `eval/metrics.json` · test n = 132, 24 patient / pseudo-patient groups 
 | Invasive sensitivity | 31 of 31 invasive test images (exact 95% CI 88.8–100%) |
 | Invasive specificity | 0.970 [0.936, 1.000] (98 of 101 non-invasive test images; 24 groups) |
 
-Model A `uni2h512_lr` vs Model B `cb_text` (Invasive-vs-rest AUROC (uncalibrated scores)): A 0.999 [0.996, 1.000] (n 132, 24 groups); B 1.000 (all 31 invasive images ranked above all 101 others; no interval); paired difference A − B −0.001 [−0.004, 0.000] (n 132, 24 groups).
+Model A `uni2h512_lr` vs Model B `cb_text` (Invasive-vs-rest AUROC (uncalibrated scores)): A 0.999 [0.996, 1.000] (n 132, 24 groups); B 1.000: all 31 invasive images ranked above all 101 others (no interval); paired difference A − B -0.001 [-0.004, 0.000] (n 132, 24 groups).
 
 In situ ↔ invasive confusion: 3 of 30 in situ cases called invasive; 0 of 31 invasive cases called in situ.
 
@@ -197,9 +197,9 @@ TCGA-BRCA has no benign or in situ labels. Only invasive carcinoma (Primary Tumo
 | Analysis | 25 patients (tile-API crops) | first 8 patients (openslide crops) |
 |---|---|---|
 | FFPE tumor slides called invasive (sensitivity) | 95.7% [87.0%, 100.0%] (n 23, 23 groups) | 87.5% [62.5%, 100.0%] (n 8, 8 groups) |
-| Frozen tumor slides called invasive (sensitivity) | 84.0% [68.0%, 96.0%] (21 of 25; 25 groups) | 8 of 8 (exact 95% CI 63.1–100%) |
-| Frozen normal slides not called invasive (specificity) | 17 of 17 (exact 95% CI 80.5–100%) | 7 of 7 (exact 95% CI 59.0–100%) |
-| Frozen tumor vs frozen normal, AUROC of the slide score | 1.000: all 25 frozen tumor slides ranked above all 17 frozen normal slides (no interval) | 1.000: all 8 tumor above all 7 normal (no interval) |
+| Frozen tumor slides called invasive (sensitivity) | 84.0% [68.0%, 96.0%] (n 25, 25 groups) | 8 of 8 (exact 95% CI 63.1–100%) |
+| Frozen normal slides not called invasive (specificity) | 17 of 17 (exact 95% CI 80.5–100%) | 7 of 7 (exact 95% CI 59–100%) |
+| Frozen tumor vs frozen normal, AUROC of the slide score | 1.000: all 25 frozen tumor slides ranked above all 17 frozen normal slides (no interval) | 1.000: all 8 frozen tumor slides ranked above all 7 frozen normal slides (no interval) |
 | Tumor slides with a crop in tier 1–2 | 97.9% [93.6%, 100.0%] (n 48, 25 groups) | 93.8% [81.2%, 100.0%] (n 16, 8 groups) |
 | FFPE minus frozen tumor sensitivity | 11.7 points | -12.5 points |
 | Patients / slides / crops | 25 / 65 / 353 | 8 / 23 / 132 |
@@ -216,7 +216,7 @@ BACH: 132 held-out test images (unit: single BACH image (2048 x 1536 field), not
 |---|---|---|
 | Invasive / tumor called invasive | 31 of 31 (exact 95% CI 88.8–100%) | FFPE 95.7% [87.0%, 100.0%] (n 23, 23 groups); frozen 84.0% [68.0%, 96.0%] (n 25, 25 groups) |
 | Normal not called invasive | 23 of 23 (exact 95% CI 85.2–100%) | 17 of 17 (exact 95% CI 80.5–100%) |
-| Invasive vs normal AUROC | 1.000: all 31 invasive images ranked above all 23 normal images (no interval) | 1.000: all 25 frozen tumor slides above all 17 frozen normal slides (no interval) |
+| Invasive vs normal AUROC | 1.000: all 31 invasive images ranked above all 23 normal images (no interval) | 1.000: all 25 frozen tumor slides ranked above all 17 frozen normal slides (no interval) |
 | Invasive / tumor in tier 1–2 | 31 of 31 (exact 95% CI 88.8–100%) | 97.9% [93.6%, 100.0%] (n 48, 25 groups) |
 | Reliability flag rate | 16.7% (clean test) | not computed |
 
@@ -225,9 +225,9 @@ BACH: 132 held-out test images (unit: single BACH image (2048 x 1536 field), not
 | Analysis | 25 patients (tile-API crops) | first 8 patients (openslide crops) |
 |---|---|---|
 | FFPE tumor slides called invasive (sensitivity) | 95.7% [87.0%, 100.0%] (n 23, 23 groups) | 87.5% [62.5%, 100.0%] (n 8, 8 groups) |
-| Frozen tumor slides called invasive (sensitivity) | 83.3% [66.7%, 95.8%] (20 of 24; 24 groups) | 8 of 8 (exact 95% CI 63.1–100%) |
+| Frozen tumor slides called invasive (sensitivity) | 83.3% [66.7%, 95.8%] (n 24, 24 groups) | 8 of 8 (exact 95% CI 63.1–100%) |
 | Frozen normal slides not called invasive (specificity) | 9 of 9 (exact 95% CI 66.4–100%) | 5 of 5 (exact 95% CI 47.8–100%) |
-| Frozen tumor vs frozen normal, AUROC of the slide score | 1.000: all 24 tumor above all 9 normal (no interval) | 1.000: all 8 tumor above all 5 normal (no interval) |
+| Frozen tumor vs frozen normal, AUROC of the slide score | 1.000: all 24 frozen tumor slides ranked above all 9 frozen normal slides (no interval) | 1.000: all 8 frozen tumor slides ranked above all 5 frozen normal slides (no interval) |
 | Tumor slides with a crop in tier 1–2 | 97.9% [93.5%, 100.0%] (n 47, 25 groups) | 93.8% [81.2%, 100.0%] (n 16, 8 groups) |
 | Slides analysed | 56 | 21 |
 
