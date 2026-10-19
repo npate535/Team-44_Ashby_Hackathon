@@ -280,10 +280,14 @@ def build_case(base: Mapping[str, Any], scenario: Mapping[str, Any], case_id: st
     case["similar_cases"] = [{"case_id": refs[i], "label": labels[i], "similarity": round(0.93 - 0.02 * i, 2),
                               "image": schemas.display_ref(refs[i])} for i in range(5)]
     contrast = next(i for i, lab in enumerate(labels) if lab != top)
+    differs = ["invasion", "duct_confined"]
+    detail = (base.get("contrast_case") or {}).get("detail")      # the fixture's synthetic contrast detail
+    if not detail or [d["concept"] for d in detail] != differs:
+        detail = None
     case["contrast_case"] = {"case_id": refs[contrast], "label": labels[contrast],
                              "similarity": case["similar_cases"][contrast]["similarity"],
-                             "differs_most_in": ["invasion", "duct_confined"],
-                             "image": schemas.display_ref(refs[contrast])}
+                             "differs_most_in": differs, "image": schemas.display_ref(refs[contrast]),
+                             "detail": copy.deepcopy(detail)}
     agree = sum(1 for lab in labels if lab == top)
     case["agreement"] = {"conch_musk_same_top": not scenario.get("reliability_flag"), "neighbor_agreement": agree / 5}
     if cells_on:

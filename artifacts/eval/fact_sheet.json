@@ -1,0 +1,1367 @@
+{
+  "name": "fact_sheet",
+  "created_utc": "2026-10-19T00:58:59Z",
+  "config_hash": "8ae0753b3d60f5dcc622674d8675711313e45d9e763090b15c4ba38e4666ae2f",
+  "git_sha": "f769530f8b52ed102d2ba4e9e1bfa721b76b1db0",
+  "synthetic": false,
+  "git_dirty": true,
+  "bach": {
+    "source": "ICIAR 2018 BACH microscopy images (Photos folder)",
+    "n_images": 400,
+    "per_class": {
+      "Benign": 100,
+      "InSitu": 100,
+      "Invasive": 100,
+      "Normal": 100
+    },
+    "image_px": [
+      2048,
+      1536
+    ],
+    "mpp": 0.42,
+    "label_source": "class folder (Photos/<Class>/); microscopy_ground_truth.csv cross-check",
+    "grid": "3 x 4",
+    "region_px": 512,
+    "regions_per_image": 12,
+    "n_regions": 4800,
+    "views": 1,
+    "n_region_views": 4800,
+    "region_qc_pass_rate": 0.9871,
+    "wsi": {
+      "n_svs": 30,
+      "n_annotated": 10
+    },
+    "patients": {
+      "identified_images": 145,
+      "identified_patients": 29,
+      "pseudo_group_rule": "images without a patient ID are grouped in blocks of 5 consecutive file numbers"
+    }
+  },
+  "production_features": {
+    "model": "uni2h512_lr",
+    "encoder": "uni2h",
+    "set": "bach512",
+    "views": 1,
+    "manifest_views_setting": 8
+  },
+  "splits": {
+    "train": {
+      "n_images": 218,
+      "per_class": {
+        "Normal": 57,
+        "Benign": 42,
+        "InSitu": 60,
+        "Invasive": 59
+      },
+      "n_groups": 49,
+      "identified_patients": 5,
+      "identified_images": 13
+    },
+    "calibration": {
+      "n_images": 50,
+      "per_class": {
+        "Normal": 20,
+        "Benign": 10,
+        "InSitu": 10,
+        "Invasive": 10
+      },
+      "n_groups": 10,
+      "identified_patients": 0,
+      "identified_images": 0
+    },
+    "test": {
+      "n_images": 132,
+      "per_class": {
+        "Normal": 23,
+        "Benign": 48,
+        "InSitu": 30,
+        "Invasive": 31
+      },
+      "n_groups": 24,
+      "identified_patients": 24,
+      "identified_images": 132
+    }
+  },
+  "split_scheme": "THUNDER benchmark split (fixed source-index ranges), 218 / 50 / 132",
+  "disjointness": {
+    "groups_in_more_than_one_split": [],
+    "patients_in_more_than_one_split": [],
+    "duplicate_case_ids": [],
+    "ok": true
+  },
+  "model_selection": {
+    "what_cv_is": "5-fold x 3 repeats, patient-grouped, inside the 218 training images only; used to choose the model, never to report test performance",
+    "selection_metric": "log_loss",
+    "rule": "one_se: simplest (settings risk_model.complexity, then smaller C) within 1 SE of the best",
+    "eligible_within_one_se": [
+      "uni2h_lr@C=0.001",
+      "uni2h512_lr@C=0.001",
+      "hoptimus0_512_lr@C=0.001",
+      "abmil",
+      "fusion_top3"
+    ],
+    "chosen": "uni2h512_lr",
+    "test_split_use": "one held-out THUNDER test split of 132 images, scored once for reporting",
+    "cv": {
+      "uni2h512_lr": {
+        "log_loss": 0.35945509743539983,
+        "auroc_invasive": 1.0,
+        "balanced_accuracy": 0.953281508856888,
+        "macro_f1": 0.9552439703954856,
+        "macro_auroc": 0.9930232831164818
+      },
+      "abmil": {
+        "log_loss": 0.18124034831903488,
+        "auroc_invasive": 1.0,
+        "balanced_accuracy": 0.9460759950724269,
+        "macro_f1": 0.9455753554518402,
+        "macro_auroc": 0.9924279407868247
+      },
+      "conch_probe_lr": {
+        "log_loss": 0.31462921301449487,
+        "auroc_invasive": 0.9933908964929112,
+        "balanced_accuracy": 0.9031556645851917,
+        "macro_f1": 0.9043763096767982,
+        "macro_auroc": 0.9856050324999258
+      },
+      "musk_lr": {
+        "log_loss": 0.33254390310660953,
+        "auroc_invasive": 0.9831574459012898,
+        "balanced_accuracy": 0.8906636294125143,
+        "macro_f1": 0.8922569776529095,
+        "macro_auroc": 0.9811939943566829
+      },
+      "fusion_top3": {
+        "log_loss": 0.194664269592208,
+        "auroc_invasive": 0.9993604093380236,
+        "balanced_accuracy": 0.9465220254024893,
+        "macro_f1": 0.9481856653353724,
+        "macro_auroc": 0.9913564666915762
+      }
+    }
+  },
+  "test": {
+    "model": "uni2h512_lr",
+    "n": 132,
+    "n_groups": 24,
+    "auroc_conventions": {
+      "invasive_vs_rest": {
+        "value": 0.9990418396678378,
+        "ci": [
+          0.9960590161385917,
+          1.0
+        ],
+        "definition": "binary AUROC of calibrated P(Invasive): invasive images vs all other classes"
+      },
+      "macro_one_vs_rest": {
+        "value": 0.9650432321719191,
+        "ci": [
+          0.883375118448439,
+          0.9949620385604213
+        ],
+        "definition": "mean of the four one-vs-rest AUROCs"
+      }
+    },
+    "macro_f1": {
+      "value": 0.8601546601546601,
+      "ci": [
+        0.6782319073348791,
+        0.9281766139018411
+      ]
+    },
+    "balanced_accuracy": {
+      "value": 0.8705163043478261,
+      "ci": [
+        0.6764512310606061,
+        0.9375006663113007
+      ]
+    },
+    "accuracy": {
+      "value": 0.8636363636363636,
+      "ci": [
+        0.7599583333333334,
+        0.9444444444444444
+      ]
+    },
+    "invasive_sensitivity": {
+      "value": 1.0,
+      "ci": [
+        1.0,
+        1.0
+      ]
+    },
+    "invasive_specificity": {
+      "value": 0.9702970297029703,
+      "ci": [
+        0.9364994934143871,
+        1.0
+      ]
+    },
+    "confusion": {
+      "classes": [
+        "Normal",
+        "Benign",
+        "InSitu",
+        "Invasive"
+      ],
+      "rows": "true class",
+      "columns": "predicted class (argmax of calibrated probabilities)",
+      "counts": [
+        [
+          20,
+          3,
+          0,
+          0
+        ],
+        [
+          9,
+          39,
+          0,
+          0
+        ],
+        [
+          2,
+          1,
+          24,
+          3
+        ],
+        [
+          0,
+          0,
+          0,
+          31
+        ]
+      ],
+      "row_normalized": [
+        [
+          0.869565,
+          0.130435,
+          0.0,
+          0.0
+        ],
+        [
+          0.1875,
+          0.8125,
+          0.0,
+          0.0
+        ],
+        [
+          0.066667,
+          0.033333,
+          0.8,
+          0.1
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "row_totals": [
+        23,
+        48,
+        30,
+        31
+      ],
+      "n": 132
+    },
+    "per_class": {
+      "Normal": {
+        "n": 23,
+        "correct": 20,
+        "sensitivity": 0.8695652173913043,
+        "specificity": 0.8990825688073395,
+        "called_this_class": 31
+      },
+      "Benign": {
+        "n": 48,
+        "correct": 39,
+        "sensitivity": 0.8125,
+        "specificity": 0.9523809523809523,
+        "called_this_class": 43
+      },
+      "InSitu": {
+        "n": 30,
+        "correct": 24,
+        "sensitivity": 0.8,
+        "specificity": 1.0,
+        "called_this_class": 24
+      },
+      "Invasive": {
+        "n": 31,
+        "correct": 31,
+        "sensitivity": 1.0,
+        "specificity": 0.9702970297029703,
+        "called_this_class": 34
+      }
+    },
+    "errors": [
+      {
+        "case_id": "BACH_0006",
+        "truth": "Benign",
+        "predicted": "Normal",
+        "p_predicted": 0.8469,
+        "p_true": 0.0107,
+        "tier_set": [
+          "Normal"
+        ],
+        "true_class_in_set": false
+      },
+      {
+        "case_id": "BACH_0034",
+        "truth": "InSitu",
+        "predicted": "Benign",
+        "p_predicted": 0.5369,
+        "p_true": 0.3879,
+        "tier_set": [
+          "Benign",
+          "InSitu"
+        ],
+        "true_class_in_set": true
+      },
+      {
+        "case_id": "BACH_0039",
+        "truth": "Benign",
+        "predicted": "Normal",
+        "p_predicted": 0.89,
+        "p_true": 0.0154,
+        "tier_set": [
+          "Normal"
+        ],
+        "true_class_in_set": false
+      },
+      {
+        "case_id": "BACH_0064",
+        "truth": "Benign",
+        "predicted": "Normal",
+        "p_predicted": 0.5631,
+        "p_true": 0.2016,
+        "tier_set": [
+          "Normal",
+          "InSitu"
+        ],
+        "true_class_in_set": false
+      },
+      {
+        "case_id": "BACH_0082",
+        "truth": "Benign",
+        "predicted": "Normal",
+        "p_predicted": 0.9896,
+        "p_true": 0.0001,
+        "tier_set": [
+          "Normal"
+        ],
+        "true_class_in_set": false
+      },
+      {
+        "case_id": "BACH_0112",
+        "truth": "InSitu",
+        "predicted": "Normal",
+        "p_predicted": 0.9893,
+        "p_true": 0.01,
+        "tier_set": [
+          "Normal"
+        ],
+        "true_class_in_set": false
+      },
+      {
+        "case_id": "BACH_0167",
+        "truth": "InSitu",
+        "predicted": "Invasive",
+        "p_predicted": 0.7257,
+        "p_true": 0.2612,
+        "tier_set": [
+          "InSitu",
+          "Invasive"
+        ],
+        "true_class_in_set": true
+      },
+      {
+        "case_id": "BACH_0213",
+        "truth": "Benign",
+        "predicted": "Normal",
+        "p_predicted": 0.9994,
+        "p_true": 0.0,
+        "tier_set": [
+          "Normal"
+        ],
+        "true_class_in_set": false
+      },
+      {
+        "case_id": "BACH_0219",
+        "truth": "Normal",
+        "predicted": "Benign",
+        "p_predicted": 0.5844,
+        "p_true": 0.4155,
+        "tier_set": [
+          "Normal",
+          "Benign"
+        ],
+        "true_class_in_set": true
+      },
+      {
+        "case_id": "BACH_0261",
+        "truth": "Normal",
+        "predicted": "Benign",
+        "p_predicted": 0.8628,
+        "p_true": 0.1371,
+        "tier_set": [
+          "Benign"
+        ],
+        "true_class_in_set": false
+      },
+      {
+        "case_id": "BACH_0293",
+        "truth": "InSitu",
+        "predicted": "Normal",
+        "p_predicted": 0.6721,
+        "p_true": 0.1822,
+        "tier_set": [
+          "Normal",
+          "Benign",
+          "InSitu"
+        ],
+        "true_class_in_set": true
+      },
+      {
+        "case_id": "BACH_0315",
+        "truth": "Benign",
+        "predicted": "Normal",
+        "p_predicted": 0.7288,
+        "p_true": 0.2478,
+        "tier_set": [
+          "Normal",
+          "Benign"
+        ],
+        "true_class_in_set": true
+      },
+      {
+        "case_id": "BACH_0334",
+        "truth": "Normal",
+        "predicted": "Benign",
+        "p_predicted": 0.6811,
+        "p_true": 0.3189,
+        "tier_set": [
+          "Normal",
+          "Benign"
+        ],
+        "true_class_in_set": true
+      },
+      {
+        "case_id": "BACH_0346",
+        "truth": "Benign",
+        "predicted": "Normal",
+        "p_predicted": 0.9739,
+        "p_true": 0.0003,
+        "tier_set": [
+          "Normal"
+        ],
+        "true_class_in_set": false
+      },
+      {
+        "case_id": "BACH_0362",
+        "truth": "Benign",
+        "predicted": "Normal",
+        "p_predicted": 0.9955,
+        "p_true": 0.0045,
+        "tier_set": [
+          "Normal"
+        ],
+        "true_class_in_set": false
+      },
+      {
+        "case_id": "BACH_0364",
+        "truth": "InSitu",
+        "predicted": "Invasive",
+        "p_predicted": 0.6963,
+        "p_true": 0.3023,
+        "tier_set": [
+          "Invasive"
+        ],
+        "true_class_in_set": false
+      },
+      {
+        "case_id": "BACH_0389",
+        "truth": "InSitu",
+        "predicted": "Invasive",
+        "p_predicted": 0.8343,
+        "p_true": 0.1615,
+        "tier_set": [
+          "Invasive"
+        ],
+        "true_class_in_set": false
+      },
+      {
+        "case_id": "BACH_0392",
+        "truth": "Benign",
+        "predicted": "Normal",
+        "p_predicted": 0.5187,
+        "p_true": 0.2558,
+        "tier_set": [
+          "Normal",
+          "Benign",
+          "InSitu"
+        ],
+        "true_class_in_set": true
+      }
+    ],
+    "interval_method": "Intervals: percentile cluster bootstrap over patient / pseudo-patient groups (§A5)."
+  },
+  "calibration_conformal": {
+    "temperature": 0.3415421470454797,
+    "temperature_fit_on": "train_oof",
+    "ece_before": 0.18418879831683496,
+    "ece_after": 0.05479803082565878,
+    "n_calibration_images": 50,
+    "qhat_aps": 0.9308101619716881,
+    "alpha": 0.1,
+    "tier_set_method": "aps_marginal_nonempty",
+    "tier_set_coverage": 0.9166666666666666,
+    "tier_set_mean_size": 1.2954545454545454,
+    "post_hoc_note": "The tier set (APS, never empty) was chosen after viewing test coverage; pre-registered LAC covered 72.0%. Disclosed in docs/RESULTS.md."
+  },
+  "corpora": {
+    "bach_microscopy": {
+      "role": "training (218), conformal calibration (50), held-out test (132)",
+      "n": 400
+    },
+    "bach_wsi": {
+      "role": "10 annotated whole-slide images: simulated margin windows and concept checks only; never used to train or test the four-class read",
+      "n_svs": 30
+    },
+    "quilt_1m": {
+      "role": "caption-mined images used only to fit concept vectors (CAVs) for the explanation features; never used to train the classifier, never in evaluation",
+      "rows_scanned": 1017708,
+      "rows_histology": 1012757,
+      "rows_breast_captions": 26837,
+      "concept_rows_selected": 5436,
+      "embedded_rows": 5436,
+      "per_concept": {
+        "tubules": {
+          "pos": 230,
+          "neg": 142
+        },
+        "pleomorphism": {
+          "pos": 400,
+          "neg": 200
+        },
+        "mitoses": {
+          "pos": 400,
+          "neg": 293
+        },
+        "invasion": {
+          "pos": 400,
+          "neg": 400
+        },
+        "duct_confined": {
+          "pos": 400,
+          "neg": 400
+        },
+        "normal_lobules": {
+          "pos": 121,
+          "neg": 400
+        },
+        "benign_stroma_fat": {
+          "pos": 170,
+          "neg": 400
+        },
+        "lymphocytes": {
+          "pos": 248,
+          "neg": 202
+        },
+        "necrosis": {
+          "pos": 400,
+          "neg": 230
+        }
+      }
+    },
+    "pathgen": {
+      "role": "same as Quilt: extra caption-matched patches for concept vectors",
+      "rows_selected": 69,
+      "embedded_rows": 69
+    },
+    "nct_crc_he_100k": {
+      "role": "cross-organ sanity check of concept scores (colorectal tiles); not breast, not used for training",
+      "n_tiles": 2700
+    },
+    "pathmmu_bach_zip": {
+      "role": "inspected and NOT used: it is the 2015 Bioimaging breast set, not ICIAR 2018 BACH",
+      "note": "not the ICIAR 2018 BACH microscopy set (file names/counts differ; on Delta this is the 2015 Bioimaging breast dataset); the official Zenodo release is the dataset of record"
+    },
+    "tcga_brca": {
+      "role": "external test only (no training, no threshold changes)"
+    }
+  },
+  "quilt_near_duplicates": {
+    "computed": true,
+    "encoder": "CONCH align",
+    "n_quilt_images": 5436,
+    "n_bach_regions": 4800,
+    "max_similarity_any_pair": 0.9353,
+    "bach_regions_with_quilt_neighbor_above_0_95": 0,
+    "median_bach_region_nearest_other_bach_image": 0.9139,
+    "note": "Cosine similarity of L2-normalized CONCH align embeddings. The production classifier never sees Quilt images; this only checks that the explanation features were not fitted on BACH images that reappear in Quilt."
+  },
+  "reference_distributions": {
+    "concept_scores": "z = (score - mean) / SD over clean, QC-passing tiles of the 218 training images; 'above normal' means above the training-image average for that feature, not a population norm",
+    "ood_percentile": "mean cosine distance of a read's tiles to their k = 10 nearest TTA-averaged training tiles (CONCH), expressed as a percentile of the 50 clean calibration images",
+    "similar_cases": "k = 5 nearest training images by cosine similarity of the mean CONCH embedding; the library is the 218 training images only, so a test image never retrieves itself or another test image",
+    "look_alike": "the nearest training image whose label differs from the predicted class",
+    "temperature": "fit on out-of-fold logits of the training images",
+    "conformal_threshold": "fit on the 50 calibration images",
+    "margin_threshold": "from 30 benign calibration images (simulated margin read)"
+  },
+  "components": {
+    "pretrained_frozen": {
+      "UNI2-h (MahmoodLab/UNI2-h)": "production image encoder",
+      "CONCH (MahmoodLab/CONCH)": "text-aligned concept scores, similar-case retrieval, out-of-distribution distance",
+      "MUSK (xiangjx/musk)": "second text-aligned model: agreement check",
+      "H-optimus-0, Virchow2, Phikon-v2, PathGen-CLIP": "evaluated as alternatives; not in production"
+    },
+    "trained_by_team": [
+      "four-class linear probe (L2 multinomial logistic regression) on mean-pooled UNI2-h region embeddings (production)",
+      "temperature scaling and APS conformal threshold",
+      "concept vectors from caption-mined Quilt/PathGen images; concept-bottleneck comparison models",
+      "attention-based MIL (ABMIL) and LoRA fine-tunes of UNI2-h (evaluated, not production)",
+      "reliability combiner, CONCH tile probe for the risk heatmap, simulated-margin probe"
+    ],
+    "rule_based": [
+      "worklist tiers and the safety rule",
+      "drafted follow-up orders (never placed)"
+    ],
+    "language_models": {
+      "case_summaries": {
+        "generators": {
+          "template": 328
+        },
+        "note": "summaries shipped in the case files are written by a deterministic template from structured findings"
+      },
+      "plain_language_tab": {
+        "models": {
+          "gemini-4-argon-high (cursor)": 330,
+          "claude-opus-5-5-medium (cursor)": 1,
+          "claude-sonnet-5-5-xhigh (cursor)": 1
+        },
+        "note": "optional explanation generated from measured evidence; every number is checked against the evidence; not itself evidence"
+      },
+      "lumen_summary_model_preference": [
+        "gemma-4-31b-it",
+        "ornith-1.0-35b",
+        "qwen3-coder-next"
+      ]
+    }
+  },
+  "timing": {
+    "queue_simulation": {
+      "what": "simulated reading day, not a measured workflow",
+      "assumptions": {
+        "arrivals": "Poisson, 6 per hour for 8 h; cases drawn uniformly with replacement from the clean test split",
+        "reader": "one reader, fixed 9 min per case, non-preemptive, works overtime until empty",
+        "utilization": 0.9,
+        "tiers": "core.tiers (surgical 1; Invasive top or in the aps_marginal_nonempty conformal set 2; set size != 1, reliability flag or insufficient tissue 3; else 4)",
+        "aging": {
+          "enabled": true,
+          "promote_at_fraction": 0.75,
+          "turnaround_target_min": {
+            "1": 20,
+            "2": 1440,
+            "3": 1440,
+            "4": 2880
+          }
+        },
+        "common_random_numbers": true,
+        "seed": 44,
+        "interval": "2.5-97.5 percentiles over simulated days (simulation uncertainty only)",
+        "truth_use": "true labels only score the waits; they never drive the queue"
+      },
+      "results": {
+        "fifo": {
+          "aggressive_mean": {
+            "mean": 20.20242484632382,
+            "lo": 3.518393790763282,
+            "hi": 60.07283264600743,
+            "n_reps": 1000
+          },
+          "aggressive_median": {
+            "mean": 18.988625755263296,
+            "lo": 0.030948048037221565,
+            "hi": 64.62063558222061,
+            "n_reps": 1000
+          },
+          "aggressive_p90": {
+            "mean": 37.743508632604275,
+            "lo": 8.137853793943345,
+            "hi": 100.80199568773382,
+            "n_reps": 1000
+          },
+          "non_flagged_mean": {
+            "mean": 19.964197705515776,
+            "lo": 4.150696296855694,
+            "hi": 58.99701603109437,
+            "n_reps": 1000
+          },
+          "false_negative_mean": {
+            "mean": null,
+            "lo": null,
+            "hi": null,
+            "n_reps": 0
+          },
+          "surgical_mean": {
+            "mean": 20.07847167469609,
+            "lo": 3.6307937292635817,
+            "hi": 60.374259164058415,
+            "n_reps": 1000
+          },
+          "all_mean": {
+            "mean": 20.100363423907577,
+            "lo": 4.732572427859044,
+            "hi": 59.284419777953396,
+            "n_reps": 1000
+          },
+          "max_wait": {
+            "mean": 51.896005209591024,
+            "lo": 18.39118787070784,
+            "hi": 117.53383609895171,
+            "n_reps": 1000
+          },
+          "overtime": {
+            "mean": 29.269410507003226,
+            "lo": 0.0,
+            "hi": 104.26175673627881,
+            "n_reps": 1000
+          },
+          "n_arrivals": {
+            "mean": 47.382,
+            "lo": 34.0,
+            "hi": 62.0,
+            "n_reps": 1000
+          },
+          "promoted_fraction": {
+            "mean": 0.0,
+            "lo": 0.0,
+            "hi": 0.0,
+            "n_reps": 1000
+          },
+          "class_Normal_mean": {
+            "mean": 20.18850134818152,
+            "lo": 2.8164235443954495,
+            "hi": 59.489016144457864,
+            "n_reps": 1000
+          },
+          "class_Benign_mean": {
+            "mean": 19.875632962758324,
+            "lo": 3.965073312100369,
+            "hi": 58.31351000751281,
+            "n_reps": 1000
+          },
+          "class_InSitu_mean": {
+            "mean": 20.309818118696878,
+            "lo": 3.4712901027266234,
+            "hi": 61.0179312765989,
+            "n_reps": 1000
+          },
+          "class_Invasive_mean": {
+            "mean": 20.20242484632382,
+            "lo": 3.518393790763282,
+            "hi": 60.07283264600743,
+            "n_reps": 1000
+          },
+          "tier_1_mean": {
+            "mean": 20.07847167469609,
+            "lo": 3.6307937292635817,
+            "hi": 60.374259164058415,
+            "n_reps": 1000
+          },
+          "tier_2_mean": {
+            "mean": 20.285023988435942,
+            "lo": 3.6609056965135567,
+            "hi": 61.98307284442019,
+            "n_reps": 1000
+          },
+          "tier_3_mean": {
+            "mean": 20.21009161537321,
+            "lo": 2.826735457296435,
+            "hi": 61.03867516292978,
+            "n_reps": 999
+          },
+          "tier_4_mean": {
+            "mean": 19.964197705515776,
+            "lo": 4.150696296855694,
+            "hi": 58.99701603109437,
+            "n_reps": 1000
+          }
+        },
+        "tiers": {
+          "aggressive_mean": {
+            "mean": 6.012465094137989,
+            "lo": 1.9080112482872493,
+            "hi": 12.873183578976002,
+            "n_reps": 1000
+          },
+          "aggressive_median": {
+            "mean": 4.387944333518885,
+            "lo": 0.02228071556121059,
+            "hi": 8.146289383080124,
+            "n_reps": 1000
+          },
+          "aggressive_p90": {
+            "mean": 12.908547568511356,
+            "lo": 4.764700503803178,
+            "hi": 31.507137137526353,
+            "n_reps": 1000
+          },
+          "non_flagged_mean": {
+            "mean": 41.39845222307283,
+            "lo": 5.499277804721982,
+            "hi": 143.0306333289797,
+            "n_reps": 1000
+          },
+          "false_negative_mean": {
+            "mean": null,
+            "lo": null,
+            "hi": null,
+            "n_reps": 0
+          },
+          "surgical_mean": {
+            "mean": 4.687284853555192,
+            "lo": 1.7254808001159678,
+            "hi": 8.032156069829245,
+            "n_reps": 1000
+          },
+          "all_mean": {
+            "mean": 20.100363423907577,
+            "lo": 4.732572427859044,
+            "hi": 59.284419777953396,
+            "n_reps": 1000
+          },
+          "max_wait": {
+            "mean": 157.44189542587924,
+            "lo": 28.031448093625336,
+            "hi": 467.86884988168174,
+            "n_reps": 1000
+          },
+          "overtime": {
+            "mean": 29.269410507003226,
+            "lo": 0.0,
+            "hi": 104.26175673627881,
+            "n_reps": 1000
+          },
+          "n_arrivals": {
+            "mean": 47.382,
+            "lo": 34.0,
+            "hi": 62.0,
+            "n_reps": 1000
+          },
+          "promoted_fraction": {
+            "mean": 0.0,
+            "lo": 0.0,
+            "hi": 0.0,
+            "n_reps": 1000
+          },
+          "class_Normal_mean": {
+            "mean": 33.28097099324234,
+            "lo": 2.579903083033779,
+            "hi": 119.45259653724099,
+            "n_reps": 1000
+          },
+          "class_Benign_mean": {
+            "mean": 27.164760827717103,
+            "lo": 4.287981316562248,
+            "hi": 89.54303461752556,
+            "n_reps": 1000
+          },
+          "class_InSitu_mean": {
+            "mean": 13.879881431622344,
+            "lo": 2.573949797647855,
+            "hi": 42.11692293539343,
+            "n_reps": 1000
+          },
+          "class_Invasive_mean": {
+            "mean": 6.012465094137989,
+            "lo": 1.9080112482872493,
+            "hi": 12.873183578976002,
+            "n_reps": 1000
+          },
+          "tier_1_mean": {
+            "mean": 4.687284853555192,
+            "lo": 1.7254808001159678,
+            "hi": 8.032156069829245,
+            "n_reps": 1000
+          },
+          "tier_2_mean": {
+            "mean": 7.65402577871223,
+            "lo": 2.146380857325694,
+            "hi": 17.763794637938634,
+            "n_reps": 1000
+          },
+          "tier_3_mean": {
+            "mean": 13.051627450291397,
+            "lo": 1.9528756140849401,
+            "hi": 40.44052448898414,
+            "n_reps": 999
+          },
+          "tier_4_mean": {
+            "mean": 41.39845222307283,
+            "lo": 5.499277804721982,
+            "hi": 143.0306333289797,
+            "n_reps": 1000
+          },
+          "vs_fifo": {
+            "aggressive_mean": {
+              "mean": -14.189959752185827,
+              "lo": -51.300000000000004,
+              "hi": 0.0,
+              "n_reps": 1000
+            },
+            "aggressive_p90": {
+              "mean": -24.83496106409291,
+              "lo": -80.69114369241004,
+              "hi": 0.6202979261247697,
+              "n_reps": 1000
+            },
+            "non_flagged_mean": {
+              "mean": 21.434254517557047,
+              "lo": 0.6923076923076925,
+              "hi": 86.4819293478261,
+              "n_reps": 1000
+            },
+            "false_negative_mean": {
+              "mean": null,
+              "lo": null,
+              "hi": null,
+              "n_reps": 0
+            },
+            "surgical_mean": {
+              "mean": -15.391186821140899,
+              "lo": -54.03750000000001,
+              "hi": -0.7485576923076936,
+              "n_reps": 1000
+            },
+            "all_mean": {
+              "mean": -8.348877145181177e-17,
+              "lo": -7.105427357601002e-15,
+              "hi": 7.105427357601002e-15,
+              "n_reps": 1000
+            }
+          }
+        },
+        "tiers_aging": {
+          "aggressive_mean": {
+            "mean": 6.012465094137989,
+            "lo": 1.9080112482872493,
+            "hi": 12.873183578976002,
+            "n_reps": 1000
+          },
+          "aggressive_median": {
+            "mean": 4.387944333518885,
+            "lo": 0.02228071556121059,
+            "hi": 8.146289383080124,
+            "n_reps": 1000
+          },
+          "aggressive_p90": {
+            "mean": 12.908547568511356,
+            "lo": 4.764700503803178,
+            "hi": 31.507137137526353,
+            "n_reps": 1000
+          },
+          "non_flagged_mean": {
+            "mean": 41.39845222307283,
+            "lo": 5.499277804721982,
+            "hi": 143.0306333289797,
+            "n_reps": 1000
+          },
+          "false_negative_mean": {
+            "mean": null,
+            "lo": null,
+            "hi": null,
+            "n_reps": 0
+          },
+          "surgical_mean": {
+            "mean": 4.687284853555192,
+            "lo": 1.7254808001159678,
+            "hi": 8.032156069829245,
+            "n_reps": 1000
+          },
+          "all_mean": {
+            "mean": 20.100363423907577,
+            "lo": 4.732572427859044,
+            "hi": 59.284419777953396,
+            "n_reps": 1000
+          },
+          "max_wait": {
+            "mean": 157.44189542587924,
+            "lo": 28.031448093625336,
+            "hi": 467.86884988168174,
+            "n_reps": 1000
+          },
+          "overtime": {
+            "mean": 29.269410507003226,
+            "lo": 0.0,
+            "hi": 104.26175673627881,
+            "n_reps": 1000
+          },
+          "n_arrivals": {
+            "mean": 47.382,
+            "lo": 34.0,
+            "hi": 62.0,
+            "n_reps": 1000
+          },
+          "promoted_fraction": {
+            "mean": 0.0,
+            "lo": 0.0,
+            "hi": 0.0,
+            "n_reps": 1000
+          },
+          "class_Normal_mean": {
+            "mean": 33.28097099324234,
+            "lo": 2.579903083033779,
+            "hi": 119.45259653724099,
+            "n_reps": 1000
+          },
+          "class_Benign_mean": {
+            "mean": 27.164760827717103,
+            "lo": 4.287981316562248,
+            "hi": 89.54303461752556,
+            "n_reps": 1000
+          },
+          "class_InSitu_mean": {
+            "mean": 13.879881431622344,
+            "lo": 2.573949797647855,
+            "hi": 42.11692293539343,
+            "n_reps": 1000
+          },
+          "class_Invasive_mean": {
+            "mean": 6.012465094137989,
+            "lo": 1.9080112482872493,
+            "hi": 12.873183578976002,
+            "n_reps": 1000
+          },
+          "tier_1_mean": {
+            "mean": 4.687284853555192,
+            "lo": 1.7254808001159678,
+            "hi": 8.032156069829245,
+            "n_reps": 1000
+          },
+          "tier_2_mean": {
+            "mean": 7.65402577871223,
+            "lo": 2.146380857325694,
+            "hi": 17.763794637938634,
+            "n_reps": 1000
+          },
+          "tier_3_mean": {
+            "mean": 13.051627450291397,
+            "lo": 1.9528756140849401,
+            "hi": 40.44052448898414,
+            "n_reps": 999
+          },
+          "tier_4_mean": {
+            "mean": 41.39845222307283,
+            "lo": 5.499277804721982,
+            "hi": 143.0306333289797,
+            "n_reps": 1000
+          },
+          "vs_fifo": {
+            "aggressive_mean": {
+              "mean": -14.189959752185827,
+              "lo": -51.300000000000004,
+              "hi": 0.0,
+              "n_reps": 1000
+            },
+            "aggressive_p90": {
+              "mean": -24.83496106409291,
+              "lo": -80.69114369241004,
+              "hi": 0.6202979261247697,
+              "n_reps": 1000
+            },
+            "non_flagged_mean": {
+              "mean": 21.434254517557047,
+              "lo": 0.6923076923076925,
+              "hi": 86.4819293478261,
+              "n_reps": 1000
+            },
+            "false_negative_mean": {
+              "mean": null,
+              "lo": null,
+              "hi": null,
+              "n_reps": 0
+            },
+            "surgical_mean": {
+              "mean": -15.391186821140899,
+              "lo": -54.03750000000001,
+              "hi": -0.7485576923076936,
+              "n_reps": 1000
+            },
+            "all_mean": {
+              "mean": -8.348877145181177e-17,
+              "lo": -7.105427357601002e-15,
+              "hi": 7.105427357601002e-15,
+              "n_reps": 1000
+            }
+          }
+        },
+        "tiers_aging_day_scale": {
+          "aggressive_mean": {
+            "mean": 6.012465094137989,
+            "lo": 1.9080112482872493,
+            "hi": 12.873183578976002,
+            "n_reps": 1000
+          },
+          "aggressive_median": {
+            "mean": 4.387944333518885,
+            "lo": 0.02228071556121059,
+            "hi": 8.146289383080124,
+            "n_reps": 1000
+          },
+          "aggressive_p90": {
+            "mean": 12.908547568511356,
+            "lo": 4.764700503803178,
+            "hi": 31.507137137526353,
+            "n_reps": 1000
+          },
+          "non_flagged_mean": {
+            "mean": 41.26117528803197,
+            "lo": 5.499277804721982,
+            "hi": 141.10285419888874,
+            "n_reps": 1000
+          },
+          "false_negative_mean": {
+            "mean": null,
+            "lo": null,
+            "hi": null,
+            "n_reps": 0
+          },
+          "surgical_mean": {
+            "mean": 4.687284853555192,
+            "lo": 1.7254808001159678,
+            "hi": 8.032156069829245,
+            "n_reps": 1000
+          },
+          "all_mean": {
+            "mean": 20.100363423907577,
+            "lo": 4.732572427859044,
+            "hi": 59.28441977795339,
+            "n_reps": 1000
+          },
+          "max_wait": {
+            "mean": 134.77268697703497,
+            "lo": 28.031448093625336,
+            "hi": 330.49269714491516,
+            "n_reps": 1000
+          },
+          "overtime": {
+            "mean": 29.269410507003226,
+            "lo": 0.0,
+            "hi": 104.26175673627881,
+            "n_reps": 1000
+          },
+          "n_arrivals": {
+            "mean": 47.382,
+            "lo": 34.0,
+            "hi": 62.0,
+            "n_reps": 1000
+          },
+          "promoted_fraction": {
+            "mean": 0.02610835271349567,
+            "lo": 0.0,
+            "hi": 0.18967569786535302,
+            "n_reps": 1000
+          },
+          "class_Normal_mean": {
+            "mean": 31.87168158485661,
+            "lo": 2.579903083033779,
+            "hi": 110.02217949926006,
+            "n_reps": 1000
+          },
+          "class_Benign_mean": {
+            "mean": 27.173050988278852,
+            "lo": 4.287981316562248,
+            "hi": 86.7570158019976,
+            "n_reps": 1000
+          },
+          "class_InSitu_mean": {
+            "mean": 14.884172246109713,
+            "lo": 2.573949797647855,
+            "hi": 50.575272738057706,
+            "n_reps": 1000
+          },
+          "class_Invasive_mean": {
+            "mean": 6.012465094137989,
+            "lo": 1.9080112482872493,
+            "hi": 12.873183578976002,
+            "n_reps": 1000
+          },
+          "tier_1_mean": {
+            "mean": 4.687284853555192,
+            "lo": 1.7254808001159678,
+            "hi": 8.032156069829245,
+            "n_reps": 1000
+          },
+          "tier_2_mean": {
+            "mean": 7.65402577871223,
+            "lo": 2.146380857325694,
+            "hi": 17.763794637938634,
+            "n_reps": 1000
+          },
+          "tier_3_mean": {
+            "mean": 13.304720307060723,
+            "lo": 1.9528756140849401,
+            "hi": 40.44240336068205,
+            "n_reps": 999
+          },
+          "tier_4_mean": {
+            "mean": 41.26117528803197,
+            "lo": 5.499277804721982,
+            "hi": 141.10285419888874,
+            "n_reps": 1000
+          },
+          "vs_fifo": {
+            "aggressive_mean": {
+              "mean": -14.189959752185827,
+              "lo": -51.300000000000004,
+              "hi": 0.0,
+              "n_reps": 1000
+            },
+            "aggressive_p90": {
+              "mean": -24.83496106409291,
+              "lo": -80.69114369241004,
+              "hi": 0.6202979261247697,
+              "n_reps": 1000
+            },
+            "non_flagged_mean": {
+              "mean": 21.296977582516188,
+              "lo": 0.6923076923076925,
+              "hi": 84.16467391304346,
+              "n_reps": 1000
+            },
+            "false_negative_mean": {
+              "mean": null,
+              "lo": null,
+              "hi": null,
+              "n_reps": 0
+            },
+            "surgical_mean": {
+              "mean": -15.391186821140899,
+              "lo": -54.03750000000001,
+              "hi": -0.7485576923076936,
+              "n_reps": 1000
+            },
+            "all_mean": {
+              "mean": -2.717825964282383e-16,
+              "lo": -7.105427357601002e-15,
+              "hi": 7.105427357601002e-15,
+              "n_reps": 1000
+            }
+          }
+        }
+      }
+    },
+    "model_latency": null,
+    "clinical_turnaround": "see config/literature.yaml (cited benchmarks); not measured by Sepia"
+  },
+  "case_examples": {
+    "BACH_0087": {
+      "case_id": "BACH_0087",
+      "lane": "biopsy",
+      "true_label": "InSitu",
+      "probs_percent": {
+        "Normal": 14.9,
+        "Benign": 1.7,
+        "InSitu": 42.7,
+        "Invasive": 40.7
+      },
+      "conformal_set": [
+        "Normal",
+        "InSitu",
+        "Invasive"
+      ],
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_in_conformal_set",
+        "set_size_gt_1",
+        "low_reliability"
+      ],
+      "drafted_orders": [
+        "p63 + calponin",
+        "ER",
+        "deeper levels",
+        "CK5/6",
+        "recut H&E section"
+      ],
+      "look_alike": {
+        "case_id": "BACH_0055",
+        "label": "Invasive",
+        "similarity": 0.772,
+        "differs_most_in": [
+          "benign_stroma_fat",
+          "normal_lobules"
+        ]
+      }
+    },
+    "BACH_0167": {
+      "case_id": "BACH_0167",
+      "lane": "biopsy",
+      "true_label": "InSitu",
+      "probs_percent": {
+        "Normal": 1.2,
+        "Benign": 0.1,
+        "InSitu": 26.1,
+        "Invasive": 72.6
+      },
+      "conformal_set": [
+        "InSitu",
+        "Invasive"
+      ],
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set",
+        "set_size_gt_1"
+      ],
+      "drafted_orders": [
+        "p63 + calponin",
+        "ER + PR + HER2 + Ki-67"
+      ],
+      "look_alike": {
+        "case_id": "BACH_0070",
+        "label": "InSitu",
+        "similarity": 0.84,
+        "differs_most_in": [
+          "necrosis",
+          "duct_confined"
+        ]
+      }
+    },
+    "BACH_0084": {
+      "case_id": "BACH_0084",
+      "lane": "biopsy",
+      "true_label": "Invasive",
+      "probs_percent": {
+        "Normal": 0.0,
+        "Benign": 0.0,
+        "InSitu": 0.1,
+        "Invasive": 99.9
+      },
+      "conformal_set": [
+        "Invasive"
+      ],
+      "tier": 2,
+      "tier_reasons": [
+        "aggressive_top",
+        "aggressive_in_conformal_set"
+      ],
+      "drafted_orders": [
+        "ER + PR + HER2 + Ki-67"
+      ],
+      "look_alike": {
+        "case_id": "BACH_0155",
+        "label": "InSitu",
+        "similarity": 0.838,
+        "differs_most_in": [
+          "duct_confined",
+          "normal_lobules"
+        ]
+      }
+    }
+  }
+}

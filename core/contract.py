@@ -23,6 +23,11 @@ Every model forbids unknown fields, so drift fails loudly. Cross-field rules (en
     its own image edge (superior: y = 0, inferior: y + size = height, medial: x = 0, lateral: x + size = width).
   * cells: status "ok" needs model and mpp_model; other statuses carry no tiles or features.
   * agent: "drafted" has orders, "none" has none.
+  * contrast_case.detail (optional; null when features are missing): one row per differs_most_in concept in the same
+    order; delta = query_z - contrast_z; reliable iff the concept's spot check has acceptable / reviewed >=
+    SPOTCHECK_RELIABLE_MIN (never with no spot check); query_region is a contract-grid index.
+  * concept findings may carry data.spotcheck ({acceptable, reviewed} or null) and data.reliable, always together,
+    with the same rule (step 08 always writes both; backend.summary never gives an unreliable concept as a reason).
 
 Wording (plan §16): fields hold suggestions, never diagnoses; the UI says "suggested", "associated with",
 "simulated", "research use only".
@@ -39,6 +44,18 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from core import schemas
 
 SCHEMA_VERSION = "1.0"
+# A concept counts as a reason in the look-alike comparison only when at least this share of its reviewed spot-check
+# regions was acceptable. Fixed before looking at which concepts pass (judge-feedback plan T4); do not tune.
+SPOTCHECK_RELIABLE_MIN = 0.75
+
+
+def spotcheck_passed(spot: Any) -> bool:
+    """The fixed reliability rule: a spot check with reviewed > 0 and acceptable / reviewed >= SPOTCHECK_RELIABLE_MIN.
+    `spot` is {acceptable, reviewed}, a SpotcheckCount, or None (no spot check: never reliable)."""
+    if spot is None:
+        return False
+    ok, n = (spot["acceptable"], spot["reviewed"]) if isinstance(spot, Mapping) else (spot.acceptable, spot.reviewed)
+    return int(n) > 0 and int(ok) / int(n) >= SPOTCHECK_RELIABLE_MIN
 
 # ---- vocabularies (mirrored as union types in frontend/src/types.ts) ---------------------------------------------------
 Lane = Literal["surgical", "biopsy"]
@@ -187,12 +204,53 @@ class SimilarCase(_Model):
     image: ImageRef
 
 
+class SpotcheckCount(_Model):
+    acceptable: NonNegInt             # reviewed top regions judged to show the concept
+    reviewed: PosInt                  # top regions reviewed (eval/spotcheck.json summary; AI or human, see that file)
+
+    @model_validator(mode="after")
+    def _consistent(self) -> "SpotcheckCount":
+        if self.acceptable > self.reviewed:
+            raise ValueError(f"spotcheck acceptable {self.acceptable} exceeds reviewed {self.reviewed}")
+        return self
+
+
+class ContrastDetail(_Model):
+    """One differs_most_in concept: case-level feature (c__top<k>) z-scored on train cases, for both cases."""
+    concept: NonEmptyStr              # settings concepts.ids
+    label: NonEmptyStr                # concept bank display label
+    query_z: float                    # this case, SD of training cases
+    contrast_z: float                 # the contrast case, same scale
+    delta: float                      # query_z - contrast_z (from unrounded values; |delta| is the ranking key)
+    spotcheck: Optional[SpotcheckCount]   # null when the concept has no reviewed spot-check regions
+    reliable: bool                    # spot check passed (acceptable / reviewed >= SPOTCHECK_RELIABLE_MIN)
+    query_region: Optional[NonNegInt]     # contract-grid idx of this case's highest tile score; null when unknown
+    contrast_region: Optional[NonNegInt]  # same for the contrast case
+
+    @model_validator(mode="after")
+    def _consistent(self) -> "ContrastDetail":
+        passed = spotcheck_passed(self.spotcheck)
+        if self.reliable != passed:
+            raise ValueError(f"contrast detail {self.concept}: reliable must be {passed} (spot check "
+                             f"{self.spotcheck.model_dump() if self.spotcheck else None}, cut-off {SPOTCHECK_RELIABLE_MIN})")
+        if abs(self.delta - (self.query_z - self.contrast_z)) > 0.02:
+            raise ValueError(f"contrast detail {self.concept}: delta {self.delta} != query_z - contrast_z")
+        return self
+
+
 class ContrastCase(_Model):
     case_id: CaseId                   # nearest reference with a different label
     label: NonEmptyStr
     similarity: Annotated[float, Field(ge=-1.0, le=1.0)]
     differs_most_in: list[str]        # concept ids with the largest |delta z|
     image: Optional[ImageRef] = None  # optional thumbnail (defaults to images/<case_id>.jpg in the UI)
+    detail: Optional[list[ContrastDetail]] = None   # per differs_most_in concept; null when features are missing
+
+    @model_validator(mode="after")
+    def _consistent(self) -> "ContrastCase":
+        if self.detail is not None and [d.concept for d in self.detail] != self.differs_most_in:
+            raise ValueError("contrast_case.detail must list the differs_most_in concepts in the same order")
+        return self
 
 
 class Agreement(_Model):
@@ -293,6 +351,19 @@ class Finding(_Model):
         missing = [k for k in FINDING_REQUIRED_KEYS[self.kind] if k not in self.data]
         if missing:
             raise ValueError(f"finding {self.id} ({self.kind}) data is missing {missing}")
+        spot_keys = {"spotcheck", "reliable"} & set(self.data)
+        if self.kind == "concept" and spot_keys:
+            if len(spot_keys) < 2:
+                raise ValueError(f"finding {self.id} (concept) data needs spotcheck and reliable together")
+            spot = self.data["spotcheck"]
+            if spot is not None:
+                if not isinstance(spot, Mapping):
+                    raise ValueError(f"finding {self.id} spotcheck must be {{acceptable, reviewed}} or null")
+                SpotcheckCount.model_validate(spot)
+            reliable = self.data["reliable"]
+            if not isinstance(reliable, bool) or reliable != spotcheck_passed(spot):
+                raise ValueError(f"finding {self.id} ({self.data.get('concept')}): reliable must be "
+                                 f"{spotcheck_passed(spot)} for spot check {spot} (cut-off {SPOTCHECK_RELIABLE_MIN})")
         return self
 
 
@@ -418,6 +489,10 @@ class CaseBase(_Model):
         ids = [c.id for c in self.concepts]
         if len(set(ids)) != len(ids):
             raise ValueError("concept ids must be unique")
+        for row in (self.contrast_case.detail or []) if self.contrast_case else []:
+            if row.query_region is not None and row.query_region >= rows * cols:
+                raise ValueError(f"contrast_case.detail {row.concept} query_region {row.query_region} is outside the "
+                                 f"{rows}x{cols} grid")
         for concept in self.concepts:
             stray = [i for i in concept.top_tiles if i not in seen]
             if stray:
@@ -462,7 +537,8 @@ class CasePublic(CaseBase):
 
 # Models mirrored field for field in frontend/src/types.ts (tests/test_contract.py).
 PUBLIC_MODELS = (
-    ImageInfo, Quality, Attribution, Prediction, ConceptComponents, Concept, Tile, SimilarCase, ContrastCase, Agreement,
+    ImageInfo, Quality, Attribution, Prediction, ConceptComponents, Concept, Tile, SimilarCase, SpotcheckCount,
+    ContrastDetail, ContrastCase, Agreement,
     MarginSegment, Margin, CellTile, CellFeature, CellsBlock, Flag, Finding, SummarySentence, Summary, Order,
     BlockedAction, Agent, Degradation, CasePublic,
 )

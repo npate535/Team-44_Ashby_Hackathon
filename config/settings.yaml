@@ -159,7 +159,7 @@ concepts:
   file: config/concepts.yaml        # schema: core/schemas.py "concepts.yaml" (ruling R1)
   ids: [tubules, pleomorphism, mitoses, invasion, duct_confined, normal_lobules, benign_stroma_fat, lymphocytes, necrosis]
   groups:                           # plan §6.4 grouping, in UI order
-    nottingham: {label: Nottingham-style, ids: [tubules, pleomorphism, mitoses]}
+    nottingham: {label: "Nottingham components (features, not a grade)", ids: [tubules, pleomorphism, mitoses]}
     insitu_vs_invasive: {label: In situ vs invasive, ids: [invasion, duct_confined]}
     benign_normal: {label: Benign / normal, ids: [normal_lobules, benign_stroma_fat]}
     microenvironment: {label: Microenvironment, ids: [lymphocytes, necrosis]}
@@ -350,7 +350,7 @@ summary:
   max_sentences: 4
   min_valid_sentences: 2            # fewer validated sentences => deterministic template (plan §8.2)
   template_generator: template      # value of summary.generator for template output
-  prompt_version: 4                 # bump to invalidate cached LLM summaries after a prompt change (2: no inline IDs, rounding, order; 3: concept level, exact margin call, reliability flag; 4: invasive-anchored concept direction, retrieval counts, cell percentiles, margin wording)
+  prompt_version: 5                 # bump to invalidate cached LLM summaries after a prompt change (2: no inline IDs, rounding, order; 3: concept level, exact margin call, reliability flag; 4: invasive-anchored concept direction, retrieval counts, cell percentiles, margin wording; 5: concepts that failed the AI spot check are never reasons)
   allowed_codes: [Ki-67, CK5/6, p63, HER2, ER, PR, SMMHC, H&E]   # letter-digit tokens that are names, not numbers
   banned_patterns:                  # case-insensitive regexes; a sentence matching any is dropped (no diagnosis as fact)
     - "\\bdiagnos"
@@ -392,7 +392,7 @@ spotcheck:                          # step 08 review items (plan §5.4, CELLS_SP
 eval:                               # Agent 4 evaluation suite (plan §12, BUILD_PLAN Task 11)
   thunder_reference:                # published THUNDER BACH results on our exact test split (BUILD_PLAN §A4, §F)
     metric: macro_f1_percent
-    split_note: "same split, different protocol (published: whole-image resize; ours: tiles + TTA)"
+    split_note: "same split, different protocol (published: whole-image resize; ours: 512-px regions, mean-pooled)"
     linear_probe: {conch: 84.4, uni2h: 84.7, musk: 69.9}
     zero_shot: {conch: 56.1, musk: 62.5}
     source: "THUNDER official leaderboards, BACH F1 scores; verified 2026-10-17 at https://mics-lab.github.io/thunder/leaderboards/"

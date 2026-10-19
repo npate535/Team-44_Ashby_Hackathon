@@ -523,7 +523,37 @@
       "benign_stroma_fat",
       "lymphocytes"
     ],
-    "image": "images/BACH_0134.jpg"
+    "image": "images/BACH_0134.jpg",
+    "detail": [
+      {
+        "concept": "benign_stroma_fat",
+        "label": "Benign fibrous stroma or fat",
+        "query_z": 0.67,
+        "contrast_z": -1.83,
+        "delta": 2.5,
+        "spotcheck": {
+          "acceptable": 20,
+          "reviewed": 20
+        },
+        "reliable": true,
+        "query_region": 0,
+        "contrast_region": 4
+      },
+      {
+        "concept": "lymphocytes",
+        "label": "Dense lymphocytic infiltrate (TILs)",
+        "query_z": 1.39,
+        "contrast_z": -0.49,
+        "delta": 1.88,
+        "spotcheck": {
+          "acceptable": 8,
+          "reviewed": 20
+        },
+        "reliable": false,
+        "query_region": 7,
+        "contrast_region": 1
+      }
+    ]
   },
   "agreement": {
     "conch_musk_same_top": true,
@@ -662,7 +692,12 @@
         ],
         "value": 1.383,
         "direction": "context",
-        "level": "above_typical"
+        "level": "above_typical",
+        "spotcheck": {
+          "acceptable": 8,
+          "reviewed": 20
+        },
+        "reliable": false
       }
     },
     {
@@ -678,7 +713,12 @@
         ],
         "value": 1.213,
         "direction": "up",
-        "level": "above_typical"
+        "level": "above_typical",
+        "spotcheck": {
+          "acceptable": 19,
+          "reviewed": 20
+        },
+        "reliable": true
       }
     },
     {
@@ -695,7 +735,12 @@
         ],
         "value": 2.423,
         "direction": "up",
-        "level": "above_typical"
+        "level": "above_typical",
+        "spotcheck": {
+          "acceptable": 3,
+          "reviewed": 20
+        },
+        "reliable": false
       }
     },
     {
@@ -809,9 +854,14 @@
         ]
       },
       {
-        "text": "Strongest push toward invasive carcinoma in this read: prominent tumor infiltrating stroma (regions 1 and 4), then prominent tumor necrosis.",
+        "text": "Strongest push toward invasive carcinoma in this read: prominent tumor infiltrating stroma (regions 1 and 4).",
         "findings": [
-          "F3",
+          "F3"
+        ]
+      },
+      {
+        "text": "Prominent tumor necrosis pushed this read toward invasive carcinoma but failed its AI spot check (3/20 regions acceptable), so it is not given as a reason.",
+        "findings": [
           "F4"
         ]
       },
@@ -819,12 +869,6 @@
         "text": "Tumor cell fraction is higher than in 97% of benign reference cases (regions 1, 4 and 9).",
         "findings": [
           "F7"
-        ]
-      },
-      {
-        "text": "5 of 5 most similar reference cases share the suggested category (in situ carcinoma).",
-        "findings": [
-          "F5"
         ]
       }
     ]

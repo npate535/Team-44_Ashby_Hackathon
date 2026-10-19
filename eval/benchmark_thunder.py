@@ -3,7 +3,7 @@
     python -m eval.benchmark_thunder
 
 Our test split IS the THUNDER test split (patient-safe fixed ranges, §A2), so the numbers sit on the same images, but
-the protocol differs (published: whole-image resize linear probes; ours: tiles + TTA + the selected model), which the
+the protocol differs (published: whole-image resize linear probes; ours: mean-pooled region tiles + the selected model), which the
 output says verbatim ("same split, different protocol"). No comparison is made to the 87% ICIAR challenge result,
 which used a different, hidden test set.
 

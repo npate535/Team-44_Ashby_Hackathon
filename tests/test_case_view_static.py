@@ -5,6 +5,7 @@ checks are labelled, and ground truth never reaches the rendered HTML."""
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import textwrap
@@ -63,7 +64,10 @@ def test_why_panel_groups_spot_checks_and_no_ground_truth():
     for group in cfg_groups():
         assert group in html
     assert "AI spot check 19/20" in html and "not pathologist-validated" in html
-    assert "AI spot check 3/20 · top regions often did not show this feature" in html
+    # below the fixed 0.75 cut-off: muted row, association only (same rule as the case JSON's `reliable`)
+    assert "Spot check failed (3/20); association only" in html and "AI spot check 3/20" not in html
+    rows = {m.group(2): m.group(1) for m in re.finditer(r'class="why-row([^"]*)" data-testid="why-bar-([a-z_]+)"', html)}
+    assert "unreliable" in rows["duct_confined"] and "unreliable" not in rows["invasion"]
     assert "AI spot check" not in out["plain"]                      # absent eval file: render nothing
     assert "why-no-level" in out["plain"]                           # fixture has no value_std: one note, no words
     assert "eval_only" not in html and "true_label" not in html
@@ -227,3 +231,65 @@ def test_why_card_lists_the_regions_with_the_largest_push():
         assert f'data-rg="{idx}" data-rg-scope="case"' in html         # opens the viewer focused on that region
     assert "+0.42" in html and "Region 7" in html
     assert html.index("Region 7") < html.index("Region 5") < html.index("Region 6")
+
+
+# ---- look-alike contrast detail (judge feedback T4) ----------------------------------------------------------------------
+CONTRAST_NOTE = ("Feature scores measure similarity to written descriptions of each feature, standardized on training "
+                 "cases. They show association, not a pathologist's reasoning.")
+CONTRAST_DETAIL = [
+    {"concept": "invasion", "label": "Tumor infiltrating stroma", "query_z": 1.62, "contrast_z": -0.41, "delta": 2.03,
+     "spotcheck": {"acceptable": 19, "reviewed": 20}, "reliable": True, "query_region": 5, "contrast_region": 6},
+    {"concept": "necrosis", "label": "Tumor necrosis", "query_z": 0.12, "contrast_z": 1.45, "delta": -1.33,
+     "spotcheck": {"acceptable": 3, "reviewed": 20}, "reliable": False, "query_region": 2, "contrast_region": None},
+]
+
+
+def _compared(detail, differs=None) -> str:
+    out = run_node(f"""
+        const detail = {json.dumps(detail)};
+        const differs = {json.dumps(differs)};
+        const cc = {{...biopsy.contrast_case, detail}};
+        if (differs) cc.differs_most_in = differs;
+        const v = A.toView({{...biopsy, contrast_case: cc, _fetched_ms: 0}}, 0, cfg, null);
+        out.html = W.compared(v, cfg, (p) => p);
+    """)
+    return out["html"]
+
+
+def _rows(html: str) -> list[str]:
+    body = html[html.index("<tbody"):html.index("</tbody>")]
+    return body.split("<tr")[1:]
+
+
+def test_contrast_table_shows_direction_magnitude_spot_check_and_region():
+    html = _compared(CONTRAST_DETAIL, [d["concept"] for d in CONTRAST_DETAIL])
+    assert 'data-testid="contrast-detail"' in html and "Differs most in" not in html
+    for header in ("Feature", "This case", "Look-alike", "Difference (SD of training cases)", "Spot check"):
+        assert f">{header}</th>" in html
+    ok, failed = _rows(html)
+    assert "Tumor infiltrating stroma" in ok and "+1.62" in ok and "−0.41" in ok and "+2.03" in ok
+    assert "19/20" in ok and "AI-reviewed" in ok and "unreliable" not in ok and "not used as a reason" not in ok
+    assert 'data-rg="5" data-rg-scope="case"' in ok                  # opens this case at its strongest region
+    assert "strongest in region 5" in ok and "strongest in region 6" in ok
+    assert "Tumor necrosis" in failed and "−1.33" in failed and "3/20" in failed
+    assert 'class="ct-row unreliable"' in failed and "Spot check failed; not used as a reason" in failed
+    assert failed.count("strongest in region") == 1                  # look-alike region unknown: no region text
+    assert html.count("Spot check failed; not used as a reason") == 1
+    assert CONTRAST_NOTE.replace("'", "&#39;") in html or CONTRAST_NOTE in html
+    assert 'class="ct-mark" data-ct="0"' in html and 'data-ct="1" style' not in html   # thumbnail outline per region
+
+
+def test_contrast_table_without_a_spot_check_and_all_rows_unreliable():
+    detail = [{**CONTRAST_DETAIL[0], "spotcheck": None, "reliable": False}, CONTRAST_DETAIL[1]]
+    html = _compared(detail, [d["concept"] for d in detail])
+    first, second = _rows(html)
+    assert "No spot check; not used as a reason" in first and 'class="ct-row unreliable"' in first
+    assert "Spot check failed; not used as a reason" in second
+    assert "No feature in this comparison passed its AI spot check" in html
+
+
+def test_contrast_falls_back_to_chips_without_detail():
+    for detail in (None, []):
+        html = _compared(detail)
+        assert 'data-testid="contrast-detail"' not in html and "Differs most in" in html
+        assert 'class="chip"' in html

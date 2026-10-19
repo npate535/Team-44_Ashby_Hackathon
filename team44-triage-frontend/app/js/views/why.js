@@ -10,6 +10,7 @@ export const aggProb = (v, cfg) => {
   const row = v.probs.find((x) => x.cls === agg);
   return row ? row.p : v.risk === null ? null : v.risk / 100;
 };
+const SPOT_MIN = 0.75; // core.contract.SPOTCHECK_RELIABLE_MIN (the case JSON's `reliable` uses the same cut-off)
 const NEGLIGIBLE = 0.05; // |contribution| below this reads as "barely moves" (settings findings.min_abs_contribution)
 const isNum = (x) => x !== null && x !== undefined && Number.isFinite(Number(x));
 const sz = (x) => (x > 0 ? '+' : x < 0 ? '−' : '±') + Math.abs(x).toFixed(2);
@@ -47,13 +48,14 @@ export function levelOf(r, cells) {
   return { word: '', cls: 'none', short: '', long: '', tip };
 }
 
-/** AI spot check of a concept's top regions (eval/spotcheck.json summary.concept[id] = {n, acceptable}). */
+/** AI spot check of a concept's top regions (eval/spotcheck.json summary.concept[id] = {n, acceptable}); `failed` uses
+ *  the same fixed cut-off as the case JSON's `reliable` (core.contract.SPOTCHECK_RELIABLE_MIN). */
 function spotOf(metrics, id) {
   const sc = metrics && metrics.eval && metrics.eval.spotcheck;
   const e = sc && sc.summary && sc.summary.concept ? sc.summary.concept[id] : null;
   if (!e || !isNum(e.n) || !isNum(e.acceptable) || Number(e.n) <= 0) return null;
-  const low = Number(e.acceptable) / Number(e.n) <= 0.25;
-  return { n: Number(e.n), ok: Number(e.acceptable), low };
+  const failed = Number(e.acceptable) / Number(e.n) < SPOT_MIN;
+  return { n: Number(e.n), ok: Number(e.acceptable), failed };
 }
 
 /** Tiny SD track (−3…+3, typical band ±0.5) so levels scan down the column; percentiles use 0…100. */
@@ -111,7 +113,7 @@ function whyRow(r, hm, maxAbs, cells, metrics) {
       : '<span class="cc no" title="No concept vector passed the held-out caption check; text prompts only">text prompts only</span>';
   const spot = r.measured ? null : spotOf(metrics, r.id);
   const spotBadge = spot
-    ? `<span class="spot${spot.low ? ' low' : ''}" data-testid="spot-${esc(r.id)}" title="AI-reviewed spot check (Claude), not pathologist-validated: ${spot.ok} of ${spot.n} of this feature's top regions looked like the feature.${spot.low ? ' Top regions often did not show this feature, so discount this row.' : ''}">AI spot check ${spot.ok}/${spot.n}${spot.low ? ' · top regions often did not show this feature' : ''}</span>`
+    ? `<span class="spot${spot.failed ? ' low' : ''}" data-testid="spot-${esc(r.id)}" title="AI-reviewed spot check (Claude), not pathologist-validated: ${spot.ok} of ${spot.n} of this feature's top regions looked like the feature.${spot.failed ? ` Below the ${Math.round(SPOT_MIN * 100)}% needed, so this row is an association only and the summary does not give it as a reason.` : ''}">${spot.failed ? `Spot check failed (${spot.ok}/${spot.n}); association only` : `AI spot check ${spot.ok}/${spot.n}`}</span>`
     : '';
   const spread = isNum(r.spread) ? ` Prompt-ensemble spread ${Number(r.spread).toFixed(2)}.` : '';
   const lead = r.measured
@@ -130,8 +132,8 @@ function whyRow(r, hm, maxAbs, cells, metrics) {
     .join(' ');
   const tipText = [lvl.tip, spread.trim()].filter(Boolean).join(' · ');
   return (
-    `<button type="button" class="why-row${hm.why === r.id ? ' on' : ''}" data-testid="why-bar-${esc(r.id)}" data-why="${esc(r.id)}" data-tiles="${esc(tiles.join(','))}"${tipText ? ` title="${esc(tipText)}"` : ''} ` +
-    `aria-pressed="${hm.why === r.id}" aria-label="${esc(r.label)}. ${esc(sentence)} Contribution ${esc(isNum(r.contribution) ? signed(r.contribution) : 'not available')}.${tipText ? ' ' + esc(tipText) + '.' : ''}${spot ? ` AI spot check ${spot.ok} of ${spot.n}, not pathologist-validated.` : ''}${tiles.length ? ` Highlights regions ${esc(tiles.join(', '))}.` : ''}">` +
+    `<button type="button" class="why-row${hm.why === r.id ? ' on' : ''}${spot && spot.failed ? ' unreliable' : ''}" data-testid="why-bar-${esc(r.id)}" data-why="${esc(r.id)}" data-tiles="${esc(tiles.join(','))}"${tipText ? ` title="${esc(tipText)}"` : ''} ` +
+    `aria-pressed="${hm.why === r.id}" aria-label="${esc(r.label)}. ${esc(sentence)} Contribution ${esc(isNum(r.contribution) ? signed(r.contribution) : 'not available')}.${tipText ? ' ' + esc(tipText) + '.' : ''}${spot ? ` AI spot check ${spot.ok} of ${spot.n}, not pathologist-validated${spot.failed ? '; failed, association only' : ''}.` : ''}${tiles.length ? ` Highlights regions ${esc(tiles.join(', '))}.` : ''}">` +
     `<span class="wr-head"><span class="lbl">${esc(r.label)}</span><span class="wr-badges">${cc}${spotBadge}${context ? '<span class="src ctx" title="Plan §6.4: context, not ranked">context</span>' : ''}</span></span>` +
     (lvl.word
       ? `<span class="wr-level ${lvl.cls}"><b>${esc(lvl.word)}</b>${lvl.short ? `<span>${esc(lvl.short)}</span>` : ''}${sdTrack(lvl)}</span>`
@@ -197,7 +199,11 @@ export function why(v, hm, cfg, metrics) {
   const net = rows.reduce((a, r) => a + (isNum(r.contribution) ? Number(r.contribution) : 0), 0);
   const ups = [...rows].filter((r) => num(r.contribution) >= NEGLIGIBLE).sort((a, b) => b.contribution - a.contribution).slice(0, 2);
   const downs = [...rows].filter((r) => num(r.contribution) <= -NEGLIGIBLE).sort((a, b) => a.contribution - b.contribution).slice(0, 2);
-  const list = (xs) => xs.map((r) => `<b>${esc(r.label)}</b> (${signed(r.contribution)})`).join(', ');
+  const failed = (r) => {
+    const sp = r.measured ? null : spotOf(metrics, r.id);
+    return sp && sp.failed ? `, spot check failed` : '';
+  };
+  const list = (xs) => xs.map((r) => `<b>${esc(r.label)}</b> (${signed(r.contribution)}${failed(r)})`).join(', ');
   const headline =
     `<div class="why-sum" data-testid="why-summary">` +
     `<div class="ws-net ${net >= 0 ? 'up' : 'down'}"><span>Net push of all rows</span><b>${signed(net)}</b><span>${net >= NEGLIGIBLE ? 'toward invasive' : net <= -NEGLIGIBLE ? 'away from invasive' : 'about neutral'}</span></div>` +
@@ -383,6 +389,77 @@ export function checksOnly(v, cfg, metrics) {
 
 // ---- Compared to ---------------------------------------------------------------------------------------------------
 
+// Look-alike contrast detail (case JSON contrast_case.detail, pipeline 07): per differs-most-in feature, both cases'
+// case-level scores in SD of training cases, the difference, the AI spot check and each image's strongest region.
+// `reliable` is decided upstream (core.contract SPOTCHECK_RELIABLE_MIN); an unreliable feature is never shown as a reason.
+const CONTRAST_NOTE =
+  "Feature scores measure similarity to written descriptions of each feature, standardized on training cases. They show association, not a pathologist's reasoning.";
+
+/** Spot-check wording for one contrast-detail row: count, the reason it is not used (if so) and a tooltip. */
+export function contrastSpot(d) {
+  const sc = d.spotcheck;
+  return {
+    count: sc ? `${sc.acceptable}/${sc.reviewed}` : '',
+    why: d.reliable ? '' : sc ? 'Spot check failed; not used as a reason' : 'No spot check; not used as a reason',
+    tip: sc
+      ? `AI-reviewed spot check: ${sc.acceptable} of ${sc.reviewed} top regions showed this feature (a pathologist did not review them). At least ${Math.round(SPOT_MIN * 100)}% is needed to use the feature as a reason.`
+      : 'No reviewed spot-check regions for this feature, so it is not used as a reason.'
+  };
+}
+
+const contrastLabel = (v, d) => d.label || (v.concepts.find((k) => k.id === d.concept) || {}).label || humanize(d.concept);
+const contrastDetail = (c) => (c && Array.isArray(c.detail) && c.detail.length ? c.detail : null);
+
+/** Outline boxes for the look-alike thumbnail (one per row with a known region; shown while the row is hovered). */
+function contrastMarks(v, rows) {
+  const [gr, gc] = (v.image && v.image.grid) || [3, 4];
+  return rows
+    .map((d, i) => {
+      const r = d.contrast_region;
+      if (!isNum(r) || r < 0 || r >= gr * gc) return '';
+      const pc = (x) => (x * 100).toFixed(3) + '%';
+      return `<i class="ct-mark" data-ct="${i}" style="left:${pc((r % gc) / gc)};top:${pc(Math.floor(r / gc) / gr)};width:${pc(1 / gc)};height:${pc(1 / gr)}" aria-hidden="true"></i>`;
+    })
+    .join('');
+}
+
+/** The compact Feature | This case | Look-alike | Difference | Spot check table under the look-alike. */
+export function contrastTable(v, c) {
+  const rows = contrastDetail(c);
+  if (!rows) return '';
+  const region = (idx, link) =>
+    !isNum(idx)
+      ? ''
+      : link
+        ? `<button type="button" class="ct-rg" data-rg="${Number(idx)}" data-rg-scope="case" aria-label="Open this case at region ${Number(idx)}">strongest in region ${Number(idx)}</button>`
+        : `<span class="ct-rg">strongest in region ${Number(idx)}</span>`;
+  const body = rows
+    .map((d, i) => {
+      const s = contrastSpot(d);
+      return (
+        `<tr class="ct-row${d.reliable ? '' : ' unreliable'}" data-ct="${i}" data-tiles="${isNum(d.query_region) ? Number(d.query_region) : ''}" data-testid="contrast-row">` +
+        `<th scope="row">${esc(contrastLabel(v, d))}</th>` +
+        `<td data-label="This case"><span class="ct-z">${signed(num(d.query_z))}</span>${region(d.query_region, true)}</td>` +
+        `<td data-label="Look-alike"><span class="ct-z">${signed(num(d.contrast_z))}</span>${region(d.contrast_region, false)}</td>` +
+        `<td class="ct-d" data-label="Difference (SD)">${signed(num(d.delta))}</td>` +
+        `<td class="ct-spot" data-label="Spot check" title="${esc(s.tip)}">${s.count ? `${esc(s.count)} <span class="ct-ai">AI-reviewed</span>` : ''}${s.why ? `<span class="ct-why">${esc(s.why)}</span>` : ''}</td>` +
+        '</tr>'
+      );
+    })
+    .join('');
+  const none = rows.some((d) => d.reliable)
+    ? ''
+    : '<p class="sub ct-none">No feature in this comparison passed its AI spot check, so it gives no reliable feature-level reason.</p>';
+  return (
+    '<div class="ct-wrap">' +
+    '<table class="ct-table" data-testid="contrast-detail"><caption>Largest feature differences from the look-alike</caption>' +
+    '<thead><tr><th scope="col">Feature</th><th scope="col">This case</th><th scope="col">Look-alike</th><th scope="col">Difference (SD of training cases)</th><th scope="col">Spot check</th></tr></thead>' +
+    `<tbody>${body}</tbody></table>` +
+    none +
+    `<p class="sub ct-note">${CONTRAST_NOTE}</p></div>`
+  );
+}
+
 export function compared(v, cfg, assetUrl) {
   if (!v.similar.length && !v.contrast) return '<div class="note">No reference cases.</div>';
   const same = v.similar.filter((s) => s.label === v.top).length;
@@ -406,14 +483,20 @@ export function compared(v, cfg, assetUrl) {
       const w = k ? levelOf(k, v.cells).word : '';
       return w ? w.toLowerCase() + ' here' : '';
     };
+    const detail = contrastDetail(c);
+    const chips = detail
+      ? ''
+      : `<div class="sub">Differs most in</div><div class="chips">${(c.differs_most_in || [])
+          .map((id) => `<span class="chip">${esc(label(id))}${lv(id) ? ` <span class="sub">· ${esc(lv(id))}</span>` : ''}</span>`)
+          .join('')}</div>`;
     h +=
       `<div class="contrast cv-contrast" data-testid="contrast-case">` +
-      `<button type="button" class="ref-thumb wide" data-cv-compare="contrast" aria-label="Compare side by side with contrast case ${esc(c.case_id)}"><span class="cv-thumb"><img src="${esc(thumbUrl(assetUrl(c.image || 'images/' + c.case_id + '.jpg'), 400))}" alt="" data-cv-img width="400" height="300"></span></button>` +
-      `<div><b>Nearest case with a different label:</b> ${esc(classLabel(c.label, cfg))} <span class="sub">(${esc(c.case_id)} · similarity ${num(c.similarity).toFixed(2)})</span>` +
-      `<div class="sub">Differs most in</div><div class="chips">${(c.differs_most_in || [])
-        .map((id) => `<span class="chip">${esc(label(id))}${lv(id) ? ` <span class="sub">· ${esc(lv(id))}</span>` : ''}</span>`)
-        .join('')}</div>` +
-      `<button type="button" class="btn sm" data-cv-compare="contrast" data-testid="compare-contrast">Compare side by side</button></div></div>`;
+      `<button type="button" class="ref-thumb wide" data-cv-compare="contrast" aria-label="Compare side by side with contrast case ${esc(c.case_id)}"><span class="cv-thumb"><img src="${esc(thumbUrl(assetUrl(c.image || 'images/' + c.case_id + '.jpg'), 400))}" alt="" data-cv-img width="400" height="300">${detail ? contrastMarks(v, detail) : ''}</span></button>` +
+      `<div><b>Nearest case with a different label (look-alike):</b> ${esc(classLabel(c.label, cfg))} <span class="sub">(${esc(c.case_id)} · similarity ${num(c.similarity).toFixed(2)})</span>` +
+      chips +
+      `<div class="cv-cmp-open"><button type="button" class="btn sm" data-cv-compare="contrast" data-testid="compare-contrast">Compare side by side</button></div></div>` +
+      contrastTable(v, c) +
+      '</div>';
   }
   return h;
 }

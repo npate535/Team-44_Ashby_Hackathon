@@ -511,3 +511,116 @@ def test_template_concept_phrases_follow_level():
     assert ("Features lowering the likelihood of invasive carcinoma in this read: dense lymphocytic infiltrate (TILs) "
             "and tumor infiltrating stroma (typical level).") in texts
     assert S.validate(S.template(findings, CFG), findings, CFG)[1] == []
+
+
+# ---- AI spot check: a failed concept is never given as a reason (judge feedback T4b) ---------------------------------
+def _rc(fid, concept, label, contribution, level, ok, n=20, tiles=(1,)):
+    f = _c(fid, concept, label, contribution, level, tiles)
+    f["data"]["spotcheck"] = None if ok is None else {"acceptable": ok, "reviewed": n}
+    f["data"]["reliable"] = contract.spotcheck_passed(f["data"]["spotcheck"])
+    return f
+
+
+_MIT_FAIL = _rc("F2", "mitoses", "Frequent mitotic figures", 0.77, "above_typical", 0, tiles=(2, 5, 6))
+_LOB_FAIL = _rc("F3", "normal_lobules", "Normal lobules with two-layered epithelium", -0.6, "above_typical", 0,
+                tiles=(3, 7, 10))
+_FAT_OK = _rc("F4", "benign_stroma_fat", "Benign fibrous stroma or fat", -0.48, "above_typical", 20, tiles=(7, 8, 11))
+_INV_OK = _rc("F2", "invasion", "Tumor infiltrating stroma", 0.66, "above_typical", 19, tiles=(6, 8, 11))
+_PLEO_OK = _rc("F3", "pleomorphism", "Marked nuclear pleomorphism", 0.64, "above_typical", 18)
+_LYM_FAIL_UP = _rc("F4", "lymphocytes", "Dense lymphocytic infiltrate (TILs)", 0.5, "below_typical", 8, tiles=(11,))
+_RETR = {"id": "F5", "kind": "retrieval", "data": {"agree": 5, "of": 5, "label": "Invasive"}}
+_OK_Q = {"id": "F6", "kind": "quality", "data": {"reliability_flag": False, "qc_tiles_kept": 12, "min_tiles_kept": 3}}
+_CELL = {"id": "F7", "kind": "cells", "data": {"feature": "neo_fraction", "label": "Tumor cell fraction", "value": 0.8,
+                                               "unit": "", "ref_percentile": 1.0, "tiles": [1, 2, 5]}}
+MIT_CAVEAT = ("Frequent mitotic figures pushed this read toward invasive carcinoma but failed its AI spot check "
+              "(0/20 regions acceptable), so it is not given as a reason.")
+
+
+def _cites(out, fid):
+    return [s for s in out if fid in s["findings"]]
+
+
+def test_failed_strongest_push_becomes_a_caveat_not_a_reason():
+    # BACH_0087: mitoses (0/20) was the strongest push; nothing reliable pushes toward invasive carcinoma
+    findings = [_pred("InSitu", ["Normal", "InSitu", "Invasive"]), _MIT_FAIL, _LOB_FAIL, _FAT_OK, _RETR,
+                dict(_FLAGGED, id="F6"), _CELL]
+    out = S.template(findings, CFG)
+    texts = [s["text"] for s in out]
+    assert not any(t.startswith("Strongest push toward") for t in texts)
+    assert _cites(out, "F2") == [{"text": MIT_CAVEAT, "findings": ["F2"]}]
+    assert _cites(out, "F3") == []                     # the lowering sentence was not written, so no caveat for it
+    assert [s["findings"][0] for s in out] == ["F1", "F2", "F7", "F6"]   # caveat in the push slot (priority 2.5)
+    assert S.validate(out, findings, CFG)[1] == []
+
+
+def test_reliable_push_keeps_only_reliable_features_and_adds_one_caveat():
+    # BACH_0084: invasion 19/20 and pleomorphism 18/20 pass; lymphocytes 8/20 fails
+    findings = [_pred("Invasive", ["Invasive"]), _INV_OK, _PLEO_OK, _LYM_FAIL_UP, _RETR, _OK_Q, _CELL]
+    out = S.template(findings, CFG)
+    assert out[1] == {"text": "Strongest push toward invasive carcinoma in this read: prominent tumor infiltrating "
+                              "stroma (regions 6, 8 and 11), then marked nuclear pleomorphism.", "findings": ["F2", "F3"]}
+    assert out[2] == {"text": "Scarce lymphocytic infiltrate (TILs) pushed this read toward invasive carcinoma but "
+                              "failed its AI spot check (8/20 regions acceptable), so it is not given as a reason.",
+                      "findings": ["F4"]}
+    assert len(out) == CFG["summary"]["max_sentences"] and S.validate(out, findings, CFG)[1] == []
+
+
+def test_failed_lowering_feature_is_named_only_when_the_lowering_sentence_is_written():
+    findings = [_pred("Invasive", ["Invasive"]), _INV_OK, _LOB_FAIL, _FAT_OK]
+    out = S.template(findings, CFG)
+    assert [s["findings"] for s in out] == [["F1"], ["F2"], ["F4"], ["F3"]]
+    assert out[2]["text"] == ("Feature lowering the likelihood of invasive carcinoma in this read: prominent benign "
+                              "fibrous stroma or fat (regions 7, 8 and 11).")
+    assert out[3]["text"] == ("Prominent normal lobules with two-layered epithelium pushed this read away from invasive "
+                              "carcinoma but failed its AI spot check (0/20 regions acceptable), so it is not given as a "
+                              "reason.")
+    assert S.validate(out, findings, CFG)[1] == []
+
+
+def test_several_failed_features_and_no_spot_check_share_one_caveat():
+    nec = _rc("F3", "necrosis", "Tumor necrosis", 0.37, "above_typical", 3)
+    unreviewed = _rc("F4", "tubules", "Gland / tubule formation", 0.2, "below_typical", None)
+    findings = [_pred("Invasive", ["InSitu", "Invasive"]), _MIT_FAIL, nec, unreviewed]
+    out = S.template(findings, CFG)
+    assert out[1] == {"text": "Frequent mitotic figures (0/20 regions acceptable), prominent tumor necrosis (3/20 regions "
+                        "acceptable) and scarce gland / tubule formation (no AI spot check) pushed this read toward "
+                        "invasive carcinoma but did not pass an AI spot check, so they are not given as reasons.",
+                      "findings": ["F2", "F3", "F4"]}
+    assert len(out) == 2 and S.validate(out, findings, CFG)[1] == []
+    alone = S.template([_pred("Invasive", ["Invasive"]), unreviewed], CFG)[1]["text"]
+    assert alone == ("Scarce gland / tubule formation pushed this read toward invasive carcinoma but has no AI spot "
+                     "check, so it is not given as a reason.")
+
+
+@pytest.mark.parametrize("text,cited,ok", [
+    ("Frequent mitotic figures push the read toward invasive carcinoma.", [_MIT_FAIL], False),
+    ("Strongest push toward invasive carcinoma in this read: frequent mitotic figures (regions 2, 5 and 6).",
+     [_MIT_FAIL], False),
+    ("Frequent mitotic figures failed the AI spot check but push the read toward invasive carcinoma.", [_MIT_FAIL],
+     False),                                                                 # names the check, still a reason
+    (MIT_CAVEAT, [_MIT_FAIL], True),
+    ("Prominent tumor infiltrating stroma pushes the read toward invasive carcinoma; frequent mitotic figures failed "
+     "the AI spot check and are not given as a reason.", [_INV_OK, _MIT_FAIL], False),   # mixed with a reason
+    ("Prominent tumor infiltrating stroma pushes the read toward invasive carcinoma.", [_INV_OK], True),
+])
+def test_validator_rejects_failed_concepts_outside_the_caveat(text, cited, ok):
+    problem = _S.semantic_problem(text, cited, aggressive_top=True)
+    assert (problem is None) == ok, problem
+
+
+def test_llm_sentence_citing_a_failed_concept_is_dropped_and_backfilled_with_the_caveat():
+    findings = [_pred("InSitu", ["Normal", "InSitu", "Invasive"]), _MIT_FAIL, _LOB_FAIL, _FAT_OK, _RETR,
+                dict(_FLAGGED, id="F6"), _CELL]
+    llm = [sentence("In situ carcinoma is suggested; normal breast tissue and invasive carcinoma cannot be excluded.",
+                    "F1"),
+           sentence("Frequent mitotic figures push the read toward invasive carcinoma.", "F2")]
+    kept, dropped = S.validate(llm, findings, CFG)
+    assert [d["text"] for d in dropped] == [llm[1]["text"]] and "spot check" in dropped[0]["reason"]
+    out, added = S.ensure_required(kept, findings, CFG)
+    assert {"text": MIT_CAVEAT, "findings": ["F2"]} in out and added == 2      # quality concern + caveat backfill
+    assert S.validate(out, findings, CFG)[1] == []
+
+
+def test_findings_without_spot_check_keys_keep_the_old_wording():
+    out = S.template([_pred("Invasive", ["Invasive"]), _INV_HIGH_UP], CFG)
+    assert out[1]["text"].startswith("Strongest push toward invasive carcinoma in this read: prominent tumor")

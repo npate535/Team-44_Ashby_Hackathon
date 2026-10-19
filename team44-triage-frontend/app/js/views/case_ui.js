@@ -2,7 +2,8 @@
 // reference comparison, inline confirmations for irreversible actions, and finding / feature cross-highlighting.
 // app.js owns state, polling and the decision calls; this module only adds behaviour that needs no server round trip.
 // It listens on `document` (registered before app.js's own listeners, so it runs first) and never calls the API.
-import { classLabel, esc, humanize, num, thumbUrl, toView } from '../adapter.js';
+import { classLabel, esc, humanize, num, signed, thumbUrl, toView } from '../adapter.js';
+import { contrastSpot } from './why.js';
 
 const ST = () => window.__PQ_ST__ || null;
 const $ = (s, r = document) => r.querySelector(s);
@@ -212,6 +213,13 @@ window.addEventListener(
 // ---- cross-highlighting (finding chips, why rows) ---------------------------------------------------------------------------
 function peekTiles(ids, on) {
   $$('#app .rg').forEach((b) => b.classList.toggle('peek', on && ids.includes(Number(b.dataset.rg))));
+}
+// a Why row peeks its regions on the case image; a look-alike table row also outlines the look-alike's region
+const PEEK_ROW = '.why-row[data-tiles], .ct-row[data-tiles]';
+function peekRow(row, on) {
+  peekTiles(on ? row.dataset.tiles.split(',').filter(Boolean).map(Number) : [], on);
+  const box = row.classList.contains('ct-row') && row.closest('.cv-contrast');
+  if (box) $$(`.ct-mark[data-ct="${CSS.escape(row.dataset.ct || '')}"]`, box).forEach((m) => m.classList.toggle('on', on));
 }
 function linkTargets(chip) {
   const s = ST();
@@ -555,15 +563,22 @@ function showRef(i) {
   const cfg = s && s.cfg;
   const ref = c.list[c.i];
   const assetUrl = assetUrlFn;
-  c.panes[0].canvas.innerHTML = `<img src="${esc(assetUrl(v.image.src))}" alt="This case, ${esc(v.id)}" draggable="false">`;
-  c.panes[1].canvas.innerHTML = `<img src="${esc(assetUrl(ref.image || 'images/' + ref.case_id + '.jpg'))}" alt="Reference ${esc(ref.case_id)}" draggable="false">`;
+  const detail = ref.kind === 'contrast' && Array.isArray(ref.detail) && ref.detail.length ? ref.detail : null;
+  c.panes[0].canvas.innerHTML = `<img src="${esc(assetUrl(v.image.src))}" alt="This case, ${esc(v.id)}" draggable="false">` + (detail ? cmpMarks(v, detail, 'query_region') : '');
+  c.panes[1].canvas.innerHTML = `<img src="${esc(assetUrl(ref.image || 'images/' + ref.case_id + '.jpg'))}" alt="Reference ${esc(ref.case_id)}" draggable="false">` + (detail ? cmpMarks(v, detail, 'contrast_region') : '');
   c.panes[0].cap.innerHTML = `<b>This case</b> ${esc(v.id)} · suggested ${esc(classLabel(v.top, cfg) || '—')}`;
   const label = (id) => (v.concepts.find((k) => k.id === id) || {}).label || humanize(id);
+  const diffChip = (d, i) => {
+    const spot = contrastSpot(d);
+    return `<span class="chip${d.reliable ? '' : ' muted'}" title="${esc(spot.tip)}"><b class="cmp-n">${i + 1}</b> ${esc(d.label || label(d.concept))} ${signed(num(d.delta))} SD${spot.why ? ` · ${esc(spot.why)}` : ''}</span>`;
+  };
   c.panes[1].cap.innerHTML =
-    `<b>${ref.kind === 'contrast' ? 'Nearest case with a different label' : `Reference ${c.i + 1} of ${c.list.filter((x) => x.kind !== 'contrast').length}`}</b> ${esc(ref.case_id)} · reference label <b>${esc(classLabel(ref.label, cfg))}</b> (training split) · similarity ${num(ref.similarity).toFixed(2)}` +
-    (ref.kind === 'contrast' && ref.differs_most_in && ref.differs_most_in.length
-      ? `<span class="cmp-diff">Differs most in: ${ref.differs_most_in.map((id) => `<span class="chip">${esc(label(id))}</span>`).join('')}</span>`
-      : '');
+    `<b>${ref.kind === 'contrast' ? 'Nearest case with a different label (look-alike)' : `Reference ${c.i + 1} of ${c.list.filter((x) => x.kind !== 'contrast').length}`}</b> ${esc(ref.case_id)} · reference label <b>${esc(classLabel(ref.label, cfg))}</b> (training split) · similarity ${num(ref.similarity).toFixed(2)}` +
+    (detail
+      ? `<span class="cmp-diff">Differs most in (this case minus look-alike, SD of training cases): ${detail.map(diffChip).join('')}</span><span class="cmp-key">Numbered outlines mark each feature's strongest region in each image.</span>`
+      : ref.kind === 'contrast' && ref.differs_most_in && ref.differs_most_in.length
+        ? `<span class="cmp-diff">Differs most in: ${ref.differs_most_in.map((id) => `<span class="chip">${esc(label(id))}</span>`).join('')}</span>`
+        : '');
   $('.cmp-strip', c.d).innerHTML = c.list
     .map(
       (r, j) =>
@@ -575,6 +590,22 @@ function showRef(i) {
     p.layout();
     p.fit();
   });
+}
+/** Numbered outlines of each look-alike feature's strongest region (contract grid, source pixels; both images share
+ *  the case's size and grid), matching the numbered caption chips. Unreliable features are dashed. */
+function cmpMarks(v, detail, key) {
+  const [gr, gc] = v.image.grid || [3, 4];
+  const t = num(v.image.tile) || 512;
+  const marks = detail
+    .map((d, i) => {
+      const r = d[key];
+      if (!Number.isInteger(r) || r < 0 || r >= gr * gc) return '';
+      const x = (r % gc) * t,
+        y = Math.floor(r / gc) * t;
+      return `<g class="cmp-mark${d.reliable ? '' : ' unreliable'}"><rect x="${x}" y="${y}" width="${t}" height="${t}"/><text x="${x + 28 + i * 96}" y="${y + 112}">${i + 1}</text></g>`;
+    })
+    .join('');
+  return marks ? `<svg class="cmp-marks" viewBox="0 0 ${num(v.image.w)} ${num(v.image.h)}" preserveAspectRatio="none" aria-hidden="true">${marks}</svg>` : '';
 }
 function openCompare(trigger, which) {
   const s = ST();
@@ -674,30 +705,32 @@ document.addEventListener('pointerover', (e) => {
   if (rg && rg !== tipFor) showTip(rg);
   const chip = e.target.closest && e.target.closest('.fref[data-f]');
   if (chip) linkOn(chip, true);
-  const row = e.target.closest && e.target.closest('.why-row[data-tiles]');
-  if (row) peekTiles(row.dataset.tiles.split(',').filter(Boolean).map(Number), true);
+  const row = e.target.closest && e.target.closest(PEEK_ROW);
+  if (row) peekRow(row, true);
 });
 document.addEventListener('pointerout', (e) => {
   const rg = e.target.closest && e.target.closest('[data-rg]');
   if (rg && !(e.relatedTarget && rg.contains(e.relatedTarget))) hideTip();
   const chip = e.target.closest && e.target.closest('.fref[data-f]');
   if (chip && !(e.relatedTarget && chip.contains(e.relatedTarget))) linkOn(chip, false);
-  const row = e.target.closest && e.target.closest('.why-row[data-tiles]');
-  if (row && !(e.relatedTarget && row.contains(e.relatedTarget))) peekTiles([], false);
+  const row = e.target.closest && e.target.closest(PEEK_ROW);
+  if (row && !(e.relatedTarget && row.contains(e.relatedTarget))) peekRow(row, false);
 });
 document.addEventListener('focusin', (e) => {
   const t = e.target;
   if (!t.closest) return;
   if (t.matches('[data-rg]')) showTip(t);
   if (t.matches('.fref[data-f]')) linkOn(t, true);
-  if (t.matches('.why-row[data-tiles]')) peekTiles(t.dataset.tiles.split(',').filter(Boolean).map(Number), true);
+  const row = t.closest(PEEK_ROW);
+  if (row) peekRow(row, true);
 });
 document.addEventListener('focusout', (e) => {
   const t = e.target;
   if (!t.matches) return;
   if (t.matches('[data-rg]')) hideTip();
   if (t.matches('.fref[data-f]')) linkOn(t, false);
-  if (t.matches('.why-row[data-tiles]')) peekTiles([], false);
+  const row = t.closest && t.closest(PEEK_ROW);
+  if (row && !(e.relatedTarget && row.contains(e.relatedTarget))) peekRow(row, false);
 });
 
 // image loading state: a missing file is explained instead of leaving an empty box

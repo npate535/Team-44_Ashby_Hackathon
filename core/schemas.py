@@ -68,6 +68,9 @@ INVENTORY_MPP_KEY = "measured_mpp"
 # EVAL_ENVELOPE keys (core.io.provenance gives all but `name`) plus its payload.
 EVAL_ENVELOPE = ("name", "created_utc", "config_hash", "git_sha", "synthetic")
 EVAL_FILES: dict[str, str] = {
+    "fact_sheet": "Judge response · data units, splits, metrics, corpora, reference distributions, component roles",
+    "attention_comparison": "Judge response · ABMIL vs production probe on identical inputs: CV and paired test",
+    "human_baseline": "Judge response · BACH pathologist reader study and B-Path concordance next to Sepia per-class recall",
     "qc": "01q · tissue-QC fix: old vs new rule, pass rates, insufficient-tissue counts, display-vs-full-res validation",
     "concepts": "Task 9 · NCT cross-organ concept AUROCs; per concept {caption_consistent, cav_auroc}",
     "concepts_bach": "Task 9 · BACH per-class concept means (test) and spot-check summary",
@@ -492,7 +495,9 @@ RETRIEVAL = JsonSpec(
     required_keys=("encoder", "head", "k", "cases", "created_utc", "config_hash", "synthetic"),
     doc="cases: {case_id: {neighbors: [{case_id, label, similarity}] (k train references, cosine), predicted, agree, "
         "of, neighbor_agreement (= agree / of, neighbor labels vs the predicted class), contrast: {case_id, label, "
-        "similarity, differs_most_in: [concept ids]} or null}}.",
+        "similarity, differs_most_in: [concept ids], detail: [{concept, query_z, contrast_z, delta, spotcheck: "
+        "{acceptable, reviewed} | null, reliable, query_region, contrast_region}] (differs_most_in order) | null "
+        "(features missing)} or null}}.",
 )
 MARGINS_JSON = JsonSpec(
     "margins.json", "Task 10 · 05_risk_model (fine-scale probe)", "Task 11 · 08 (core.margin call) and margin eval",

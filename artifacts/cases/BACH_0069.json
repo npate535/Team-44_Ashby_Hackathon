@@ -522,7 +522,37 @@
       "lymphocytes",
       "necrosis"
     ],
-    "image": "images/BACH_0381.jpg"
+    "image": "images/BACH_0381.jpg",
+    "detail": [
+      {
+        "concept": "lymphocytes",
+        "label": "Dense lymphocytic infiltrate (TILs)",
+        "query_z": 2.44,
+        "contrast_z": 0.17,
+        "delta": 2.27,
+        "spotcheck": {
+          "acceptable": 8,
+          "reviewed": 20
+        },
+        "reliable": false,
+        "query_region": 11,
+        "contrast_region": 2
+      },
+      {
+        "concept": "necrosis",
+        "label": "Tumor necrosis",
+        "query_z": 0.76,
+        "contrast_z": -0.3,
+        "delta": 1.06,
+        "spotcheck": {
+          "acceptable": 3,
+          "reviewed": 20
+        },
+        "reliable": false,
+        "query_region": 5,
+        "contrast_region": 2
+      }
+    ]
   },
   "agreement": {
     "conch_musk_same_top": true,
@@ -664,7 +694,12 @@
         ],
         "value": 2.027,
         "direction": "context",
-        "level": "above_typical"
+        "level": "above_typical",
+        "spotcheck": {
+          "acceptable": 8,
+          "reviewed": 20
+        },
+        "reliable": false
       }
     },
     {
@@ -679,7 +714,12 @@
         ],
         "value": -0.188,
         "direction": "up",
-        "level": "below_typical"
+        "level": "below_typical",
+        "spotcheck": {
+          "acceptable": 19,
+          "reviewed": 20
+        },
+        "reliable": true
       }
     },
     {
@@ -694,7 +734,12 @@
         ],
         "value": 1.059,
         "direction": "down",
-        "level": "above_typical"
+        "level": "above_typical",
+        "spotcheck": {
+          "acceptable": 0,
+          "reviewed": 20
+        },
+        "reliable": false
       }
     },
     {
@@ -728,10 +773,15 @@
         ]
       },
       {
-        "text": "Features lowering the likelihood of invasive carcinoma in this read: dense lymphocytic infiltrate (TILs), scarce tumor infiltrating stroma and prominent normal lobules with two-layered epithelium.",
+        "text": "Feature lowering the likelihood of invasive carcinoma in this read: scarce tumor infiltrating stroma (region 3).",
+        "findings": [
+          "F3"
+        ]
+      },
+      {
+        "text": "Dense lymphocytic infiltrate (TILs; 8/20 regions acceptable) and prominent normal lobules with two-layered epithelium (0/20 regions acceptable) pushed this read away from invasive carcinoma but did not pass an AI spot check, so they are not given as reasons.",
         "findings": [
           "F2",
-          "F3",
           "F4"
         ]
       },
@@ -739,12 +789,6 @@
         "text": "1 of 5 most similar reference cases shares the suggested category (benign lesion).",
         "findings": [
           "F5"
-        ]
-      },
-      {
-        "text": "The reliability check raised no image-quality concern.",
-        "findings": [
-          "F6"
         ]
       }
     ]

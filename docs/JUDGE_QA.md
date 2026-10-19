@@ -1,0 +1,181 @@
+# Answers to the judges' questions
+
+Research prototype, not for clinical use. Each answer gives the number and the file it comes from. The full tables are in `docs/FACT_SHEET.md` (generated) and `docs/RESULTS.md`. When an answer here disagrees with something said during the judging conversations, this file is correct.
+
+## Data and evaluation
+
+**1. Are the 400 items original microscopy images, patches or whole-slide images? How many patients?**
+They are 400 original BACH microscopy images (100 per class), each 2048 × 1536 px at 0.42 µm/px. They are not whole-slide images.
+
+- Each image is read as a 3 × 4 grid of 512-px regions: 12 per image, 4,800 regions in total.
+- The production model embeds each region once with UNI2-h.
+
+Patient IDs come from the official BACH patient workbook, which covers 145 images from 29 patients. All 132 test images are among them (24 patients). Images without an ID are grouped in blocks of 5 consecutive file numbers, so that intervals and folds never split a block. BACH also has 30 whole-slide images; Sepia uses only the 10 annotated ones, and only for the simulated margin windows. Source: `docs/FACT_SHEET.md` §Data units.
+
+**2. Which images went into training, calibration and test? Can one patient or image appear on both sides?**
+The split is the published THUNDER benchmark split: 218 training, 50 calibration and 132 test images (total 400). The numbers 213 and 238 said aloud were wrong.
+
+| Split | Normal | Benign | In situ | Invasive |
+|---|---|---|---|---|
+| Train | 57 | 42 | 60 | 59 |
+| Calibration | 20 | 10 | 10 | 10 |
+| Test | 23 | 48 | 30 | 31 |
+
+- **Patients:** zero patient groups and zero identified patients appear in more than one split (checked by `eval/fact_sheet.py`).
+- **Regions:** all 12 regions of an image stay with that image, so no image contributes patches to two splits.
+
+**3. Did you run k-fold cross-validation, or a single split?**
+Both, for different purposes.
+
+- **Choosing the model:** patient-grouped 5-fold cross-validation with 3 repeats, run inside the 218 training images only.
+- **Reporting:** a single held-out test split of 132 images, scored once.
+- **Temperature:** fit on out-of-fold training predictions.
+- **Conformal threshold:** fit on the 50 calibration images.
+
+Source: `artifacts/eval/model_choice.json`.
+
+**4. What does 98–99% AUROC measure in a four-class task? How many invasive test images? What mistakes were made?**
+The headline is **invasive vs rest AUROC 0.999 [0.996, 1.000]**: a binary AUROC of P(invasive), invasive images against all other classes. Macro one-vs-rest AUROC across the four classes is 0.965 [0.883, 0.995]. Intervals are 95% bootstrap over patient groups.
+
+| Measure | Result |
+|---|---|
+| Invasive test images | 31, all flagged as invasive (sensitivity 100%) |
+| Invasive specificity | 97.0% [93.6, 100] |
+| Macro-F1 | 0.86 [0.68, 0.93] |
+| Accuracy | 0.86 [0.76, 0.94] |
+
+18 of 132 test images were misread:
+
+| True class | Read as | Count |
+|---|---|---|
+| Benign | Normal | 9 |
+| Normal | Benign | 3 |
+| In situ | Invasive | 3 |
+| In situ | Normal | 2 |
+| In situ | Benign | 1 |
+
+Every error is listed in `docs/FACT_SHEET.md`. The "benign false positives" mentioned aloud are mostly benign images read as normal, not as cancer.
+
+**5. Isn't BACH too clean? Can a pathologist tell these apart easily?**
+BACH is curated, and that is the main limitation. The dataset page says images the two annotators disagreed on were discarded. The paper says Normal-versus-Benign disagreements were discarded and other doubtful cases were confirmed by immunohistochemistry. Either way, the hard cases where pathologists disagree are under-represented.
+
+Signs that within-BACH numbers overstate real-world performance:
+
+- Training-set cross-validation scored macro-F1 0.955, against 0.86 on the test split.
+- The calibration split was easier than the test split, which broke the pre-registered conformal method.
+
+The closest human baseline is the BACH paper's own reader study (Aresta 2019, Table 4). Four pathologists read BACH's 100 hidden test images, seeing only the field image.
+
+| Reader | Four-class accuracy |
+|---|---|
+| Four pathologists, BACH hidden test images | 96%, 94%, 78%, 73% (mean 85%) |
+| Best challenge algorithm, same images | 87% |
+| Sepia, THUNDER test split (132 images, different images) | 86% [76, 94] |
+
+On whole slides of real biopsies, pathologists agreed with an expert consensus in 96% of invasive, 84% of DCIS and 48% of atypia cases (Elmore 2015, B-Path). Disagreement concentrates in atypia, which BACH does not contain.
+
+Sepia's main error, calling in situ carcinoma invasive, happened in 3 of 30 images (10%), against 3% of B-Path DCIS readings, in a different setting with wide intervals. Sepia does not resolve the borderline cases where pathologists differ. A reader study on uncurated material would be needed to show that.
+
+This is also why Sepia was tested on TCGA tissue it never saw (question 14). Details: `docs/HUMAN_BASELINE.md`.
+
+## Models and components
+
+**6. What did the team train, and what was reused?**
+
+- **Reused and frozen:** UNI2-h (production image encoder), CONCH (feature scores, similar cases, out-of-distribution distance) and MUSK (agreement check).
+- **Trained by the team:**
+  - the four-class linear probe on mean-pooled UNI2-h region embeddings;
+  - temperature scaling and the conformal threshold;
+  - feature vectors fitted from caption-mined Quilt-1M images;
+  - attention-based MIL and LoRA fine-tunes of UNI2-h (evaluated, not used in production);
+  - the reliability combiner and the tile heatmap probe.
+- **Rule-based:** tiers and drafted orders.
+- **Text:**
+  - Case summaries are a deterministic template that only restates structured findings.
+  - The optional "In plain language" tab was generated by Gemini 4 through Cursor for 330 cached cases (Claude for 2). Every number in it is checked against the evidence, and it is not itself evidence.
+- **Name correction:** "UDIP2" in the recording is UNI2-h (MahmoodLab/UNI2-h).
+
+Source: `docs/FACT_SHEET.md` §Who did what.
+
+**7. How were the ~27,000 Quilt images selected? Could any test image be in Quilt?**
+Of 1,017,708 Quilt-1M caption rows, 26,837 mention breast tissue. Caption patterns selected 5,436 image–feature rows as positive or negative examples for the nine features. These were used only to fit feature vectors for the explanations; Quilt never trains the classifier and never appears in evaluation.
+
+A near-duplicate check found no Quilt image closer than 0.935 CONCH cosine similarity to any BACH region. For scale, the median BACH region's nearest region from a different BACH image is at 0.914. Source: `artifacts/eval/fact_sheet.json`.
+
+**8. What does the "window of five" mean?**
+The five nearest training images by cosine similarity of their mean CONCH embedding. The library is the 218 training images only, so a test image can never retrieve itself or another test image. In 67% of cases the five neighbors share the test image's true label (precision@5 0.67 [0.58, 0.83]):
+
+| Test class | Neighbors with the same label |
+|---|---|
+| Normal | 92% |
+| Invasive | 91% |
+| In situ | 55% |
+| Benign | 47% |
+
+Source: `artifacts/eval/retrieval.json`.
+
+**9. Why did the attention model do worse? What was controlled?**
+It did not do clearly worse.
+
+- **Held fixed:** same UNI2-h region embeddings, same training images, same patient-grouped folds, same selection rule.
+- **Cross-validation:** attention-based MIL scored a log-loss of 0.183 ± 0.051 against 0.178 ± 0.059 for the linear probe. That is within one standard error, so the pre-registered rule picked the simpler model.
+- **Test:** macro-F1 0.837 vs 0.860; the paired difference is −0.023 [−0.073, +0.044], which includes zero. Invasive AUROC was 0.999 for both.
+
+"Too complex for 218 images" is a hypothesis, not a finding. Source: `docs/ATTENTION_COMPARISON.md`.
+
+## Explanations and confidence
+
+**10. Is Nottingham grading three components or nine features? Which did you implement?**
+Nottingham grading scores three components (tubule formation, nuclear pleomorphism, mitotic count), each 1–3, for a total of 3–9. Sepia does not compute a grade, because BACH labels are diagnostic categories, not grades.
+
+Sepia scores nine named features as similarity to written descriptions:
+
+- **Three mirror the Nottingham components:** tubules, pleomorphism, mitoses.
+- **Six are additional:** invasion into stroma, growth confined to ducts, normal lobules, benign stroma or fat, lymphocytes, necrosis.
+
+The app now labels the first group "Nottingham components (features, not a grade)". The AI spot check found the mitoses feature unreliable (0/20 top regions acceptable), so it should not be read as a mitotic count.
+
+**11. What do the displayed percentages and similarities mean? Are the probabilities calibrated?**
+The percentages are temperature-scaled class probabilities for this image. Calibration error (ECE) fell from 0.18 to 0.055 on the test split. They are not probabilities of progression, recurrence or survival.
+
+The case judges saw (BACH_0087, reference label in situ) reads:
+
+| Normal | Benign | In situ | Invasive |
+|---|---|---|---|
+| 14.9% | 1.7% | 42.7% | 40.7% |
+
+The missing 2–3% in the conversation was Benign. Its conformal set {Normal, In situ, Invasive} lists the classes the model cannot exclude at the 90% level. Because invasive is in the set, it goes to tier 2 with drafted p63/calponin stains.
+
+Feature scores are standardized against training images: "above normal" means above the training-image average, not a population norm.
+
+**12. Why is the benign look-alike different? Does Sepia name the distinguishing features?**
+Each look-alike now shows a table of the two features that differ most between the case and the look-alike, with their values and the spot-check status of each feature. A feature that failed its spot check is greyed out and not offered as a reason.
+
+These are associations measured by feature similarity, not a pathologist's reasoning. Across the 328 cases in the app, 48 look-alikes differ in two features that passed the spot check, 170 in one and 110 in none. For BACH_0087 the passing difference is benign stroma or fat: +1.06 SD in the case against −1.95 SD in its invasive look-alike, a difference of +3.01 SD. For BACH_0167 neither differing feature passed, and the table says it offers no reliable feature-level reason. The region heatmap is the evidence that passes a faithfulness test: removing the top 3 regions lowers the centered logit by 0.54 more than removing random regions. The feature regions do not pass that test. See question 14 and the case view.
+
+## Workflow claims
+
+**13. Does "20 to 6 minutes" refer to model runtime, a simulation, or a hospital measurement?**
+It is a simulation. One reader takes 9 minutes per case; cases arrive at 6 per hour over 8 hours, drawn from the test split; results are averaged over 1,000 simulated days.
+
+- The mean wait before an invasive case is first read falls from 20.2 to 6.0 minutes.
+- Unflagged cases wait 21.4 minutes longer.
+
+It is not model runtime, not a measured hospital result, and not a turnaround time. Measured model latency on a laptop is reported separately in `docs/RESULTS.md` (TCGA section). For comparison, the CAP benchmark is 90% of frozen sections within 20 minutes from receipt to the call to the surgeon (Novis 1997), and routine biopsies were 95% reported within 2 working days (Zarbo 1996). These are end-to-end turnaround times, which the simulated queue wait is not. The 20.2-minute queue number and the 20-minute benchmark are close by coincidence. Sources: `docs/HUMAN_BASELINE.md`.
+
+**14. What happens on a different site, scanner, stain or protocol?**
+The production model was tested unchanged on TCGA-BRCA slides from other hospitals and scanners, including real frozen sections: no retraining and no threshold changes. The analysis was pre-registered in `docs/EXTERNAL_TCGA_R2.md`, and the results are in `docs/RESULTS.md`. TCGA has only invasive tumor and adjacent normal tissue, so four-class accuracy and the in situ vs invasive distinction cannot be tested there.
+
+**15. Are the stain orders and frozen-section timers connected to real systems?**
+No.
+
+- **Stain orders:** rules draft them; the pathologist approves or edits them inside Sepia, and the approval is stored in Sepia's own database. Nothing is sent to a laboratory system.
+- **Frozen-section timer:** runs on simulated arrivals (amber at 15 minutes, red at 20, following the CAP 20-minute benchmark).
+
+See `docs/SCOPE_MATRIX.md`.
+
+**16. How would this handle whole slides, and other organs?**
+See `docs/WSI_AND_EXTENSION.md`. In short:
+
+- **Whole slides:** tile all tissue at the same resolution, read regions as today, then aggregate to slide and specimen with the evidence regions kept navigable.
+- **Other organs:** change the labeled training set, the feature descriptions, the stain rules and the calibration. Nothing beyond breast is validated.

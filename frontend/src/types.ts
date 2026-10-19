@@ -89,12 +89,30 @@ export interface SimilarCase {
   image: string;
 }
 
+export interface SpotcheckCount {
+  acceptable: number;
+  reviewed: number;
+}
+
+export interface ContrastDetail {
+  concept: string;
+  label: string;
+  query_z: number;
+  contrast_z: number;
+  delta: number;
+  spotcheck: SpotcheckCount | null;
+  reliable: boolean;
+  query_region: number | null;
+  contrast_region: number | null;
+}
+
 export interface ContrastCase {
   case_id: string;
   label: string;
   similarity: number;
   differs_most_in: string[];
   image?: string | null;
+  detail?: ContrastDetail[] | null;
 }
 
 export interface Agreement {
