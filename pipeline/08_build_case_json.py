@@ -40,7 +40,9 @@ Blocks follow core.contract exactly (fixtures/demo_0001.json, demo_0002.json):
                reliability_flag), threshold (kept for defer calls too, ruling M8), strip_um = margin.strip_px x core.config.effective_mpp, involved_length_um
   cells        CELLS_SPEC §7.2 block, or {"status": "disabled"} (cells.enabled false or the module did not run)
   flag         core.tiers.flag_for(case, cfg) with now=None (static)
-  findings     F1 prediction; concepts (|contribution| >= findings.min_abs_contribution, top findings.max_concepts);
+  findings     F1 prediction; concepts (|contribution| >= findings.min_abs_contribution, top findings.max_concepts;
+               spotcheck {acceptable, reviewed} | null from eval/spotcheck.json and reliable = core.contract
+               spotcheck_passed, so summaries never give a failed concept as a reason);
                retrieval; quality; cells (CELLS_SPEC §7.2 extreme-percentile / non-trivial-contribution rule); margin
   summary      backend.summary.generate (template unless --max-llm-calls > 0 and a Lumen key exists, or
                --llm-cache-only: cached LLM replies only, zero network calls, template on a cache miss)
@@ -77,7 +79,7 @@ from agent import agent as agent_mod
 from agent import rules as rules_mod
 from agent.lumen import LumenClient
 from backend import summary as summary_mod
-from core import cli, config, contract, io, margin, schemas, tiers
+from core import cli, config, contract, io, margin, schemas, spotcheck, tiers
 
 STEP = "08_build_case_json"
 CELL_FEATURES_YAML = "config/cell_features.yaml"   # Agent 1's file (requested settings key cells.features_file)
@@ -168,6 +170,7 @@ class Inputs:
     concepts_eval: dict[str, Any]
     inputs_used: list[str] = field(default_factory=list)
     tile_contrib: pd.DataFrame | None = None  # 05d region contributions (optional)
+    spotcheck: dict[str, dict[str, int]] = field(default_factory=dict)   # concept -> {acceptable, reviewed}
 
 
 def load_cell_meta(path: Path) -> dict[str, dict[str, Any]]:
@@ -269,9 +272,11 @@ def load_inputs(cfg: Mapping[str, Any], root: Path, artifacts: Path, *, concept_
     if schemas.tile_contrib_csv(root).is_file():
         tile_contrib = _read_table(schemas.TILE_CONTRIB, track(schemas.tile_contrib_csv(root)))
         tile_contrib["read_id"] = tile_contrib["read_id"].astype(str)
+    if schemas.eval_json(artifacts, "spotcheck").is_file():
+        track(schemas.eval_json(artifacts, "spotcheck"))
     return Inputs(cases, tiles, predictions, reliability, contributions, case_features, tile_risk, tile_attention,
                   concepts_tile, concept_ids, retrieval, margins, composites, cells, bank, concepts_eval, used,
-                  tile_contrib)
+                  tile_contrib, spotcheck.counts(artifacts))
 
 
 # ---- the case plan ---------------------------------------------------------------------------------------------------
@@ -603,7 +608,8 @@ def cells_block(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], qc: Sequ
 
 # ---- findings ----------------------------------------------------------------------------------------------------------
 def build_findings(case: Mapping[str, Any], cfg: Mapping[str, Any], retrieval_entry: Mapping[str, Any] | None,
-                   cell_meta: Mapping[str, Mapping[str, Any]] | None) -> list[dict[str, Any]]:
+                   cell_meta: Mapping[str, Mapping[str, Any]] | None,
+                   spot: Mapping[str, Mapping[str, int]] | None = None) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
 
     def add(kind: str, data: dict[str, Any]) -> None:
@@ -623,6 +629,9 @@ def build_findings(case: Mapping[str, Any], cfg: Mapping[str, Any], retrieval_en
             sd = float(cfg["findings"]["level_sd"])
             v = float(c["value_std"])
             data["level"] = "above_typical" if v >= sd else ("below_typical" if v <= -sd else "typical")
+        sc = (spot or {}).get(c["id"])           # AI spot check: a failed concept is never given as a reason
+        data["spotcheck"] = dict(sc) if sc is not None else None
+        data["reliable"] = contract.spotcheck_passed(sc)
         add("concept", data)
     if retrieval_entry is not None:
         add("retrieval", {"agree": int(retrieval_entry["agree"]), "of": int(retrieval_entry["of"]),
@@ -701,7 +710,8 @@ def assemble(spec: CaseSpec, inputs: Inputs, cfg: Mapping[str, Any], rules: rule
         "cells": cells,
     }
     case["flag"] = tiers.flag_for(case, cfg)
-    case["findings"] = build_findings(case, cfg, retrieval_entry, inputs.cells.meta if inputs.cells else None)
+    case["findings"] = build_findings(case, cfg, retrieval_entry, inputs.cells.meta if inputs.cells else None,
+                                      inputs.spotcheck)
     case["agent"] = rules_mod.draft_orders(case, cfg, rules)
     case["summary"] = summary_mod.template_summary(case["findings"], cfg)
     eval_only = {"true_label": spec.true_label, "split": spec.split, "group": spec.group,

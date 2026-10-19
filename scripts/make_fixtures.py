@@ -163,8 +163,10 @@ def biopsy() -> dict:
         },
         "findings": [
             {"id": "F1", "kind": "prediction", "data": {"top": "Invasive", "p": 0.72, "set": ["InSitu", "Invasive"]}},
-            {"id": "F2", "kind": "concept", "data": {"concept": "invasion", "contribution": 0.44, "tiles": [5, 6]}},
-            {"id": "F3", "kind": "concept", "data": {"concept": "pleomorphism", "contribution": 0.21, "tiles": [5, 9]}},
+            {"id": "F2", "kind": "concept", "data": {"concept": "invasion", "contribution": 0.44, "tiles": [5, 6],
+                                                     "spotcheck": {"acceptable": 19, "reviewed": 20}, "reliable": True}},
+            {"id": "F3", "kind": "concept", "data": {"concept": "pleomorphism", "contribution": 0.21, "tiles": [5, 9],
+                                                     "spotcheck": {"acceptable": 18, "reviewed": 20}, "reliable": True}},
             {"id": "F4", "kind": "retrieval", "data": {"agree": 4, "of": 5, "label": "Invasive"}},
             {"id": "F5", "kind": "quality", "data": {"reliability_flag": False}},
             {"id": "F6", "kind": "cells", "data": {"feature": "nuc_area_cv", "value": 0.48, "ref_percentile": 0.95,

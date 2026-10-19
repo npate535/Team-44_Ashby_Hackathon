@@ -9,10 +9,9 @@ degraded / composite variant: cosine top-k neighbors (retrieval.k), neighbor agr
 predicted class, and differs_most_in = the retrieval.differs_most_in_k concepts with the largest |delta z| between
 query and contrast case features (case_features.csv c__top<k>, z-scored on train cases; [] when absent).
 contrast.detail lists those concepts in the same order: {concept, query_z, contrast_z, delta = query_z - contrast_z
-(2 dp), spotcheck {acceptable, reviewed} | null (artifacts eval/spotcheck.json summary), reliable (acceptable /
-reviewed >= core.contract.SPOTCHECK_RELIABLE_MIN), query_region / contrast_region (contract-grid idx of the highest
-concepts_tile.npz tile z in that read, null without per-tile scores)}; detail is null when either case lacks
-features (never zeros). Step 08 adds the concept bank label.
+(2 dp), spotcheck {acceptable, reviewed} | null (core.spotcheck.counts), reliable (core.contract.spotcheck_passed),
+query_region / contrast_region (contract-grid idx of the highest concepts_tile.npz tile z in that read, null without
+per-tile scores)}; detail is null when either case lacks features (never zeros). Step 08 adds the concept bank label.
 Writes retrieval.json (data root) and eval/retrieval.json: precision@k on the test split (neighbor label == query
 true label) with a cluster-bootstrap CI over patient groups.
 """
@@ -26,7 +25,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from core import cli, contract, io, schemas, stats
+from core import cli, contract, io, schemas, spotcheck, stats
 from pipeline import riskmodels as rm
 
 STEP = "07_retrieval"
@@ -69,23 +68,6 @@ def tile_scores(root, concept_ids: Sequence[str]) -> TileScores:
     return out
 
 
-def spotcheck_counts(artifacts_root) -> dict[str, dict[str, int]]:
-    """Concept id -> {acceptable, reviewed} from eval/spotcheck.json (summary.concept {n, acceptable}); concepts with
-    nothing reviewed are left out. {} when the file is absent."""
-    path = schemas.eval_json(artifacts_root, "spotcheck")
-    if not path.is_file():
-        return {}
-    summary = (io.read_json(path).get("summary") or {}).get("concept") or {}
-    out = {}
-    for cid, entry in summary.items():
-        n, ok = int(entry.get("n") or 0), int(entry.get("acceptable") or 0)
-        if n > 0:
-            if not 0 <= ok <= n:
-                raise ValueError(f"eval/spotcheck.json: {cid} has {ok} acceptable of {n} reviewed")
-            out[str(cid)] = {"acceptable": ok, "reviewed": n}
-    return out
-
-
 def strongest_region(scores: TileScores, read_id: str, ci: int) -> int | None:
     """Contract-grid idx of the read's highest tile z for concept ci (lowest idx on ties); None without scores."""
     if read_id not in scores:
@@ -120,7 +102,7 @@ def contrast_detail(query: str, ref: str, z: pd.DataFrame | None, concept_ids: S
     for t in order:
         cid = concept_ids[t]
         sc = spot.get(cid)
-        reliable = sc is not None and sc["acceptable"] / sc["reviewed"] >= contract.SPOTCHECK_RELIABLE_MIN
+        reliable = contract.spotcheck_passed(sc)
         detail.append({"concept": cid, "query_z": _r2(qz[t]), "contrast_z": _r2(rz[t]), "delta": _r2(delta[t]),
                        "spotcheck": dict(sc) if sc is not None else None, "reliable": bool(reliable),
                        "query_region": strongest_region(scores, query, int(t)),
@@ -154,7 +136,7 @@ def run(ctx: cli.StepContext) -> dict[str, Any]:
     else:
         z = None
     scores = tile_scores(root, concept_ids)
-    spot = spotcheck_counts(ctx.artifacts_root)
+    spot = spotcheck.counts(ctx.artifacts_root)
 
     comp_src: dict[str, str] = {}
     comp_csv = schemas.composites_csv(root)

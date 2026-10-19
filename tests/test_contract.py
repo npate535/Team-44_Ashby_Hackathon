@@ -620,3 +620,33 @@ def test_contrast_detail_follows_differs_most_in():
 ])
 def test_contrast_detail_rules(row, match):
     rejects(with_detail(row), match)
+
+
+# ---- concept findings carry their AI spot check (judge feedback T4b) ---------------------------------------------------
+def with_concept_spot(spot, reliable, drop=None):
+    case = biopsy_case()
+    data = case["findings"][1]["data"]
+    data.update({"spotcheck": spot, "reliable": reliable})
+    if drop:
+        data.pop(drop)
+    return case
+
+
+@pytest.mark.parametrize("spot,reliable", [({"acceptable": 19, "reviewed": 20}, True),
+                                           ({"acceptable": 15, "reviewed": 20}, True),
+                                           ({"acceptable": 0, "reviewed": 20}, False), (None, False)])
+def test_concept_finding_spot_check_validates(spot, reliable):
+    model = contract.Case.model_validate(with_concept_spot(spot, reliable))
+    assert model.findings[1].data["reliable"] is reliable
+
+
+@pytest.mark.parametrize("spot,reliable,drop,match", [
+    ({"acceptable": 0, "reviewed": 20}, True, None, "reliable must be False"),    # a failed check is never a reason
+    (None, True, None, "reliable must be False"),
+    ({"acceptable": 18, "reviewed": 20}, False, None, "reliable must be True"),
+    ({"acceptable": 21, "reviewed": 20}, False, None, "acceptable"),
+    ({"acceptable": 19, "reviewed": 20}, True, "spotcheck", "together"),
+    ({"acceptable": 19, "reviewed": 20}, True, "reliable", "together"),
+])
+def test_concept_finding_spot_check_rules(spot, reliable, drop, match):
+    rejects(with_concept_spot(spot, reliable, drop), match)

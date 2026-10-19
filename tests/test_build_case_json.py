@@ -476,3 +476,41 @@ def test_contrast_detail_out_of_order_is_an_error(env):
     _set_detail(env, "BACH_0102", copy.deepcopy(DETAIL[::-1]))
     with pytest.raises(STEP.InputError, match="differs_most_in"):
         run(env)
+
+
+# ---- concept findings carry their AI spot check (judge feedback T4b) ---------------------------------------------------
+def test_concept_findings_carry_the_spot_check_and_summaries_never_give_failed_ones_as_reasons(env):
+    review = schemas.eval_json(env["art"], "spotcheck")
+    review.parent.mkdir(parents=True, exist_ok=True)
+    counts = {"invasion": 19, "duct_confined": 3, "tubules": 15, "pleomorphism": 18, "mitoses": 0,
+              "normal_lobules": 0, "benign_stroma_fat": 20, "lymphocytes": 8}            # necrosis: never reviewed
+    review.write_text(json.dumps({"name": "spotcheck", "reviewer_kind": "ai", "reviews": [], "summary": {
+        "concept": {c: {"n": 20, "acceptable": a} for c, a in counts.items()}}}))
+    run(env)
+    seen = {True: 0, False: 0}
+    for case in load_cases(env["art"]).values():
+        by_id = {f["id"]: f for f in case["findings"]}
+        for f in case["findings"]:
+            if f["kind"] != "concept":
+                continue
+            d = f["data"]
+            want = counts.get(d["concept"])
+            assert d["spotcheck"] == (None if want is None else {"acceptable": want, "reviewed": 20})
+            assert d["reliable"] is (want is not None and want / 20 >= contract.SPOTCHECK_RELIABLE_MIN)
+            seen[d["reliable"]] += 1
+        for s in case["summary"]["sentences"]:
+            failed = [i for i in s["findings"] if by_id[i]["kind"] == "concept" and not by_id[i]["data"]["reliable"]]
+            if failed:
+                assert "not given as" in s["text"] and "spot check" in s["text"], s
+                assert all(by_id[i]["kind"] != "concept" or i in failed for i in s["findings"])
+    assert seen[True] and seen[False]
+
+
+def test_concept_findings_without_a_review_file_are_not_reasons(env):
+    run(env)
+    for case in load_cases(env["art"]).values():
+        for f in case["findings"]:
+            if f["kind"] == "concept":
+                assert f["data"]["spotcheck"] is None and f["data"]["reliable"] is False
+        assert not any(s["text"].startswith(("Strongest push", "Feature lowering", "Features lowering"))
+                       for s in case["summary"]["sentences"])

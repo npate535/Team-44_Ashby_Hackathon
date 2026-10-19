@@ -5,6 +5,7 @@ checks are labelled, and ground truth never reaches the rendered HTML."""
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import textwrap
@@ -63,7 +64,10 @@ def test_why_panel_groups_spot_checks_and_no_ground_truth():
     for group in cfg_groups():
         assert group in html
     assert "AI spot check 19/20" in html and "not pathologist-validated" in html
-    assert "AI spot check 3/20 · top regions often did not show this feature" in html
+    # below the fixed 0.75 cut-off: muted row, association only (same rule as the case JSON's `reliable`)
+    assert "Spot check failed (3/20); association only" in html and "AI spot check 3/20" not in html
+    rows = {m.group(2): m.group(1) for m in re.finditer(r'class="why-row([^"]*)" data-testid="why-bar-([a-z_]+)"', html)}
+    assert "unreliable" in rows["duct_confined"] and "unreliable" not in rows["invasion"]
     assert "AI spot check" not in out["plain"]                      # absent eval file: render nothing
     assert "why-no-level" in out["plain"]                           # fixture has no value_std: one note, no words
     assert "eval_only" not in html and "true_label" not in html
