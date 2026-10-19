@@ -2,7 +2,7 @@
 
 > Research prototype — not for clinical use. Every number below is quoted from the eval file named beside it, with its 95% cluster-bootstrap CI (patient / pseudo-patient groups) unless stated.
 
-Generated 2026-10-19T01:54:35Z from 21 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 4b9230088f3987472e817faa9bf4fa199d538b22, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 7045b84ab1fb8b386c44e0e9a60a98e9f974c330, bc76a1db582cac260a8734e7437050686420d0c2).
+Generated 2026-10-19T02:09:36Z from 21 eval files (git 19b15557e966c050e4a0cc0df67c0546d00464a6, 700a3b61b0f999a12e7a1a7b54058d6495b93689, 7045b84ab1fb8b386c44e0e9a60a98e9f974c330, bc76a1db582cac260a8734e7437050686420d0c2, e465ed396ce0c448c7c11f1a32260a779d3fd525).
 
 ## Tissue quality control (fixed in this run)
 
