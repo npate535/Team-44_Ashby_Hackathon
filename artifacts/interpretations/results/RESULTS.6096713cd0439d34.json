@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "results",
+ "name": "RESULTS",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "6096713cd0439d34",
+ "markdown": "## What the results show\n- **Invasive detection:** AUROC 0.999 [0.996, 1.000]; 31 of 31 invasive images caught (exact CI 88.8\u2013100%).\n- **Four-class:** accuracy 0.864 [0.760, 0.944]; macro-F1 0.860 [0.678, 0.928]; n 132, 24 groups.\n- **Error pattern:** 3 of 30 in situ called invasive; 0 of 31 invasive called in situ.\n- **Benchmark:** macro-F1 86.0 versus 84.7 published; protocols differ, no published CIs.\n- **Queue (simulated):** invasive first look 20.2 to 6.0 min; unflagged cases wait 21.4 [0.7, 86.5] min longer.\n\n## Is the confidence trustworthy?\n- **Calibration:** temperature scaling cut ECE 0.184 to 0.055 [0.032, 0.185]; NLL unchanged (0.571 to 0.575).\n- **Pre-registered LAC failed:** 72.0% coverage against a 90% target; 21.2% empty sets.\n\n| Method | Test split | 1,000 re-splits \u2265 90% |\n|---|---|---|\n| APS | 88.6% | 46.0% |\n| Tier set | 91.7% | 96.1% |\n\n- **Tier set:** coverage 91.7% [80.8%, 98.1%], mean size 1.30; chosen after viewing test results, so optimistic. Re-splits reuse the same 182 images.\n- **Deferral:** deferring 20% by reliability lifts accuracy 85.8% to 89.8% [78.4%, 98.1%]; random stays 85.8%.\n- **Weak error detector:** error AUROC 0.69 [0.58, 0.87]; recall 0.42. On clean reads, top-class probability matches or beats reliability from 20% deferral.\n\n## Does the interpretability hold up?\n- **Passed, exact-contribution regions:** removing top 3 cuts logit 0.54 [0.47, 0.60]; random cuts 0.00. Expected for an additive probe; probability drop only 0.017.\n- **Failed, top-concept regions:** logit drop -0.03 [-0.08, 0.00], same as random.\n- **Untested, concept attributions:** associations only. Spot checks (AI-reviewed, not pathologist): mitoses 0/20, normal_lobules 0/20, necrosis 3/20. Fluent captions are not evidence.\n- **Wrong direction, lymphocytes:** NCT CAV AUROC 0.32 [0.29, 0.35], below chance; spot check 8/20.\n- **Unsupported, cell features:** neo_fraction difference 0.06 [-0.15, 0.29]; nuc_shape_cv and infl_fraction show no convergence with concept scores.\n\n## Weaknesses a reviewer will raise\n- **Small test set:** 132 images, 24 groups; macro-F1 CI 0.678\u20130.928. Fix: grouped nested cross-validation.\n- **Post-hoc tier set:** chosen after viewing test results. Fix: freeze the rule, validate on an independent cohort.\n- **Simulated surgical lane:** margins, frozen artifacts and queue are simulated; margin sensitivity 47.5%. Fix: real frozen sections, timed reader study.\n- **Thin external test:** TCGA has 25 patients, slide labels, no benign or in situ. Fix: larger labeled cohort.\n- **Aging guard inert:** no measured effect; unflagged delay is the real cost. Fix: real arrival data.\n- **Interpretability gaps:** concepts and cells lack causal tests. Fix: deletion tests, pathologist review.\n\n## Next experiments\n1. **Fresh-cohort validation:** apply the frozen tier rule to an independent cohort with benign and in situ labels.\n2. **Concept and cell review:** pathologist rereads failing concepts; deletion-test concept and cell attributions.\n3. **TCGA reliability flags:** compute CONCH and MUSK flags; test whether they catch missed frozen tumors.",
+ "verification": {
+  "checked": 79,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:10:48-0500",
+ "elapsed_s": 94.8,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 29553,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 14554,
+  "output_tokens_details": {
+   "thinking_tokens": 13151
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 29553,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 14554,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 29553,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 29553
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 93910
+}

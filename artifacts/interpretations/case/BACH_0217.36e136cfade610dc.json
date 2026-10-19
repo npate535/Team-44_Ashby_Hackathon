@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0217",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "36e136cfade610dc",
+ "markdown": "## Bottom line\n**Suggests InSitu (94%)** \u00b7 Confident \u00b7 Careful review\nSingle-class conformal set and clean input, but second model disagrees [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 94%, Invasive 6% | Strongly favors InSitu |\n| Conformal set | {InSitu} at 90% | Single class |\n| Reliability / OOD | 0.99 / 98th percentile | Input not flagged |\n| Second-model (MUSK) agreement | No | Top class differs |\n| Similar cases | 2 of 5 InSitu | Mixed neighbors |\n\n## Tissue evidence\n- **Tumor nuclei fraction** (regions 6, 7, 11) \u00b7 context \u00b7 94% of nuclei neoplastic, top of reference range [F7] \u00b7 Measured\n- **Tumor-infiltrating stroma** (region 0) \u00b7 \u2193 invasive \u00b7 Typical score; concept model weighs it slightly against invasive [F4] \u00b7 Validated\n- **Tumor necrosis** (regions 5, 10, 11) \u00b7 \u2191 invasive \u00b7 Strongest invasive-associated score in this case; spot check 3/20 \u00b7 Unreliable\n- **Normal lobules** (region 8) \u00b7 \u2193 invasive \u00b7 High score; spot check 0/20 [F3] \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Deletion test passes; removing top 3 regions drops invasive logit 0.54 more than random (CI 0.47\u20130.60).\n- **Concepts**: Deletion test not distinguishable from random (0.002, CI \u22120.005 to 0.007); necrosis and normal lobules are Unreliable.\n\n## Could be wrong if\n- Second model (MUSK) disagrees; neighbors split: 2 InSitu, 2 Invasive, 1 Benign [F5].\n- Regions 6 and 7 show per-region invasive risk up to 54%, despite 6% overall.\n\n## Check on the slide\n1. **6, 7** Highest per-region invasive risk; look for stromal invasion versus intact duct outlines.\n2. **0** Tumor-infiltrating stroma score peaks here (spot check 19/20); confirm genuine invasion.\n3. **5, 10, 11** Necrosis scored highest here but failed spot check (3/20); verify on slide.",
+ "verification": {
+  "checked": 20,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:19:21-0500",
+ "elapsed_s": 68.1,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13636,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 9804,
+  "output_tokens_details": {
+   "thinking_tokens": 9009
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13636,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 9804,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13636,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13636
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 67469
+}

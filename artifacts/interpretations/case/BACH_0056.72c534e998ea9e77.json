@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0056",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "72c534e998ea9e77",
+ "markdown": "## Bottom line\n**Suggests Benign (81%)** \u00b7 Ambiguous: Benign vs InSitu \u00b7 Careful review\nInSitu is in the 90% conformal set; invasive probability is under 1% [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 81%, InSitu 16% | Benign leads clearly |\n| Conformal set | Benign, InSitu | Two classes not separable |\n| Reliability / OOD | 0.95 / 90th percentile | Input not flagged |\n| Second-model (MUSK) agreement | Same top class | Independent model agrees |\n| Similar cases | 2 of 5 Benign | Mixed neighbor labels |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 3) \u00b7 \u2191 invasive \u00b7 Below typical; concept model leans away from invasion [F3] \u00b7 Validated (19/20)\n- **Tumor cell fraction** (regions 0, 5, 11) \u00b7 context \u00b7 86% neoplastic nuclei, top of reference set; sampled regions [F7] \u00b7 Measured\n- **Atypical cells confined within ducts** (regions 1, 6, 10) \u00b7 \u2193 invasive \u00b7 Above typical; fits in situ or benign \u00b7 Weak (12/20)\n- **Frequent mitotic figures** (regions 1, 5, 6) \u00b7 \u2191 invasive \u00b7 Above typical; failed AI spot check, disregard [F2] \u00b7 Unreliable (0/20)\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0; not shown faithful. This case leans on Unreliable mitoses and normal lobules (both 0/20).\n\n## Could be wrong if\n- Region 5 alone scores 47% invasive risk; other regions score near 0.\n- Tumor cell fraction is top of the reference range, yet the call is benign.\n\n## Check on the slide\n1. **Region 5**: confirm or exclude invasive growth; its per-region risk is 47%.\n2. **Regions 1, 6, 10**: separate duct-confined atypia from benign hyperplasia.\n3. **Regions 0, 5, 11**: verify the high neoplastic nuclei count is truly tumor.",
+ "verification": {
+  "checked": 21,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:12:15-0500",
+ "elapsed_s": 45.1,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13670,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5960,
+  "output_tokens_details": {
+   "thinking_tokens": 5147
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13670,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5960,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13670,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13670
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 44304
+}

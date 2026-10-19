@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0213",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "0cc09915ec275712",
+ "markdown": "## Bottom line\n**Suggests Normal (100%)** \u00b7 Confident \u00b7 Read in turn\nConformal set, second model and all 5 similar cases agree [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 100%; others <1% | One dominant class |\n| Conformal set | {Normal} at 90% | Single class |\n| Reliability / OOD | 0.98 / 14th percentile | Typical, good-quality image |\n| Second-model (MUSK) agreement | Same top class | Independent model concurs |\n| Similar cases | 5/5 Normal | Neighbours agree |\n\n## Tissue evidence\n- **Benign fibrous stroma or fat** (regions 0, 5, 6) \u00b7 \u2193 invasive \u00b7 Prominent benign stroma; scored above typical [F3] \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (regions 1, 4, 5) \u00b7 \u2193 invasive \u00b7 Scored above typical; AI spot check 0/20 [F2] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate** (region 9) \u00b7 context \u00b7 Scored below typical; descriptive only [F4] \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI includes 0 (+0.002; \u22120.005 to 0.007), so unproven; this case leans on the Unreliable normal-lobules concept.\n\n## Could be wrong if\n- Calibration rests on 132 test images (ECE 0.05, CI 0.03\u20130.18); treat 100% as approximate.\n- Too few tumor nuclei were found for cell measurements, so no cell-level evidence corroborates this call.\n\n## Check on the slide\n1. **Regions 1, 4, 5:** Confirm two-layered lobular epithelium; this concept failed its AI spot check.\n2. **Region 9:** Strongest lymphocyte, invasion and tubule scores; confirm four HoVer-Net \"neoplastic\" nuclei are benign.\n3. **Region 10:** Necrosis-concept peak (unreliable); HoVer-Net labelled five nuclei dead. Check for true necrosis.",
+ "verification": {
+  "checked": 18,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:18:40-0500",
+ "elapsed_s": 35.4,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13091,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5138,
+  "output_tokens_details": {
+   "thinking_tokens": 4357
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13091,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5138,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13091,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13091
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 34594
+}

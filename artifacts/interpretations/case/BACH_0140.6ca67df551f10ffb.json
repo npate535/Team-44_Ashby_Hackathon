@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0140",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "6ca67df551f10ffb",
+ "markdown": "## Bottom line\n**Suggests Benign (>99%)** \u00b7 Confident \u00b7 Read in turn\n\nThe conformal set, the second model and all 5 similar cases agree on Benign. Invasive probability rounds to 0%.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign >99%; others <1% | Very peaked |\n| Conformal set | {Benign} at 90% | Single class |\n| Reliability / OOD | 0.999 / percentile 1.0 | Not flagged |\n| Second-model (MUSK) agreement | Same top class | Independent model agrees |\n| Similar cases | 5 of 5 Benign | Unanimous |\n\n## Tissue evidence\n- **Gland / tubule formation** (regions 2, 3, 11) \u00b7 \u2193 invasive \u00b7 Associated with lower invasive likelihood [F3] \u00b7 Validated\n- **Benign fibrous stroma or fat** (regions 7, 9, 11) \u00b7 \u2193 invasive \u00b7 Associated with lower invasive likelihood [F4] \u00b7 Validated\n- **Dense lymphocytic infiltrate** (regions 2, 6, 8) \u00b7 context \u00b7 Above typical; descriptive only [F2] \u00b7 Weak\n- **Immune cell fraction** (regions 4, 6, 8) \u00b7 context \u00b7 Higher than 93% of reference images [F8] \u00b7 Measured\n- **Nuclear shape variation** (regions 4, 6, 8) \u00b7 context \u00b7 Higher than 90% of reference images [F7] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0, so not shown to reflect the classifier. TILs spot check is 8/20 (Weak).\n\n## Could be wrong if\n- Calibration rests on a small test set (ECE 0.05, CI 0.03\u20130.18); \">99%\" may overstate certainty.\n- Cell measures cover only regions 4, 6, 8; unsampled regions could differ.\n\n## Check on the slide\n1. **Regions 4, 6, 8:** confirm the nuclear shape variation and immune cell density.\n2. **Regions 2, 3, 11:** verify glands look benign, not infiltrative.\n3. **Regions 5, 6:** inspect stroma for infiltration (5) and pleomorphism (6).",
+ "verification": {
+  "checked": 19,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:15:44-0500",
+ "elapsed_s": 29.7,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13354,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 4289,
+  "output_tokens_details": {
+   "thinking_tokens": 3462
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13354,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 4289,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13354,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13354
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 28819
+}

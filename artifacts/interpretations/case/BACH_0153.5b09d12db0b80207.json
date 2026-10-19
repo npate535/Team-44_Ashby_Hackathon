@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0153",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "5b09d12db0b80207",
+ "markdown": "## Bottom line\n**Suggests Benign (58%)** \u00b7 Ambiguous: Normal vs Benign \u00b7 Careful review\nNormal is in the 90% conformal set; invasive probability is under 1% [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 58%, Normal 42% | Close call |\n| Conformal set | Normal, Benign (90%) | Cannot separate them |\n| Reliability / OOD | 0.89 / 64th percentile | Input looks typical |\n| Second-model (MUSK) agreement | Yes | Same top class |\n| Similar cases | 2 of 5 Benign | Split; three Normal |\n\n## Tissue evidence\n- **Normal lobules, two-layered epithelium** (regions 1, 2, 11) \u00b7 \u2193 invasive \u00b7 Largest concept term; spot check 0/20 \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 3, 9, 10) \u00b7 \u2193 invasive \u00b7 Spot check 20/20 \u00b7 Validated\n- **Tumor infiltrating stroma** (regions 0, 2, 8) \u00b7 \u2191 invasive \u00b7 Concept model links it to invasion; spot check 19/20 \u00b7 Validated\n- **Immune cell fraction** (regions 3, 8, 11) \u00b7 context \u00b7 Higher than 96% of reference images [F7] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions cuts the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion difference 0.002 (CI \u22120.005 to 0.007) includes 0; not shown to reflect the classifier. Normal lobules is Unreliable.\n\n## Could be wrong if\n- Normal and Benign overlap; the model cannot separate them at 90% coverage.\n- Cell counts come from three regions with too few tumor nuclei to judge.\n\n## Check on the slide\n1. **Regions 1, 2, 11:** Confirm normal lobules with two-layered epithelium; this concept failed its spot check.\n2. **Regions 0, 2, 8:** Look for true stromal invasion versus reactive stroma.\n3. **Regions 3, 8, 11:** Assess dense immune and dead cells for inflammatory background versus tumor.",
+ "verification": {
+  "checked": 21,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:16:42-0500",
+ "elapsed_s": 30.0,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13458,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 4648,
+  "output_tokens_details": {
+   "thinking_tokens": 3860
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13458,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 4648,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13458,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13458
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 28942
+}

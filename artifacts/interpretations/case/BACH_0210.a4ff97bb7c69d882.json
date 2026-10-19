@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0210",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "a4ff97bb7c69d882",
+ "markdown": "## Bottom line\n**Suggests Invasive (>99%)** \u00b7 Confident \u00b7 Careful review\nSingle-class conformal set and MUSK agreement, but only 2 of 5 similar cases are invasive.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive >99%; InSitu <1% | Very high, one class |\n| Conformal set | {Invasive} at 90% | Single class |\n| Reliability / OOD | 0.999 / OOD pct 1.0 | Input looks typical |\n| Second-model (MUSK) agreement | Yes | Same top class |\n| Similar cases | 2 of 5 Invasive | Discordant neighbors |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 2, 7) \u00b7 \u2191 invasive \u00b7 Above-typical score; largest concept contribution [F2] \u00b7 Validated\n- **Gland / tubule formation** (region 8) \u00b7 \u2191 invasive \u00b7 Scarce tubules count toward invasive in concept model [F3] \u00b7 Validated\n- **Atypical cells confined in ducts** (region 10) \u00b7 \u2191 invasive \u00b7 Low score; concept model counts absence toward invasive \u00b7 Weak\n- **Neoplastic nuclei fraction** (regions 0, 3, 10) \u00b7 context \u00b7 54% of nuclei; higher than 90% of reference images \u00b7 Measured\n- **Lymphocytic infiltrate (TILs)** (region 6) \u00b7 context \u00b7 Score below typical; not given as a reason [F4] \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0; not shown to match classifier. Leans on TILs (Weak).\n\n## Could be wrong if\n- Only 2 of 5 most similar cases are Invasive; three are InSitu.\n- Calibration was tested on 132 images (ECE 0.05, upper CI 0.18); >99% may overstate.\n\n## Check on the slide\n1. **Regions 0, 2, 7:** Confirm tumor cells infiltrate stroma rather than stay within ducts.\n2. **Region 8:** Lowest invasive probability (57%); look for tubules or benign tissue.\n3. **Region 10:** Look for ductal confinement; that concept is Weak (12/20).",
+ "verification": {
+  "checked": 20,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:19:01-0500",
+ "elapsed_s": 61.2,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13345,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 8587,
+  "output_tokens_details": {
+   "thinking_tokens": 7758
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13345,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 8587,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13345,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13345
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 60426
+}

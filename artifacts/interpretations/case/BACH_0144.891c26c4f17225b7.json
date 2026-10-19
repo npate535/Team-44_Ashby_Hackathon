@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0144",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "891c26c4f17225b7",
+ "markdown": "## Bottom line\n**Suggests Normal (100%)** \u00b7 Confident \u00b7 Read in turn\nConformal set is Normal only; second model and all neighbors agree [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 100%; others <1% | Near-certain Normal |\n| Conformal set | {Normal} at 90% | Single class |\n| Reliability / OOD | 0.996 / 68th percentile | Typical input quality |\n| Second-model (MUSK) agreement | Same top class | Independent model concurs |\n| Similar cases | 5/5 Normal [F5] | Unanimous neighbors |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 11) \u00b7 \u2193 invasive \u00b7 Scarce; concept model links this to lower invasive likelihood [F2] \u00b7 Validated\n- **Benign fibrous stroma or fat** (regions 3, 4, 10) \u00b7 \u2193 invasive \u00b7 Above typical; associated with lower invasive likelihood \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (regions 5, 6) \u00b7 \u2193 invasive \u00b7 High score, but failed AI spot check, 0/20 [F3] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate** (region 7) \u00b7 context \u00b7 Above typical; descriptive only, spot check 8/20 [F4] \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions lowers the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion test is null (0.002, CI \u22120.005 to 0.007); not shown to reflect classifier use. Evidence here includes Unreliable normal lobules (0/20).\n\n## Could be wrong if\n- Cell features unavailable: too few tumor nuclei found in sampled regions.\n- Small test set (132 images): calibration CI is wide (ECE 0.05, up to 0.18).\n\n## Check on the slide\n1. **Region 11** \u2014 confirm no infiltrating invasive front in the stroma.\n2. **Regions 5, 6** \u2014 verify lobule architecture directly; the concept failed its spot check.\n3. **Region 10** \u2014 HoVer-Net counted 8 neoplastic and 14 epithelial nuclei; confirm they are benign.",
+ "verification": {
+  "checked": 19,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:16:26-0500",
+ "elapsed_s": 41.8,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13048,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5980,
+  "output_tokens_details": {
+   "thinking_tokens": 5185
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13048,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5980,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13048,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13048
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 40805
+}

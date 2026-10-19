@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0318",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "97eb12ea16331f76",
+ "markdown": "## Bottom line\n**Suggests Normal (97%)** \u00b7 Confident \u00b7 Read in turn\nConformal set holds only Normal; all 5 similar cases agree.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 97%, Benign 3% | Clear separation |\n| Conformal set | {Normal} at 90% | Single class |\n| Reliability / OOD | 0.996 / 68th percentile | Typical input |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5 of 5 Normal | Unanimous |\n\n## Tissue evidence\n- **Benign fibrous stroma or fat** (regions 0, 7, 8) \u00b7 \u2193 invasive \u00b7 Strongest lower-invasive association in concept model [F2] \u00b7 Validated\n- **Normal lobules, two-layered epithelium** (regions 0, 4, 10) \u00b7 \u2193 invasive \u00b7 Lower-invasive association; spot check 0/20 [F3] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate** (regions 3, 9) \u00b7 context \u00b7 TILs present; descriptive only [F4] \u00b7 Weak\n- **Nuclear size** (regions 0, 3, 11) \u00b7 context \u00b7 Smaller nuclei than 90% of reference images [F7] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions cuts the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI includes 0 (\u22120.005 to 0.007); not shown to reflect the classifier. Normal lobules is Unreliable (0/20).\n\n## Could be wrong if\n- Small invasive foci sit in unsampled regions; cells were measured in only 3 of 12.\n- Test set is small (132 images); calibration error CI reaches 0.18.\n\n## Check on the slide\n1. **Region 11**: highest per-region invasive probability (3%); confirm benign.\n2. **Region 3**: 25 nuclei labelled neoplastic, plus TILs; check for true atypia.\n3. **Regions 5, 6**: gland-formation concept peaks here; confirm benign ducts, not in situ.",
+ "verification": {
+  "checked": 18,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:24:36-0500",
+ "elapsed_s": 35.9,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13586,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5412,
+  "output_tokens_details": {
+   "thinking_tokens": 4654
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13586,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5412,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13586,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13586
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 35125
+}

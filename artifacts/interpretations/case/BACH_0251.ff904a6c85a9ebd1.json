@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0251",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "ff904a6c85a9ebd1",
+ "markdown": "## Bottom line\n**Suggests Normal (>99%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class set, second-model agreement and 5/5 similar cases all favor Normal [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal >99%, Benign <1% | Strongly favors Normal |\n| Conformal set | {Normal} at 90% | Single class |\n| Reliability / OOD | 0.99 / 62nd percentile | Typical, usable image |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5/5 Normal | Unanimous neighbors |\n\n## Tissue evidence\n- **Normal lobules, two-layered epithelium** (regions 3, 8, 11) \u00b7 \u2193 invasive \u00b7 Strongest concept term; scored above typical \u00b7 Unreliable\n- **Gland / tubule formation** (regions 2, 3, 7) \u00b7 \u2193 invasive \u00b7 Scores above typical \u00b7 Validated\n- **Tumor infiltrating stroma** (region 0) \u00b7 \u2193 invasive \u00b7 Scores below typical \u00b7 Validated\n- **Benign fibrous stroma or fat** (regions 7, 8, 11) \u00b7 \u2193 invasive \u00b7 Scores above typical \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0, so not shown to reflect the classifier. Normal lobules is Unreliable (AI spot check 0/20).\n\n## Could be wrong if\n- Benign epithelial fraction is at the 4th percentile [F7] and failed its direction check; only 3 regions sampled.\n- Validation set is small (132 images); calibration error CI reaches 0.18.\n\n## Check on the slide\n1. **Regions 0, 8, 11**: confirm benign epithelium is present; the measured fraction is low.\n2. **Regions 3, 8, 11**: verify two-layered lobules yourself; the concept failed its spot check.\n3. **Region 0**: strongest infiltrating-stroma score; exclude an invasive focus.",
+ "verification": {
+  "checked": 15,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:21:20-0500",
+ "elapsed_s": 32.9,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13193,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 4712,
+  "output_tokens_details": {
+   "thinking_tokens": 3941
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13193,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 4712,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13193,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13193
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 32249
+}

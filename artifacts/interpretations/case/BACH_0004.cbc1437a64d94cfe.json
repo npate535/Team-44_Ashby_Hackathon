@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0004",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "cbc1437a64d94cfe",
+ "markdown": "## Bottom line\n**Suggests InSitu (70%)** \u00b7 Ambiguous: Normal vs InSitu \u00b7 Careful review\nInvasive probability is near 0%, but Normal is in the conformal set and no similar case is InSitu.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 70%, Normal 17%, Benign 14%, Invasive 0% | Clear lead, not decisive |\n| Conformal set | Normal, InSitu (90% level) | Cannot separate the two |\n| Reliability / OOD | 0.95 / 94th percentile | Not flagged; high OOD percentile |\n| Second-model (MUSK) agreement | Same top class | Independent model agrees |\n| Similar cases | 0 of 5 InSitu; all Normal | Neighbors disagree |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate** (regions 1, 3, 6) \u00b7 context \u00b7 TIL score above typical; descriptive only \u00b7 Weak\n- **Normal lobules, two-layered epithelium** (regions 0, 4, 10) \u00b7 \u2193 invasive \u00b7 Above-typical score; concept model links it to lower invasive likelihood \u00b7 Unreliable\n- **Frequent mitoses** (regions 2, 5, 7) \u00b7 \u2191 invasive \u00b7 Above-typical score; failed spot check, 0/20 \u00b7 Unreliable\n- **Tumor-infiltrating stroma** (region 11) \u00b7 \u2193 invasive \u00b7 Low score here; lowers concept model's invasive estimate \u00b7 Validated\n- **Neoplastic nuclei fraction** (regions 0, 7, 8) \u00b7 context \u00b7 52% of sampled nuclei; 88th reference percentile \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions cut the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion CI spans 0 (\u22120.005 to 0.007), so not shown to reflect the classifier; mitoses and normal lobules are Unreliable.\n\n## Could be wrong if\n- Normal is the true class: all 5 neighbors are Normal, and Normal is in the conformal set.\n- Neoplastic counts come from only three sampled regions.\n\n## Check on the slide\n1. **Regions 7, 8** \u2014 Confirm neoplastic cells stay within ducts, with no stromal invasion.\n2. **Regions 0, 4, 10** \u2014 Verify the lobules are truly normal; this concept failed its spot check (0/20).\n3. **Regions 2, 5, 7** \u2014 Look for genuine mitoses; the mitosis concept scored 0/20.",
+ "verification": {
+  "checked": 19,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:05:42-0500",
+ "elapsed_s": 45.4,
+ "usage": {
+  "input_tokens": 4,
+  "cache_creation_input_tokens": 11436,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 6777,
+  "output_tokens_details": {
+   "thinking_tokens": 5876
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 0,
+   "ephemeral_5m_input_tokens": 11436
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 4,
+    "output_tokens": 6777,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 11436,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 11436,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 44116
+}

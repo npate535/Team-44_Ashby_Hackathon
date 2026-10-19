@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0328",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "95ab140c00244555",
+ "markdown": "## Bottom line\n**Suggests Normal (67%)** \u00b7 Ambiguous: Normal vs InSitu \u00b7 Careful review\nConformal set holds both classes and the reliability check flagged the image [F6].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 67%, InSitu 29%, Benign 4%, Invasive 0% [F1] | Normal leads; InSitu second |\n| Conformal set | Normal, InSitu (90%) | Cannot separate the two |\n| Reliability / OOD | 0.71 / 26th percentile | Flagged; input suspect |\n| Second-model (MUSK) agreement | Same top class | Supports Normal |\n| Similar cases | 3 of 5 Normal [F5] | Moderate support |\n\n## Tissue evidence\n- **Normal lobules, two-layered epithelium** (regions 4, 8, 10) \u00b7 \u2193 invasive \u00b7 Largest concept term, but failed AI spot check (0/20) [F2] \u00b7 Unreliable\n- **Benign stroma or fat** (regions 1, 4, 8) \u00b7 \u2193 invasive \u00b7 Strongly associated with lower invasive likelihood [F3] \u00b7 Validated\n- **Lymphocytic infiltrate** (region 4) \u00b7 context \u00b7 Scored below typical; descriptive only [F4] \u00b7 Weak\n- **Atypical cells confined in ducts** (region 8) \u00b7 \u2193 invasive \u00b7 Scored below typical here; no concept support for in situ \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions cuts the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion difference 0.002 (CI \u22120.005 to 0.007) includes 0, so unproven; this case leans on Unreliable normal lobules.\n\n## Could be wrong if\n- Reliability flag reflects stain or focus problems that distort all probabilities.\n- A small in situ focus sits in regions 9 or 11, dropped by quality control.\n\n## Check on the slide\n1. **Regions 8, 4** \u2014 Look for atypical cells confined within ducts, the InSitu alternative.\n2. **Regions 9, 11** \u2014 Excluded by quality control; confirm nothing atypical there.\n3. **Regions 4, 8, 10** \u2014 Confirm two-layered epithelium directly; the lobule concept failed its spot check.",
+ "verification": {
+  "checked": 15,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:25:22-0500",
+ "elapsed_s": 40.5,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 12937,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5916,
+  "output_tokens_details": {
+   "thinking_tokens": 5098
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 12937,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5916,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 12937,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 12937
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 39753
+}

@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0006_FSIM_blur3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "955273fc350d8e98",
+ "markdown": "## Bottom line\n**Suggests Normal (93%)** \u00b7 Confident \u00b7 Read in turn\nThe conformal set, MUSK model and all 5 similar cases agree on Normal [F5].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 93%, InSitu 6% | Clear lead |\n| Conformal set | {Normal} at 90% | Single class |\n| Reliability / OOD | 0.998 / 86th percentile | Usable despite simulated blur |\n| Second-model (MUSK) agreement | Yes | Same top class |\n| Similar cases | 5/5 Normal | Unanimous |\n\n## Tissue evidence\n- **Benign fibrous stroma or fat** (regions 2, 7, 9) \u00b7 \u2193 invasive \u00b7 Scored above typical; linked to non-invasive tissue [F3] \u00b7 Validated\n- **Normal lobules, two-layered epithelium** (regions 1, 2, 8) \u00b7 \u2193 invasive \u00b7 Largest concept term; spot check 0/20 [F2] \u00b7 Unreliable\n- **Atypical cells confined in ducts** (region 9) \u00b7 \u2193 invasive \u00b7 Scored very low, giving a small invasive lean [F4] \u00b7 Weak\n- **Marked nuclear pleomorphism** (region 10) \u00b7 \u2191 invasive \u00b7 Mildly above typical; near-zero contribution \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0, so unproven; this case leans on Unreliable normal lobules.\n\n## Could be wrong if\n- Simulated blur (severity 3) hides in-situ features; InSitu already holds 6%.\n- Test set is small: calibration error 0.05 (CI 0.03\u20130.18); reliability score ranks errors only modestly.\n\n## Check on the slide\n1. **Region 9:** listed for duct-confined and infiltrating-stroma concepts; confirm ducts and stroma are benign.\n2. **Regions 1, 2, 8:** confirm two-layered lobular epithelium; this concept failed its spot check.\n3. **Region 10:** strongest pleomorphism score; check whether the nuclei are truly atypical.",
+ "verification": {
+  "checked": 16,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:06:11-0500",
+ "elapsed_s": 37.3,
+ "usage": {
+  "input_tokens": 4,
+  "cache_creation_input_tokens": 11765,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 5480,
+  "output_tokens_details": {
+   "thinking_tokens": 4686
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 0,
+   "ephemeral_5m_input_tokens": 11765
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 4,
+    "output_tokens": 5480,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 11765,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 11765,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 36713
+}

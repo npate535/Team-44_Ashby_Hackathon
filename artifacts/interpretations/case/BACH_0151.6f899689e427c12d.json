@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0151",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "6f899689e427c12d",
+ "markdown": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Careful review\n\nAll confidence signals agree; worklist tier 2 because Invasive is the top class [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 100%, InSitu 0% | Near-certain |\n| Conformal set (90%) | Invasive only | Single class |\n| Reliability / OOD | 0.99 / 26th percentile | Typical, clean input |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5 of 5 Invasive | Unanimous |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 2, 3, 7) \u00b7 \u2191 invasive \u00b7 Strongest concept association with invasion [F2] \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 0, 7, 10) \u00b7 \u2191 invasive \u00b7 Second-strongest invasive association [F4] \u00b7 Validated\n- **Variation in nuclear size** (regions 6, 9, 10) \u00b7 context \u00b7 Higher than every reference image [F8] \u00b7 Measured\n- **Tumor cell fraction** (regions 6, 9, 10) \u00b7 context \u00b7 57% neoplastic nuclei; above 91% of references [F7] \u00b7 Measured\n- **Frequent mitotic figures** (regions 0, 1, 6) \u00b7 \u2191 invasive \u00b7 Scored high, but failed spot check (0/20) [F3] \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions lowers the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0, so not shown to reflect the classifier; mitoses is Unreliable.\n\n## Could be wrong if\n- Calibration was tested on only 132 images; ECE 0.05, CI up to 0.18.\n- Cell measurements cover regions 6, 9, 10 only; concept scores are associations.\n\n## Check on the slide\n1. **Regions 2, 3, 7**: confirm tumor cells infiltrating stroma.\n2. **Regions 0, 1, 6**: count mitoses yourself; the model score failed its spot check.\n3. **Region 8**: look for an in-situ component; the duct-confined score is only weakly validated.",
+ "verification": {
+  "checked": 17,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:16:19-0500",
+ "elapsed_s": 34.0,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13633,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 4606,
+  "output_tokens_details": {
+   "thinking_tokens": 3798
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13633,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 4606,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13633,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13633
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 33195
+}

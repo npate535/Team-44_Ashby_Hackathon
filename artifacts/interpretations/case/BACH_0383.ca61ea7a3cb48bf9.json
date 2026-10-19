@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0383",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "ca61ea7a3cb48bf9",
+ "markdown": "## Bottom line\n**Suggests Benign (99%)** \u00b7 Confident \u00b7 Careful review\nConformal set is Benign only, but the second model (MUSK) disagrees.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 99%, InSitu 1% | Strongly favors Benign |\n| Conformal set | {Benign} at 90% | Single class |\n| Reliability / OOD | 0.99 / 92nd percentile | Not flagged |\n| Second-model (MUSK) agreement | No | Different top class |\n| Similar cases | 5/5 Benign | All neighbors agree |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 8) \u00b7 \u2193 invasive \u00b7 Scarce; score below typical [F2] \u00b7 Validated\n- **Benign fibrous stroma or fat** (regions 6, 7, 8) \u00b7 \u2193 invasive \u00b7 Prominent benign stroma [F3] \u00b7 Validated\n- **Gland / tubule formation** (regions 1, 6, 10) \u00b7 \u2193 invasive \u00b7 Prominent tubules [F4] \u00b7 Validated\n- **Frequent mitotic figures** (region 9) \u00b7 \u2193 invasive \u00b7 Low score; failed spot check (0/20) \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0; not shown to reflect the classifier. Unreliable here: mitoses, necrosis, normal lobules.\n\n## Could be wrong if\n- MUSK's different top class is correct; the single-class set doesn't resolve this.\n- Region 3 holds duct-confined atypia (score 1.0, weak 12/20), pointing toward InSitu.\n\n## Check on the slide\n1. **Region 3** \u2014 look for atypical cells confined within ducts.\n2. **Region 8** \u2014 confirm no infiltrating stroma; it scores highest for it.\n3. **Region 9** \u2014 check for mitoses and lymphocytes; the mitoses score is unreliable.",
+ "verification": {
+  "checked": 15,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:28:01-0500",
+ "elapsed_s": 46.6,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13181,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 6707,
+  "output_tokens_details": {
+   "thinking_tokens": 5965
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13181,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 6707,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13181,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13181
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 45894
+}

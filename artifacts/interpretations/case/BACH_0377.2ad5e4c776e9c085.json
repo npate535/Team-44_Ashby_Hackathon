@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0377",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "2ad5e4c776e9c085",
+ "markdown": "## Bottom line\n**Suggests InSitu (88%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set, second model agrees, input not flagged.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 88%, Invasive 12% | Clear lead |\n| Conformal set | InSitu only (90%) | Single class |\n| Reliability / OOD | 1.00 / 94th percentile | Not flagged |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 3 of 5 InSitu | Mixed; two Invasive |\n\n## Tissue evidence\n- **Tumor-infiltrating stroma** (regions 5, 6) \u00b7 \u2191 invasive \u00b7 Associated with invasion; strongest in these regions \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 1, 6, 9) \u00b7 \u2191 invasive \u00b7 Associated with invasion; strongest in these regions \u00b7 Validated\n- **Atypical cells confined within ducts** (regions 4, 5) \u00b7 \u2193 invasive \u00b7 Associated with lower invasive likelihood \u00b7 Weak\n- **Tumor cell fraction and density** (regions 5, 6) \u00b7 context \u00b7 Fraction 74% (97th percentile); density at reference maximum [F7] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions beats random (+0.54 logit, CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI includes 0, so not shown to reflect the classifier. Necrosis (3/20) and mitoses (0/20) are Unreliable.\n\n## Could be wrong if\n- Two of five similar cases are Invasive, and invasive probability is 12%.\n- Validated stroma and pleomorphism concepts lean invasive; the in situ call may understate invasion.\n\n## Check on the slide\n1. **Regions 8, 9**: Highest heatmap contribution toward invasive; look for stromal invasion.\n2. **Regions 5, 6**: Check stroma for tumor extending beyond duct walls.\n3. **Regions 4, 5**: Confirm atypical cells stay confined within ducts.",
+ "verification": {
+  "checked": 14,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:27:37-0500",
+ "elapsed_s": 50.1,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13744,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 7181,
+  "output_tokens_details": {
+   "thinking_tokens": 6430
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13744,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 7181,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13744,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13744
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 48697
+}

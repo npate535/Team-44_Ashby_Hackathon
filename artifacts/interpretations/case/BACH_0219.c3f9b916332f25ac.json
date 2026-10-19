@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0219",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "c3f9b916332f25ac",
+ "markdown": "## Bottom line\n**Suggests Benign (58%)** \u00b7 Unreliable input \u00b7 Defer to expert\n\nReliability is flagged (17%) [F6], and Normal stays in the 90% conformal set [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 58%, Normal 42% | Close call |\n| Conformal set | Normal, Benign | Cannot separate them |\n| Reliability / OOD | 0.17 / 12th percentile | Flagged; atypical input |\n| Second-model (MUSK) agreement | No | Top classes differ |\n| Similar cases | 0 of 5 Benign | All five are Normal |\n\n## Tissue evidence\n- **Normal lobules** (regions 2, 3, 11) \u00b7 \u2193 invasive \u00b7 Scored high; largest lowering term \u00b7 Unreliable [F2]\n- **Tumor-infiltrating stroma** (region 0) \u00b7 \u2191 invasive \u00b7 Scored below typical; little invasive association \u00b7 Validated [F3]\n- **Gland / tubule formation** (regions 5, 6, 7) \u00b7 \u2193 invasive \u00b7 Scored above typical \u00b7 Validated [F4]\n- **Variation in nuclear size** (regions 1, 4, 7) \u00b7 context \u00b7 Higher than 90% of reference images \u00b7 Measured [F7]\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions beats random by 0.54 logit (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) spans 0, so unproven; Normal lobules failed its spot check (0/20).\n\n## Could be wrong if\n- Blur, stain or atypical appearance distorted the read (reliability 17%).\n- The true class is Normal: all five similar cases are Normal and MUSK disagrees.\n\n## Check on the slide\n1. **Regions 2, 3, 11**: confirm whether lobules are normal or benign; concept check failed.\n2. **Regions 5, 6, 7**: verify gland architecture shows no atypia or invasion.\n3. **Regions 1, 4, 7**: assess nuclear size variation for atypia.",
+ "verification": {
+  "checked": 14,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:19:15-0500",
+ "elapsed_s": 34.9,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13403,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 4643,
+  "output_tokens_details": {
+   "thinking_tokens": 3910
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13403,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 4643,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13403,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13403
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 34075
+}

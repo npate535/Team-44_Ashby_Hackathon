@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0288",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "28e865134154243b",
+ "markdown": "## Bottom line\n**Suggests InSitu (90%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set, second-model agreement and unflagged input support this [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 90%, Invasive 10% | Clear lead |\n| Conformal set | {InSitu} | Single class |\n| Reliability / OOD | 1.00 / 88th percentile | Not flagged |\n| Second-model (MUSK) agreement | Same top class | Independent support |\n| Similar cases | 2 of 5 InSitu | Weak support |\n\n## Tissue evidence\n- **Tumor cell fraction and density** (regions 2, 4, 10) \u00b7 context \u00b7 66% tumor nuclei, 2,836/mm\u00b2; higher than 96\u201397% of reference [F7, F8] \u00b7 Measured\n- **Nuclear size** (regions 2, 4, 10) \u00b7 context \u00b7 Mean 42.5 \u00b5m\u00b2, lowest percentile in reference [F9] \u00b7 Measured\n- **Low nuclear pleomorphism** (region 10) \u00b7 \u2193 invasive \u00b7 Score below typical; linked to lower invasive likelihood \u00b7 Validated\n- **Tumor-infiltrating stroma** (region 10) \u00b7 \u2191 invasive \u00b7 Typical score; small contribution in this case \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions lowers the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0: not shown to reflect the classifier. Normal lobules and mitoses (0/20) are Unreliable; lymphocytes (8/20) Weak.\n\n## Could be wrong if\n- Stromal invasion is missed: 3 of 5 most similar cases, including the closest (BACH_0138), are Invasive.\n- Invasion lies outside regions 2, 4, 10, the only regions with cell measurements.\n\n## Check on the slide\n1. **Region 2**: per-region invasive probability 84% versus 10% overall; confirm tumor is duct-confined.\n2. **Regions 7, 3, 4**: largest contributions to the invasive logit; look for stromal invasion.\n3. **Region 10**: strongest tumor-infiltrating stroma score; separate invasion from benign stroma.",
+ "verification": {
+  "checked": 19,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:23:27-0500",
+ "elapsed_s": 59.2,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13574,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 8204,
+  "output_tokens_details": {
+   "thinking_tokens": 7398
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13574,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 8204,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13574,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13574
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 58485
+}

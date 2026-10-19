@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0221",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "7e67431cec88f2a9",
+ "markdown": "## Bottom line\n**Suggests InSitu (85%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set, second model agrees, and 4 of 5 similar cases match.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 85%, Invasive 12% | Clear lead |\n| Conformal set | {InSitu} at 90% | Single class |\n| Reliability / OOD | 0.999 / 100th pct | Input not flagged |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 4 of 5 InSitu | Mostly supportive |\n\n## Tissue evidence\n- **Atypical cells confined within ducts** (regions 0, 1, 11) \u00b7 \u2193 invasive \u00b7 Above typical; fits in situ rather than invasion [F2] \u00b7 Weak\n- **Scant benign stroma or fat** (region 3) \u00b7 \u2191 invasive \u00b7 Below typical; small invasive association [F3] \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 5, 8, 10) \u00b7 \u2191 invasive \u00b7 Above typical; modest weight in concept model \u00b7 Validated\n- **Nuclear size** (regions 3, 8, 9) \u00b7 context \u00b7 Mean 44 \u00b5m\u00b2, lowest in reference; size variation highest [F7] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Removing top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to classifier.\n- **Concepts**: Deletion CI includes 0 (\u22120.005 to 0.007): not shown to reflect the classifier. Unreliable here: necrosis, normal lobules, mitoses.\n\n## Could be wrong if\n- Invasive probability is 12%; regions 8 and 9 carry the highest per-region risk (24%, 15%).\n- Similar case BACH_0166 is Invasive (similarity 0.75); it differs most in pleomorphism.\n\n## Check on the slide\n1. **Regions 0, 1, 11** \u2014 confirm atypical cells stay within ducts, with no stromal invasion.\n2. **Regions 8, 9** \u2014 highest per-region invasive risk; look for stromal invasion.\n3. **Region 3** \u2014 strongest heatmap weight toward invasive; check stroma and lobule architecture.",
+ "verification": {
+  "checked": 16,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:20:09-0500",
+ "elapsed_s": 67.6,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13562,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 9883,
+  "output_tokens_details": {
+   "thinking_tokens": 9093
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13562,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 9883,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13562,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13562
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 66904
+}

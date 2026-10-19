@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0128",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "53053ac5d31dd61a",
+ "markdown": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set, typical input, and unanimous similar cases.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 100%, others 0% | Near-certain |\n| Conformal set | {Invasive} at 90% | Single class |\n| Reliability / OOD | 0.99 / 54th percentile | Typical input |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5 of 5 Invasive | Unanimous |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 2, 3, 5) \u00b7 \u2191 invasive \u00b7 Above typical; strongest association with invasion [F2] \u00b7 Validated\n- **Benign fibrous stroma or fat** (region 8) \u00b7 \u2193 invasive \u00b7 Scarce here; low values associate with invasive [F3] \u00b7 Validated\n- **Dense lymphocytic infiltrate** (regions 3, 4, 6) \u00b7 context \u00b7 Elevated score; failed spot check, 8/20 acceptable [F4] \u00b7 Unreliable\n- **Frequent mitotic figures** (regions 3, 4, 6) \u00b7 \u2191 invasive \u00b7 Scored high; spot check 0/20 acceptable \u00b7 Unreliable\n- **Marked nuclear pleomorphism** (regions 3, 5) \u00b7 \u2191 invasive \u00b7 Above typical; small contribution \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0, so not shown to reflect the classifier; this case leans on unreliable mitoses and lymphocytes.\n\n## Could be wrong if\n- Calibration error was 0.05 on 132 test images (upper bound 0.18); 100% may overstate certainty.\n- Cell segmentation failed, so no nuclear measurements support or contradict this call.\n\n## Check on the slide\n1. **Regions 2, 3, 5**: confirm tumor cells infiltrating stroma.\n2. **Regions 3, 4, 6**: verify mitoses and lymphocytes by eye; both failed spot checks.\n3. **Region 9**: look for duct-confined atypia; that concept's spot check was only 12/20.",
+ "verification": {
+  "checked": 19,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:10:39-0500",
+ "elapsed_s": 41.9,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 12506,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 6366,
+  "output_tokens_details": {
+   "thinking_tokens": 5527
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 12506,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 6366,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 12506,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 12506
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 41137
+}

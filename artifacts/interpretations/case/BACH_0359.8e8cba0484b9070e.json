@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0359",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "8e8cba0484b9070e",
+ "markdown": "## Bottom line\n**Suggests InSitu (90%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set; second model and all 5 neighbors agree. [F1]\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 90%, Invasive 9% | Clear leader |\n| Conformal set | InSitu only | Single class |\n| Reliability / OOD | 0.998 / 94th percentile | No input flag |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5 of 5 InSitu | Unanimous |\n\n## Tissue evidence\n- **Benign fibrous stroma or fat** (regions 3, 7, 11) \u00b7 \u2193 invasive \u00b7 Concept model links it to lower invasive likelihood [F2] \u00b7 Validated\n- **Normal lobules, two-layered epithelium** (regions 3, 7, 11) \u00b7 \u2193 invasive \u00b7 Scored high; spot check 0/20 \u00b7 Unreliable\n- **Atypical cells confined within ducts** (regions 1, 2, 6) \u00b7 \u2193 invasive \u00b7 Fits in situ pattern; spot check 12/20 \u00b7 Weak\n- **Tumor necrosis** (regions 0, 1, 5) \u00b7 \u2191 invasive \u00b7 Invasive-leaning; spot check 3/20 \u00b7 Unreliable\n- **Nuclear size** (regions 3, 4, 5) \u00b7 context \u00b7 Mean 48 \u00b5m\u00b2, lowest in reference set [F7] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Deletion test +0.54 logit vs random (CI 0.47\u20130.60) excludes 0: faithful to the classifier.\n- **Concepts**: Deletion test +0.002 (CI \u22120.005 to 0.007) includes 0: not shown to reflect the classifier. This case leans on Unreliable normal lobules and necrosis.\n\n## Could be wrong if\n- Region 4 alone scores 71% invasive risk, versus 9% for the whole image.\n- Cell measurements cover only regions 3\u20135.\n\n## Check on the slide\n1. **4**: Region risk 71%; look for stromal invasion beyond duct borders.\n2. **0, 1, 5**: Necrosis concept peaks here but is Unreliable; confirm true necrosis.\n3. **3, 7, 11**: Confirm benign stroma; the normal-lobule concept was unreliable.",
+ "verification": {
+  "checked": 18,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:26:46-0500",
+ "elapsed_s": 44.3,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13465,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 6363,
+  "output_tokens_details": {
+   "thinking_tokens": 5546
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13465,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 6363,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13465,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13465
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 42070
+}

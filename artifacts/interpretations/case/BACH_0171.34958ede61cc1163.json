@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0171",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "34958ede61cc1163",
+ "markdown": "## Bottom line\n**Suggests Normal (93%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set; second model and 5/5 neighbors agree [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 93%, Benign 6%, InSitu 1% | Clear top class |\n| Conformal set | Normal only | Single class |\n| Reliability / OOD | 0.99 / 36th percentile | Typical image |\n| Second-model (MUSK) agreement | Both Normal | Concurs |\n| Similar cases | 5 of 5 Normal | Unanimous |\n\n## Tissue evidence\n- **Normal lobules** (regions 2, 10, 11) \u00b7 \u2193 invasive \u00b7 Largest lower-invasive term; spot check 0/20 [F2] \u00b7 Unreliable\n- **Benign stroma or fat** (regions 7, 8, 11) \u00b7 \u2193 invasive \u00b7 Above typical level; spot check 20/20 [F3] \u00b7 Validated\n- **Gland / tubule formation** (regions 1, 6, 9) \u00b7 \u2193 invasive \u00b7 Above typical level; spot check 18/20 [F4] \u00b7 Validated\n- **Nuclear size** (regions 1, 5, 6) \u00b7 context \u00b7 Mean 47 \u00b5m\u00b2; 0th percentile of reference [F7] \u00b7 Measured\n- **Neoplastic nuclei density** (regions 1, 5, 6) \u00b7 context \u00b7 1,500/mm\u00b2 (86th percentile); runs against the Normal call \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion effect +0.002 (CI \u22120.005 to 0.007) includes 0, so not shown to reflect the classifier; Normal lobules is Unreliable.\n\n## Could be wrong if\n- Dense neoplastic nuclei (86th percentile) reflect true atypia, not normal epithelium.\n- A focal lesion is missed: region 11 has the highest per-region invasive probability (25%).\n\n## Check on the slide\n1. **Region 11** \u2014 highest per-region invasive probability (25%); confirm no focal invasive tumor.\n2. **Regions 1, 5, 6** \u2014 51\u201380 nuclei labeled neoplastic each; check for true atypia.\n3. **Regions 7, 8** \u2014 pleomorphism concept (18/20 spot check) peaks here; confirm nuclei look benign.",
+ "verification": {
+  "checked": 27,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:17:11-0500",
+ "elapsed_s": 54.2,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13222,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 7839,
+  "output_tokens_details": {
+   "thinking_tokens": 6986
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13222,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 7839,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13222,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13222
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 52637
+}

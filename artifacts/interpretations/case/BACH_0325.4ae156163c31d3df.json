@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0325",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "4ae156163c31d3df",
+ "markdown": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Careful review\nSingle-class conformal set, second-model and neighbor agreement; worklist flag tier 2 for invasive top class.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 100%, others ~0% | Strongly favors Invasive |\n| Conformal set | {Invasive} at 90% | Single class |\n| Reliability / OOD | 0.998 / 94th percentile | Input not flagged |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5/5 Invasive [F5] | Unanimous |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 1, 4) \u00b7 \u2191 invasive \u00b7 Stromal infiltration score above typical [F2] \u00b7 Validated\n- **Gland / tubule formation** (region 11) \u00b7 \u2191 invasive \u00b7 Scarce tubules; low score tied to invasive [F4] \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 2, 3, 4) \u00b7 \u2191 invasive \u00b7 Pleomorphism score above typical \u00b7 Validated\n- **Frequent mitotic figures** (regions 1, 2, 4) \u00b7 \u2191 invasive \u00b7 High score, but failed spot check (0/20) [F3] \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions cuts the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Concept deletion difference is 0.002 (CI \u22120.005 to 0.007), including 0, so not shown to reflect the classifier. Mitoses is Unreliable.\n\n## Could be wrong if\n- Mitosis and necrosis scores are artifacts; both failed spot checks (0/20, 3/20).\n- Pleomorphism is overcalled; cell segmentation failed, so no nuclear measurements confirm it.\n\n## Check on the slide\n1. **Regions 0, 1, 4**: confirm tumor cells infiltrating stroma.\n2. **Regions 2, 3, 4**: judge nuclear pleomorphism directly; no cell measurements exist.\n3. **Regions 1, 2, 4**: count mitoses and look for necrosis yourself.",
+ "verification": {
+  "checked": 15,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:25:17-0500",
+ "elapsed_s": 41.0,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 12461,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5926,
+  "output_tokens_details": {
+   "thinking_tokens": 5127
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 12461,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5926,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 12461,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 12461
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 40098
+}

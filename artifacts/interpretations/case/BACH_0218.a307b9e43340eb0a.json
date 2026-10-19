@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0218",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "a307b9e43340eb0a",
+ "markdown": "## Bottom line\n**Suggests Benign (94%)** \u00b7 Confident \u00b7 Careful review\nSignals agree, but sampled regions show unusually many neoplastic nuclei.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 94%, InSitu 5% | Clear lead |\n| Conformal set | {Benign} at 90% | Single class |\n| Reliability / OOD | 0.998 / 86th percentile | No input flag |\n| Second-model (MUSK) agreement | Yes | Same top class |\n| Similar cases | 2 of 5 Benign | Weak support |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 8) \u00b7 \u2193 invasive \u00b7 Scarce; associated with lower invasive likelihood [F2] \u00b7 Validated\n- **Gland / tubule formation** (regions 7, 8, 9) \u00b7 \u2193 invasive \u00b7 Prominent; associated with lower invasive likelihood [F4] \u00b7 Validated\n- **Tumor cell fraction and density** (regions 1, 5, 6) \u00b7 context \u00b7 84% neoplastic nuclei (99th percentile); density 96th [F7, F8] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion effect 0.002 (CI -0.005 to 0.007) includes 0: not shown to reflect the classifier. No cited concept is Unreliable.\n\n## Could be wrong if\n- HoVer-Net shows 84% neoplastic nuclei in sampled regions; the Benign call may understate disease.\n- Nearest cases split: 2 Benign, 2 InSitu, 1 Normal.\n\n## Check on the slide\n1. **Regions 5, 6** \u2014 highest invasive-logit contribution; confirm whether dense tumor nuclei are in situ or invasive.\n2. **Region 1** \u2014 134 neoplastic nuclei counted; check for duct-confined versus infiltrating growth.\n3. **Regions 7, 8, 9** \u2014 confirm glands are benign and stroma shows no infiltration.",
+ "verification": {
+  "checked": 17,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:19:52-0500",
+ "elapsed_s": 97.8,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13327,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 13948,
+  "output_tokens_details": {
+   "thinking_tokens": 13201
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13327,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 13948,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13327,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13327
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 97045
+}

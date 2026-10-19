@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0370",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "f02b99b565835b8e",
+ "markdown": "## Bottom line\n**Suggests Benign (78%)** \u00b7 Confident \u00b7 Careful review\n\nConformal set and MUSK agree on Benign, but neighbors lean InSitu and tumor-cell metrics are high.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 78%, InSitu 21%, Invasive 1% | Clear lead; InSitu second |\n| Conformal set | {Benign} at 90% | Single class |\n| Reliability / OOD | 1.00 / 100th percentile | No flag; OOD rank maximal |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 1 of 5 Benign; 4 InSitu | Neighbors disagree |\n\n## Tissue evidence\n- **Scarce benign stroma/fat** (region 1) \u00b7 \u2191 invasive \u00b7 Below-typical score nudges concept model toward invasive [F4] \u00b7 Validated\n- **Atypical cells confined in ducts** (regions 3, 7, 10) \u00b7 \u2193 invasive \u00b7 Above typical; associated with lower invasive likelihood [F2] \u00b7 Weak\n- **Tumor nuclei 84% of sampled, 99th percentile** (regions 2, 4, 6) \u00b7 context \u00b7 Dense neoplastic nuclei on three sampled regions [F7] \u00b7 Measured\n- **Frequent mitoses** (regions 2, 5, 6) \u00b7 \u2191 invasive \u00b7 Scored high; concept model associates with invasive \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Deletion test excludes 0 (drop 0.54, CI 0.47-0.60); faithful to the classifier.\n- **Concepts**: Deletion CI (-0.005 to 0.007) includes 0: not shown to reflect the classifier. Unreliable here: normal lobules, mitoses, necrosis.\n\n## Could be wrong if\n- Four of five similar cases are InSitu; InSitu holds 21% probability.\n- Tumor-nuclei metrics (99th percentile) come from only 3 of 12 regions and conflict with the Benign call.\n\n## Check on the slide\n1. **4, 5, 6** \u2014 Per-region invasive risk 98%, 76%, 45%; look for stromal invasion versus in-situ nests.\n2. **3, 7, 10** \u2014 Confirm atypical cells stay confined to ducts; spot check was 12/20.\n3. **2, 4, 6** \u2014 Verify nuclei labeled neoplastic; mean nuclear size is lowest in the reference set.",
+ "verification": {
+  "checked": 20,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:27:26-0500",
+ "elapsed_s": 66.1,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13690,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 9319,
+  "output_tokens_details": {
+   "thinking_tokens": 8459
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13690,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 9319,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13690,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13690
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 65339
+}

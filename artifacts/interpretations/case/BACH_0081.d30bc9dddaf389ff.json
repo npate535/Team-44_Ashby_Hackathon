@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0081",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "d30bc9dddaf389ff",
+ "markdown": "## Bottom line\n**Suggests Invasive (>99%)** \u00b7 Confident \u00b7 Careful review\nSingle-class conformal set and MUSK agreement, but only 2 of 5 similar cases are invasive [F5].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive >99%, InSitu <1% | Very high |\n| Conformal set | {Invasive} at 90% | Single class |\n| Reliability / OOD | 1.00 / 88th percentile | Input reliable |\n| Second-model (MUSK) agreement | Yes, Invasive | Agrees |\n| Similar cases | 2 of 5 Invasive | Weak support |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 6, 10, 11) \u00b7 \u2191 invasive \u00b7 Above typical; concept model links it to invasion [F2] \u00b7 Validated\n- **Gland / tubule formation** (regions 5, 8, 9) \u00b7 \u2193 invasive \u00b7 Above typical; concept model links it to lower invasive likelihood \u00b7 Validated\n- **Immune cells near tumor** (regions 0, 2, 10) \u00b7 context \u00b7 Higher than 92% of reference images; sampled regions only [F7] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Effect vs random is 0.002 (CI \u22120.005 to 0.007); not shown to reflect classifier use. TILs (8/20) is Weak.\n\n## Could be wrong if\n- The 3 InSitu neighbors are right and this is in-situ disease, not invasion.\n- Gland formation in regions 8, 9 (25\u201340% invasive each) reflects benign or in-situ glands.\n\n## Check on the slide\n1. **6, 10, 11**: Confirm tumor cells infiltrate stroma rather than benign fibrous stroma.\n2. **8, 9**: Low per-region scores with gland formation: benign glands or invasive tubules?\n3. **0, 7**: Region 0: in-situ duct component? Region 7: confirm necrosis, mitoses, TILs by eye.",
+ "verification": {
+  "checked": 16,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:13:46-0500",
+ "elapsed_s": 75.2,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13391,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 9886,
+  "output_tokens_details": {
+   "thinking_tokens": 9134
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13391,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 9886,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13391,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13391
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 74533
+}

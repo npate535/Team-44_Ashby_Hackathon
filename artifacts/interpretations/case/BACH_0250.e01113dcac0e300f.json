@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0250",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "e01113dcac0e300f",
+ "markdown": "## Bottom line\n**Suggests InSitu (68%)** \u00b7 Ambiguous: Normal vs InSitu \u00b7 Careful review\nTwo-class conformal set, flagged reliability, and second-model disagreement.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 68%, Normal 32% | Leading, not decisive |\n| Conformal set | Normal, InSitu | Cannot separate the two |\n| Reliability / OOD | 0.70 / 88th percentile | Input flagged |\n| Second-model (MUSK) agreement | No | Models disagree |\n| Similar cases | 1 of 5 InSitu | Neighbors mostly Normal |\n\n## Tissue evidence\n- **Tumor cell fraction** (regions 3, 4, 5) \u00b7 context \u00b7 73% neoplastic nuclei, above 97% of references [F7] \u00b7 Measured\n- **Benign fibrous stroma or fat** (regions 9, 10, 11) \u00b7 \u2193 invasive \u00b7 Associated with lower invasive likelihood [F3] \u00b7 Validated\n- **Tumor infiltrating stroma** (region 11) \u00b7 \u2191 invasive \u00b7 Small positive term; invasive risk stays 0.2% [F4] \u00b7 Validated\n- **Normal lobules** (regions 3, 10, 11) \u00b7 \u2193 invasive \u00b7 Strongest negative term; spot check 0/20 [F2] \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing top 3 regions drops invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to classifier.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0; unproven. Case leans on Unreliable normal lobules.\n\n## Could be wrong if\n- Image is atypical (OOD 88th percentile), so all probabilities may be off.\n- Heatmap and concepts address invasive risk, not Normal vs InSitu; that split is unexplained.\n\n## Check on the slide\n1. **Region 5**: 169 neoplastic nuclei counted; judge in situ versus benign architecture.\n2. **Region 11**: is the infiltrating stroma true invasion or periductal stroma?\n3. **Region 6**: look for atypical cells confined within ducts (12/20 spot check).",
+ "verification": {
+  "checked": 17,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:21:12-0500",
+ "elapsed_s": 60.2,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13735,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 9810,
+  "output_tokens_details": {
+   "thinking_tokens": 9034
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13735,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 9810,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13735,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13735
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 59401
+}

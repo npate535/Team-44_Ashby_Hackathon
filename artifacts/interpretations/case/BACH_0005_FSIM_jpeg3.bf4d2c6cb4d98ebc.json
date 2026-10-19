@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0005_FSIM_jpeg3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "bf4d2c6cb4d98ebc",
+ "markdown": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set and full neighbor agreement support this [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive >99%, InSitu <1% | Strongly favors invasive |\n| Conformal set | {Invasive}, \u03b1=0.1 | Single class |\n| Reliability / OOD | 0.999 / 1.0 percentile | No reliability flag |\n| Second-model (MUSK) agreement | Yes | Same top class |\n| Similar cases | 5 of 5 Invasive | Neighbors fully agree |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 4, 6) \u00b7 \u2191 invasive \u00b7 Score above typical; spot check 19/20 [F3] \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 2, 9, 11) \u00b7 \u2191 invasive \u00b7 Score above typical; spot check 18/20 [F4] \u00b7 Validated\n- **Frequent mitotic figures** (regions 1, 2, 7) \u00b7 \u2191 invasive \u00b7 Highest concept term, but spot check 0/20 [F2] \u00b7 Unreliable\n- **Tumor necrosis** (regions 2, 6, 8) \u00b7 \u2191 invasive \u00b7 Score high; spot check 3/20 \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60). It is faithful to the classifier.\n- **Concepts**: Concept deletion effect is 0.002 (CI \u22120.005 to 0.007), which includes 0. It is not shown to reflect the classifier. This case leans on Unreliable mitoses and necrosis.\n\n## Could be wrong if\n- Input is JPEG-degraded (severity 3); the reliability score ranks errors only modestly (AUROC 0.69, CI 0.58\u20130.87).\n- Calibration was checked on only 132 test images; ECE 0.05, CI 0.03\u20130.18.\n\n## Check on the slide\n1. **0, 4, 6**: confirm stromal invasion; region 0 touches the tumor-at-margin edges [F7].\n2. **2, 9, 11**: confirm marked nuclear pleomorphism.\n3. **1, 2, 6, 7, 8**: judge mitoses and necrosis yourself; their model scores failed spot checks.",
+ "verification": {
+  "checked": 25,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:05:43-0500",
+ "elapsed_s": 47.2,
+ "usage": {
+  "input_tokens": 4,
+  "cache_creation_input_tokens": 12014,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 6926,
+  "output_tokens_details": {
+   "thinking_tokens": 6086
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 0,
+   "ephemeral_5m_input_tokens": 12014
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 4,
+    "output_tokens": 6926,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 12014,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 12014,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 45964
+}

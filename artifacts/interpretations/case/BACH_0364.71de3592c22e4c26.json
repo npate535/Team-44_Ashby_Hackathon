@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0364",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "71de3592c22e4c26",
+ "markdown": "## Bottom line\n**Suggests Invasive (70%)** \u00b7 Ambiguous: Invasive vs InSitu \u00b7 Careful review\n\nConformal set holds Invasive only, but MUSK disagrees and 4 of 5 neighbors are InSitu.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 70%, InSitu 30% | Moderate margin; InSitu runner-up |\n| Conformal set | {Invasive} at 90% | Single class |\n| Reliability / OOD | 0.93 / 36th percentile | Input looks typical |\n| Second-model (MUSK) agreement | No | Different top class |\n| Similar cases | 1 of 5 Invasive | Neighbors mostly InSitu |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 10) \u00b7 \u2193 invasive \u00b7 Below-typical level; concept model leans away from invasive [F2] \u00b7 Validated\n- **Benign fibrous stroma or fat** (region 11) \u00b7 \u2191 invasive \u00b7 Typical level; additive term favors invasive, counterintuitive for benign tissue [F3] \u00b7 Validated\n- **Atypical cells confined within ducts** (regions 2, 9) \u00b7 \u2193 invasive \u00b7 Above-typical level; fits an in situ alternative [F4] \u00b7 Weak\n- **Tumor necrosis** (regions 0, 3, 9) \u00b7 \u2191 invasive \u00b7 High level, but spot check failed (3/20) \u00b7 Unreliable\n- **Tumor cell density** (regions 2, 6) \u00b7 context \u00b7 Higher than 95% of reference images; sampled regions only [F7] \u00b7 Measured\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions lowers the invasive logit 0.54 more than random (CI 0.47 to 0.60); faithful.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0; not shown to reflect classifier. Necrosis (3/20) and normal lobules (0/20) failed spot checks.\n\n## Could be wrong if\n- MUSK and most neighbors favor InSitu; the true class may be InSitu.\n- Cell measurements cover only regions 2 and 6, not the whole image.\n\n## Check on the slide\n1. **Regions 6, 3, 0**: highest heatmap contribution; look for stromal invasion versus in situ growth.\n2. **Regions 2, 9**: check whether atypical cells stay confined within ducts.\n3. **Region 10**: strongest infiltrating-stroma area; confirm tumor cells invade stroma.",
+ "verification": {
+  "checked": 16,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T09:10:04-0500",
+ "elapsed_s": 50.8,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13580,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 7482,
+  "output_tokens_details": {
+   "thinking_tokens": 6605
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13580,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 7482,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13580,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13580
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 50036
+}
