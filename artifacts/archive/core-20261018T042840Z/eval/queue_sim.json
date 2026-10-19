@@ -1,0 +1,640 @@
+{
+  "name": "queue_sim",
+  "created_utc": "2026-10-17T23:37:55Z",
+  "config_hash": "1c881484a2f556f97ee2c5db6c529a5bd20ae41fb46283a508247091872a98dc",
+  "git_sha": "1ca8e3d81eb084cf330b290ab7b73b0db97790b9",
+  "synthetic": false,
+  "git_dirty": true,
+  "split": "test",
+  "n_cases": 132,
+  "reps": 1000,
+  "policies": {
+    "fifo": "FIFO (arrival order)",
+    "tiers": "PathQueue tiers",
+    "tiers_aging": "PathQueue tiers + aging guard (configured targets)",
+    "tiers_aging_day_scale": "Sensitivity: tiers + aging, day-scale targets"
+  },
+  "assumptions": {
+    "arrivals": "Poisson, 6 per hour for 8 h; cases drawn uniformly with replacement from the clean test split",
+    "reader": "one reader, fixed 9 min per case, non-preemptive, works overtime until empty",
+    "utilization": 0.9,
+    "tiers": "core.tiers (surgical 1; Invasive top or in the LAC set 2; set size != 1, reliability flag or insufficient tissue 3; else 4)",
+    "aging": {
+      "enabled": true,
+      "promote_at_fraction": 0.75,
+      "turnaround_target_min": {
+        "1": 20,
+        "2": 1440,
+        "3": 1440,
+        "4": 2880
+      }
+    },
+    "common_random_numbers": true,
+    "seed": 44,
+    "interval": "2.5-97.5 percentiles over simulated days (simulation uncertainty only)",
+    "truth_use": "true labels only score the waits; they never drive the queue"
+  },
+  "test_case_tiers": {
+    "1": 33,
+    "2": 25,
+    "3": 19,
+    "4": 55
+  },
+  "test_case_truth": {
+    "Normal": 23,
+    "Benign": 48,
+    "InSitu": 30,
+    "Invasive": 31
+  },
+  "false_negatives_in_pool": 0,
+  "results": {
+    "fifo": {
+      "aggressive_mean": {
+        "mean": 20.20242484632382,
+        "lo": 3.518393790763282,
+        "hi": 60.07283264600743,
+        "n_reps": 1000
+      },
+      "aggressive_median": {
+        "mean": 18.988625755263296,
+        "lo": 0.030948048037221565,
+        "hi": 64.62063558222061,
+        "n_reps": 1000
+      },
+      "aggressive_p90": {
+        "mean": 37.743508632604275,
+        "lo": 8.137853793943345,
+        "hi": 100.80199568773382,
+        "n_reps": 1000
+      },
+      "non_flagged_mean": {
+        "mean": 20.068736883415056,
+        "lo": 4.342711569029474,
+        "hi": 60.080657229544514,
+        "n_reps": 1000
+      },
+      "false_negative_mean": {
+        "mean": null,
+        "lo": null,
+        "hi": null,
+        "n_reps": 0
+      },
+      "surgical_mean": {
+        "mean": 20.07847167469609,
+        "lo": 3.6307937292635817,
+        "hi": 60.374259164058415,
+        "n_reps": 1000
+      },
+      "all_mean": {
+        "mean": 20.100363423907577,
+        "lo": 4.732572427859044,
+        "hi": 59.284419777953396,
+        "n_reps": 1000
+      },
+      "max_wait": {
+        "mean": 51.896005209591024,
+        "lo": 18.39118787070784,
+        "hi": 117.53383609895171,
+        "n_reps": 1000
+      },
+      "overtime": {
+        "mean": 29.269410507003226,
+        "lo": 0.0,
+        "hi": 104.26175673627881,
+        "n_reps": 1000
+      },
+      "n_arrivals": {
+        "mean": 47.382,
+        "lo": 34.0,
+        "hi": 62.0,
+        "n_reps": 1000
+      },
+      "promoted_fraction": {
+        "mean": 0.0,
+        "lo": 0.0,
+        "hi": 0.0,
+        "n_reps": 1000
+      },
+      "class_Normal_mean": {
+        "mean": 20.18850134818152,
+        "lo": 2.8164235443954495,
+        "hi": 59.489016144457864,
+        "n_reps": 1000
+      },
+      "class_Benign_mean": {
+        "mean": 19.875632962758324,
+        "lo": 3.965073312100369,
+        "hi": 58.31351000751281,
+        "n_reps": 1000
+      },
+      "class_InSitu_mean": {
+        "mean": 20.309818118696878,
+        "lo": 3.4712901027266234,
+        "hi": 61.0179312765989,
+        "n_reps": 1000
+      },
+      "class_Invasive_mean": {
+        "mean": 20.20242484632382,
+        "lo": 3.518393790763282,
+        "hi": 60.07283264600743,
+        "n_reps": 1000
+      },
+      "tier_1_mean": {
+        "mean": 20.07847167469609,
+        "lo": 3.6307937292635817,
+        "hi": 60.374259164058415,
+        "n_reps": 1000
+      },
+      "tier_2_mean": {
+        "mean": 20.264520934787086,
+        "lo": 2.8756793112312913,
+        "hi": 60.72887945051397,
+        "n_reps": 1000
+      },
+      "tier_3_mean": {
+        "mean": 20.150769530947354,
+        "lo": 2.2088283166545963,
+        "hi": 60.994754276461336,
+        "n_reps": 997
+      },
+      "tier_4_mean": {
+        "mean": 20.068736883415056,
+        "lo": 4.342711569029474,
+        "hi": 60.080657229544514,
+        "n_reps": 1000
+      }
+    },
+    "tiers": {
+      "aggressive_mean": {
+        "mean": 6.037748765549697,
+        "lo": 1.9080112482872493,
+        "hi": 12.90139195159556,
+        "n_reps": 1000
+      },
+      "aggressive_median": {
+        "mean": 4.393538111303877,
+        "lo": 0.02228071556121059,
+        "hi": 7.985122727605895,
+        "n_reps": 1000
+      },
+      "aggressive_p90": {
+        "mean": 13.026377907645065,
+        "lo": 4.764700503803178,
+        "hi": 31.403366595225275,
+        "n_reps": 1000
+      },
+      "non_flagged_mean": {
+        "mean": 38.69091584379258,
+        "lo": 5.6322772059821276,
+        "hi": 127.50878231566318,
+        "n_reps": 1000
+      },
+      "false_negative_mean": {
+        "mean": null,
+        "lo": null,
+        "hi": null,
+        "n_reps": 0
+      },
+      "surgical_mean": {
+        "mean": 4.687284853555192,
+        "lo": 1.7254808001159678,
+        "hi": 8.032156069829245,
+        "n_reps": 1000
+      },
+      "all_mean": {
+        "mean": 20.100363423907577,
+        "lo": 4.732572427859044,
+        "hi": 59.28441977795341,
+        "n_reps": 1000
+      },
+      "max_wait": {
+        "mean": 156.68660273761085,
+        "lo": 26.968447297009067,
+        "hi": 448.5318294156395,
+        "n_reps": 1000
+      },
+      "overtime": {
+        "mean": 29.269410507003226,
+        "lo": 0.0,
+        "hi": 104.26175673627881,
+        "n_reps": 1000
+      },
+      "n_arrivals": {
+        "mean": 47.382,
+        "lo": 34.0,
+        "hi": 62.0,
+        "n_reps": 1000
+      },
+      "promoted_fraction": {
+        "mean": 0.0,
+        "lo": 0.0,
+        "hi": 0.0,
+        "n_reps": 1000
+      },
+      "class_Normal_mean": {
+        "mean": 33.25628012749045,
+        "lo": 2.306590239291152,
+        "hi": 122.28953293273288,
+        "n_reps": 1000
+      },
+      "class_Benign_mean": {
+        "mean": 27.508442849233084,
+        "lo": 4.388180941037435,
+        "hi": 95.28352114378981,
+        "n_reps": 1000
+      },
+      "class_InSitu_mean": {
+        "mean": 13.410396089565019,
+        "lo": 2.5109192203567683,
+        "hi": 42.21752001122088,
+        "n_reps": 1000
+      },
+      "class_Invasive_mean": {
+        "mean": 6.037748765549697,
+        "lo": 1.9080112482872493,
+        "hi": 12.90139195159556,
+        "n_reps": 1000
+      },
+      "tier_1_mean": {
+        "mean": 4.687284853555192,
+        "lo": 1.7254808001159678,
+        "hi": 8.032156069829245,
+        "n_reps": 1000
+      },
+      "tier_2_mean": {
+        "mean": 7.392666789860807,
+        "lo": 1.845630780621678,
+        "hi": 16.878214817160572,
+        "n_reps": 1000
+      },
+      "tier_3_mean": {
+        "mean": 11.771119429410074,
+        "lo": 1.3657958030296151,
+        "hi": 33.46667078534504,
+        "n_reps": 997
+      },
+      "tier_4_mean": {
+        "mean": 38.69091584379258,
+        "lo": 5.6322772059821276,
+        "hi": 127.50878231566318,
+        "n_reps": 1000
+      },
+      "vs_fifo": {
+        "aggressive_mean": {
+          "mean": -14.16467608077412,
+          "lo": -51.300000000000004,
+          "hi": 0.0,
+          "n_reps": 1000
+        },
+        "aggressive_p90": {
+          "mean": -24.7171307249592,
+          "lo": -80.70046320232842,
+          "hi": 1.3825578500419307,
+          "n_reps": 1000
+        },
+        "non_flagged_mean": {
+          "mean": 18.622178960377525,
+          "lo": 0.8989285714285719,
+          "hi": 71.59192546583847,
+          "n_reps": 1000
+        },
+        "false_negative_mean": {
+          "mean": null,
+          "lo": null,
+          "hi": null,
+          "n_reps": 0
+        },
+        "surgical_mean": {
+          "mean": -15.391186821140899,
+          "lo": -54.03750000000001,
+          "hi": -0.7485576923076936,
+          "n_reps": 1000
+        },
+        "all_mean": {
+          "mean": 1.2523315717771765e-16,
+          "lo": -7.105427357601002e-15,
+          "hi": 7.105427357601002e-15,
+          "n_reps": 1000
+        }
+      }
+    },
+    "tiers_aging": {
+      "aggressive_mean": {
+        "mean": 6.037748765549697,
+        "lo": 1.9080112482872493,
+        "hi": 12.90139195159556,
+        "n_reps": 1000
+      },
+      "aggressive_median": {
+        "mean": 4.393538111303877,
+        "lo": 0.02228071556121059,
+        "hi": 7.985122727605895,
+        "n_reps": 1000
+      },
+      "aggressive_p90": {
+        "mean": 13.026377907645065,
+        "lo": 4.764700503803178,
+        "hi": 31.403366595225275,
+        "n_reps": 1000
+      },
+      "non_flagged_mean": {
+        "mean": 38.69091584379258,
+        "lo": 5.6322772059821276,
+        "hi": 127.50878231566318,
+        "n_reps": 1000
+      },
+      "false_negative_mean": {
+        "mean": null,
+        "lo": null,
+        "hi": null,
+        "n_reps": 0
+      },
+      "surgical_mean": {
+        "mean": 4.687284853555192,
+        "lo": 1.7254808001159678,
+        "hi": 8.032156069829245,
+        "n_reps": 1000
+      },
+      "all_mean": {
+        "mean": 20.100363423907577,
+        "lo": 4.732572427859044,
+        "hi": 59.28441977795341,
+        "n_reps": 1000
+      },
+      "max_wait": {
+        "mean": 156.68660273761085,
+        "lo": 26.968447297009067,
+        "hi": 448.5318294156395,
+        "n_reps": 1000
+      },
+      "overtime": {
+        "mean": 29.269410507003226,
+        "lo": 0.0,
+        "hi": 104.26175673627881,
+        "n_reps": 1000
+      },
+      "n_arrivals": {
+        "mean": 47.382,
+        "lo": 34.0,
+        "hi": 62.0,
+        "n_reps": 1000
+      },
+      "promoted_fraction": {
+        "mean": 0.0,
+        "lo": 0.0,
+        "hi": 0.0,
+        "n_reps": 1000
+      },
+      "class_Normal_mean": {
+        "mean": 33.25628012749045,
+        "lo": 2.306590239291152,
+        "hi": 122.28953293273288,
+        "n_reps": 1000
+      },
+      "class_Benign_mean": {
+        "mean": 27.508442849233084,
+        "lo": 4.388180941037435,
+        "hi": 95.28352114378981,
+        "n_reps": 1000
+      },
+      "class_InSitu_mean": {
+        "mean": 13.410396089565019,
+        "lo": 2.5109192203567683,
+        "hi": 42.21752001122088,
+        "n_reps": 1000
+      },
+      "class_Invasive_mean": {
+        "mean": 6.037748765549697,
+        "lo": 1.9080112482872493,
+        "hi": 12.90139195159556,
+        "n_reps": 1000
+      },
+      "tier_1_mean": {
+        "mean": 4.687284853555192,
+        "lo": 1.7254808001159678,
+        "hi": 8.032156069829245,
+        "n_reps": 1000
+      },
+      "tier_2_mean": {
+        "mean": 7.392666789860807,
+        "lo": 1.845630780621678,
+        "hi": 16.878214817160572,
+        "n_reps": 1000
+      },
+      "tier_3_mean": {
+        "mean": 11.771119429410074,
+        "lo": 1.3657958030296151,
+        "hi": 33.46667078534504,
+        "n_reps": 997
+      },
+      "tier_4_mean": {
+        "mean": 38.69091584379258,
+        "lo": 5.6322772059821276,
+        "hi": 127.50878231566318,
+        "n_reps": 1000
+      },
+      "vs_fifo": {
+        "aggressive_mean": {
+          "mean": -14.16467608077412,
+          "lo": -51.300000000000004,
+          "hi": 0.0,
+          "n_reps": 1000
+        },
+        "aggressive_p90": {
+          "mean": -24.7171307249592,
+          "lo": -80.70046320232842,
+          "hi": 1.3825578500419307,
+          "n_reps": 1000
+        },
+        "non_flagged_mean": {
+          "mean": 18.622178960377525,
+          "lo": 0.8989285714285719,
+          "hi": 71.59192546583847,
+          "n_reps": 1000
+        },
+        "false_negative_mean": {
+          "mean": null,
+          "lo": null,
+          "hi": null,
+          "n_reps": 0
+        },
+        "surgical_mean": {
+          "mean": -15.391186821140899,
+          "lo": -54.03750000000001,
+          "hi": -0.7485576923076936,
+          "n_reps": 1000
+        },
+        "all_mean": {
+          "mean": 1.2523315717771765e-16,
+          "lo": -7.105427357601002e-15,
+          "hi": 7.105427357601002e-15,
+          "n_reps": 1000
+        }
+      }
+    },
+    "tiers_aging_day_scale": {
+      "aggressive_mean": {
+        "mean": 6.037748765549697,
+        "lo": 1.9080112482872493,
+        "hi": 12.90139195159556,
+        "n_reps": 1000
+      },
+      "aggressive_median": {
+        "mean": 4.393538111303877,
+        "lo": 0.02228071556121059,
+        "hi": 7.985122727605895,
+        "n_reps": 1000
+      },
+      "aggressive_p90": {
+        "mean": 13.026377907645065,
+        "lo": 4.764700503803178,
+        "hi": 31.403366595225275,
+        "n_reps": 1000
+      },
+      "non_flagged_mean": {
+        "mean": 38.62947694471983,
+        "lo": 5.6322772059821276,
+        "hi": 127.48765399929326,
+        "n_reps": 1000
+      },
+      "false_negative_mean": {
+        "mean": null,
+        "lo": null,
+        "hi": null,
+        "n_reps": 0
+      },
+      "surgical_mean": {
+        "mean": 4.687284853555192,
+        "lo": 1.7254808001159678,
+        "hi": 8.032156069829245,
+        "n_reps": 1000
+      },
+      "all_mean": {
+        "mean": 20.100363423907577,
+        "lo": 4.732572427859044,
+        "hi": 59.2844197779534,
+        "n_reps": 1000
+      },
+      "max_wait": {
+        "mean": 130.34725514805112,
+        "lo": 26.968447297009067,
+        "hi": 286.1183688126074,
+        "n_reps": 1000
+      },
+      "overtime": {
+        "mean": 29.269410507003226,
+        "lo": 0.0,
+        "hi": 104.26175673627881,
+        "n_reps": 1000
+      },
+      "n_arrivals": {
+        "mean": 47.382,
+        "lo": 34.0,
+        "hi": 62.0,
+        "n_reps": 1000
+      },
+      "promoted_fraction": {
+        "mean": 0.02530750764622454,
+        "lo": 0.0,
+        "hi": 0.19052197802197798,
+        "n_reps": 1000
+      },
+      "class_Normal_mean": {
+        "mean": 33.356166754833694,
+        "lo": 2.306590239291152,
+        "hi": 118.02757849564225,
+        "n_reps": 1000
+      },
+      "class_Benign_mean": {
+        "mean": 26.67661945086089,
+        "lo": 4.388180941037435,
+        "hi": 82.2967668141518,
+        "n_reps": 1000
+      },
+      "class_InSitu_mean": {
+        "mean": 14.558710702428936,
+        "lo": 2.5109192203567683,
+        "hi": 48.75340010832767,
+        "n_reps": 1000
+      },
+      "class_Invasive_mean": {
+        "mean": 6.037748765549697,
+        "lo": 1.9080112482872493,
+        "hi": 12.90139195159556,
+        "n_reps": 1000
+      },
+      "tier_1_mean": {
+        "mean": 4.687284853555192,
+        "lo": 1.7254808001159678,
+        "hi": 8.032156069829245,
+        "n_reps": 1000
+      },
+      "tier_2_mean": {
+        "mean": 7.392666789860807,
+        "lo": 1.845630780621678,
+        "hi": 16.878214817160572,
+        "n_reps": 1000
+      },
+      "tier_3_mean": {
+        "mean": 11.920058567002673,
+        "lo": 1.3657958030296151,
+        "hi": 34.72121042450469,
+        "n_reps": 997
+      },
+      "tier_4_mean": {
+        "mean": 38.62947694471983,
+        "lo": 5.6322772059821276,
+        "hi": 127.48765399929326,
+        "n_reps": 1000
+      },
+      "vs_fifo": {
+        "aggressive_mean": {
+          "mean": -14.16467608077412,
+          "lo": -51.300000000000004,
+          "hi": 0.0,
+          "n_reps": 1000
+        },
+        "aggressive_p90": {
+          "mean": -24.7171307249592,
+          "lo": -80.70046320232842,
+          "hi": 1.3825578500419307,
+          "n_reps": 1000
+        },
+        "non_flagged_mean": {
+          "mean": 18.560740061304784,
+          "lo": 0.8989285714285719,
+          "hi": 71.59192546583847,
+          "n_reps": 1000
+        },
+        "false_negative_mean": {
+          "mean": null,
+          "lo": null,
+          "hi": null,
+          "n_reps": 0
+        },
+        "surgical_mean": {
+          "mean": -15.391186821140899,
+          "lo": -54.03750000000001,
+          "hi": -0.7485576923076936,
+          "n_reps": 1000
+        },
+        "all_mean": {
+          "mean": -1.3322676295501878e-17,
+          "lo": -7.105427357601002e-15,
+          "hi": 7.105427357601002e-15,
+          "n_reps": 1000
+        }
+      }
+    }
+  },
+  "notes": [
+    "Prioritizing flagged cases delays non-flagged ones: the vs_fifo rows report that cost (and the delay of false negatives) next to the benefit (cf. Annarumma 2019).",
+    "A simulation with stated assumptions, not a measured workflow outcome.",
+    "At the configured aging targets (tier 1: 20 min, tier 2: 1440 min, tier 3: 1440 min, tier 4: 2880 min) no case waits long enough to be promoted within a 8 h day, so tiers and tiers_aging coincide: the aging guard has NO measured effect here and must not be claimed to protect unflagged cases.",
+    "tiers_aging_day_scale is a sensitivity run with illustrative day-scale aging targets (settings queue_sim.aging_scenarios), not the configured system: 2.5% of reads promoted; unflagged mean wait 38.7 -> 38.6 min vs plain tiers."
+  ],
+  "aging_promotions": {
+    "tiers_aging": 0.0,
+    "tiers_aging_day_scale": 0.02530750764622454
+  }
+}

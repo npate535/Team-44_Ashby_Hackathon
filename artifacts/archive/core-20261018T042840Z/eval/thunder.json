@@ -1,0 +1,162 @@
+{
+  "name": "thunder",
+  "created_utc": "2026-10-17T23:39:30Z",
+  "config_hash": "1c881484a2f556f97ee2c5db6c529a5bd20ae41fb46283a508247091872a98dc",
+  "git_sha": "1ca8e3d81eb084cf330b290ab7b73b0db97790b9",
+  "synthetic": false,
+  "git_dirty": true,
+  "split": "test",
+  "n": 132,
+  "n_groups": 24,
+  "label": "same split, different protocol (published: whole-image resize; ours: tiles + TTA)",
+  "metric": "macro_f1_percent",
+  "source": "THUNDER benchmark (BACH), as recorded in BUILD_PLAN §F; verify before quoting in the deck",
+  "published": {
+    "linear_probe": {
+      "conch": 84.4,
+      "uni2h": 84.7,
+      "musk": 69.9
+    },
+    "zero_shot": {
+      "conch": 56.1,
+      "musk": 62.5
+    }
+  },
+  "ours": [
+    {
+      "model": "conch_probe_lr",
+      "role": "production (calibrated)",
+      "macro_f1": {
+        "estimate": 73.6,
+        "lo": 56.9,
+        "hi": 82.4,
+        "n": 132,
+        "n_groups": 24
+      },
+      "balanced_accuracy": {
+        "estimate": 77.5,
+        "lo": 60.9,
+        "hi": 85.0,
+        "n": 132,
+        "n_groups": 24
+      }
+    },
+    {
+      "model": "abmil",
+      "role": "evaluated model",
+      "macro_f1": {
+        "estimate": 69.1,
+        "lo": 57.8,
+        "hi": 84.9,
+        "n": 132,
+        "n_groups": 24
+      },
+      "balanced_accuracy": {
+        "estimate": 74.2,
+        "lo": 66.6,
+        "hi": 85.2,
+        "n": 132,
+        "n_groups": 24
+      }
+    },
+    {
+      "model": "cb_text",
+      "role": "evaluated model",
+      "macro_f1": {
+        "estimate": 73.6,
+        "lo": 54.5,
+        "hi": 81.9,
+        "n": 132,
+        "n_groups": 24
+      },
+      "balanced_accuracy": {
+        "estimate": 77.1,
+        "lo": 57.1,
+        "hi": 84.5,
+        "n": 132,
+        "n_groups": 24
+      }
+    },
+    {
+      "model": "conch_probe_lr",
+      "role": "evaluated model",
+      "macro_f1": {
+        "estimate": 73.6,
+        "lo": 57.4,
+        "hi": 83.0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "balanced_accuracy": {
+        "estimate": 77.5,
+        "lo": 60.4,
+        "hi": 86.8,
+        "n": 132,
+        "n_groups": 24
+      }
+    },
+    {
+      "model": "fusion_top3",
+      "role": "evaluated model",
+      "macro_f1": {
+        "estimate": 67.8,
+        "lo": 54.2,
+        "hi": 78.8,
+        "n": 132,
+        "n_groups": 24
+      },
+      "balanced_accuracy": {
+        "estimate": 70.4,
+        "lo": 57.1,
+        "hi": 82.3,
+        "n": 132,
+        "n_groups": 24
+      }
+    },
+    {
+      "model": "musk_lr",
+      "role": "evaluated model",
+      "macro_f1": {
+        "estimate": 66.2,
+        "lo": 51.4,
+        "hi": 77.8,
+        "n": 132,
+        "n_groups": 24
+      },
+      "balanced_accuracy": {
+        "estimate": 68.1,
+        "lo": 52.7,
+        "hi": 80.6,
+        "n": 132,
+        "n_groups": 24
+      }
+    }
+  ],
+  "ours_zero_shot": [
+    {
+      "model": "conch",
+      "macro_f1": {
+        "estimate": 47.7,
+        "lo": 35.4,
+        "hi": 56.4,
+        "n": 132,
+        "n_groups": 24
+      }
+    },
+    {
+      "model": "musk",
+      "macro_f1": {
+        "estimate": 49.7,
+        "lo": 39.6,
+        "hi": 60.6,
+        "n": 132,
+        "n_groups": 24
+      }
+    }
+  ],
+  "notes": [
+    "Same split, different protocol: published THUNDER probes resize the whole image; we embed tiles with test-time augmentation and select models by grouped CV inside train.",
+    "Not compared with the 87% ICIAR 2018 challenge result, which used a different, hidden test set.",
+    "Published numbers carry no CI here; ours are cluster-bootstrap 95% CIs in percent."
+  ]
+}

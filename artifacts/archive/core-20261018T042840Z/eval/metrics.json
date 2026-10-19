@@ -1,0 +1,655 @@
+{
+  "name": "metrics",
+  "created_utc": "2026-10-17T23:37:50Z",
+  "config_hash": "1c881484a2f556f97ee2c5db6c529a5bd20ae41fb46283a508247091872a98dc",
+  "git_sha": "1ca8e3d81eb084cf330b290ab7b73b0db97790b9",
+  "synthetic": false,
+  "git_dirty": true,
+  "split": "test",
+  "n": 132,
+  "n_groups": 24,
+  "variants_excluded": 2184,
+  "classes": [
+    "Normal",
+    "Benign",
+    "InSitu",
+    "Invasive"
+  ],
+  "aggressive_class": "Invasive",
+  "models": {
+    "production": "conch_probe_lr",
+    "available": [
+      "abmil",
+      "cb_text",
+      "conch_probe_lr",
+      "fusion_top3",
+      "musk_lr"
+    ],
+    "a": "conch_probe_lr",
+    "b": "cb_text",
+    "source": "eval/model_choice.json"
+  },
+  "bootstrap": {
+    "n_boot": 2000,
+    "ci": 0.95,
+    "seed": 44,
+    "cluster": true
+  },
+  "production": {
+    "invasive_vs_rest_auroc": {
+      "estimate": 0.9974449057809007,
+      "lo": 0.9922397361311389,
+      "hi": 1.0,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 132,
+      "n_groups": 24
+    },
+    "macro_auroc": {
+      "estimate": 0.9300368621512427,
+      "lo": 0.8670221480928322,
+      "hi": 0.9815895270094992,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 132,
+      "n_groups": 24
+    },
+    "macro_f1": {
+      "estimate": 0.7360057512590177,
+      "lo": 0.5694294781794781,
+      "hi": 0.8237771706323737,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 132,
+      "n_groups": 24
+    },
+    "balanced_accuracy": {
+      "estimate": 0.7751358695652174,
+      "lo": 0.6089136904761905,
+      "hi": 0.8497537878787877,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 132,
+      "n_groups": 24
+    },
+    "accuracy": {
+      "estimate": 0.7348484848484849,
+      "lo": 0.664804469273743,
+      "hi": 0.8676470588235294,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 132,
+      "n_groups": 24
+    },
+    "invasive_sensitivity": {
+      "estimate": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 132,
+      "n_groups": 24
+    },
+    "invasive_specificity": {
+      "estimate": 0.9504950495049505,
+      "lo": 0.8982964372189555,
+      "hi": 1.0,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 132,
+      "n_groups": 24
+    },
+    "confusion": {
+      "rows": "true class",
+      "columns": "predicted class",
+      "classes": [
+        "Normal",
+        "Benign",
+        "InSitu",
+        "Invasive"
+      ],
+      "matrix": [
+        [
+          21,
+          2,
+          0,
+          0
+        ],
+        [
+          11,
+          25,
+          12,
+          0
+        ],
+        [
+          3,
+          2,
+          20,
+          5
+        ],
+        [
+          0,
+          0,
+          0,
+          31
+        ]
+      ],
+      "insitu_invasive": {
+        "insitu_called_invasive": 5,
+        "invasive_called_insitu": 0,
+        "n_insitu": 30,
+        "n_invasive": 31,
+        "note": "The clinically important error; it motivates the p63/calponin rule and the Invasive safety rule."
+      }
+    },
+    "probabilities": "calibrated (pcal__)"
+  },
+  "per_model": {
+    "abmil": {
+      "invasive_vs_rest_auroc": {
+        "estimate": 0.9856275950175662,
+        "lo": 0.9605010306009196,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "macro_auroc": {
+        "estimate": 0.9093338740336004,
+        "lo": 0.8454968231220077,
+        "hi": 0.9722687947794048,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "macro_f1": {
+        "estimate": 0.6912837162837162,
+        "lo": 0.5781923272773816,
+        "hi": 0.8485895625684736,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "balanced_accuracy": {
+        "estimate": 0.7419354838709677,
+        "lo": 0.665552393000211,
+        "hi": 0.8522894385026737,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "accuracy": {
+        "estimate": 0.696969696969697,
+        "lo": 0.5905133464894059,
+        "hi": 0.9012580515297905,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "invasive_sensitivity": {
+        "estimate": 0.967741935483871,
+        "lo": 0.8999358974358975,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "invasive_specificity": {
+        "estimate": 0.9108910891089109,
+        "lo": 0.8478260869565217,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "probabilities": "uncalibrated (p__)"
+    },
+    "cb_text": {
+      "invasive_vs_rest_auroc": {
+        "estimate": 0.9948898115618013,
+        "lo": 0.9860098381281652,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "macro_auroc": {
+        "estimate": 0.9416520705143248,
+        "lo": 0.871402809409676,
+        "hi": 0.9789754551820727,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "macro_f1": {
+        "estimate": 0.7363412449619346,
+        "lo": 0.5453460069410978,
+        "hi": 0.8188950136089066,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "balanced_accuracy": {
+        "estimate": 0.7706521739130434,
+        "lo": 0.5713939832689833,
+        "hi": 0.8450878267973856,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "accuracy": {
+        "estimate": 0.7348484848484849,
+        "lo": 0.648629615531024,
+        "hi": 0.860005376344086,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "invasive_sensitivity": {
+        "estimate": 1.0,
+        "lo": 1.0,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "invasive_specificity": {
+        "estimate": 0.9603960396039604,
+        "lo": 0.9090909090909091,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "probabilities": "uncalibrated (p__)"
+    },
+    "conch_probe_lr": {
+      "invasive_vs_rest_auroc": {
+        "estimate": 0.9980836793356755,
+        "lo": 0.9930039045870583,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "macro_auroc": {
+        "estimate": 0.9316089558610541,
+        "lo": 0.8679320872147642,
+        "hi": 0.9815565359414399,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "macro_f1": {
+        "estimate": 0.7360057512590177,
+        "lo": 0.5744670633452542,
+        "hi": 0.8300650188226407,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "balanced_accuracy": {
+        "estimate": 0.7751358695652174,
+        "lo": 0.6037695716873706,
+        "hi": 0.8680542627068556,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "accuracy": {
+        "estimate": 0.7348484848484849,
+        "lo": 0.6595686228664952,
+        "hi": 0.8649299902311948,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "invasive_sensitivity": {
+        "estimate": 1.0,
+        "lo": 1.0,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "invasive_specificity": {
+        "estimate": 0.9504950495049505,
+        "lo": 0.9,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "probabilities": "uncalibrated (p__)"
+    },
+    "fusion_top3": {
+      "invasive_vs_rest_auroc": {
+        "estimate": 0.9955285851165762,
+        "lo": 0.9830780373111212,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "macro_auroc": {
+        "estimate": 0.9151538736078897,
+        "lo": 0.8124133518444016,
+        "hi": 0.9759760562588182,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "macro_f1": {
+        "estimate": 0.6782849503437739,
+        "lo": 0.5416151850256596,
+        "hi": 0.7875432101147294,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "balanced_accuracy": {
+        "estimate": 0.7035326086956522,
+        "lo": 0.571215121978333,
+        "hi": 0.8229166666666666,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "accuracy": {
+        "estimate": 0.6818181818181818,
+        "lo": 0.5714285714285714,
+        "hi": 0.8627554179566563,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "invasive_sensitivity": {
+        "estimate": 1.0,
+        "lo": 1.0,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "invasive_specificity": {
+        "estimate": 0.9405940594059405,
+        "lo": 0.8807608695652174,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "probabilities": "uncalibrated (p__)"
+    },
+    "musk_lr": {
+      "invasive_vs_rest_auroc": {
+        "estimate": 0.988502076014053,
+        "lo": 0.9639748754966145,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "macro_auroc": {
+        "estimate": 0.8783908917511365,
+        "lo": 0.7541444575371302,
+        "hi": 0.9546734481205633,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "macro_f1": {
+        "estimate": 0.6619612044140346,
+        "lo": 0.5141503758259077,
+        "hi": 0.7783892776670494,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "balanced_accuracy": {
+        "estimate": 0.680751811594203,
+        "lo": 0.5274348047785549,
+        "hi": 0.8058867004220706,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "accuracy": {
+        "estimate": 0.6742424242424242,
+        "lo": 0.5460516225379399,
+        "hi": 0.8589788732394366,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "invasive_sensitivity": {
+        "estimate": 1.0,
+        "lo": 1.0,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "invasive_specificity": {
+        "estimate": 0.900990099009901,
+        "lo": 0.8099880952380953,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24
+      },
+      "probabilities": "uncalibrated (p__)"
+    }
+  },
+  "a_vs_b": {
+    "a": "conch_probe_lr",
+    "b": "cb_text",
+    "metric": "Invasive-vs-rest AUROC (uncalibrated scores)",
+    "roc": {
+      "a": {
+        "fpr": [
+          0.0,
+          0.0,
+          0.0,
+          0.0099,
+          0.0099,
+          0.0198,
+          0.0198,
+          1.0
+        ],
+        "tpr": [
+          0.0,
+          0.0323,
+          0.871,
+          0.871,
+          0.9355,
+          0.9355,
+          1.0,
+          1.0
+        ]
+      },
+      "b": {
+        "fpr": [
+          0.0,
+          0.0,
+          0.0,
+          0.0198,
+          0.0198,
+          0.0396,
+          0.0396,
+          1.0
+        ],
+        "tpr": [
+          0.0,
+          0.0323,
+          0.8065,
+          0.8065,
+          0.9355,
+          0.9355,
+          1.0,
+          1.0
+        ]
+      }
+    },
+    "auroc_a": {
+      "estimate": 0.9980836793356755,
+      "lo": 0.9930039045870583,
+      "hi": 1.0,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 132,
+      "n_groups": 24
+    },
+    "auroc_b": {
+      "estimate": 0.9948898115618013,
+      "lo": 0.9860098381281652,
+      "hi": 1.0,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 132,
+      "n_groups": 24
+    },
+    "difference_a_minus_b": {
+      "estimate": 0.003193867773874204,
+      "lo": -0.0001398176773843537,
+      "hi": 0.010126584984224873,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 132,
+      "n_groups": 24,
+      "a": 0.9980836793356755,
+      "b": 0.9948898115618013
+    }
+  },
+  "notes": [
+    "Test split only, used once for reporting; model selection happened by patient-grouped CV inside train (§A3).",
+    "Intervals: percentile cluster bootstrap over patient / pseudo-patient groups (§A5).",
+    "Small test set (n = 132, 24 groups): intervals are wide.",
+    "Degraded and composite variants are excluded from these metrics."
+  ]
+}
