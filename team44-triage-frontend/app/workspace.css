@@ -962,6 +962,24 @@ input[type='range'] {
   max-width: 110px;
   accent-color: var(--hema);
 }
+/* Firefox ignores accent-color for the track: without these the dark theme shows a bright bar */
+input[type='range']::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ln);
+}
+input[type='range']::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--hema);
+}
+input[type='range']::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--sf);
+  border-radius: 50%;
+  background: var(--hema);
+}
 input[type='checkbox'],
 input[type='radio'] {
   accent-color: var(--hema);
@@ -1613,6 +1631,7 @@ dialog {
 }
 dialog::backdrop {
   background: #151a2e77;
+  -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
 }
 dialog h2 {

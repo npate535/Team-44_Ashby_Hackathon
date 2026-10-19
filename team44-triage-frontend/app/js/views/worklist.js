@@ -124,7 +124,9 @@ function caseIdHtml(id) {
   return i > 0 ? `${esc(id.slice(0, i))}<wbr><span class="cid-x">${esc(id.slice(i))}</span>` : esc(id);
 }
 
-function row(v, ST, rank, now) {
+// One row is in the tab order (the last one used, else the first): the list is one tab stop, J/K and the arrow keys
+// move inside it. The case id is a real link (open in a new tab, the links list of a screen reader) but not a tab stop.
+function row(v, ST, rank, now, roving) {
   const isNew = ST.arrived && ST.arrived.has(v.id) && now - ST.arrived.get(v.id) < NEW_MS;
   const pRaw = (v.probs.find((x) => x.cls === 'Invasive') || {}).p;
   const pInv = pctText(pRaw ?? (v.risk === null ? null : v.risk / 100));
@@ -140,9 +142,9 @@ function row(v, ST, rank, now) {
   const next = nextAction(v);
   const label = `${v.id}, tier ${v.tier} ${TIER_NAME[v.tier] || ''}, ${v.lane === 'surgical' ? 'frozen section' : 'biopsy'}`;
   return (
-    `<tr class="row tr-${num(v.tier)}${isNew ? ' new' : ''}${v.done ? ' done' : ''}" tabindex="0" aria-label="${esc(label)}" data-testid="worklist-row" data-case-id="${esc(v.id)}" data-tier="${num(v.tier)}" data-lane="${esc(v.lane)}" data-done="${v.done}" data-reasons="${esc(codes(v).join(' '))}" data-rank="${rank}">` +
+    `<tr class="row tr-${num(v.tier)}${isNew ? ' new' : ''}${v.done ? ' done' : ''}" tabindex="${v.id === roving ? 0 : -1}" aria-label="${esc(label)}" data-testid="worklist-row" data-case-id="${esc(v.id)}" data-tier="${num(v.tier)}" data-lane="${esc(v.lane)}" data-done="${v.done}" data-reasons="${esc(codes(v).join(' '))}" data-rank="${rank}">` +
     `<td class="c-tier"><span class="tierno t${num(v.tier)}" data-testid="tier-badge" title="Tier ${num(v.tier)} · ${esc(v.tierLabel)}">${num(v.tier)}</span></td>` +
-    `<td class="c-case"><div class="wl-cc"><b class="cid" title="${esc(v.id)}">${caseIdHtml(v.id)}</b>${v.lane === 'surgical' ? `<span class="lane-inline" title="${esc(`Simulated frozen section${v.room ? ' from ' + v.room : ''}${v.variantLabel ? ' · ' + v.variantLabel : ''}`)}">Frozen${v.room ? ' ' + esc(v.room) : ''}</span>` : ''}${isNew ? '<span class="newtag">New</span>' : ''}</div></td>` +
+    `<td class="c-case"><div class="wl-cc"><a class="cid" href="#/case/${encodeURIComponent(v.id)}" tabindex="-1" title="${esc(v.id)}">${caseIdHtml(v.id)}</a>${v.lane === 'surgical' ? `<span class="lane-inline" title="${esc(`Simulated frozen section${v.room ? ' from ' + v.room : ''}${v.variantLabel ? ' · ' + v.variantLabel : ''}`)}">Frozen${v.room ? ' ' + esc(v.room) : ''}</span>` : ''}${isNew ? '<span class="newtag">New</span>' : ''}</div></td>` +
     `<td class="c-lane">${lane}</td>` +
     `<td class="c-sugg">${sugg}</td>` +
     `<td class="c-p"><span class="pnum${v.risk >= 50 ? ' hi' : ''}">${pInv}</span>${v.risk === null ? '' : miniBar(v.risk / 100, v.risk >= 50 ? 'hi' : '')}</td>` +
@@ -332,6 +334,7 @@ export function render(ST, ctx) {
   h += `<div class="tblw wl-table-wrap"><table class="wl-table" data-testid="worklist" aria-label="Case worklist${ST.order === 'ai' ? ', AI priority order' : ', arrival order'}">${head(ST)}<tbody>`;
   let group = null;
   const shown = views.slice(0, 400);
+  const roving = shown.some((v) => v.id === ST.focusId) ? ST.focusId : shown[0] && shown[0].id;
   shown.forEach((v, i) => {
     if (ST.order === 'ai') {
       const g = v.done ? 'done' : v.tier;
@@ -343,7 +346,7 @@ export function render(ST, ctx) {
         h += `<tr class="grp g-${esc(g)}" data-testid="tier-group" data-group="${esc(g)}"><th colspan="9" scope="colgroup"><span class="g-name">${name}</span><span class="g-n">${n}</span><span class="g-note">${esc(note)}</span></th></tr>`;
       }
     }
-    h += row(v, ST, i + 1, ctx.now);
+    h += row(v, ST, i + 1, ctx.now, roving);
   });
   h += '</tbody></table></div>';
   if (views.length > shown.length) h += `<p class="sub wl-more">Showing the first ${shown.length} of ${views.length} cases. Narrow the filters to see the rest.</p>`;

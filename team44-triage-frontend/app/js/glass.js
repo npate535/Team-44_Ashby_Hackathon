@@ -88,6 +88,7 @@ function updateAppearance() {
   toggle.setAttribute('aria-label', `Switch to ${dark ? 'light' : 'dark'} theme`);
   toggle.title = `Switch to ${dark ? 'light' : 'dark'} theme`;
   document.querySelector('meta[name="theme-color"]').content = dark ? '#101e1d' : '#f2f5f1';
+  window.dispatchEvent(new Event('pq:theme')); // colours computed in script (chart labels) follow the theme
 }
 document.querySelector('#theme-toggle').addEventListener('click', () => {
   const theme = isDark() ? 'light' : 'dark';

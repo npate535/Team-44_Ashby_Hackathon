@@ -97,9 +97,31 @@ function toast(msg, opts = {}) {
   for (const old of [...box.children]) if (old.dataset.key === el.dataset.key) old.remove();
   box.prepend(el);
   while (box.children.length > 2) box.lastElementChild.remove();
-  // short-lived, so a notice never sits over the controls for long; a click anywhere on it dismisses it
-  const ttl = opts.ttl || (opts.action ? 5000 : 3500);
-  setTimeout(() => dismissToast(el), ttl);
+  // A warning stays until it is dismissed and is announced at once. Other notices are short-lived, so they never sit
+  // over the controls for long; the countdown pauses while the pointer or keyboard focus is on the notice, and a
+  // click anywhere on it dismisses it.
+  if (opts.tone === 'warn') {
+    el.setAttribute('role', 'alert');
+    return;
+  }
+  let left = opts.ttl || (opts.action ? 5000 : 3500);
+  let timer = null;
+  let since = 0;
+  const run = () => {
+    since = Date.now();
+    timer = setTimeout(() => dismissToast(el), left);
+  };
+  const hold = () => {
+    if (timer === null) return;
+    clearTimeout(timer);
+    timer = null;
+    left = Math.max(1200, left - (Date.now() - since));
+  };
+  el.addEventListener('pointerenter', hold);
+  el.addEventListener('focusin', hold);
+  el.addEventListener('pointerleave', () => !el.contains(document.activeElement) && timer === null && run());
+  el.addEventListener('focusout', (e) => !el.contains(e.relatedTarget) && !el.matches(':hover') && timer === null && run());
+  run();
 }
 function dismissToast(el) {
   if (!el.isConnected || el.classList.contains('out')) return;
@@ -110,6 +132,7 @@ function dismissToast(el) {
 // ---- routing --------------------------------------------------------------------------------------------------------------
 function parseHash() {
   const h = location.hash.replace(/^#\/?/, '');
+  if (h === 'app') return { route: ST.route, caseId: ST.caseId }; // the skip link's target is not a route
   const [route, id] = h.split('/');
   if (route === 'case' && id) return { route: 'case', caseId: decodeURIComponent(id) };
   if (route === 'tcga')
@@ -449,6 +472,17 @@ function noteArrivals() {
   });
   ST.firstLoad = false;
   announceArrivals(fresh);
+  if (fresh.length) speakArrivals(fresh.length);
+}
+// Screen readers hear one short summary at most every 10 s ("3 new cases in the worklist"), not every row.
+let spoken = { n: 0, timer: null };
+function speakArrivals(n) {
+  spoken.n += n;
+  if (spoken.timer) return;
+  spoken.timer = setTimeout(() => {
+    $('#arrivals-live').textContent = `${spoken.n} new case${spoken.n === 1 ? '' : 's'} in the worklist`;
+    spoken = { n: 0, timer: null };
+  }, 10000);
 }
 // A likely-invasive biopsy sorts into tier 2 by P(Invasive), often below the fold, so its arrival gets one short notice
 // with a way to open it. Arrivals in the same poll share the notice, and a newer notice replaces the last one. Frozen
@@ -1070,6 +1104,11 @@ function markRead(keys) {
 }
 
 document.addEventListener('click', async (e) => {
+  if (e.target.closest('a.skip')) {
+    e.preventDefault(); // "#app" is the skip target, not a route
+    $('#app').focus();
+    return;
+  }
   const note = e.target.closest('.toast-item');
   if (note && !e.target.closest('a, button')) {
     dismissToast(note);
@@ -1123,6 +1162,10 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (!$('#app').contains(t)) return;
+  if (t.matches('tr.row a.cid')) {
+    if (ST.simBusy) e.preventDefault(); // like the row: not while a replay command reorders the queue
+    return; // otherwise the link navigates
+  }
   if (d.inboxRead !== undefined) {
     markRead([d.inboxRead]);
     return;
@@ -1277,6 +1320,12 @@ document.addEventListener('click', async (e) => {
 function isTyping(el) {
   return !!el && (/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) || el.isContentEditable);
 }
+// Single-key shortcuts (J/K/N, "/") act only from the page content: nothing focused, the workspace or a worklist row.
+// With a button, link, menu or field focused the key is left alone (WCAG 2.1.4).
+function shortcutTarget(el) {
+  if (!el || el === document.body || el === document.documentElement) return true;
+  return $('#app').contains(el) && !isTyping(el) && !el.closest('button, a, summary, [role=button]');
+}
 function moveRow(delta) {
   const rows = [...document.querySelectorAll('tr.row')];
   if (!rows.length) return;
@@ -1305,7 +1354,7 @@ document.addEventListener('keydown', (e) => {
     go(ST.route === 'tcga' ? '#/tcga/' + encodeURIComponent(id) : '#/case/' + encodeURIComponent(id));
     return;
   }
-  if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target) || $('#reset-dialog').open) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || !shortcutTarget(e.target) || $('#reset-dialog').open) return;
   if (ST.route === 'worklist' || (ST.route === 'tcga' && !ST.caseId)) {
     if (e.key === 'j' || e.key === 'ArrowDown') {
       if (e.key === 'ArrowDown' && !r) return; // plain page scrolling unless a row has focus
@@ -1344,7 +1393,13 @@ document.addEventListener(
 );
 
 document.addEventListener('focusin', (e) => {
-  if (e.target.matches && e.target.matches('tr.row')) ST.focusId = e.target.dataset.caseId;
+  if (!e.target.matches || !e.target.matches('tr.row')) return;
+  ST.focusId = e.target.dataset.caseId;
+  // worklist rows: one tab stop (the row last used); J/K and the arrow keys move between rows
+  if (e.target.closest('section.wl')) {
+    document.querySelectorAll('section.wl tr.row[tabindex="0"]').forEach((r) => r !== e.target && (r.tabIndex = -1));
+    e.target.tabIndex = 0;
+  }
 });
 
 document.addEventListener('change', (e) => {
@@ -1415,8 +1470,15 @@ window.addEventListener('hashchange', onRoute);
 // Sticky offsets follow the real header height (it wraps onto two rows on narrow screens).
 function syncStick() {
   const top = $('.masthead');
-  document.documentElement.style.setProperty('--stick', top.offsetHeight + 'px');
+  const sticky = getComputedStyle(top).position === 'sticky';
+  document.documentElement.style.setProperty('--stick', (sticky ? top.offsetHeight : 0) + 'px');
 }
+// The evaluation charts pick cell-label colours from the resolved theme (js/charts.js): redraw them when it changes.
+window.addEventListener('pq:theme', () => {
+  if (ST.route !== 'metrics') return;
+  lastFp = null;
+  draw(true);
+});
 if ('ResizeObserver' in window) new ResizeObserver(syncStick).observe($('.masthead'));
 window.addEventListener('resize', syncStick);
 

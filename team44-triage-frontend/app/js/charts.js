@@ -313,6 +313,39 @@ function refLabel(text, x, y, lo, hi) {
  * values: rows x cols numbers (null = n/a); text(r, c) -> cell text; tip(r, c) -> tooltip lines.
  * scale: {kind:'sequential', max} | {kind:'diverging', max}. Cell shading uses colour-mix of the .mx tokens.
  */
+// ---- cell label colour -----------------------------------------------------------------------------------------------
+// White or ink (#1b1a2e), whichever contrasts more with the cell fill as the browser resolves it: palette tokens, theme
+// and color-mix included. Without a DOM (node tests) the cell keeps its class colour (the measured crossover).
+const INK_RGB = [0x1b / 255, 0x1a / 255, 0x2e / 255];
+const labelFills = new Map();
+function luminance(rgb) {
+  const f = (c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * f(rgb[0]) + 0.7152 * f(rgb[1]) + 0.0722 * f(rgb[2]);
+}
+function resolveRgb(color) {
+  const probe = document.createElement('i');
+  probe.className = 'mx'; // the chart tokens are scoped to the dashboard
+  probe.style.cssText = `position:absolute;visibility:hidden;pointer-events:none;color:${color}`;
+  document.body.append(probe);
+  const c = getComputedStyle(probe).color;
+  probe.remove();
+  let m = c.match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/);
+  if (m) return [m[1], m[2], m[3]].map((v) => Number(v) / 255);
+  m = c.match(/^color\(srgb\s+([\d.e-]+)\s+([\d.e-]+)\s+([\d.e-]+)/);
+  return m ? [m[1], m[2], m[3]].map(Number) : null;
+}
+function cellLabelFill(fill) {
+  if (typeof document === 'undefined' || !document.body || typeof getComputedStyle !== 'function') return null;
+  const dark = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const key = `${dark}|${fill}`;
+  if (!labelFills.has(key)) {
+    const rgb = resolveRgb(fill);
+    const L = rgb && luminance(rgb);
+    labelFills.set(key, rgb ? (1.05 / (L + 0.05) >= (L + 0.05) / (luminance(INK_RGB) + 0.05) ? '#ffffff' : '#1b1a2e') : null);
+  }
+  return labelFills.get(key);
+}
+
 export function heatmap({ width = 560, rows = [], cols = [], values = [], text = null, tip = null, scale = { kind: 'sequential' }, aria = '', colLabel = '', rowLabel = '', cellH = 40, flags = null }) {
   if (!rows.length || !cols.length) return '';
   const narrow = width < 470;
@@ -359,8 +392,9 @@ export function heatmap({ width = 560, rows = [], cols = [], values = [], text =
         }
       }
       const label = text ? text(i, j) : isNum(v) ? fmtNum(v) : 'n/a';
+      const ink = cellLabelFill(fill);
       marks += `<g class="cx-cell"${tipAttr(tip ? tip(i, j) : [label, `${r} · ${c}`])}><rect x="${r1(x + 1)}" y="${r1(y + 1)}" width="${r1(cw - 2)}" height="${r1(rh - 2)}" rx="3" style="fill:${fill}"/>` +
-        `<text x="${r1(x + cw / 2)}" y="${r1(y + rh / 2 + 4)}" text-anchor="middle" font-size="${cw < 46 ? FONT - 1 : FONT + 0.5}" class="${on} cx-num">${esc(label)}</text></g>`;
+        `<text x="${r1(x + cw / 2)}" y="${r1(y + rh / 2 + 4)}" text-anchor="middle" font-size="${cw < 46 ? FONT - 1 : FONT + 0.5}" class="${on} cx-num"${ink ? ` style="fill:${ink}"` : ''}>${esc(label)}</text></g>`;
     });
   });
   return svgOpen(width, H, aria) + g + marks + '</svg>';
