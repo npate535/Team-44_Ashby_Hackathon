@@ -645,6 +645,45 @@ function figThunder(ST, ev, L) {
   });
 }
 
+function figHumanBaseline(ST, ev, L) {
+  const HB = ev.human_baseline;
+  const R = get(HB, 'bach_readers');
+  const S = get(HB, 'sepia');
+  if (!R || !S) return missing('human_baseline', 'Pathologists and Sepia on the same four classes', 'reader study');
+  const spread = (xs) => ({ lo: Math.min(...xs), hi: Math.max(...xs), est: xs.reduce((a, b) => a + b, 0) / xs.length });
+  const rows = [];
+  const tableRows = [];
+  for (const c of Object.keys(R.sensitivity)) {
+    const xs = R.sensitivity[c];
+    const h = spread(xs);
+    const s = ci(get(S, ['recall', c]));
+    rows.push({ header: true, label: shortClass(c) });
+    rows.push({ label: '4 pathologists', sub: 'range, not an interval', est: h.est, lo: h.lo, hi: h.hi, color: C.COLOR.muted, hollow: true, value: `${pc(h.lo)}–${pc(h.hi)}` });
+    if (s) rows.push({ label: 'Sepia', est: s.est, lo: s.lo, hi: s.hi, color: C.COLOR[1], emphasis: true, value: ciShort(s, { pct: true, digits: 0 }) });
+    tableRows.push([shortClass(c), xs.map((x) => pc(x)).join(' / '), s ? ciShort(s, { pct: true, digits: 0 }) : '—']);
+  }
+  const acc = spread(R.accuracy);
+  const sa = ci(get(S, 'accuracy'));
+  rows.push({ header: true, label: 'Four-class accuracy' });
+  rows.push({ label: '4 pathologists', sub: 'range, not an interval', est: acc.est, lo: acc.lo, hi: acc.hi, color: C.COLOR.muted, hollow: true, value: `${pc(acc.lo)}–${pc(acc.hi)}` });
+  if (sa) rows.push({ label: 'Sepia', est: sa.est, lo: sa.lo, hi: sa.hi, color: C.COLOR[1], emphasis: true, value: ciShort(sa, { pct: true, digits: 0 }) });
+  tableRows.push(['Four-class accuracy', R.accuracy.map((x) => pc(x)).join(' / '), sa ? ciShort(sa, { pct: true, digits: 0 }) : '—']);
+  const chart = C.forest({ width: L.two ? L.half : L.full, rows, x: { min: 0, max: 1, label: 'Sensitivity (recall) per class', format: (v) => pc(v) }, aria: 'Per-class sensitivity of four pathologists on the hidden BACH test set and of Sepia on its test split' });
+  const BP = get(HB, 'bpath') || {};
+  const bp = ['invasive', 'dcis', 'atypia', 'benign'].filter((k) => BP[k]).map((k) => `${k === 'dcis' ? 'DCIS' : k} ${pc(BP[k].concordance)}`).join(', ');
+  return figure({
+    id: 'human-baseline',
+    title: 'Pathologists and Sepia on the same four classes',
+    caveat: (HB.not_comparable || []).join(' '),
+    takeaway: `Reading single BACH fields, four pathologists reached ${pc(acc.lo)}–${pc(acc.hi)} accuracy; Sepia reached ${sa ? pc(sa.est) : '—'} on different BACH images. Invasive carcinoma is the most consistently recognised class for both.${bp ? ` On whole slides of real biopsies, pathologists agreed with an expert consensus in ${bp} of interpretations (B-Path); BACH has no atypia class.` : ''}`,
+    chart,
+    population: `pathologists: 100 hidden BACH test images (25 per class); Sepia: ${HB.n_test} test images, ${HB.n_groups} groups`,
+    source: ['eval/human_baseline.json', 'config/literature.yaml'],
+    notes: Object.values(HB.citations || {}),
+    table: { head: ['Class', 'Pathologists E1 / E2 / E3 / E4', 'Sepia [95% CI]'], rows: tableRows }
+  });
+}
+
 // ---- confidence ----------------------------------------------------------------------------------------------------------
 function relSeries(bins, name, color, dash, xKey = 'confidence', yKey = 'accuracy') {
   return {
@@ -1694,7 +1733,7 @@ export function render(ST, ctx) {
   h += `<div class="mx-interp">${interpretPanel(ST, '__results', 'results')}</div>`;
   h += section('summary', 'Summary', 'The headline numbers, each with its uncertainty. The two workflow tiles come from a simulation, not measured clinical use.', safe(() => summaryTiles(ST, ev), 'metrics', 'Summary'));
   h += section('classification', 'Classification', 'Separation of invasive carcinoma from the other classes, error patterns, and model selection.',
-    S(figRoc, 'analytics', 'ROC') + `<div class="mx-stack">${S(figConfusion, 'metrics', 'Confusion matrix') + S(figPr, 'analytics', 'Precision-recall')}</div>` + S(figOvr, 'analytics', 'One-vs-rest ROC') + S(figModels, 'metrics', 'Model comparison') + S(figSelection, 'model_choice', 'Model selection') + S(figThunder, 'thunder', 'Benchmark'));
+    S(figRoc, 'analytics', 'ROC') + `<div class="mx-stack">${S(figConfusion, 'metrics', 'Confusion matrix') + S(figPr, 'analytics', 'Precision-recall')}</div>` + S(figOvr, 'analytics', 'One-vs-rest ROC') + S(figModels, 'metrics', 'Model comparison') + S(figSelection, 'model_choice', 'Model selection') + S(figThunder, 'thunder', 'Benchmark') + S(figHumanBaseline, 'human_baseline', 'Human readers'));
   h += section('confidence', 'Confidence', 'Calibration of the probabilities and coverage of the conformal sets.',
     S(figReliability, 'calibration', 'Calibration') + S(figRiskHist, 'analytics', 'Risk histogram') + S(figCoverage, 'conformal', 'Coverage') + S(figResplit, 'conformal_resplit', 'Re-split coverage') + `<div class="mx-stack">${S(figSetSize, 'conformal', 'Set size') + S(figComposition, 'analytics', 'Set composition')}</div>`);
   h += section('explanations', 'Explanations', 'Named histologic features are associated with the classes. These checks test whether they behave like the criteria they are named after.',

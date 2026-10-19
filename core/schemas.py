@@ -70,6 +70,7 @@ EVAL_ENVELOPE = ("name", "created_utc", "config_hash", "git_sha", "synthetic")
 EVAL_FILES: dict[str, str] = {
     "fact_sheet": "Judge response · data units, splits, metrics, corpora, reference distributions, component roles",
     "attention_comparison": "Judge response · ABMIL vs production probe on identical inputs: CV and paired test",
+    "human_baseline": "Judge response · BACH pathologist reader study and B-Path concordance next to Sepia per-class recall",
     "qc": "01q · tissue-QC fix: old vs new rule, pass rates, insufficient-tissue counts, display-vs-full-res validation",
     "concepts": "Task 9 · NCT cross-organ concept AUROCs; per concept {caption_consistent, cav_auroc}",
     "concepts_bach": "Task 9 · BACH per-class concept means (test) and spot-check summary",

@@ -1,0 +1,151 @@
+{
+  "name": "human_baseline",
+  "created_utc": "2026-10-19T00:32:51Z",
+  "config_hash": "258eaa8195eaf771c69700ce09834a0d6193a1246b28a3a5779a457fe7d784cb",
+  "git_sha": "a6ad0eb4e5b0a3b22286f291c63a968a72e12379",
+  "synthetic": false,
+  "git_dirty": true,
+  "production": "uni2h512_lr",
+  "n_test": 132,
+  "n_groups": 24,
+  "bach_readers": {
+    "sensitivity": {
+      "Normal": [
+        0.96,
+        0.96,
+        0.88,
+        0.4
+      ],
+      "Benign": [
+        0.92,
+        0.88,
+        0.76,
+        0.84
+      ],
+      "InSitu": [
+        1.0,
+        1.0,
+        0.56,
+        0.76
+      ],
+      "Invasive": [
+        0.96,
+        0.92,
+        0.92,
+        0.92
+      ]
+    },
+    "accuracy": [
+      0.96,
+      0.94,
+      0.78,
+      0.73
+    ],
+    "readers": [
+      "E1",
+      "E2",
+      "E3",
+      "E4"
+    ],
+    "note": "E1 co-labelled BACH and re-read after one month; E2-E4 are external. Readers saw only the field image. Hidden test set: 100 images, 25 per class."
+  },
+  "bpath": {
+    "invasive": {
+      "concordance": 0.96,
+      "lo": 0.94,
+      "hi": 0.97
+    },
+    "dcis": {
+      "concordance": 0.84,
+      "lo": 0.82,
+      "hi": 0.86
+    },
+    "atypia": {
+      "concordance": 0.48,
+      "lo": 0.44,
+      "hi": 0.52
+    },
+    "benign": {
+      "concordance": 0.87,
+      "lo": 0.85,
+      "hi": 0.89
+    }
+  },
+  "sepia": {
+    "recall": {
+      "Normal": {
+        "estimate": 0.8695652173913043,
+        "lo": 0.6363636363636364,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 1998,
+        "n_skipped": 2,
+        "n": 132,
+        "n_groups": 24,
+        "correct": 20,
+        "n_class": 23
+      },
+      "Benign": {
+        "estimate": 0.8125,
+        "lo": 0.4228238866396762,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 1996,
+        "n_skipped": 4,
+        "n": 132,
+        "n_groups": 24,
+        "correct": 39,
+        "n_class": 48
+      },
+      "InSitu": {
+        "estimate": 0.8,
+        "lo": 0.3333333333333333,
+        "hi": 0.8709677419354839,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24,
+        "correct": 24,
+        "n_class": 30
+      },
+      "Invasive": {
+        "estimate": 1.0,
+        "lo": 1.0,
+        "hi": 1.0,
+        "ci": 0.95,
+        "n_boot": 2000,
+        "n_valid": 2000,
+        "n_skipped": 0,
+        "n": 132,
+        "n_groups": 24,
+        "correct": 31,
+        "n_class": 31
+      }
+    },
+    "accuracy": {
+      "estimate": 0.8636363636363636,
+      "lo": 0.7599583333333334,
+      "hi": 0.9444444444444444,
+      "ci": 0.95,
+      "n_boot": 2000,
+      "n_valid": 2000,
+      "n_skipped": 0,
+      "n": 132,
+      "n_groups": 24
+    }
+  },
+  "citations": {
+    "bach_readers": "Aresta G, et al. Med Image Anal. 2019;56:122-139 (Table 4)",
+    "bpath": "Elmore JG, et al. JAMA. 2015;313(11):1122-1132 (Table 3)"
+  },
+  "not_comparable": [
+    "Different images: the BACH readers read the 100 hidden test images; Sepia is scored on the 132-image THUNDER test split of the public images.",
+    "BACH labels are curated (Normal vs Benign disagreements discarded; doubtful cases confirmed by immunohistochemistry), so the hardest cases are under-represented.",
+    "B-Path readers read whole glass slides of real biopsies, including atypia, which BACH does not contain.",
+    "Pathologist ranges are the spread of four readers, not confidence intervals."
+  ]
+}
