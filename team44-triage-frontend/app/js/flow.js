@@ -53,10 +53,30 @@ export function dur(seconds) {
   return fmt(s / 60);
 }
 
+/** Biopsy waiting time as h:mm, one format at every length: 0:04, 1:58, 26:30. */
+export function hmm(seconds) {
+  const m = Math.floor(Math.max(0, Number(seconds) || 0) / 60);
+  return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0');
+}
+
+/** A turnaround target in hours: 24 h, 48 h, 1.5 h. */
+export function hrs(seconds) {
+  const h = Math.max(0, Number(seconds) || 0) / 3600;
+  return Number(h.toFixed(1)) + ' h';
+}
+
+/** A finished wait in words: 44 min, 3 h 12 min. */
+export function spanText(seconds) {
+  const m = Math.round(Math.max(0, Number(seconds) || 0) / 60);
+  if (m < 60) return m + ' min';
+  return Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '');
+}
+
 /**
  * Waiting time vs target with SLA state for a timerNow() result.
  * surgical: mm:ss elapsed of a 20-min target (ok / amber / red / stopped).
- * biopsy: elapsed vs its tier's turnaround target on the simulator clock (ok <75%, amber >=75%, red >=100%).
+ * biopsy: h:mm elapsed vs its tier's turnaround target in hours on the simulator clock ("1:58 / 24 h"; ok <75%,
+ * amber >=75%, red >=100%); once signed out, "Signed out after 44 min" (lead + text).
  */
 export function waitInfo(t) {
   if (!t || t.kind === 'none') return { text: '—', target: '', state: 'none', frac: null };
@@ -70,11 +90,13 @@ export function waitInfo(t) {
   }
   const frac = t.targetS ? t.elapsedS / t.targetS : null;
   const state = t.state === 'stopped' ? 'stopped' : frac === null ? 'none' : frac >= 1 ? 'red' : frac >= 0.75 ? 'amber' : 'ok';
+  const capped = frac === null ? null : Math.min(1, frac);
+  if (state === 'stopped') return { lead: 'Signed out after', text: spanText(t.elapsedS), target: '', state, frac: capped };
   return {
-    text: dur(t.elapsedS),
-    target: t.state === 'stopped' ? 'read' : t.targetS ? '/ ' + dur(t.targetS) : '',
+    text: hmm(t.elapsedS),
+    target: t.targetS ? '/ ' + hrs(t.targetS) : '',
     state,
-    frac: frac === null ? null : Math.min(1, frac)
+    frac: capped
   };
 }
 
