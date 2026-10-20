@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0277_FSIM_resample3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "2d9cfa36d20db743",
+ "markdown": "## Bottom line\n**Suggests Benign (57%)** \u00b7 Unreliable input \u00b7 Careful review\nInvasive risk is under 1%, but the input is flagged and Normal shares the conformal set [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 57%, Normal 42% | Narrow lead |\n| Conformal set | Normal, Benign (90%) | Cannot separate the two |\n| Reliability / OOD | 70%; OOD 88th percentile | Flagged; input suspect |\n| Second-model (MUSK) agreement | No | Different top class |\n| Similar cases | 2 of 5 Benign | Three of five Normal |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 7) \u00b7 \u2191 invasive \u00b7 Score below typical; concept model leans away from invasive [F2] \u00b7 Validated\n- **Atypical cells confined within ducts** (region 1) \u00b7 \u2193 invasive \u00b7 Typical score; spot check 12/20 [F3] \u00b7 Weak\n- **Marked nuclear pleomorphism** (region 9) \u00b7 \u2191 invasive \u00b7 Low score; leans away from invasive \u00b7 Validated\n- **Frequent mitotic figures** (region 7) \u00b7 \u2191 invasive \u00b7 Above-typical score, but spot check 0/20; disregard \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions cuts the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Concept deletion minus random is 0.002 (CI \u22120.005 to 0.007): not shown to reflect the classifier. Mitoses (0/20) is Unreliable.\n\n## Could be wrong if\n- Image quality is flagged (OOD 88th percentile); a recut could shift the Benign versus Normal split.\n- The second model picks a different top class, so the Benign lead is unstable.\n\n## Check on the slide\n1. **Region 7** \u2014 top region for infiltrating stroma and mitoses; confirm no invasive growth.\n2. **Regions 8, 9** \u2014 highest heatmap contribution toward invasive; look for atypia or in situ change.\n3. **Regions 1, 6** \u2014 top regions for duct-confined and benign-stroma concepts; judge Normal versus Benign.",
+ "verification": {
+  "checked": 17,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:21:05-0500",
+ "elapsed_s": 59.6,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14260,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 8730,
+  "output_tokens_details": {
+   "thinking_tokens": 7950
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14260,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 8730,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14260,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14260
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 58855
+}

@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0334_FSIM_stain3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "ffb60640a2aeaa6c",
+ "markdown": "## Bottom line\n**Suggests Benign (65%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set, MUSK agreement, 0% invasive probability; Normal is second at 35% [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 65%, Normal 35% | Benign leads |\n| Conformal set | {Benign} at 90% | Single class |\n| Reliability / OOD | 0.97 / 8th percentile | Typical input |\n| Second-model (MUSK) agreement | Same top class | Models agree |\n| Similar cases | 0/5 Benign, all Normal | Neighbors disagree |\n\n## Tissue evidence\n- **Gland / tubule formation** (regions 3, 9, 11) \u00b7 \u2193 invasive \u00b7 Above typical; associated with lower invasive likelihood [F3] \u00b7 Validated\n- **Normal lobules** (regions 1, 4, 11) \u00b7 \u2193 invasive \u00b7 Largest contribution, but failed AI spot check (0/20) [F2] \u00b7 Unreliable\n- **Tumor-infiltrating stroma** (region 0) \u00b7 \u2191 invasive \u00b7 Near typical; adds no invasive push here \u00b7 Validated\n- **Atypical cells confined to ducts** (region 8) \u00b7 \u2193 invasive \u00b7 Below typical; spot check only 12/20 [F4] \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Deletion CI excludes 0 (+0.54 logit, 0.47\u20130.60); heatmap is faithful to the classifier.\n- **Concepts**: Deletion CI includes 0 (+0.002); not shown to reflect the classifier. Normal lobules is Unreliable.\n\n## Could be wrong if\n- Simulated stain degradation (severity 3) blurs Normal versus Benign; no similar case is Benign.\n- Reliability only modestly flags errors (AUROC 0.69, small test set).\n\n## Check on the slide\n1. **Regions 1, 4, 11**: confirm lobules are normal; the lobule concept failed its spot check.\n2. **Regions 0, 10**: least benign-leaning by heatmap; check stroma and nuclear atypia.\n3. **Region 8**: look for atypical cells confined within ducts.",
+ "verification": {
+  "checked": 14,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:29:31-0500",
+ "elapsed_s": 34.1,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13988,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5085,
+  "output_tokens_details": {
+   "thinking_tokens": 4322
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13988,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5085,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13988,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13988
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 33366
+}

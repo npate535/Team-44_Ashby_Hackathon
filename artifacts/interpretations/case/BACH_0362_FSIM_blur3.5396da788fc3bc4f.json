@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0362_FSIM_blur3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "5396da788fc3bc4f",
+ "markdown": "## Bottom line\n**Suggests Normal (100%)** \u00b7 Confident \u00b7 Read in turn\nOne-class conformal set; second model and 5/5 neighbors agree [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 100%, Benign 0% | Normal dominates |\n| Conformal set | {Normal} at 90% | Single class |\n| Reliability / OOD | 0.999 / percentile 1.0 | Not flagged |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5/5 Normal | Unanimous |\n\n## Tissue evidence\n- **Dense lymphocytic infiltrate** (regions 1, 7, 11) \u00b7 context \u00b7 Above-typical score; descriptive only [F2] \u00b7 Weak\n- **Tumor-infiltrating stroma** (region 8) \u00b7 \u2193 invasive \u00b7 Low score leans away from invasive \u00b7 Validated\n- **Benign fibrous stroma or fat** (regions 7, 8) \u00b7 \u2193 invasive \u00b7 High score associated with lower invasive likelihood \u00b7 Validated\n- **Nuclear pleomorphism** (region 8) \u00b7 \u2193 invasive \u00b7 Low score leans away from invasive \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions beats random by 0.54 logit (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0, so unproven; mitoses (0/20) is Unreliable.\n\n## Could be wrong if\n- Simulated blur was applied; the reliability score ranks errors only modestly (AUROC 0.69).\n- Calibration error CI reaches 0.18 on 132 cases; 100% may be overstated.\n\n## Check on the slide\n1. **Regions 6, 8, 4** \u2014 Least benign-leaning by heatmap; confirm no invasive foci.\n2. **Regions 1, 7, 11** \u2014 Confirm the lymphocytic infiltrate; its spot check was only 8/20.\n3. **Region 8** \u2014 Check stroma and nuclei; it tops four concept scores.",
+ "verification": {
+  "checked": 17,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:36:31-0500",
+ "elapsed_s": 45.3,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14011,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 6222,
+  "output_tokens_details": {
+   "thinking_tokens": 5487
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14011,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 6222,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14011,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14011
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 44550
+}

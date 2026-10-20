@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_007",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "227ced12a692be53",
+ "markdown": "## Bottom line\n**Suggests Invasive (58%)** \u00b7 Ambiguous: InSitu vs Invasive \u00b7 Careful review\nInSitu (35%) remains in the 90% conformal set [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 58%, InSitu 35% | Modest margin |\n| Conformal set | InSitu, Invasive | Not separated |\n| Reliability / OOD | 0.96; OOD 94th percentile | Not flagged |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5/5 Invasive [F5] | Support Invasive |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 5, 10, 11) \u00b7 \u2191 invasive \u00b7 Above typical; largest concept contribution [F2] \u00b7 Validated\n- **Marked nuclear pleomorphism** (region 5) \u00b7 \u2191 invasive \u00b7 Elevated score, negligible concept-model weight \u00b7 Validated\n- **Frequent mitotic figures** (regions 3, 5, 7) \u00b7 \u2191 invasive \u00b7 Elevated score; failed spot check \u00b7 Unreliable\n- **Atypical cells confined within ducts** (region 0) \u00b7 \u2193 invasive \u00b7 Modest score; bears on in situ alternative \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions cuts the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0, so not shown to reflect the classifier. Mitotic figures and normal lobules are Unreliable here.\n\n## Could be wrong if\n- Stromal infiltration is overcalled and the lesion is mostly in situ.\n- Reliability ranks errors only modestly (AUROC 0.69), so an unflagged input is weak assurance.\n\n## Check on the slide\n1. **Regions 5, 10, 11:** confirm tumor cells infiltrate stroma rather than stay duct-confined.\n2. **Region 0:** look for atypical cells confined within ducts.\n3. **Regions 8\u201311:** highest heatmap contribution; confirm invasive carcinoma.",
+ "verification": {
+  "checked": 13,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:44:21-0500",
+ "elapsed_s": 29.6,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14206,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 4382,
+  "output_tokens_details": {
+   "thinking_tokens": 3616
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14206,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 4382,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14206,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14206
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 28907
+}

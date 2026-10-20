@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0349_FSIM_blur3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "40c3b9a31d362903",
+ "markdown": "## Bottom line\n**Suggests Invasive (100%)** \u00b7 Confident \u00b7 Read in turn\nConformal set holds Invasive only; second model agrees [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 100% | One dominant class |\n| Conformal set | Invasive only (90%) | Single class |\n| Reliability / OOD | 0.998 / 90th pct | No input flag |\n| Second-model (MUSK) agreement | Same top class | Independent model concurs |\n| Similar cases | 5/5 Invasive | Neighbors all match |\n\n## Tissue evidence\n- **Benign stroma/fat** (region 7) \u00b7 \u2191 invasive \u00b7 Scarce; low score associated with invasive \u00b7 Validated\n- **Tumor-infiltrating stroma** (regions 0, 5, 9) \u00b7 \u2191 invasive \u00b7 High score associated with invasive \u00b7 Validated\n- **Normal lobules** (region 8) \u00b7 \u2191 invasive \u00b7 Low score associated with invasive; 0/20 spot check \u00b7 Unreliable\n- **Frequent mitoses** (regions 0, 4, 8) \u00b7 \u2191 invasive \u00b7 High score associated with invasive; 0/20 spot check \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful: removing top 3 regions drops invasive logit 0.54 more than random (CI 0.47\u20130.60).\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005\u20130.007); not shown to reflect classifier. Mitoses and normal lobules are Unreliable.\n\n## Could be wrong if\n- Simulated blur (severity 3) degrades input; reliability score only modestly ranks errors (AUROC 0.69).\n- Calibration is imperfect on a small test set (ECE 0.05, CI 0.03\u20130.18).\n\n## Check on the slide\n1. **0, 5, 9** \u2014 Confirm tumor-infiltrating stroma; concept passed spot check (19/20).\n2. **7** \u2014 Confirm scarce benign stroma/fat, a validated feature.\n3. **0, 4, 8** \u2014 Count mitoses yourself; the model's mitosis score failed spot check.",
+ "verification": {
+  "checked": 19,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:32:48-0500",
+ "elapsed_s": 58.4,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14348,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 8576,
+  "output_tokens_details": {
+   "thinking_tokens": 7838
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14348,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 8576,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14348,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14348
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 57671
+}

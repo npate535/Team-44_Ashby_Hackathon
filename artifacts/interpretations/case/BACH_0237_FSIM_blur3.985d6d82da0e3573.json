@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0237_FSIM_blur3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "985d6d82da0e3573",
+ "markdown": "## Bottom line\n**Suggests Benign (98%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set, second-model agreement, invasive probability under 1% [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 98%, Normal 2% | Benign clearly leads |\n| Conformal set | {Benign} at 90% | Single class |\n| Reliability / OOD | 0.999 / 1.0, no flag | No input warning |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 2 of 5 Benign, 3 Normal | Neighbors split |\n\n## Tissue evidence\n- **Tumor-infiltrating stroma** (region 0) \u00b7 \u2193 invasive \u00b7 Scored below typical; concept model leans benign [F2] \u00b7 Validated\n- **Benign fibrous stroma or fat** (regions 0, 7, 11) \u00b7 \u2193 invasive \u00b7 Scored above typical; lower invasive association [F3] \u00b7 Validated\n- **Marked nuclear pleomorphism** (region 11) \u00b7 \u2193 invasive \u00b7 Scored below typical; slight pull toward benign \u00b7 Validated\n- **Frequent mitotic figures** (region 0) \u00b7 \u2193 invasive \u00b7 Scored low; spot check 0/20 [F4] \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI includes 0 (+0.002; \u22120.005 to 0.007), so concepts are not shown to reflect the classifier. This case leans on mitoses, which is Unreliable.\n\n## Could be wrong if\n- The image has simulated blur (severity 3); fine nuclear detail may be lost despite the high reliability score.\n- Only 2 of 5 similar cases are Benign; three are Normal, so Benign-versus-Normal is less certain.\n\n## Check on the slide\n1. **Regions 0, 7, 11**: Confirm fibrous stroma or fat; exclude infiltrating tumor cells.\n2. **Region 0**: Count mitoses by eye; the concept score failed spot checks.\n3. **Region 11**: Assess nuclear pleomorphism; blur may mask atypia.",
+ "verification": {
+  "checked": 14,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:09:49-0500",
+ "elapsed_s": 48.2,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13994,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 6600,
+  "output_tokens_details": {
+   "thinking_tokens": 5804
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13994,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 6600,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13994,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13994
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 46877
+}

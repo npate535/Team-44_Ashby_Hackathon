@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0240_FSIM_stain3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "9ce80651228a326b",
+ "markdown": "## Bottom line\n**Suggests Invasive (99%)** \u00b7 Confident \u00b7 Read in turn\nOne conformal class, both models agree, and 5/5 neighbors are invasive [F1][F5].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 99%, InSitu 1% | Clear separation |\n| Conformal set | Invasive only (90%) | Single class |\n| Reliability / OOD | 0.998 / 92nd percentile | Input not flagged |\n| Second-model (MUSK) agreement | Same top: Invasive | Models concur |\n| Similar cases | 5/5 Invasive | Unanimous neighbors |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 1, 10, 11) \u00b7 \u2191 invasive \u00b7 Strongest association; scored above typical [F2] \u00b7 Validated (19/20)\n- **Marked nuclear pleomorphism** (regions 0, 4, 7) \u00b7 \u2191 invasive \u00b7 Above-typical nuclear atypia \u00b7 Validated (18/20)\n- **Gland / tubule formation** (region 8) \u00b7 \u2191 invasive \u00b7 Scarce tubules lean invasive in concept model \u00b7 Validated (18/20)\n- **Atypical cells confined within ducts** (region 10) \u00b7 \u2191 invasive \u00b7 Low score leans invasive; marginal spot check \u00b7 Weak (12/20)\n- **Mitoses and necrosis** (regions 1, 4, 5; 10) \u00b7 \u2191 invasive \u00b7 High scores, but failed spot checks \u00b7 Unreliable (0/20, 3/20)\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0; not shown to reflect the classifier. Mitoses and necrosis are Unreliable.\n\n## Could be wrong if\n- Simulated stain degradation (severity 3) and 92nd-percentile OOD distort the embeddings.\n- Reliability score ranks errors only modestly (AUROC 0.69, CI 0.58\u20130.87).\n\n## Check on the slide\n1. **Regions 1, 10, 11** \u2014 confirm invasive tumor in stroma, not reactive stroma.\n2. **Region 10** \u2014 assess necrosis and intraductal cells; both scores unreliable.\n3. **Superior and inferior margins** \u2014 verify suggested tumor-at-margin call [F7].",
+ "verification": {
+  "checked": 25,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:12:21-0500",
+ "elapsed_s": 35.1,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14225,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 4918,
+  "output_tokens_details": {
+   "thinking_tokens": 4061
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14225,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 4918,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14225,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14225
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 34381
+}

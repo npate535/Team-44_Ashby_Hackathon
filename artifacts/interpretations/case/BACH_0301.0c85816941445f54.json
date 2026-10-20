@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0301",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "0c85816941445f54",
+ "markdown": "## Bottom line\n**Suggests Invasive (>99%)** \u00b7 Confident \u00b7 Read in turn\nConformal set holds only Invasive; second model and all 5 similar cases agree.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive >99%, InSitu <1% | Strongly peaked |\n| Conformal set | {Invasive} at 90% | Single class |\n| Reliability / OOD | 0.998 / 88th percentile | Not flagged |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5/5 Invasive | Unanimous |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 1, 9) \u00b7 \u2191 invasive \u00b7 Scored above typical; strongest here [F3] \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 1, 2, 9) \u00b7 \u2191 invasive \u00b7 Scored above typical; spot check 18/20 \u00b7 Validated\n- **Variation in nuclear size** (regions 1, 2, 9) \u00b7 context \u00b7 100th percentile; mean nuclear area 0th [F8] \u00b7 Measured\n- **Tumor necrosis** (regions 4, 5, 6) \u00b7 \u2191 invasive \u00b7 Scored high; spot check 3/20 \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Top-3 deletion drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion CI includes 0 (\u22120.005 to 0.007); not shown to reflect the classifier. Necrosis and normal lobules are Unreliable.\n\n## Could be wrong if\n- Region 11 is in situ or benign; its regional invasive probability is only 49%.\n- Nuclear measurements cover regions 1, 2, 9 only; mean nuclear area is 0th percentile.\n\n## Check on the slide\n1. **Regions 0, 1, 9** \u2014 confirm tumor infiltrating stroma.\n2. **Region 11** \u2014 lowest regional invasive score (49%); check in situ versus invasive.\n3. **Region 10** \u2014 inferior margin tumor score 6%, others \u226598%; recheck margin call [F10].",
+ "verification": {
+  "checked": 19,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:23:53-0500",
+ "elapsed_s": 56.4,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 15473,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 8456,
+  "output_tokens_details": {
+   "thinking_tokens": 7695
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 15473,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 8456,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 15473,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 15473
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 55686
+}

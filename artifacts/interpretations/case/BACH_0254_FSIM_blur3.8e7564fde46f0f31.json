@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0254_FSIM_blur3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "8e7564fde46f0f31",
+ "markdown": "## Bottom line\n**Suggests Normal (100%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set; second model and 5/5 neighbors agree [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 100%; others <1% | Overwhelmingly Normal |\n| Conformal set | {Normal} at 90% | Single class |\n| Reliability / OOD | 0.996 / 64th percentile | Typical, usable input |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5/5 Normal | Unanimous neighbors |\n\n## Tissue evidence\n- **Benign fibrous stroma or fat** (regions 0, 9, 10) \u00b7 \u2193 invasive \u00b7 Strongly present; largest pull toward non-invasive [F2] \u00b7 Validated\n- **Normal lobules with two-layered epithelium** (regions 0, 1) \u00b7 \u2193 invasive \u00b7 Above typical; spot check 0/20, do not rely [F3] \u00b7 Unreliable\n- **Gland / tubule formation** (region 4) \u00b7 \u2191 invasive \u00b7 Below typical; small lean toward invasive [F4] \u00b7 Validated\n- **Atypical cells confined within ducts** (region 8) \u00b7 \u2191 invasive \u00b7 Below typical; small lean toward invasive \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47 to 0.60); faithful.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0: not shown to reflect the classifier. Normal lobules is Unreliable.\n\n## Could be wrong if\n- Simulated blur (severity 3) hides detail; the reliability score only modestly flags errors (AUROC 0.69).\n- Conformal coverage is dataset-level (92%), not a per-case probability.\n\n## Check on the slide\n1. **Region 5**: rule out infiltrating tumor; top region for invasion, pleomorphism, necrosis, TILs.\n2. **Region 4**: check gland formation; strongest tubule score, yet below typical.\n3. **Regions 0, 1**: confirm normal lobules by eye; the concept failed its spot check.",
+ "verification": {
+  "checked": 14,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:15:31-0500",
+ "elapsed_s": 64.0,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13976,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 9164,
+  "output_tokens_details": {
+   "thinking_tokens": 8392
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13976,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 9164,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13976,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13976
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 63237
+}

@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0237_FSIM_stain3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "02bbf924945d0d68",
+ "markdown": "## Bottom line\n**Suggests Benign (98%)** \u00b7 Confident \u00b7 Read in turn\nOne-class conformal set, second-model agreement, and every region leans away from invasive [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 98%, Normal 2% | Clear lead |\n| Conformal set | {Benign}, \u03b1=0.1 | Single class |\n| Reliability / OOD | 0.998 / 86th percentile | Usable; simulated stain degradation |\n| Second-model (MUSK) agreement | Same top class | Independent model concurs |\n| Similar cases | 2 of 5 Benign | Mixed neighbors, weak support |\n\n## Tissue evidence\n- **Normal lobules** (regions 7, 8, 9) \u00b7 \u2193 invasive \u00b7 Strongest lower-invasive association; AI spot check 0/20 [F2] \u00b7 Unreliable\n- **Tumor-infiltrating stroma** (region 3) \u00b7 \u2191 invasive \u00b7 Small invasive-leaning association; region risk is 0% \u00b7 Validated\n- **Benign fibrous stroma or fat** (region 11) \u00b7 \u2193 invasive \u00b7 Present; associated with lower invasive likelihood \u00b7 Validated\n- **Nuclear pleomorphism** (region 0) \u00b7 \u2191 invasive \u00b7 Scored below typical here, pulling away from invasive \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Deleting its top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0, so not shown to reflect the classifier; normal lobules is Unreliable.\n\n## Could be wrong if\n- Stain degradation (severity 3, simulated) shifts features despite the high reliability score.\n- Calibration was tested on 132 cases only; ECE CI reaches 0.18, so 98% may overstate.\n\n## Check on the slide\n1. **Regions 7, 8, 9**: confirm two-layered lobular epithelium; this concept failed its AI spot check.\n2. **Region 3**: look for tumor infiltrating stroma, this concept's top-scoring region.\n3. **Region 0**: assess nuclear pleomorphism; similar in-situ case BACH_0043 scored higher there.",
+ "verification": {
+  "checked": 16,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:10:35-0500",
+ "elapsed_s": 40.1,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14011,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5717,
+  "output_tokens_details": {
+   "thinking_tokens": 4927
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14011,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5717,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14011,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14011
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 38991
+}

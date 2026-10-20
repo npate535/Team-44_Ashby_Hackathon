@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0362_FSIM_resample3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "b1908cc5970419f3",
+ "markdown": "## Bottom line\n**Suggests Normal (96%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set, second-model agreement, and 5/5 similar cases Normal [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 96%, Benign 4% | Clear lead |\n| Conformal set | {Normal} at 90% | Single class |\n| Reliability / OOD | 0.999 / percentile 1.0 | No input flag raised |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5/5 Normal | Unanimous |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 8) \u00b7 \u2191 invasive \u00b7 Below typical here; does not support invasion [F4] \u00b7 Validated\n- **Dense lymphocytic infiltrate** (regions 1, 4, 7) \u00b7 context \u00b7 Above typical; descriptive only [F2] \u00b7 Weak\n- **Marked nuclear pleomorphism** (region 8) \u00b7 \u2191 invasive \u00b7 Below typical here; does not support invasion \u00b7 Validated\n- **Benign fibrous stroma or fat** (region 8) \u00b7 \u2193 invasive \u00b7 Slightly above typical; fits benign tissue \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions cuts the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: No effect beyond random removal (CI \u22120.005 to 0.007 includes 0); not shown to reflect classifier use. Normal lobules (0/20) is Unreliable [F3].\n\n## Could be wrong if\n- Region 8 alone scores 32% invasive risk; a focal lesion could be diluted in the image-level result.\n- Image is a simulated, resample-degraded variant (severity 3); the reliability flag is not raised.\n\n## Check on the slide\n1. **Region 8** \u2014 highest per-region invasive risk (32%); look for infiltrating tumor.\n2. **Regions 6, 4** \u2014 least benign-leaning heatmap contributions (still negative); check for atypia.\n3. **Regions 1, 4, 7** \u2014 strongest lymphocyte scores; confirm a true infiltrate versus mimics.",
+ "verification": {
+  "checked": 14,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:37:15-0500",
+ "elapsed_s": 43.7,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14020,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 6360,
+  "output_tokens_details": {
+   "thinking_tokens": 5584
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14020,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 6360,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14020,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14020
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 42971
+}

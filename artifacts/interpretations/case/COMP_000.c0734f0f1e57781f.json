@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_000",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "c0734f0f1e57781f",
+ "markdown": "## Bottom line\n**Suggests Invasive (73%)** \u00b7 Ambiguous: Normal vs Invasive \u00b7 Careful review\nNormal stays in the 90% conformal set; 4 of 5 similar cases are Normal [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 73%, Normal 25% | Leads, not decisive |\n| Conformal set | Normal, Invasive | Cannot separate the two |\n| Reliability / OOD | 0.92 / 76th percentile | Input looks typical |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 1 of 5 Invasive | Neighbors mostly Normal [F5] |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 1, 4) \u00b7 \u2191 invasive \u00b7 Strongest concept-model association with invasive carcinoma [F2] \u00b7 Validated\n- **Normal lobules, two-layered epithelium** (regions 2, 10, 11) \u00b7 \u2193 invasive \u00b7 Associated with lower invasive likelihood; spot check 0/20 [F3] \u00b7 Unreliable\n- **Frequent mitotic figures** (regions 1, 4, 5) \u00b7 \u2191 invasive \u00b7 Score high, but failed spot check [F4] \u00b7 Unreliable\n- **Marked nuclear pleomorphism** (regions 4, 5, 8) \u00b7 \u2191 invasive \u00b7 Weaker association with invasive carcinoma \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing its top 3 regions cuts the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion difference 0.002 (CI \u22120.005 to 0.007) includes 0; not shown faithful. This case leans on Unreliable mitoses and normal lobules.\n\n## Could be wrong if\n- The true class is Normal: four of five similar cases are Normal.\n- Mitotic and normal-lobule scores are artifacts; both failed the AI spot check (0/20).\n\n## Check on the slide\n1. **Regions 0, 1, 4:** confirm tumor cells infiltrating stroma.\n2. **Regions 2, 10, 11:** decide whether these are normal lobules or benign tissue.\n3. **Regions 4, 5, 8:** assess pleomorphism and count mitoses directly.",
+ "verification": {
+  "checked": 14,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:42:03-0500",
+ "elapsed_s": 32.5,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14277,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5161,
+  "output_tokens_details": {
+   "thinking_tokens": 4338
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14277,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5161,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14277,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14277
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 31802
+}

@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0389_FSIM_stain3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "9718976d90b4bbd7",
+ "markdown": "## Bottom line\n**Suggests Invasive (82%)** \u00b7 Ambiguous: InSitu vs Invasive \u00b7 Careful review\n\nInSitu stays in the 90% conformal set, and this is a stain-degraded simulated frozen section. [F1]\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 82%, InSitu 18% | Clear lead, not decisive |\n| Conformal set | InSitu, Invasive | Two classes not separable |\n| Reliability / OOD | 0.96 / percentile 1.0 | Not flagged; stain degraded |\n| Second-model (MUSK) agreement | Yes | Same top class |\n| Similar cases | 3 of 5 Invasive | Mixed neighbors |\n\n## Tissue evidence\n- **Frequent mitotic figures** (regions 1, 5, 9) \u00b7 \u2191 invasive \u00b7 Largest concept association in this case [F2] \u00b7 Unreliable\n- **Tumor necrosis** (regions 0, 1, 5) \u00b7 \u2191 invasive \u00b7 Second-largest invasive association [F3] \u00b7 Unreliable\n- **Atypical cells confined within ducts** (regions 2, 6, 10) \u00b7 \u2193 invasive \u00b7 Points toward in situ rather than invasive [F4] \u00b7 Weak\n- **Tumor infiltrating stroma** (region 3) \u00b7 \u2191 invasive \u00b7 Very small invasive association \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 1, 5) \u00b7 \u2191 invasive \u00b7 Small invasive association \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0; not shown to reflect the classifier. Mitoses and necrosis are Unreliable.\n\n## Could be wrong if\n- Stain degradation inflates mitosis and necrosis scores, both of which failed spot checks.\n- Intraductal in situ disease is present; InSitu is in the conformal set.\n\n## Check on the slide\n1. **Regions 2, 6, 10:** Check whether atypical cells stay within intact ducts.\n2. **Regions 1, 5, 9:** Confirm true mitoses and necrosis versus stain artifact.\n3. **Regions 4, 8:** Confirm tumor at the medial cut edge. [F7]",
+ "verification": {
+  "checked": 12,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:41:42-0500",
+ "elapsed_s": 33.6,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14271,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 4925,
+  "output_tokens_details": {
+   "thinking_tokens": 4089
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14271,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 4925,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14271,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14271
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 32835
+}

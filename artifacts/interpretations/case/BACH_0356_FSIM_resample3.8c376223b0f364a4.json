@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0356_FSIM_resample3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "8c376223b0f364a4",
+ "markdown": "## Bottom line\n**Suggests InSitu (79%)** \u00b7 Ambiguous: InSitu vs Invasive \u00b7 Careful review\nInvasive stays in the 90% conformal set (20%); 4 of 5 similar cases are Invasive [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 79%, Invasive 20% | Clear lead, real runner-up |\n| Conformal set | InSitu, Invasive | Cannot separate two classes |\n| Reliability / OOD | 0.96 / 1.0 | Not flagged; simulated degradation |\n| Second-model (MUSK) agreement | Same top class | Concordant |\n| Similar cases | 1 of 5 InSitu | Neighbors mostly disagree [F5] |\n\n## Tissue evidence\n- **Scarce normal lobules** (region 2) \u00b7 \u2191 invasive \u00b7 Below-typical score; largest concept-model term [F2] \u00b7 Unreliable\n- **Scarce benign stroma or fat** (region 4) \u00b7 \u2191 invasive \u00b7 Below-typical score; second-largest concept-model term [F3] \u00b7 Validated\n- **Tumor-infiltrating stroma** (region 7) \u00b7 \u2193 invasive \u00b7 Below-typical score; lowers invasive tilt [F4] \u00b7 Validated\n- **Tumor necrosis** (regions 7, 8, 11) \u00b7 \u2191 invasive \u00b7 Above-typical score in these regions \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47 to 0.60); faithful to the classifier.\n- **Concepts**: Gain over random is 0.002 (CI \u22120.005 to 0.007), includes 0: unproven. Normal lobules (0/20) and necrosis (3/20) are Unreliable.\n\n## Could be wrong if\n- The image is a simulated degraded frozen section (resample, severity 3); features may be distorted.\n- Top concept terms rest on the Unreliable normal-lobule score; the conformal guarantee is dataset-level, not per case.\n\n## Check on the slide\n1. **Region 7** \u2014 Highest heatmap contribution (0.41); look for stromal invasion beyond ducts.\n2. **Regions 4, 5** \u2014 Is benign stroma scarce (4)? Are atypical cells confined to ducts (5)?\n3. **Regions 3, 7, 8\u201311** \u2014 Confirm suggested tumor at inferior and lateral margins [F7].",
+ "verification": {
+  "checked": 16,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:35:29-0500",
+ "elapsed_s": 49.5,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14222,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 7133,
+  "output_tokens_details": {
+   "thinking_tokens": 6282
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14222,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 7133,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14222,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14222
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 48740
+}

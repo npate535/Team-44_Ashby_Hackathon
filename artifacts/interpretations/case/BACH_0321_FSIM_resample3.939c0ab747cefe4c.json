@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0321_FSIM_resample3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "939c0ab747cefe4c",
+ "markdown": "## Bottom line\n**Suggests Benign (91%)** \u00b7 Confident \u00b7 Careful review\nSingle-class conformal set and clean input, but the second model and all five neighbors disagree [F1][F5].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 91%, Normal 5%, InSitu 5%, Invasive 0% | Clear leader |\n| Conformal set | {Benign} at 90% | Single class |\n| Reliability / OOD | 0.99 / 1.0 | Input not flagged |\n| Second-model (MUSK) agreement | No | Different top class |\n| Similar cases | 0/5 Benign; all Normal | Neighbors say Normal |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 8) \u00b7 \u2193 invasive \u00b7 Scarce here; concept model links this to lower invasive likelihood [F2] \u00b7 Validated\n- **Benign fibrous stroma or fat** (regions 4, 8) \u00b7 \u2193 invasive \u00b7 Above typical; associated with non-invasive tissue \u00b7 Validated\n- **Gland / tubule formation** (regions 1, 10) \u00b7 \u2193 invasive \u00b7 Present; text-prompt only, caption check inconsistent \u00b7 Validated\n- **Dense lymphocytic infiltrate** (region 6) \u00b7 context \u00b7 Above typical; spot check 8/20 \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) spans 0, so not shown to reflect the classifier. Case leans on mitoses (0/20, Unreliable) [F4].\n\n## Could be wrong if\n- Resampling degradation (severity 3) masks invasive features despite the high reliability score.\n- Second model and all neighbors favor a different class, so Benign versus Normal is unresolved.\n\n## Check on the slide\n1. **Regions 4, 8** \u2014 confirm benign stroma and absent tumor-infiltrating stroma.\n2. **Regions 1, 10** \u2014 verify glands are benign, not invasive tubules.\n3. **Regions 3, 11** \u2014 lateral edge flagged tumor at margin [F7], conflicting with 0% invasive score.",
+ "verification": {
+  "checked": 16,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:27:15-0500",
+ "elapsed_s": 42.6,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14044,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 6054,
+  "output_tokens_details": {
+   "thinking_tokens": 5271
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14044,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 6054,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14044,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14044
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 41787
+}

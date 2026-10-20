@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0349_FSIM_jpeg3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "79da0197077752b0",
+ "markdown": "## Bottom line\n**Suggests Invasive (99%)** \u00b7 Confident \u00b7 Read in turn\nThe conformal set holds one class, and the second model and 5/5 neighbors agree [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 99%, InSitu 1% | Strongly peaked |\n| Conformal set | {Invasive} at 90% | Single class |\n| Reliability / OOD | 1.00 / 64th percentile | Typical input [F6] |\n| Second-model (MUSK) agreement | Yes | Same top class |\n| Similar cases | 5/5 Invasive | Neighbors agree [F5] |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 4, 8) \u00b7 \u2191 invasive \u00b7 Strongest concept association with invasive carcinoma here [F2] \u00b7 Validated\n- **Benign fibrous stroma or fat** (region 7) \u00b7 \u2193 invasive \u00b7 Scores below typical; concept model reads absence as favoring invasive \u00b7 Validated\n- **Frequent mitotic figures** (regions 2, 3, 4) \u00b7 \u2191 invasive \u00b7 Scored high, but failed AI spot check [F4] \u00b7 Unreliable\n- **Dense lymphocytic infiltrate** (regions 4, 7, 9) \u00b7 context \u00b7 Above typical; descriptive only, spot check borderline [F3] \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0, so not shown to reflect the classifier; mitoses (0/20) is Unreliable.\n\n## Could be wrong if\n- Simulated JPEG degradation (severity 3) distorts texture; the reliability score ranks errors only modestly (AUROC 0.69).\n- Calibration is imprecise: ECE 0.05 (95% CI 0.03\u20130.18) on a small test set.\n\n## Check on the slide\n1. **Regions 0, 4, 8** \u2014 confirm tumor cells infiltrating stroma; these score highest for that feature.\n2. **Regions 3, 7, 11** \u2014 lateral margin called tumor-positive [F7]; region 7 has the lowest invasive probability.\n3. **Regions 2, 3, 4** \u2014 count mitoses directly; the model's mitosis score failed its spot check.",
+ "verification": {
+  "checked": 18,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:32:55-0500",
+ "elapsed_s": 39.7,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14323,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5760,
+  "output_tokens_details": {
+   "thinking_tokens": 4913
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14323,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5760,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14323,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14323
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 38840
+}

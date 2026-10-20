@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0385_FSIM_jpeg3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "de10369647773fb3",
+ "markdown": "## Bottom line\n**Suggests Invasive (95%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set, unflagged input, and all neighbors agree [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 95%, InSitu 4% | Clear lead |\n| Conformal set | {Invasive} at 90% | Single class |\n| Reliability / OOD | 0.999 / OOD 1.0 | Not flagged |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5 of 5 Invasive | Unanimous |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 6, 9) \u00b7 \u2191 invasive \u00b7 Above typical; strongest concept-model association \u00b7 Validated\n- **Scarce benign stroma or fat** (region 5) \u00b7 \u2193 invasive \u00b7 Low score; absence fits invasive \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 0, 1, 5) \u00b7 \u2191 invasive \u00b7 Above typical, smaller contribution \u00b7 Validated\n- **Dense lymphocytic infiltrate** (regions 4, 8, 9) \u00b7 context \u00b7 High score, descriptive only \u00b7 Weak\n- **Tumor necrosis, frequent mitoses** (regions 0, 4) \u00b7 \u2191 invasive \u00b7 High scores; spot checks mostly failed \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion difference 0.002 (CI \u22120.005 to 0.007) includes 0; not shown to reflect the classifier. Necrosis and mitoses are Unreliable.\n\n## Could be wrong if\n- JPEG-degraded simulated frozen section; reliability ranks errors only modestly (AUROC 0.69).\n- Residual 4% InSitu; duct-confined concept only weakly validated (12/20).\n\n## Check on the slide\n1. **Regions 0, 6, 9**: confirm tumor cells infiltrate stroma rather than showing in situ architecture.\n2. **Regions 0, 4**: check necrosis and mitoses directly; automated spot checks failed.\n3. **Region 5**: look for residual benign glands, lobules or stroma that the model scored low.",
+ "verification": {
+  "checked": 15,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:38:54-0500",
+ "elapsed_s": 39.7,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14329,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5877,
+  "output_tokens_details": {
+   "thinking_tokens": 5055
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14329,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5877,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14329,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14329
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 39006
+}

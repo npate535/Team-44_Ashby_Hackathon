@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0301_FSIM_resample3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "6d9f6290a4ca3355",
+ "markdown": "## Bottom line\n**Suggests Invasive (99%)** \u00b7 Confident \u00b7 Careful review\nConformal set holds Invasive only, but the second model disagrees on the top class.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 99%, InSitu 1% | Strong lead |\n| Conformal set | {Invasive} at 90% | Single class |\n| Reliability / OOD | 0.99 / OOD 1.0 | No input flag |\n| Second-model (MUSK) agreement | No | Disagrees on top class |\n| Similar cases | 4 of 5 Invasive [F5] | Mostly supportive |\n\n## Tissue evidence\n- **Scarce benign stroma/fat** (region 3) \u00b7 \u2193 invasive \u00b7 Benign tissue scant; concept model links absence to invasive \u00b7 Validated\n- **Frequent mitoses** (regions 0, 2, 10) \u00b7 \u2191 invasive \u00b7 Scored above typical; association only, not counted figures \u00b7 Unreliable\n- **Tumor necrosis** (regions 0, 2, 5) \u00b7 \u2191 invasive \u00b7 Scored well above typical in several regions \u00b7 Unreliable\n- **Marked pleomorphism** (region 2) \u00b7 \u2191 invasive \u00b7 Above typical, but near-zero contribution in concept model \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47 to 0.60); faithful.\n- **Concepts**: Deletion vs random 0.002 (CI \u22120.005 to 0.007) includes 0, so not shown faithful; leans on Unreliable normal lobules, mitoses, necrosis.\n\n## Could be wrong if\n- Second model (MUSK) picks a different top class, so 99% may be overconfident.\n- Input is a degraded simulated frozen section; reliability AUROC only 0.69 (CI 0.58 to 0.87).\n\n## Check on the slide\n1. **Regions 0, 2, 5** \u2014 Confirm necrosis is real tumor necrosis, not artifact; spot check 3/20.\n2. **Regions 0, 2, 10** \u2014 Count mitoses yourself; concept spot check was 0/20.\n3. **Regions 3, 7, 11** \u2014 Lateral margin suggested tumor-involved [F7]; region 11 has the lowest invasive risk.",
+ "verification": {
+  "checked": 18,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:25:13-0500",
+ "elapsed_s": 43.2,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14242,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 6556,
+  "output_tokens_details": {
+   "thinking_tokens": 5752
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14242,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 6556,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14242,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14242
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 42476
+}

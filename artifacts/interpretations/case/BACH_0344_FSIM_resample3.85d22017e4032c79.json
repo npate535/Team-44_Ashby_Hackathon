@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0344_FSIM_resample3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "85d22017e4032c79",
+ "markdown": "## Bottom line\n**Suggests Benign (99%)** \u00b7 Confident \u00b7 Read in turn\nConformal set is Benign only; second model and neighbors agree [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 99%, InSitu 1% | Clearly Benign |\n| Conformal set | {Benign} at \u03b1=0.1 | Single class |\n| Reliability / OOD | 1.00 / percentile 1.0 | No input flag |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5 of 5 Benign | Unanimous |\n\n## Tissue evidence\n- **Tumor-infiltrating stroma** (region 9) \u00b7 \u2193 invasive \u00b7 Score well below typical; concept model reads this as less invasive [F2] \u00b7 Validated\n- **Gland / tubule formation** (regions 1, 8, 11) \u00b7 \u2193 invasive \u00b7 Gland formation scored high; associated with lower invasive likelihood \u00b7 Validated\n- **Atypical cells confined in ducts** (regions 2, 5, 7) \u00b7 \u2193 invasive \u00b7 High score; modest lower-invasive association \u00b7 Weak\n- **Marked nuclear pleomorphism** (region 9) \u00b7 \u2193 invasive \u00b7 Scored very low; small contribution \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Deletion CI excludes 0 (+0.54 logit, 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI includes 0 (+0.002, \u22120.005 to 0.007); not shown to reflect the classifier. Normal lobules (0/20) is Unreliable [F4].\n\n## Could be wrong if\n- Input is a simulated resample-degraded image; reliability score ranks errors only modestly (AUROC 0.69).\n- Region 9 carries 64% per-region invasive risk; other regions are \u226414%.\n\n## Check on the slide\n1. **Region 9** \u2014 look for an invasive focus; per-region risk is 64%.\n2. **Regions 2, 5, 7** \u2014 confirm atypical cells stay within ducts (in situ vs benign).\n3. **Regions 1, 8, 11** \u2014 confirm gland architecture looks benign.",
+ "verification": {
+  "checked": 17,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:31:07-0500",
+ "elapsed_s": 39.0,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14034,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5692,
+  "output_tokens_details": {
+   "thinking_tokens": 4934
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14034,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5692,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14034,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14034
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 38252
+}

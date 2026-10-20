@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0301_FSIM_jpeg3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "8c261df9d00ab2c8",
+ "markdown": "## Bottom line\n**Suggests Invasive (95%)** \u00b7 Confident \u00b7 Careful review\n\nSingle-class conformal set and 4 of 5 similar cases agree, but the second model does not.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 95%, InSitu 5% | Clear lead |\n| Conformal set | {Invasive} at 90% | Single class |\n| Reliability / OOD | 0.99 / 98th percentile | Input not flagged |\n| Second-model (MUSK) agreement | No | Different top class |\n| Similar cases | 4 of 5 Invasive [F5] | Mostly supportive |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 0, 6, 9) \u00b7 \u2191 invasive \u00b7 Above typical; associated with invasive carcinoma [F2] \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 1, 2, 8) \u00b7 \u2191 invasive \u00b7 Scored above typical here \u00b7 Validated\n- **Tumor necrosis** (regions 2, 4, 8) \u00b7 \u2191 invasive \u00b7 Scored above typical; spot check poor \u00b7 Unreliable\n- **Dense lymphocytic infiltrate** (region 7) \u00b7 context \u00b7 Below typical; descriptive only \u00b7 Weak\n- **Normal lobules** (region 11) \u00b7 \u2193 invasive \u00b7 Typical score; spot check 0/20 \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions lowers the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion effect CI includes 0 (\u22120.005 to 0.007); not shown to reflect the classifier. Necrosis and normal lobules are Unreliable here.\n\n## Could be wrong if\n- The image is a JPEG-degraded simulated frozen section, and the second model picks a different top class.\n- Reliability score ranks errors modestly (AUROC 0.69), so 0.99 does not rule out error.\n\n## Check on the slide\n1. **Regions 0, 6, 9** \u2014 confirm tumor cells infiltrating stroma.\n2. **Regions 2, 10** \u2014 lowest per-region invasive scores (26%, 41%); look for non-invasive tissue.\n3. **Region 11** \u2014 ducts/lobules concepts are unreliable; confirm, and check low-scoring lateral margin segment.",
+ "verification": {
+  "checked": 16,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:24:29-0500",
+ "elapsed_s": 35.9,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14366,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5490,
+  "output_tokens_details": {
+   "thinking_tokens": 4667
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14366,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5490,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14366,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14366
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 35118
+}

@@ -1,0 +1,51 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "BACH_0258_FSIM_resample3",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "c3ace9761f6c1f79",
+ "markdown": "## Bottom line\n**Suggests InSitu (68%)** \u00b7 Unreliable input \u00b7 Defer to expert\nFlagged input, two-class conformal set, second model disagrees. [F1]\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 68%, Benign 26% | Clear lead, not decisive |\n| Conformal set | Benign, InSitu (90%) | Two classes not separable |\n| Reliability / OOD | 0.77 / 1.0, flagged | Input suspect |\n| Second-model (MUSK) agreement | No | Independent check disagrees |\n| Similar cases | 3/5 InSitu [F5] | Moderate support |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (region 3) \u00b7 \u2191 invasive \u00b7 Below typical; leans away from invasive [F2] \u00b7 Validated\n- **Marked nuclear pleomorphism** (region 11) \u00b7 \u2191 invasive \u00b7 Below typical; leans away from invasive \u00b7 Validated\n- **Atypical cells confined within ducts** (region 5) \u00b7 \u2193 invasive \u00b7 Above typical; fits in situ pattern \u00b7 Weak\n- **Tumor necrosis** (regions 1, 2) \u00b7 \u2191 invasive \u00b7 Above typical; spot check failed (3/20) \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Faithful: removing top 3 regions drops invasive logit 0.54 more than random (CI 0.47\u20130.60).\n- **Concepts**: Not shown to reflect the classifier: effect 0.002, CI \u22120.005 to 0.007 spans 0. Normal lobules [F3] and necrosis failed spot checks.\n\n## Could be wrong if\n- Simulated degraded image flagged out-of-distribution; every score may be shifted.\n- Region 5 shows 97% per-region invasive risk; slide-level invasive probability is 2%.\n\n## Check on the slide\n1. **5**: Duct-confined top region, 97% invasive risk per region; look for stromal invasion.\n2. **1, 6**: Per-region invasive risk 41% and 64%; confirm in situ versus invasive.\n3. **3**: Strongest infiltrating-stroma region despite low score; confirm stroma is uninvolved.",
+ "verification": {
+  "checked": 18,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-19T22:18:35-0500",
+ "elapsed_s": 67.1,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14325,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 9623,
+  "output_tokens_details": {
+   "thinking_tokens": 8858
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14325,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 9623,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14325,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14325
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 66291
+}
