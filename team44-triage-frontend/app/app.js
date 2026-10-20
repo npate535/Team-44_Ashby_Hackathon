@@ -11,10 +11,49 @@ import * as biopsy from './js/views/case_biopsy.js';
 import * as surgical from './js/views/case_surgical.js';
 import * as surgeon from './js/views/surgeon.js';
 import * as oncologist from './js/views/oncologist.js';
-import * as metrics from './js/views/metrics.js';
-import * as tcga from './js/views/tcga.js';
-import * as spotcheck from './js/views/spotcheck.js';
 import { animateScene, syncGlass } from './js/glass.js';
+
+// The evaluation, TCGA and evidence-review pages (with the chart library, about 230 KB) load when one is first opened,
+// so a slow connection reaches the worklist without them. Imported once; after a failed import the page says so, and
+// opening it again tries again.
+const LAZY = {
+  metrics: () => import('./js/views/metrics.js'),
+  tcga: () => import('./js/views/tcga.js'),
+  spotcheck: () => import('./js/views/spotcheck.js')
+};
+const views = {};
+const viewLoads = {};
+const viewErrors = {};
+function loadView(route) {
+  if (views[route]) return Promise.resolve(views[route]);
+  if (!viewLoads[route])
+    viewLoads[route] = LAZY[route]()
+      .then((mod) => {
+        views[route] = mod;
+        delete viewErrors[route];
+        return mod;
+      })
+      .catch((err) => {
+        viewLoads[route] = null;
+        viewErrors[route] = err;
+        throw err;
+      })
+      .finally(() => {
+        if (ST.route !== route) return;
+        lastFp = null; // the page's module (or its failure) replaces the loading state
+        draw();
+      });
+  return viewLoads[route];
+}
+// Once the first screen is up, the other pages are fetched while the browser is idle, so opening one is immediate
+// (not when the viewer has asked the browser to save data).
+let prefetched = false;
+function prefetchViews() {
+  if (prefetched || (navigator.connection && navigator.connection.saveData)) return;
+  prefetched = true;
+  const run = () => Object.keys(LAZY).forEach((r) => loadView(r).catch(() => {}));
+  setTimeout(() => ('requestIdleCallback' in window ? requestIdleCallback(run, { timeout: 8000 }) : run()), 5000);
+}
 
 const params = new URLSearchParams(location.search);
 const localService = ['localhost', '127.0.0.1', '[::1]', ''].includes(new URL(params.get('api') || location.href, location.href).hostname);
@@ -163,6 +202,8 @@ function onRoute() {
     ST.marginPick = [];
     ST.justDone = null;
     ST.hm = { sel: null, hl: [], opacity: ST.hm.opacity, why: null };
+    setReplayOpen(false); // phones: a new page opens with the replay controls folded
+    delete viewErrors[r.route]; // a page whose code failed to load is tried again when it is opened again
     window.scrollTo(0, 0);
   }
   document.querySelectorAll('nav [data-nav]').forEach((b) => {
@@ -184,6 +225,32 @@ function worklistQuery(route) {
   if (route === 'surgeon') return { lane: 'surgical', order: 'ai' };
   if (route === 'worklist') return { lane: ST.lane, order: ST.order };
   return { lane: 'all', order: 'ai' }; // case view + other pages: the global priority order drives "next case"
+}
+
+// The evaluation payload as optional context (case coverage line, TCGA story panel, inbox wording): requested beside
+// the page's own data, never awaited by it; the page redraws when it lands. One request at a time, and after a failure
+// the next try waits 30 s (it is large, and the poll runs every 2 s).
+let metricsReq = null;
+let metricsFailedAt = 0;
+function metricsInBackground(force = false) {
+  if ((ST.metrics && !force) || metricsReq || Date.now() - metricsFailedAt < 30000) return;
+  ST.metricsLoading = true; // a view can say "loading" rather than "not available" while it is on its way
+  metricsReq = api
+    .metrics()
+    .then((evaluation) => {
+      if (evaluation) {
+        ST.metrics = evaluation;
+        ST.metricsRev = (ST.metricsRev || 0) + 1;
+      }
+    })
+    .catch(() => {
+      metricsFailedAt = Date.now();
+    })
+    .finally(() => {
+      metricsReq = null;
+      ST.metricsLoading = false;
+      draw(); // the views that read the evaluation redraw (ST.metricsRev is part of their fingerprint)
+    });
 }
 
 // Snapshot route and request generation: slow responses cannot overwrite a newer navigation.
@@ -217,8 +284,9 @@ async function refresh(force, seq) {
           .then((data) => ({ status: data?.status === 'ok' ? 'ok' : 'none', data }))
           .catch((err) => ({ status: 'error', error: err.message }))
       ]);
-      // optional context (held-out coverage line): a failing /api/metrics must not mark the case missing or offline
-      if (!ST.metrics) evaluation = await api.metrics().catch(() => null);
+      // optional context (held-out coverage line): fetched beside the case, never ahead of it; a failing /api/metrics
+      // must not mark the case missing or offline
+      metricsInBackground();
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) missing = true;
       else throw err;
@@ -226,8 +294,9 @@ async function refresh(force, seq) {
   } else if (route === 'metrics' && (force || !ST.metrics)) evaluation = await api.metrics();
   else if (route === 'spotcheck' && (force || !ST.spot)) spot = await api.spotcheckItems();
   else if (route === 'tcga') {
-    // Story panel needs BACH held-out + external_tcga aggregates alongside the specimen index.
-    if (force || !ST.metrics) evaluation = await api.metrics().catch(() => null);
+    // Story panel needs BACH held-out + external_tcga aggregates alongside the specimen index: the specimens are drawn
+    // first and the panel fills in when the (about 1 MB) evaluation payload arrives.
+    metricsInBackground(force);
     if (force || !ST.tcga) {
       try {
         ST.tcga = await api.tcga();
@@ -252,7 +321,7 @@ async function refresh(force, seq) {
     // once: the conformal method label + coverage in the inbox copy. The worklist only names the method in a column
     // tooltip and falls back to "Confidence set"; it does not pull the 1 MB evaluation payload on first load.
     ST.metricsAsked = true;
-    evaluation = await api.metrics().catch(() => null);
+    metricsInBackground();
   }
   if (seq !== pollSeq) return;
   ST.items = steadyTimers(wl.items || []);
@@ -370,6 +439,7 @@ async function poll(force = false) {
   pollTimer = setTimeout(poll, document.hidden ? base * 5 : ST.fail >= 5 ? base * 2.5 : base);
   showOffline();
   draw();
+  if (ST.loadedOnce) prefetchViews();
 }
 
 function showOffline() {
@@ -389,7 +459,24 @@ function view() {
     if (!c) return '<div class="card" data-testid="state-loading"><h2>Loading case…</h2></div>';
     return (c.lane === 'surgical' ? surgical : biopsy).render(ST, ctx());
   }
-  return { worklist, surgeon, oncologist, metrics, tcga, spotcheck }[ST.route].render(ST, ctx());
+  if (LAZY[ST.route] && !views[ST.route]) {
+    if (viewErrors[ST.route])
+      return `<div class="card" data-testid="state-render-error"><h2>This page could not be loaded</h2><p>Its code did not arrive (${esc(viewErrors[ST.route].message || viewErrors[ST.route])}). Check the connection, then open the page again or reload.</p></div>`;
+    loadView(ST.route).catch((err) => console.warn('page module failed to load', err));
+    return lazyPlaceholder();
+  }
+  return ({ worklist, surgeon, oncologist, ...views })[ST.route].render(ST, ctx());
+}
+
+// While a page's module loads: the page's own loading state (the same markup its render() draws before its data
+// arrives), so the screen does not change from one placeholder to another.
+function lazyPlaceholder() {
+  if (ST.route === 'metrics')
+    return '<div data-testid="metrics" class="mx"><div class="card" data-testid="state-loading"><h2>Loading evaluation results…</h2></div></div>';
+  if (ST.route === 'spotcheck')
+    return '<div class="sc card" data-testid="spotcheck"><h2>Evidence review</h2><p class="note" data-testid="state-loading">Loading review items…</p></div>';
+  if (ST.caseId) return '<div class="card" data-testid="state-loading"><h2>Loading specimen…</h2></div>';
+  return '<div class="mx tcga-page" data-testid="tcga-loading"><header class="mx-head tcga-claim"><h2 class="tcga-intro">TCGA-BRCA external test</h2><p class="mx-lede">Loading external generalization results…</p></header></div>';
 }
 
 function currentFp() {
@@ -404,13 +491,15 @@ function currentFp() {
         ST.tab,
         ST.notFound === ST.caseId ? 'missing' : !!ST.cases[ST.caseId],
         JSON.stringify(ST.hm),
-        ST.interpRev
+        ST.interpRev,
+        ST.metricsRev || 0
       ].join('|');
     return [
       'tcga',
       ST.tcga ? ST.tcga.n : 'none',
       !!(ST.tcga && ST.tcga.available),
       ST.metricsRev || 0,
+      !!ST.metricsLoading,
       !!(ST.metrics && ST.metrics.eval && ST.metrics.eval.external_tcga)
     ].join('|');
   }
@@ -748,8 +837,10 @@ function updateShell() {
   document.documentElement.dataset.route = ST.route;
   const replay = $('.replay');
   if (replay) replay.hidden = ST.route === 'tcga';
+  $('#replay-toggle').hidden = ST.route === 'tcga';
   // empty until the first worklist response: a "0" badge on load would be a wrong count for a moment
-  $('#queue-count').textContent = ST.loadedOnce ? ST.health?.open_cases ?? openItems(ST.items).length : '';
+  const queued = ST.loadedOnce ? ST.health?.open_cases ?? openItems(ST.items).length : '';
+  $('#queue-count').textContent = queued;
   const orOpen = (ST.health && ST.health.open_surgical) ?? null;
   const orEl = $('#or-count');
   const liveFrozen = orOpen !== null ? orOpen : ST.route === 'surgeon' || ST.lane === 'all' || ST.route === 'case'
@@ -760,6 +851,11 @@ function updateShell() {
   const inbox = $('#inbox-count');
   inbox.hidden = !ST.inboxUnread;
   inbox.textContent = ST.inboxUnread || 0;
+  // The destinations are named by their full label (phones show a short one); a count shown on one is part of its name.
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  navName('worklist', 'Worklist', queued === '' ? '' : plural(queued, 'open case', 'open cases'));
+  navName('surgeon', 'Operating rooms', liveFrozen ? plural(liveFrozen, 'frozen section awaiting a call', 'frozen sections awaiting a call') : '');
+  navName('oncologist', 'Oncology inbox', ST.inboxUnread ? plural(ST.inboxUnread, 'unread result', 'unread results') : '');
   const h = ST.health;
   const offline = ST.fail >= 2;
   const label = offline
@@ -788,6 +884,21 @@ function updateShell() {
   syncGlass();
 }
 
+function navName(route, label, count) {
+  const btn = $(`.glass-nav [data-nav="${route}"]`);
+  const name = count ? `${label}, ${count}` : label;
+  if (btn.getAttribute('aria-label') !== name) btn.setAttribute('aria-label', name);
+}
+
+// Phones and short landscape screens fold the replay and frozen-section controls behind #replay-toggle (theme.css);
+// elsewhere the toggle is not displayed and its state does not matter.
+function setReplayOpen(open, { focusToggle = false } = {}) {
+  const toggle = $('#replay-toggle');
+  if (toggle.getAttribute('aria-expanded') === String(open)) return;
+  toggle.setAttribute('aria-expanded', String(open));
+  if (focusToggle) toggle.focus();
+}
+
 function updateReplay() {
   const sim = ST.sim;
   const h = ST.health;
@@ -805,6 +916,7 @@ function updateReplay() {
   }
   const fresh = !sim.running && !(sim.sim_time_s > 0);
   box.dataset.state = ST.fail >= 2 ? 'paused' : sim.running ? 'running' : fresh ? 'ready' : 'paused';
+  $('#replay-toggle').dataset.state = box.dataset.state;
   start.hidden = !fresh;
   start.disabled = !loaded || ST.simBusy;
   pp.hidden = fresh;
@@ -897,10 +1009,17 @@ function tickClock() {
     const el = box.querySelector(sel);
     if (el.textContent !== text) el.textContent = text;
   };
+  const simClock = '+' + mmss((Number(sim.sim_time_s) || 0) + since);
   set('b', state);
-  set('.rs-t', '+' + mmss((Number(sim.sim_time_s) || 0) + since));
+  set('.rs-t', simClock);
   set('.rs-x', '×' + (speed >= 10 ? Math.round(speed) : Number(speed.toFixed(1))));
   set('.sr-only', ` · simulator ${sim.running ? 'running' : 'paused'}`);
+  // the folded controls' button reads the same state ("Replay running +4:02")
+  const toggle = $('#replay-toggle');
+  for (const [sel, text] of [['b', state], ['.rs-t', simClock]]) {
+    const el = toggle.querySelector(sel);
+    if (el.textContent !== text) el.textContent = text;
+  }
 }
 
 // ---- case navigation bar (shell): position in the priority queue + the next case ------------------------------------
@@ -929,7 +1048,7 @@ function renderCasebar() {
     status = '<span class="cb-done" data-testid="casebar-done"><b>Signed out</b> Result sent to the oncology inbox</span>';
   } else {
     status = pos
-      ? `<span class="cb-pos">Case <b>${pos}</b> of ${open} open in priority order</span>`
+      ? `<span class="cb-pos">Case <b>${pos}</b> of ${open} open<span class="cb-more"> in priority order</span></span>`
       : `<span class="cb-pos">${open} open cases</span>`;
   }
   const nextHtml = next
@@ -1160,6 +1279,10 @@ document.addEventListener('click', async (e) => {
   const t = e.target.closest('button, [data-nav], tr.row, a, [data-inbox-key]');
   if (!t) return;
   const d = t.dataset;
+  if (t.id === 'replay-toggle') {
+    setReplayOpen(t.getAttribute('aria-expanded') !== 'true');
+    return;
+  }
   if (d.resetConfirm !== undefined) {
     t.disabled = true;
     try {
@@ -1349,7 +1472,7 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (d.spot === 'submit') {
-    await spotcheck.submit(ST, api, toast);
+    await (await loadView('spotcheck')).submit(ST, api, toast);
     draw(true);
     return;
   }
@@ -1383,6 +1506,12 @@ document.addEventListener('keydown', (e) => {
     document.querySelectorAll('details[open]').forEach((el) => {
       el.open = false;
     });
+    // folded replay controls (phones): Escape from inside them closes them and returns to their button
+    const toggle = $('#replay-toggle');
+    if (e.target === toggle || (e.target.closest && e.target.closest('#replay-panel'))) {
+      const folded = getComputedStyle(toggle).display !== 'none';
+      setReplayOpen(false, { focusToggle: folded && e.target !== toggle });
+    }
     if (e.target.id === 'case-search' && e.target.value) {
       ST.search = '';
       draw(true);
@@ -1510,12 +1639,34 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('hashchange', onRoute);
 
-// Sticky offsets follow the real header height (it wraps onto two rows on narrow screens).
+// Sticky offsets follow the real header height (it wraps onto two rows on narrow screens). On phones the brand row
+// scrolls away and only the navigation stays pinned (theme.css: the masthead sticks at top: -var(--mast-hide)).
+const phone = matchMedia('(max-width: 640px)');
 function syncStick() {
   const top = $('.masthead');
+  const root = document.documentElement.style;
+  const hide = phone.matches ? Math.max(0, $('.glass-nav').offsetTop - 8) : 0;
+  root.setProperty('--mast-hide', hide + 'px');
   const sticky = getComputedStyle(top).position === 'sticky';
-  document.documentElement.style.setProperty('--stick', (sticky ? top.offsetHeight : 0) + 'px');
+  root.setProperty('--stick', (sticky ? top.offsetHeight - hide : 0) + 'px');
 }
+// Phones: the search field moves to the top of the screen when it is focused, so the matching cases sit between it and
+// the on-screen keyboard. Return on a touch keyboard ("Search") closes the keyboard.
+const narrow = matchMedia('(max-width: 760px)');
+const coarse = matchMedia('(pointer: coarse)');
+document.addEventListener('focusin', (e) => {
+  if (e.target.id !== 'case-search' || !narrow.matches) return;
+  const field = e.target;
+  // after the keyboard has opened (the visual viewport shrinks first on iOS)
+  setTimeout(() => {
+    if (document.activeElement !== field) return;
+    const y = field.getBoundingClientRect().top + window.scrollY - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--stick')) || 0) - 12;
+    if (Math.abs(window.scrollY - y) > 4) window.scrollTo({ top: Math.max(0, y), behavior: reducedMotion() ? 'auto' : 'smooth' });
+  }, 250);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.id === 'case-search' && coarse.matches) e.target.blur();
+});
 // The evaluation charts pick cell-label colours from the resolved theme (js/charts.js): redraw them when it changes.
 window.addEventListener('pq:theme', () => {
   if (ST.route !== 'metrics') return;

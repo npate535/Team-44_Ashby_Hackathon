@@ -179,3 +179,29 @@ def test_thumbnail_widths_match_the_backend():
     from backend.app import STATIC_THUMB_WIDTHS
     m = re.search(r"export const THUMB_WIDTHS = \[([\d, ]+)\]", (APP / "js" / "adapter.js").read_text())
     assert m and tuple(int(x) for x in m.group(1).split(",")) == STATIC_THUMB_WIDTHS
+
+
+def _static_import_graph(entry):
+    """Every module `entry` needs before it runs: static `import … from './x.js'`, followed recursively (dynamic
+    import() is not followed: those pages load on first use)."""
+    pattern = re.compile(r"""^\s*import\s+(?:[^;]*?\sfrom\s+)?['"](\.{1,2}/[^'"]+)['"]""", re.M)
+    seen, stack = set(), [entry]
+    while stack:
+        path = stack.pop().resolve()
+        rel = path.relative_to(APP.resolve()).as_posix()
+        if rel in seen:
+            continue
+        seen.add(rel)
+        stack += [path.parent / spec for spec in pattern.findall(path.read_text())]
+    return seen
+
+
+def test_index_preloads_exactly_the_modules_app_js_imports():
+    # a module missing from the list is fetched one import level later (a round trip each on a slow connection); an
+    # extra one fetches a lazily loaded page on every first load
+    needed = _static_import_graph(APP / "app.js")
+    preloaded = re.findall(r'<link rel="modulepreload" href="([^"]+)"', (APP / "index.html").read_text())
+    assert len(preloaded) == len(set(preloaded))
+    assert set(preloaded) == needed
+    lazy = {"js/views/metrics.js", "js/views/tcga.js", "js/views/spotcheck.js", "js/charts.js"}
+    assert not lazy & needed, "the evaluation, TCGA and evidence-review pages load on first use"

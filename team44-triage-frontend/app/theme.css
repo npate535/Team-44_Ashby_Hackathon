@@ -195,6 +195,7 @@ html { scroll-padding-top: calc(var(--stick, 96px) + 16px); }
   .glass-nav button:hover { color: var(--ink); background: color-mix(in srgb, var(--bl) 60%, transparent); }
 }
 .glass-nav button[aria-current='page'] { color: var(--on-accent); background: transparent; box-shadow: none; }
+.glass-nav .nav-s { display: none; } /* the short label (phones) */
 .glass-nav svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .nav-lens, .tab-lens {
   position: absolute;
@@ -370,7 +371,9 @@ html { scroll-padding-top: calc(var(--stick, 96px) + 16px); }
   .wl-table tr.row td { padding-block: 0; }
 }
 @media (max-width: 1000px) {
-  .masthead { grid-template-columns: 1fr auto; gap: 16px; padding: 16px 24px 14px; }
+  /* minmax(0, …): the nav row's full width must not widen the brand column (WebKit then scrolled the page sideways
+     at 641–760 px); the nav scrolls inside its pill instead */
+  .masthead { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 16px 24px 14px; }
   .glass-nav { grid-column: 1 / -1; grid-row: 2; width: fit-content; justify-self: center; }
   .masthead-tools { grid-column: 2; grid-row: 1; }
   .workspace-tag { display: inline; }
@@ -543,4 +546,142 @@ h1 .tier, h2 .tier, h1 .pill, h2 .pill, h2 .chip { font-family: var(--font); fon
 :root[data-route='case'] #casebar[hidden]:not([data-off]) { display: flex; visibility: hidden; min-height: 51px; }
 @media (max-width: 760px) {
   :root[data-route='case'] #casebar[hidden]:not([data-off]) { min-height: 88px; }
+}
+
+/* ---- Phones, tablets and touch screens --------------------------------------------------------------------------------- */
+/* Phones and short landscape screens: the replay and frozen-section controls fold behind one button that reads the replay
+   state ("Replay running +4:02"), so the first screen reaches the worklist. The button is not displayed elsewhere. */
+.replay-toggle, .fold-note { display: none; }
+.rt-chev { width: 10px; height: 6px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; }
+.replay-toggle[aria-expanded='true'] .rt-chev { transform: rotate(180deg); }
+.replay-toggle[data-state='running'] .rs-dot { background: var(--grn); animation: pq-live 1.6s ease-in-out infinite; }
+.replay-toggle[data-state='paused'] .rs-dot { background: var(--amb); }
+@media (max-width: 640px), (max-width: 1000px) and (max-height: 500px) {
+  .topbar { flex-wrap: wrap; align-items: center; gap: 8px 10px; padding-block: 8px; }
+  .tb-title { flex: 1 1 0; min-width: 0; }
+  .tb-title h1 { overflow: hidden; text-overflow: ellipsis; }
+  .replay-toggle {
+    display: inline-flex;
+    order: 1;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 6px 12px;
+    border: 1px solid var(--ln);
+    border-radius: 999px;
+    background: var(--glass);
+    box-shadow: var(--glass-shadow);
+    color: var(--mut);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .replay-toggle b { min-width: 86px; color: var(--ink); font-weight: 600; text-align: left; }
+  .replay-toggle .rs-t { min-width: 50px; color: var(--ink); font-variant-numeric: tabular-nums; text-align: left; }
+  .replay-toggle .rs-t:empty { display: none; }
+  .replay-toggle[hidden], :root[data-route='tcga'] .replay-toggle { display: none; }
+  .tb-right { order: 2; }
+  #connection:not([data-state='offline']) { font-size: 0; } /* the dot; "Reconnecting" stays spelled out */
+  #connection::before { margin-right: 0; }
+  #connection[data-state='offline']::before { margin-right: 5px; }
+  .fold-note { display: inline; }
+  /* the open controls: one panel under the title row */
+  .replay {
+    order: 3;
+    flex: 1 1 100%;
+    width: 100%;
+    margin: 0;
+    padding: 10px;
+    gap: 8px;
+    justify-content: flex-start;
+    border: 1px solid var(--ln2);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--sf) 60%, transparent);
+  }
+  .replay-toggle[aria-expanded='false'] ~ .replay { display: none; }
+  .replay .replay-state { display: none; } /* the button above already reads it */
+  @media (max-width: 374px) {
+    /* the narrowest phones: the button names the state, the open panel adds the replay clock and speed */
+    .replay-toggle .rs-t { display: none; }
+    .replay .replay-state { display: inline-flex; flex-basis: 100%; }
+    .inject .rb { flex-direction: column; gap: 0; padding: 4px; line-height: 1.15; }
+  }
+  @media (max-width: 640px) {
+    /* portrait phones: Start or Pause and Reset share the panel width */
+    .replay-btns { flex: 1 1 auto; }
+    .replay-btns .rb { flex: 1 1 0; justify-content: center; }
+  }
+  /* one line of data status, the detail cut short rather than wrapped */
+  .workspace-status { padding-top: 8px; }
+  .data-status { flex-wrap: nowrap; min-width: 0; }
+  .data-status b { white-space: nowrap; }
+  .data-status > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .notice { padding-block: 6px; }
+  .wrap { padding-top: 14px; }
+}
+/* Tablets and phones: frozen sections are sent from the worklist and the operating-room board, and the data status is
+   shown with the worklist; on the other pages neither takes a row of the first screen. */
+@media (max-width: 1000px) {
+  :root:not([data-route='worklist']):not([data-route='surgeon']) .inject { display: none; }
+  :root:not([data-route='worklist']) .workspace-status { display: none; }
+}
+/* Phones: all six destinations in a 3 × 2 grid with short labels (the accessible names stay the full ones). The brand
+   row scrolls away and only the navigation stays pinned (app.js syncStick sets --mast-hide). */
+@media (max-width: 640px) {
+  .masthead { top: calc(-1 * var(--mast-hide, 0px)); gap: 8px 12px; padding: 10px 16px; background: color-mix(in srgb, var(--bg) 92%, transparent); }
+  .glass-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 4px; border-radius: 24px; overflow: visible; }
+  .glass-nav button { justify-content: center; min-width: 0; padding-inline: 6px; gap: 5px; font-size: 12px; }
+  .glass-nav .nav-l { display: none; }
+  .glass-nav .nav-s { display: inline; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .glass-nav .nav-count, .glass-nav #queue-count { min-width: 20px; padding-inline: 4px; }
+}
+/* Short landscape screens (phones on their side): brand, navigation and theme button share one row, with short labels. */
+@media (max-width: 1000px) and (max-height: 500px) {
+  .masthead { grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; padding: 8px 20px; }
+  .glass-nav { display: flex; grid-column: 2; grid-row: 1; justify-self: center; width: fit-content; padding: 5px; border-radius: 999px; overflow-x: auto; }
+  .masthead-tools { grid-column: 3; grid-row: 1; }
+  .workspace-tag { display: none; }
+  .glass-nav button { padding-inline: 11px; font-size: 12px; }
+  .glass-nav .nav-l { display: none; }
+  .glass-nav .nav-s { display: inline; }
+  .masthead .brand { font-size: 21px; }
+  .masthead .brand img { width: 32px; height: 32px; }
+}
+/* See-through headers: opaque when the viewer asks for less transparency, or when the browser cannot blur behind them. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .masthead, .mx-nav { background: var(--bg); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .masthead, .mx-nav { background: var(--bg); }
+}
+
+/* Touch screens: controls are at least 44 px tall (a floor; the !important lifts it above per-view compact sizes), and
+   text fields use 16 px so iOS does not zoom into a focused field. Desktop pointers keep the compact sizes. */
+@media (pointer: coarse) {
+  .btn:not(.cb-next), .rb, .seg button, .leg, .fchip, .mx-nav button, .mx-nav a, .glass-nav button, .replay-toggle { min-height: 44px !important; }
+  .theme-toggle { width: 44px; height: 44px; }
+  /* the worklist toolbar keeps one row height: a segmented control is its 44 px buttons plus a 1 px border */
+  .wl-toolbar .seg { padding: 0; }
+  .wl-toolbar .seg button { border-radius: 0; }
+  .wl-toolbar .search, .wl-toolbar .sel select, .wl-toolbar .tog { min-height: 46px; }
+  input, select, textarea { font-size: 16px !important; }
+}
+/* Keyboard shortcut hints (N, /, J and K) only where there is a keyboard to use them. */
+@media (hover: none) and (pointer: coarse) {
+  .kbd-help, button kbd, .search kbd { display: none !important; }
+}
+/* The case bar keeps the height reserved for it from the first paint (51 px, 88 px on phones; case.css): on touch screens
+   its Back and Next buttons get a 44 px hit area without growing, and on the narrowest phones its position text is
+   shortened so the bar keeps two rows. */
+@media (max-width: 420px) {
+  .cb-more { display: none; } /* "Case 3 of 24 open" stays on the back button's line */
+}
+@media (pointer: coarse) {
+  .cb-back, .cb-next { position: relative; }
+  .cb-back::after, .cb-next::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 44px; transform: translateY(-50%); }
+}
+/* Phones: the search field is the last control above the list it filters, so when it is focused (app.js scrolls it under
+   the pinned navigation) the matching cases sit between it and the on-screen keyboard. */
+@media (max-width: 760px) {
+  .wl-toolbar .search { order: 1; }
 }

@@ -7,20 +7,27 @@ let tabGeometry = null;
 let navGeometry = null;
 let navCurrent = null;
 
+// The lens covers the selected item, in a row or in a grid (the phone navigation has two rows of three).
 function positionLens(container, selected, lens, previous = null) {
   if (!selected || !lens) return null;
   const box = container.getBoundingClientRect();
   const rect = selected.getBoundingClientRect();
   const x = rect.left - box.left + container.scrollLeft - container.clientLeft;
-  lens.style.width = `${rect.width}px`;
-  lens.style.transform = `translateX(${x}px)`;
-  if (previous && !reduced() && (previous.x !== x || previous.width !== rect.width)) {
+  const y = rect.top - box.top + container.scrollTop - container.clientTop;
+  const at = (g) => `translate(${g.x}px, ${g.y}px)`;
+  const now = { x, y, width: rect.width, height: rect.height };
+  lens.style.top = '0px';
+  lens.style.bottom = 'auto';
+  lens.style.width = `${now.width}px`;
+  lens.style.height = `${now.height}px`;
+  lens.style.transform = at(now);
+  if (previous && !reduced() && ['x', 'y', 'width', 'height'].some((k) => previous[k] !== now[k])) {
     lens.animate([
-      { transform: `translateX(${previous.x}px)`, width: `${previous.width}px` },
-      { transform: `translateX(${x}px)`, width: `${rect.width}px` }
+      { transform: at(previous), width: `${previous.width}px`, height: `${previous.height}px` },
+      { transform: at(now), width: `${now.width}px`, height: `${now.height}px` }
     ], { duration: 220, easing: EASE });
   }
-  return { x, width: rect.width };
+  return now;
 }
 
 // Phones: the pill scrolls sideways. The current destination is brought to the middle and the edges fade where more
