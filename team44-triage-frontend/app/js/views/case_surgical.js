@@ -115,7 +115,7 @@ function callPanel(v, ST) {
     h +=
       `<div class="pick cv-pick" data-testid="margin-pick" role="group" aria-label="Pick the involved margins"><b class="pick-t">Which margins? Pre-selected from the suggestion; change as needed.</b>` +
       // per_margin is the max segment probability, shown as log-odds like the margin bars
-      (m && m.threshold !== null ? `<span class="sub pick-u">Tumour signal in log-odds; involved above ${esc(fmtLogit(m.threshold))}.</span>` : '') +
+      (m && m.threshold !== null ? `<span class="sub pick-u">Tumor signal in log-odds; involved above ${esc(fmtLogit(m.threshold))}.</span>` : '') +
       MARGINS.map((name) => {
         const st = m ? marginStatus(m, name) : 'unknown';
         return `<label class="${st}"><input type="checkbox" data-pick="${name}" data-testid="margin-pick-${name}"${ST.marginPick.includes(name) ? ' checked' : ''}>${cap(name)}<span class="sub">${m && m.perMargin[name] !== undefined ? `${esc(fmtLogit(m.perMargin[name]))} log-odds` : ''}</span></label>`;

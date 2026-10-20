@@ -557,7 +557,7 @@ function openViewer(trigger, regionIdx = null) {
   const layerSel = $('#app [data-testid=heatmap-select]');
   const layerName = layerSel && layerSel.selectedOptions[0] ? layerSel.selectedOptions[0].textContent : '';
   $('#cv-vw-title', vw.d).textContent = `${v ? v.id : ''} · ${surgical ? 'Margin strips (simulated frozen section)' : 'Image evidence'}`;
-  $('.vw-sub', vw.d).textContent = surgical ? 'Margin segments by tumour signal: pink above the threshold · amber just below · grey-green below' : layerName ? `Layer: ${layerName}` : '';
+  $('.vw-sub', vw.d).textContent = surgical ? 'Margin segments by tumor signal: pink above the threshold · amber just below · grey-green below' : layerName ? `Layer: ${layerName}` : '';
   const legend = $('#app [data-testid=heatmap-legend]');
   $('.vw-foot', vw.d).innerHTML =
     (legend && !surgical ? cleanClone(legend.outerHTML) : '') +

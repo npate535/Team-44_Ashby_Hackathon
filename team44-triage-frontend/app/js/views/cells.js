@@ -8,7 +8,7 @@ const isNum = (x) => x !== null && x !== undefined && Number.isFinite(Number(x))
 
 // Display grouping only (labels, units and directions come from config/cell_features.yaml via /api/config).
 const GROUPS = [
-  { label: 'Tumour cells', ids: ['neo_fraction', 'neo_density'] },
+  { label: 'Tumor cells', ids: ['neo_fraction', 'neo_density'] },
   { label: 'Nuclear size and shape', ids: ['nuc_area_mean', 'nuc_area_cv', 'nuc_shape_cv'] },
   { label: 'Immune context', ids: ['infl_fraction', 'til_proximity'] },
   { label: 'Other cell populations', ids: ['dead_fraction', 'epi_fraction'] }
@@ -153,7 +153,7 @@ export function cellsTab(v, ST, assetUrl) {
 
   const flag =
     cells.flags && cells.flags.insufficient_tumor_nuclei
-      ? '<div class="flag">Too few tumour nuclei for nuclear morphology features; those are left blank.</div>'
+      ? '<div class="flag">Too few tumor nuclei for nuclear morphology features; those are left blank.</div>'
       : '';
   return (
     `<div class="card cv-cells" data-testid="cells-tab"><div class="card-h"><h2>Measured features associated with invasive carcinoma</h2>` +

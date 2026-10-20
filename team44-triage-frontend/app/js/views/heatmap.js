@@ -383,7 +383,7 @@ export function marginOverlay(v, assetUrl, { names = null } = {}) {
       const { hot, cls } = segClass(m, s);
       rects +=
         `<rect class="mseg ${cls}" data-testid="margin-seg" data-margin="${esc(s.margin)}" data-p="${num(s.p)}" data-involved="${hot && m.involved.includes(s.margin)}" x="${num(s.x)}" y="${num(s.y)}" width="${num(s.size)}" height="${num(s.size)}">` +
-        `<title>${esc(cap(s.margin))} margin segment · tumour signal ${esc(fmtLogit(s.p))} log-odds (p ${esc(fmtProb(s.p))})${thr !== null ? ` · threshold ${esc(fmtLogit(thr))}` : ''} · simulated</title></rect>`;
+        `<title>${esc(cap(s.margin))} margin segment · tumor signal ${esc(fmtLogit(s.p))} log-odds (p ${esc(fmtProb(s.p))})${thr !== null ? ` · threshold ${esc(fmtLogit(thr))}` : ''} · simulated</title></rect>`;
     }
   }
   const n = names || {};
@@ -442,7 +442,7 @@ export function specimenDiagram(v, names) {
   );
 }
 
-/** Per-margin tumour signal on a log-odds axis with the case's threshold marked. */
+/** Per-margin tumor signal on a log-odds axis with the case's threshold marked. */
 export function marginBars(v) {
   const m = v.margin;
   if (!m) return '';
@@ -457,7 +457,7 @@ export function marginBars(v) {
     const has = p !== undefined && p !== null;
     const l = has ? logit(p) : 0;
     const len = m.lengths && m.lengths[name] ? `≈${Math.round(m.lengths[name])} µm of ${name} margin` : '';
-    const tip = has ? `${cap(name)}: tumour signal ${fmtLogit(p)} log-odds (p ${fmtProb(p)})${thr !== null ? `; threshold ${fmtLogit(thr)} (p ${fmtProb(thr)})` : ''}` : `${cap(name)}: not scored`;
+    const tip = has ? `${cap(name)}: tumor signal ${fmtLogit(p)} log-odds (p ${fmtProb(p)})${thr !== null ? `; threshold ${fmtLogit(thr)} (p ${fmtProb(thr)})` : ''}` : `${cap(name)}: not scored`;
     return (
       `<div class="mb-row ${s}" data-testid="margin-bar-${name}" data-status="${s}" title="${esc(tip)}">` +
       `<span class="mb-name">${esc(cap(name))}</span>` +
@@ -467,10 +467,10 @@ export function marginBars(v) {
     );
   }).join('');
   return (
-    `<div class="mbars" data-testid="margin-bars"><div class="mb-head"><span>Tumour signal at margin (log-odds) · involved when above the threshold</span>${thr !== null ? `<span class="mb-key"><b class="mb-thr-key"></b>threshold ${esc(fmtLogit(thr))}</span>` : ''}</div>${rows}` +
+    `<div class="mbars" data-testid="margin-bars"><div class="mb-head"><span>Tumor signal at margin (log-odds) · involved when above the threshold</span>${thr !== null ? `<span class="mb-key"><b class="mb-thr-key"></b>threshold ${esc(fmtLogit(thr))}</span>` : ''}</div>${rows}` +
     `<div class="mb-axis" aria-hidden="true"><span class="mb-name"></span><span class="mb-ticks">${ticks}</span><span class="mb-val"></span></div></div>` +
-    `<p class="lg-note">Each margin's signal is its highest-scoring border segment from the tile tumour probe, on a log-odds axis (clipped at ±${LOGIT_CLIP}) so near-1 probabilities stay apart; point at a row for the raw probability (touch screens show it in the row). ${
-      thr !== null ? 'The threshold was tuned on benign calibration images to keep false tumour-at-margin calls rare.' : 'No threshold was supplied with this case.'
+    `<p class="lg-note">Each margin's signal is its highest-scoring border segment from the tile tumor probe, on a log-odds axis (clipped at ±${LOGIT_CLIP}) so near-1 probabilities stay apart; point at a row for the raw probability (touch screens show it in the row). ${
+      thr !== null ? 'The threshold was tuned on benign calibration images to keep false tumor-at-margin calls rare.' : 'No threshold was supplied with this case.'
     } Simulated: not a validated margin assessment.</p>`
   );
 }
