@@ -514,7 +514,7 @@ function view() {
 function notFoundText(id) {
   const tcga = /^TCGA-/i.test(id) || !!(ST.tcga && (ST.tcga.items || []).some((it) => it.case_id === id));
   if (tcga)
-    return `${esc(id)} is an external TCGA specimen, not a worklist case. <a href="#/tcga/${encodeURIComponent(id)}" data-testid="not-found-tcga">Open it in Outside BACH</a>.`;
+    return `${esc(id)} is an external TCGA specimen, not a worklist case. <a href="#/tcga/${encodeURIComponent(id)}" data-testid="not-found-tcga">Open it in External test</a>.`;
   const held = ST.sim && ST.sim.hold_surgical_for_injection;
   if (/^COMP_/i.test(id))
     return `${esc(id)} is a simulated composite frozen section.${held ? ' It reaches the worklist only when one is sent with <b>+ Composite</b> in the header, and a reset clears it.' : ' It has not arrived yet, or a reset cleared it.'}`;
@@ -531,7 +531,7 @@ function lazyPlaceholder() {
   if (ST.route === 'spotcheck')
     return '<div class="sc card" data-testid="spotcheck"><h2>Evidence review</h2><p class="note" data-testid="state-loading">Loading review items…</p></div>';
   if (ST.caseId) return '<div class="card" data-testid="state-loading"><h2>Loading specimen…</h2></div>';
-  return '<div class="mx tcga-page" data-testid="tcga-loading"><header class="mx-head tcga-claim"><h2 class="tcga-intro">TCGA-BRCA external test</h2><p class="mx-lede">Loading external generalization results…</p></header></div>';
+  return '<div class="mx tcga-page" data-testid="tcga-loading"><header class="mx-head tcga-claim"><h2 class="tcga-intro">External test (TCGA-BRCA)</h2><p class="mx-lede">Loading external generalization results…</p></header></div>';
 }
 
 function currentFp() {
@@ -849,7 +849,7 @@ const PAGE = {
   surgeon: 'Operating rooms',
   oncologist: 'Oncology inbox',
   metrics: 'Model evaluation',
-  tcga: 'Outside BACH',
+  tcga: 'External test',
   spotcheck: 'Evidence review'
 };
 
@@ -872,11 +872,17 @@ function pageDescription() {
   }
   if (ST.route === 'metrics') return 'Held-out test split · 95% CIs';
   if (ST.route === 'tcga') {
-    if (ST.caseId) return ST.caseId;
+    if (ST.caseId) return tcgaName(ST.caseId);
     const n = ST.tcga && ST.tcga.n;
-    return n ? `BACH-only model · ${n} TCGA fields` : 'BACH-only model on external tissue';
+    return n ? `TCGA-BRCA · ${n} fields` : 'TCGA-BRCA';
   }
   return 'Model-highlighted regions';
+}
+
+// "TCGA-A7-A4SD_ffpe_tumor_00" -> "TCGA-A7-A4SD · FFPE · tumor · field 0" (the specimen list's wording)
+function tcgaName(id) {
+  const m = /^(TCGA-[A-Z0-9]+-[A-Z0-9]+)_(ffpe|frozen)_(tumor|normal)_(\d+)$/i.exec(String(id || ''));
+  return m ? `${m[1]} · ${m[2].toLowerCase() === 'ffpe' ? 'FFPE' : 'Frozen'} · ${m[3].toLowerCase()} · field ${Number(m[4])}` : id;
 }
 
 function updateShell() {
@@ -885,7 +891,8 @@ function updateShell() {
   const desc = pageDescription();
   $('#page-description').textContent = desc;
   $('#page-description').title = desc; // the header truncates it on narrower screens
-  document.title = `${(ST.route === 'case' || ST.route === 'tcga') && ST.caseId ? ST.caseId + ' · ' : ''}${crumb} · Sepia`;
+  const titleId = ST.route === 'tcga' && ST.caseId ? tcgaName(ST.caseId) : ST.caseId;
+  document.title = `${(ST.route === 'case' || ST.route === 'tcga') && ST.caseId ? titleId + ' · ' : ''}${crumb} · Sepia`;
   $('.workspace').dataset.route = ST.route;
   // TCGA external is a static specimen browser — hide arrival-replay chrome entirely. The root attribute is also set
   // before first paint (index.html), so a #/tcga load does not show the controls and then collapse them.
