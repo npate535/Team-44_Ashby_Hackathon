@@ -15,6 +15,11 @@ the simulator clock and its surgical timer starts on the wall clock.
 
 Clocks: surgical timers and event stamps use the wall clock (Clock.wall, epoch seconds); arrivals and aging use the
 simulator clock driven by Clock.mono. Tests pass a fake Clock.
+
+After the replay: once every self-arriving case is in, the clock runs at `sim.after_arrivals_speed` and holds at
+(last scheduled arrival + `sim.after_arrivals_max_s`), so an unattended demo does not age every case past its target
+overnight. Held, the clock still accepts Start / Pause and frozen-section injection (their timers run on the wall
+clock); status() reports `held`. Reset clears the hold.
 """
 
 from __future__ import annotations
@@ -48,11 +53,20 @@ class SimClock:
     running: bool = False
     _base: float = 0.0                       # simulator seconds accumulated before the current run
     _started: float | None = field(default=None, repr=False)   # mono time of the current start
+    limit: float | None = None               # simulator time the clock holds at (None = no hold)
 
-    def now(self, mono: float) -> float:
+    def _unheld(self, mono: float) -> float:
         if self.running and self._started is not None:
             return self._base + (mono - self._started) * self.speed
         return self._base
+
+    def now(self, mono: float) -> float:
+        t = self._unheld(mono)
+        return t if self.limit is None else min(t, self.limit)
+
+    def held(self, mono: float) -> bool:
+        """True once the clock has reached its hold limit (it no longer advances)."""
+        return self.limit is not None and self._unheld(mono) >= self.limit
 
     def start(self, mono: float) -> None:
         if not self.running:
@@ -64,7 +78,7 @@ class SimClock:
             self.running, self._started = False, None
 
     def reset(self) -> None:
-        self.running, self._base, self._started = False, 0.0, None
+        self.running, self._base, self._started, self.limit = False, 0.0, None, None
 
 
 def variant_of(case: Mapping[str, Any]) -> str:
@@ -103,6 +117,10 @@ class Simulator:
         self.max_replay_wall_s = sim_cfg["max_replay_wall_s"]
         after = sim_cfg.get("after_arrivals_speed")
         self.after_arrivals_speed = None if after is None else float(after)
+        cap = sim_cfg.get("after_arrivals_max_s")
+        self.after_arrivals_max_s = None if cap is None else float(cap)
+        if self.after_arrivals_max_s is not None and not self.after_arrivals_max_s >= 0:
+            raise ValueError(f"sim.after_arrivals_max_s must be >= 0 or null, got {cap!r}")
         self.hold_surgical = bool(sim_cfg["hold_surgical_for_injection"])
         self.clock_sim = SimClock(speed=self.base_speed)
         self.heroes: Mapping[str, Any] = cfg["demo"]["heroes"]
@@ -117,19 +135,63 @@ class Simulator:
         else:
             # Resume explicitly: server downtime must not silently accelerate the arrival replay.
             self.clock_sim._base = restored
-            log.info("restored workspace at simulator +%.1fs (paused); decisions preserved", restored)
+            self._resume_after_arrivals(restored)
+            log.info("restored workspace at simulator +%.1fs (paused, %gx); decisions preserved", restored,
+                     self.clock_sim.speed)
+
+    def _self_arriving(self, lane: str) -> bool:
+        return not (self.hold_surgical and lane == "surgical")
 
     def replay_speed(self, loaded: db.LoadResult) -> float:
         """sim.speed, raised so the last self-arriving case arrives within sim.max_replay_wall_s of Start."""
         if self.max_replay_wall_s is None:
             return self.base_speed
-        offsets = [float(c["arrived_offset_s"]) for c in loaded.cases
-                   if not (self.hold_surgical and c["lane"] == "surgical")]
-        needed = max(offsets, default=0.0) / float(self.max_replay_wall_s)
+        needed = self.last_arrival_s(loaded) / float(self.max_replay_wall_s)
         if needed > self.base_speed:
             log.info("simulator speed raised from %gx to %.1fx so every arrival lands within %gs of Start",
                      self.base_speed, needed, self.max_replay_wall_s)
         return max(self.base_speed, needed)
+
+    def last_arrival_s(self, loaded: db.LoadResult | None = None) -> float:
+        """Simulator time of the last scheduled (self-arriving) arrival: when the replay is complete."""
+        cases = (loaded or self.loaded).cases
+        return max((float(c["arrived_offset_s"]) for c in cases if self._self_arriving(c["lane"])), default=0.0)
+
+    def _scheduled_pending(self) -> bool:
+        return any(self._self_arriving(r["lane"]) for r in self.store.pending_rows())
+
+    def _hold(self, floor: float) -> float | None:
+        """Every scheduled arrival is in: hold the clock at the last one + sim.after_arrivals_max_s. Never below `floor`
+        (the simulator time already reached in this run or saved by an older build): the clock does not run backwards.
+        Returns the hold limit (None = no cap configured)."""
+        clock = self.clock_sim
+        if self.after_arrivals_max_s is not None and clock.limit is None:
+            clock.limit = max(self.last_arrival_s() + self.after_arrivals_max_s, floor)
+            log.info("replay complete: the simulator clock holds at +%.1fs", clock.limit)
+        return clock.limit
+
+    def _resume_after_arrivals(self, sim: float) -> None:
+        """A restored clock with nothing left to arrive: after-arrivals speed (not the replay speed) and the hold."""
+        if self._scheduled_pending():
+            return
+        clock = self.clock_sim
+        if self.after_arrivals_speed is not None and clock.speed > self.after_arrivals_speed:
+            if clock.running:
+                return                           # the next tick() dates the switch to the last arrival, then holds
+            clock.speed = self.after_arrivals_speed
+        self._hold(floor=sim)
+
+    def resume(self, *, running: bool, speed: float, sim_time_s: float, wall_gap_s: float) -> None:
+        """Restore a saved clock over an already restored store (backend/vercel.py, once per request).
+
+        A running clock resumes as if it had kept running for `wall_gap_s`: the next tick re-dates the after-arrivals
+        switch to the last arrival (from the saved simulator time, not from the extrapolated one) and holds at the cap,
+        so a cold start after a long gap neither runs the replay speed through the gap nor drifts past the hold."""
+        with self.store.lock:
+            clock = self.clock_sim
+            clock.running, clock.speed, clock._base, clock.limit = bool(running), float(speed), float(sim_time_s), None
+            clock._started = self.clock.mono() - max(0.0, float(wall_gap_s)) if clock.running else None
+            self._resume_after_arrivals(float(sim_time_s))
 
     # ---- clocks -------------------------------------------------------------------------------------------------------
     def sim_now(self) -> float:
@@ -152,11 +214,14 @@ class Simulator:
                 surgical[row["variant"] or "normal"] += 1
             else:
                 biopsy += 1
+        mono = self.clock.mono()
         return {
             "running": self.clock_sim.running,
             "speed": self.clock_sim.speed,
             "base_speed": self.base_speed,
-            "sim_time_s": self.sim_now(),
+            "sim_time_s": self.clock_sim.now(mono),
+            "held": self.clock_sim.held(mono),          # replay complete and the clock reached its hold limit
+            "hold_at_s": self.clock_sim.limit,          # where it holds (null until every scheduled case is in)
             "hold_surgical_for_injection": self.hold_surgical,
             "cases": counts["cases"],
             "arrived": counts["arrived"],
@@ -172,7 +237,7 @@ class Simulator:
             due: list[Any] = []
             waiting = False                      # a self-arriving case is still ahead on the simulator clock
             for row in self.store.pending_rows():
-                if self.hold_surgical and row["lane"] == "surgical":
+                if not self._self_arriving(row["lane"]):
                     continue
                 if row["arrived_offset_s"] > sim:
                     waiting = True
@@ -180,7 +245,11 @@ class Simulator:
                 due.append(row)
             stamp = sim
             if not waiting:
+                started_at = self.clock_sim._base            # simulator time at this Start (or restore)
                 stamp = self._settle_after_arrivals(sim, max((float(r["arrived_offset_s"]) for r in due), default=None))
+                limit = self._hold(floor=started_at)
+                if limit is not None:
+                    stamp = min(stamp, limit)
             arrived: list[str] = []
             for row in due:
                 # wall time at which the simulator clock crossed the offset (exact while running, else now)
@@ -199,7 +268,8 @@ class Simulator:
         Arrivals are checked lazily (every API call ticks), so the switch is dated to when the last scheduled arrival
         came due in this run, not to this tick: otherwise the clock keeps the replay speed for as long as nobody polls
         (a backgrounded tab polls about once a minute: ~2.7 simulated hours at 160x) and the hero opens far past its
-        target. Every arrival stays at or before the corrected time. Returns the simulator time now."""
+        target. Every arrival stays at or before the corrected time. Returns the simulator time now, before the hold
+        (tick() then caps it at sim.after_arrivals_max_s past the last arrival)."""
         target = self.after_arrivals_speed
         clock = self.clock_sim
         if target is None or not clock.running or clock.speed <= target:

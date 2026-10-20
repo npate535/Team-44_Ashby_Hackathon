@@ -139,7 +139,8 @@ def test_aging_guard_promotes_one_tier_on_the_sim_clock(tmp_path):
     routine = variant(base, "routine", probs=[0.10, 0.85, 0.04, 0.01], conformal_set=["Benign"], offset=0,
                       agent={"status": "none", "orders": []})
     unsure = variant(base, "unsure", probs=[0.10, 0.50, 0.39, 0.01], conformal_set=["Benign", "InSitu"], offset=0)
-    no_settle = {**CFG, "sim": {**CFG["sim"], "after_arrivals_speed": None}}   # aging runs on the replay clock
+    # aging runs on the replay clock, never held after the replay
+    no_settle = {**CFG, "sim": {**CFG["sim"], "after_arrivals_speed": None, "after_arrivals_max_s": None}}
     client, clock = make_client(tmp_path, cases_dir=write_cases(tmp_path / "c", [routine, unsure]), cfg=no_settle)
     client.post("/api/sim/start")
     clock.advance(1)
@@ -875,3 +876,40 @@ def test_health_sim_time_never_runs_ahead_of_the_next_read(tmp_path):
     assert health["pending"]["biopsy"] == 0
     later = client.get("/api/worklist").json()["sim"]
     assert later["sim_time_s"] >= health["sim_time_s"] - 1e-9
+
+
+# ---- replay hold and ordering of same-second arrivals ----------------------------------------------------------------------
+def test_health_reports_the_held_clock_and_frozen_sections_still_inject(tmp_path):
+    base = fixture_case("demo_0001")
+    cases = [variant(base, "b1", offset=30), variant(fixture_case("demo_0002"), "s9", offset=1),
+             variant(fixture_case("demo_0002"), "s1", offset=2)]
+    cap = {**CFG, "sim": {**CFG["sim"], "after_arrivals_max_s": 120}}
+    client, clock = make_client(tmp_path, cases_dir=write_cases(tmp_path / "c", cases), cfg=cap)
+    client.post("/api/sim/start")
+    clock.advance(5)
+    sim = client.get("/api/health").json()["sim"]
+    assert sim["pending"]["biopsy"] == 0 and sim["held"] is False and sim["hold_at_s"] == pytest.approx(150)
+    clock.advance(8 * 3600)
+    sim = client.get("/api/health").json()["sim"]
+    assert sim["held"] is True and sim["running"] is True and sim["sim_time_s"] == pytest.approx(150)
+    # biopsy waits stop at the hold instead of passing their target overnight
+    wl = client.get("/api/worklist").json()
+    assert row_for(wl, "b1")["runtime"]["timer"]["elapsed_s"] == pytest.approx(120)
+    assert row_for(wl, "b1")["runtime"]["aging_promoted"] is False
+    # frozen sections injected while held share one simulator second: real arrival order and wall-clock timers
+    first = client.post("/api/sim/inject_surgical", json={"variant": "normal"}).json()["injected"]
+    clock.advance(40)
+    second = client.post("/api/sim/inject_surgical", json={"variant": "normal"}).json()["injected"]
+    assert (first, second) == ("s9", "s1")                       # case_id order would put s1 first
+    clock.advance(20)
+    for order in ("ai", "arrival"):
+        wl = client.get(f"/api/worklist?order={order}&lane=surgical").json()
+        assert ids(wl) == ["s9", "s1"], order
+    timers = {i["case_id"]: i["runtime"]["timer"] for i in wl["items"]}
+    assert timers["s9"]["clock"] == "wall" and timers["s9"]["elapsed_s"] == pytest.approx(60)
+    assert timers["s1"]["elapsed_s"] == pytest.approx(20)
+    assert client.get("/api/health").json()["sim"]["sim_time_s"] == pytest.approx(150)
+    client.post("/api/sim/reset")
+    sim = client.get("/api/health").json()["sim"]
+    assert sim["held"] is False and sim["hold_at_s"] is None and sim["sim_time_s"] == 0
+

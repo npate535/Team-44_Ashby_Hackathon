@@ -319,6 +319,9 @@ sim:                                # backend arrival replay (plan §10)
                                     # clock runs faster than `speed` when needed (null = always `speed`)
   after_arrivals_speed: 1           # once every scheduled biopsy has arrived the clock runs at this x wall time, so waits
                                     # stay meaningful during a demo (null = keep the replay speed); Reset restores it
+  after_arrivals_max_s: 7200        # ...and holds this many simulator seconds after the last scheduled arrival, so an
+                                    # unattended replay does not age every case past its target overnight (null = never
+                                    # hold). Frozen-section injection still works (wall-clock timers); Reset clears it
 
 queue_sim:                          # FIFO vs tiers vs tiers+aging (plan §12; Task 11)
   reps: 1000
