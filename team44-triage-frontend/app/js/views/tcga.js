@@ -24,6 +24,55 @@ const CROP_ID = /^(.+?)_(ffpe|frozen)_([a-z]+)_(\d+)$/;
 const WORKLIST_ID = /^(BACH|COMP|DEV)_[A-Za-z0-9_]+$/;
 const PHONE = '(max-width: 640px)';
 
+/**
+ * The limitations, in plain language. Each restates one entry of external_tcga.json `limitations` (`covers` is a phrase
+ * of that entry; tests/test_tcga_view_static.py checks every entry is covered) and the protocol, docs/EXTERNAL_TCGA_R2.md.
+ * `text` may be a function of the evaluation block, for counts that are read from it.
+ */
+export const LIMITATIONS = [
+  {
+    covers: 'Labels are slide-level sample types',
+    text: 'Labels are slide-level sample types (tumor or normal), not outlines of the tumor, so a field from a tumor slide may show only stroma or fat.'
+  },
+  {
+    covers: 'no benign or in situ labels',
+    text: 'TCGA-BRCA has no benign or in situ labels, so four-class accuracy, in situ versus invasive, and the stain rule for that question (p63 and calponin) were not tested. Specificity is measured only on frozen normal tissue adjacent to the tumor.'
+  },
+  {
+    covers: 'The reliability flag and the OOD percentile are not computed',
+    text: 'The reliability flag and the out-of-distribution check were not computed for these fields: both need two further models (CONCH and MUSK) that were not available for this run. The flag is treated as off, so tiers rest on the confidence set and the top class. That can leave a field in tier 4 that the flag would have raised to tier 3; it never changes placement in tiers 1–2.'
+  },
+  {
+    covers: 'The sample is small',
+    text: 'The cohort is small, so the 95% intervals, which are resampled by patient, are wide.'
+  },
+  {
+    covers: 'GDC DeepZoom tile API',
+    text: (T) => {
+      const eq = (T && T.tile_equivalence) || {};
+      const nCut = Number.isInteger(eq.n_crops_compared) ? eq.n_crops_compared : 23;
+      const picks =
+        Number.isInteger(eq.n_slides_picks_identical) && Number.isInteger(eq.n_slides)
+          ? ` (the same fields were picked on ${eq.n_slides_picks_identical} of ${eq.n_slides} slides checked)`
+          : '';
+      return 'Fields were cut through the NCI GDC online tile service rather than decoded from downloaded slide files. ' +
+        `Re-cutting ${nCut} fields of an earlier round, first decoded from the slide files, reproduced them pixel for ` +
+        `pixel, but the service's overview image can change which tissue-rich fields are picked${picks}.`;
+    }
+  },
+  {
+    covers: 'BACH reference values are per image',
+    text: 'BACH values are per image; TCGA values are per slide, taken over up to 6 fields of each slide, so the comparison between the two is indicative, not a matched test.'
+  },
+  {
+    covers: 'Latency is measured on one laptop',
+    text: 'Speed was measured on one laptop (Apple M3 Max) for single 2048 × 1536 fields, not whole slides.'
+  },
+  { covers: 'Research prototype', text: 'Research prototype; not clinically validated.' }
+];
+// The data credit (the last entry of `limitations`), as plain text: the frontend links to nothing outside the app.
+export const CREDIT = 'Data: the TCGA Research Network, accessed through the NCI Genomic Data Commons.';
+
 // List state that outlives a redraw: the app's poll re-renders the page, and a specimen opens in place of the list.
 // `open` holds the tier groups the reader expanded or collapsed; the others follow the screen (tiers 3-4 start
 // collapsed on phones).
@@ -228,9 +277,7 @@ function story(ST, idx) {
   const gap = p.ffpe_vs_frozen_tumor_sensitivity_gap || {};
   const ffpe = ci(p.ffpe_tumor_sensitivity);
   const frz = ci(p.frozen_tumor_sensitivity);
-  const lim = ((T && T.limitations) || (idx && idx.limitations) || [])
-    .map((l) => `<li>${esc(l)}</li>`)
-    .join('');
+  const lim = LIMITATIONS.map(({ text }) => `<li>${esc(typeof text === 'function' ? text(T) : text)}</li>`).join('');
 
   let bachCard = `<section class="tcga-panel" data-testid="tcga-bach-missing">
         <h3>BACH held-out</h3>
@@ -308,13 +355,13 @@ function story(ST, idx) {
     expected, and with this small cohort the TCGA intervals are wide.
   </p>`;
 
-  const limits = lim
-    ? `<section class="tcga-limits" data-testid="tcga-limits">
+  const limits = `<section class="tcga-limits" data-testid="tcga-limits">
         <h3>Limitations</h3>
         <ul class="mx-notes">${lim}</ul>
-        <p class="mx-pop tcga-src">Pre-registered in <code>docs/EXTERNAL_TCGA_R2.md</code> before the run.</p>
-      </section>`
-    : '';
+        <p class="tcga-foot" data-testid="tcga-protocol">The protocol was written before the run. Nothing was retrained,
+          and no threshold or rule was changed for TCGA.</p>
+        <p class="tcga-foot" data-testid="tcga-credit">${esc(CREDIT)}</p>
+      </section>`;
 
   return `${claim}
     <div class="tcga-compare" data-testid="tcga-compare">${bachCard}${tcgaCard}</div>

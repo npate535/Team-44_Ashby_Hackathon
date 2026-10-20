@@ -62,7 +62,12 @@ def state(confusion: bool = True) -> dict:
     }
 
 
-def render(st: dict) -> str:
+def render(st: dict, extra: str = "") -> str:
+    """The page's HTML for state `st`; `extra` is JS run after the render, adding keys to `out` (T is the module)."""
+    return run(st, extra)["html"]
+
+
+def run(st: dict, extra: str = "") -> dict:
     script = textwrap.dedent(f"""
         const noop = () => {{}};
         globalThis.document = {{addEventListener: noop, removeEventListener: noop, querySelector: () => null,
@@ -73,12 +78,14 @@ def render(st: dict) -> str:
         const T = await import({json.dumps((APP / 'js' / 'views' / 'tcga.js').as_uri())});
         const ST = {json.dumps(st)};
         ST.cfg = {json.dumps(json.loads((APP / 'mock' / 'config.json').read_text()))};
-        console.log(JSON.stringify({{html: T.render(ST, {{}})}}));
+        const out = {{html: T.render(ST, {{now: 0, assetUrl: (u) => u}})}};
+        {extra}
+        console.log(JSON.stringify(out));
     """)
     res = subprocess.run(["node", "--no-warnings", "--input-type=module", "-e", script], capture_output=True,
                          text=True, timeout=30)
     assert res.returncode == 0, res.stderr
-    return json.loads(res.stdout.strip().splitlines()[-1])["html"]
+    return json.loads(res.stdout.strip().splitlines()[-1])
 
 
 def text_of(html: str) -> str:
@@ -138,6 +145,36 @@ def test_specimen_list_has_set_filter_tier_toggles_and_one_tab_stop():
     assert 'aria-label="TCGA-A7-A4SD_frozen_normal_02, Frozen normal, field 2, tier 3 Low confidence' in html
     # one page title: the top bar's h1 says "Outside BACH"; the page does not repeat it
     assert "Outside BACH" not in text_of(html) and "TCGA-BRCA external test" in html
+
+
+@node
+def test_limitations_are_plain_language_and_cover_every_source_entry():
+    st = state()
+    st["metrics"]["eval"]["external_tcga"]["tile_equivalence"] = {"n_crops_compared": 23, "n_slides": 24,
+                                                                   "n_slides_picks_identical": 13}
+    out = run(st, "out.covers = T.LIMITATIONS.map((l) => l.covers); out.credit = T.CREDIT;")
+    section = re.search(r'data-testid="tcga-limits">(.*?)</section>', out["html"], re.S).group(1)
+    text = text_of(section)
+    # every limitation of the evaluation file is restated, and every restatement points at one of them
+    source = json.loads((config.REPO_ROOT / "artifacts" / "eval" / "external_tcga.json").read_text())["limitations"]
+    entries = [s for s in source if not s.startswith("Credit:")]
+    for entry in entries:
+        assert any(c in entry for c in out["covers"]), f"limitation without a plain-language restatement: {entry}"
+    for c in out["covers"]:
+        assert any(c in entry for entry in entries), f"restates no current limitation: {c}"
+    assert section.count("<li>") == len(entries)
+    for caveat in ("not outlines of the tumor", "stroma or fat", "four-class accuracy", "p63 and calponin",
+                   "adjacent to the tumor", "not computed", "tier 4", "tiers 1–2", "cohort is small", "are wide",
+                   "pixel for pixel", "picked on 13 of 24 slides checked", "indicative, not a matched test",
+                   "one laptop", "not whole slides", "not clinically validated"):
+        assert caveat in text, caveat
+    # no file names, field names, internal cohort names or links
+    for raw in ("reliability_flag", "protocol25", "DeepZoom", "tile_equivalence", "openslide", "MPS", "OOD",
+                "docs/", ".md", ".json", "this laptop", "http", "<a ", "<code"):
+        assert raw not in section, raw
+    assert "The protocol was written before the run." in text
+    assert "TCGA Research Network" in out["credit"] and "NCI Genomic Data Commons" in out["credit"]
+    assert out["credit"] in text
 
 
 def _build():
