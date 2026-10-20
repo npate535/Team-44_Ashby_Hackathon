@@ -1913,12 +1913,13 @@ function creditRows(ev) {
 function limitationsSection(ST, ev, m, L, ctx) {
   const files = Object.entries(ev)
     .filter(([, d]) => d && typeof d === 'object')
-    .map(([k, d]) => [`eval/${k}.json`, d.created_utc || '—', d.git_sha ? String(d.git_sha).slice(0, 7) : '—', d.synthetic ? 'synthetic' : 'pipeline output']);
+    // no "Kind" column: every file is pipeline output; a synthetic one says so beside its name
+    .map(([k, d]) => [`eval/${k}.json${d.synthetic ? ' (synthetic)' : ''}`, d.created_utc || '—', d.git_sha ? String(d.git_sha).slice(0, 7) : '—']);
   const expected = Object.keys(m.expected || {}).filter((k) => !ev[k]);
   return `<figure class="mx-fig mx-wide" data-testid="limitations"><figcaption><h3>Limitations</h3></figcaption><ul class="mx-limits">${LIMITATIONS.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></figure>` +
     figDataQuality(ST, ev, L) +
     `<figure class="mx-fig"><figcaption><h3>Datasets, models, tools and reviewers</h3></figcaption><dl class="mx-cite">${[...CITATIONS, ...creditRows(ev)].map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></figure>` +
-    `<figure class="mx-fig mx-wide"><figcaption><h3>Data provenance</h3><p class="mx-take">Every number on this page is read from these files at page load; re-running the pipeline updates the page.${expected.length ? ` Not produced in this run: ${esc(expected.map((e) => `${e}.json`).join(', '))}.` : ''}</p></figcaption>${table(['File', 'Created (UTC)', 'Git commit', 'Kind'], files, { title: 'Data provenance' })}${(m.figures || []).length ? details('figures-png', `Static PNG figures (${m.figures.length})`, `<div class="mx-pngs">${m.figures.map((f) => `<a href="${esc(ctx && ctx.assetUrl ? ctx.assetUrl(f.url) : f.url)}" target="_blank" rel="noopener">${esc(f.file)}</a>`).join('')}</div>`) : ''}</figure>`;
+    `<figure class="mx-fig mx-wide"><figcaption><h3>Data provenance</h3><p class="mx-take">Every number on this page is read from these files at page load; re-running the pipeline updates the page.${expected.length ? ` Not produced in this run: ${esc(expected.map((e) => `${e}.json`).join(', '))}.` : ''}</p></figcaption>${table(['File', 'Created (UTC)', 'Git commit'], files, { title: 'Data provenance' })}${(m.figures || []).length ? details('figures-png', `Static PNG figures (${m.figures.length})`, `<div class="mx-pngs">${m.figures.map((f) => `<a href="${esc(ctx && ctx.assetUrl ? ctx.assetUrl(f.url) : f.url)}" target="_blank" rel="noopener">${esc(f.file)}</a>`).join('')}</div>`) : ''}</figure>`;
 }
 
 // ---- page -------------------------------------------------------------------------------------------------------------
