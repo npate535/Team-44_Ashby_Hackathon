@@ -98,8 +98,8 @@ function calledCard(v, r, fresh, enter) {
     `<div class="or-meta"><span>Called ${esc(clock(r.at))} by the reading pathologist</span>` +
     (turnaround ? `<span>Turnaround <b class="timer stopped" data-testid="or-turnaround">${esc(turnaround)}</b> · timer stopped</span>` : '') +
     '</div>' +
-    // secondary, and only after the call: the pathologist's call above is the result
-    (suggested ? `<div class="or-ai" data-testid="or-model-suggestion">Model suggestion: ${esc(suggested)}${agreement}</div>` : '') +
+    // secondary, only after the call, and folded: the pathologist's call above is the result
+    (suggested ? `<details class="or-ai" data-testid="or-model-suggestion"><summary>Model suggestion</summary><span>${esc(suggested)}${agreement}</span></details>` : '') +
     `<a class="case-link" href="#/case/${encodeURIComponent(r.case_id)}">Open case</a>` +
     '</div>'
   );

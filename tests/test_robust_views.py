@@ -145,7 +145,8 @@ def test_or_board_shows_no_model_read_before_the_pathologists_call():
     assert '<span class="or-clock-l">elapsed</span>' in before
     # after the call: the pathologist's call leads, the model's suggestion follows as secondary text
     assert after.index('data-testid="surgeon-result"') < after.index('data-testid="or-model-suggestion"')
-    assert "Model suggestion: Tumor at margin (sup)" in after and "Model read" not in after
+    assert "<summary>Model suggestion</summary><span>Tumor at margin (sup)" in after and "Model read" not in after
+    assert '<details class="or-ai" data-testid="or-model-suggestion">' in after          # folded until opened
     assert "the pathologist’s call differs" in after
     assert '<b class="timer stopped" data-testid="or-turnaround">8 min 41 s</b>' in after
 
