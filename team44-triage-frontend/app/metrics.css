@@ -1316,14 +1316,92 @@
 /* .mx-pop is a flex row; these lines are running text with an inline code chip. */
 .tcga-src { display: block; line-height: 1.6; }
 .tcga-panel .tcga-src { margin-top: auto; padding-top: 0.75rem; }
-.tcga-cc { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
-.tcga-wl .tcga-cc .cid { max-width: 100%; }
-.tcga-fld { font-size: 11px; color: var(--mut); font-variant-numeric: tabular-nums; letter-spacing: 0.1px; }
+/* Specimen id: the patient barcode, then "FFPE · tumor · field 3" muted below it (the full id is the link title). */
+.tcga-cc { display: flex; min-width: 0; }
+.tcga-wl .tcga-cc a.cid { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; max-width: 100%; }
+.tcga-pid { font-weight: 650; }
+.tcga-fld { font-size: 11.5px; font-weight: 500; color: var(--mut); font-variant-numeric: tabular-nums; }
+.tcga-pk { display: none; }
+/* Specimen-set filter: a segmented control whose counts add up to every field. */
+.tcga-wl .tcga-toolbar { margin: 0 0 12px; }
+.tcga-wl .tcga-sets button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.tcga-sets .tcga-n { font-weight: 650; font-variant-numeric: tabular-nums; color: var(--ink); }
+.tcga-sets button[aria-pressed='true'] .tcga-n { color: inherit; }
+.tcga-wl .tcga-sets button:focus-visible { outline: 2px solid var(--hema); outline-offset: -3px; }
+/* Tier groups: the whole header is the disclosure button. */
+.tcga-wl .wl-table tr.grp th { padding: 0; }
+.tcga-grp-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tcga-grp-btn .g-n { margin: 0 0 0 4px; }
+.tcga-chev {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-right: 7px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.15s;
+}
+.tcga-grp-btn[aria-expanded='true'] .tcga-chev { transform: rotate(90deg); }
+.tcga-grp-btn:focus-visible { outline: 2px solid var(--hema); outline-offset: -3px; }
+@media (hover: hover) {
+  .tcga-grp-btn:hover .g-name { text-decoration: underline; text-underline-offset: 2px; }
+}
+@media (min-width: 1101px) {
+  /* without the old Prep column the suggestion took the slack: a three-class set now fits on one line */
+  .tcga-wl .wl-table th.c-sugg { width: 190px; }
+  .tcga-wl .wl-table th.c-set { width: 200px; }
+}
 @media (max-width: 1100px) {
-  /* The tier header already states the reason; a phone card keeps id, prep, suggestion, P and the set. */
+  /* Cards: barcode and P(Invasive) first, then the suggestion with the confidence set at the right; the set moves
+     to a line of its own when both do not fit. The tier header states the reason, so the flags are left out. */
+  .tcga-wl .wl-table tr.row {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 10px;
+    padding: 10px 12px 11px 46px;
+  }
+  .tcga-wl .wl-table tr.row td.c-tier { position: absolute; inset: 0 auto 0 0; width: 34px; padding: 10px 0 0 8px; }
+  .tcga-wl .wl-table tr.row td.c-case { order: 1; flex: 1 1 calc(100% - 125px); min-width: 0; }
+  .tcga-wl .wl-table tr.row td.c-p { order: 2; flex: 0 0 auto; white-space: nowrap; text-align: right; }
+  .tcga-wl .wl-table tr.row td.c-sugg { order: 3; flex: 1 1 auto; min-width: 0; }
+  .tcga-wl .wl-table tr.row td.c-set { order: 4; flex: 0 1 auto; }
   .tcga-wl .wl-table tr.row td.c-flags { display: none; }
-  .tcga-wl .wl-table tr.row { grid-template-areas: 'tier case lane lane' 'tier sugg sugg p' 'tier set set set'; }
-  .tcga-wl .wl-table tr.row td.c-lane { text-align: right; }
+  .tcga-wl .wl-table td.c-p .pnum { margin-right: 0; }
+  .tcga-pk { display: inline; margin-right: 5px; font-size: 11px; font-weight: 500; color: var(--mut); }
+  .tcga-grp-btn { min-height: 40px; }
+}
+@media (min-width: 761px) and (max-width: 1100px) {
+  /* tablets: one line per field, in aligned columns */
+  .tcga-wl .wl-table tr.row { flex-wrap: nowrap; align-items: center; }
+  .tcga-wl .wl-table tr.row td.c-case { flex: 0 0 190px; }
+  .tcga-wl .wl-table tr.row td.c-sugg { order: 2; flex: 1 1 0; }
+  .tcga-wl .wl-table tr.row td.c-p { order: 3; flex: 0 0 112px; }
+  .tcga-wl .wl-table tr.row td.c-set { flex: 0 0 176px; text-align: right; }
+  .tcga-wl .wl-table tr.row td.c-set .chips { justify-content: flex-end; }
+}
+@media (max-width: 640px) {
+  /* two by two, each button the full half width: four sets do not fit on one line of a phone */
+  .tcga-wl .tcga-sets { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .tcga-wl .tcga-sets button { justify-content: space-between; min-height: 38px; padding-inline: 12px; }
+  .tcga-wl .tcga-sets button + button { border-left: 0; }
+  .tcga-wl .wl-table tr.row { padding-block: 10px 11px; }
 }
 @media (max-width: 520px) {
   .tcga-panel { padding: 0.9rem 0.95rem 0.95rem; }
@@ -1339,6 +1417,7 @@
 }
 .tcga-limits { margin: 0 0 1.75rem; }
 .tcga-limits h3 { margin: 0 0 0.4rem; font-size: 1rem; }
+.tcga-intro,
 .tcga-specimens h2 {
   margin: 0 0 0.35rem;
   font-family: var(--display, Fraunces, Georgia, serif);
@@ -1347,8 +1426,8 @@
 }
 .tcga-spec-lede { margin: 0 0 1rem; color: var(--mut); max-width: 42rem; line-height: 1.45; }
 .tcga-wl .mx-head { max-width: none; }
-/* the page h1 is the top bar's; this heading keeps the display style one level down */
-.tcga-title { margin: 0; font: 500 clamp(26px, 2.4vw, 38px)/1.22 var(--display); letter-spacing: -1.1px; color: var(--ink); }
+/* the page h1 ("Outside BACH") is the top bar's; the intro heading names the test, at the section-heading size */
+.tcga-claim .mx-lede { margin: 0; max-width: 62rem; line-height: 1.5; }
 .tcga-specimens-loading { min-height: 60vh; }
 a.back {
   color: inherit;

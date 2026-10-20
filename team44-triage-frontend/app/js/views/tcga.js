@@ -1,16 +1,56 @@
 // TCGA-BRCA external generalization (#/tcga, #/tcga/<id>).
 // Story: a BACH-only trained model, applied unchanged to never-seen TCGA tissue — not a TCGA-tuned model.
 // Specimens open in the same biopsy case view as BACH. Research prototype — not for clinical use.
-import { classLabel, esc, num, pct, toView } from '../adapter.js';
+import { classLabel, esc, num, toView } from '../adapter.js';
 import { atBoundary, boundaryInterval, boundaryText } from '../ci.js';
+import { pctText } from '../flow.js';
 import * as biopsy from './case_biopsy.js';
 import { setChips } from './worklist.js';
 
 const PREP = { frozen: 'Frozen section', ffpe: 'FFPE' };
+const PREP_SHORT = { frozen: 'Frozen', ffpe: 'FFPE' };
 const TIER_NAME = { 1: 'Frozen section', 2: 'Likely invasive', 3: 'Low confidence', 4: 'Unflagged' };
 const GROUP_NAME = { ffpe_tumor: 'FFPE tumor', frozen_tumor: 'frozen tumor', frozen_normal: 'frozen normal' };
+// The specimen-set filter above the list: every field is in exactly one set, read from its id.
+const SETS = [
+  ['all', 'All'],
+  ['ffpe_tumor', 'FFPE tumor'],
+  ['frozen_tumor', 'Frozen tumor'],
+  ['frozen_normal', 'Frozen normal']
+];
 // specimen ids are <patient>_<prep>_<sample type>_<field>, e.g. TCGA-A7-A4SD_ffpe_tumor_00
-const CROP_ID = /^(.+?)_((?:ffpe|frozen)_[a-z]+_\d+)$/;
+const CROP_ID = /^(.+?)_(ffpe|frozen)_([a-z]+)_(\d+)$/;
+const PHONE = '(max-width: 640px)';
+
+// List state that outlives a redraw: the app's poll re-renders the page, and a specimen opens in place of the list.
+// `open` holds the tier groups the reader expanded or collapsed; the others follow the screen (tiers 3-4 start
+// collapsed on phones).
+const UI = { set: 'all', open: {} };
+let lastST = null; // the state of the last render, for redrawing the list after a filter or group click
+let returnTo = null; // the specimen the list was left for, when coming back from #/tcga/<id>
+
+function setOf(id) {
+  const s = String(id || '');
+  const hit = SETS.find(([key]) => key !== 'all' && s.includes(`_${key}_`));
+  return hit ? hit[0] : null;
+}
+
+// "FFPE · tumor · field 3" for TCGA-A7-A4SD_ffpe_tumor_03; null for an id of another shape.
+function idParts(id) {
+  const m = CROP_ID.exec(String(id || ''));
+  if (!m) return null;
+  const prep = PREP_SHORT[m[2]] || m[2];
+  const field = Number(m[4]);
+  return { patient: m[1], text: `${prep} · ${m[3]} · field ${field}`, spoken: `${prep} ${m[3]}, field ${field}` };
+}
+
+function isPhone() {
+  return typeof matchMedia === 'function' && matchMedia(PHONE).matches;
+}
+
+function isOpen(tier) {
+  return Object.prototype.hasOwnProperty.call(UI.open, tier) ? UI.open[tier] : !(isPhone() && tier >= 3);
+}
 
 function get(obj, path) {
   let cur = obj;
@@ -165,8 +205,9 @@ function story(ST, idx) {
   const bach = bachBlock(ST);
   const model = (T && T.model) || (idx && idx.model) || '—';
 
+  // The page name ("Outside BACH") is the top bar's h1; the page opens with what was tested.
   const claim = `<header class="mx-head tcga-claim" data-testid="tcga-claim">
-    <h2 class="tcga-title">Outside BACH</h2>
+    <h2 class="tcga-intro">TCGA-BRCA external test</h2>
     <p class="mx-lede">Same probe, trained <b>only on BACH</b> — applied unchanged to never-seen
       TCGA-BRCA tissue (other hospitals, scanners, stains, and real frozen sections).
       No TCGA training, no threshold retuning on this set. Research prototype — not clinically validated.</p>
@@ -334,26 +375,56 @@ function itemToCase(item, model) {
   };
 }
 
-function row(item, ST, model) {
+// One row is in the tab order (the last one used, else the first shown): the list is one tab stop, and J/K and the
+// arrow keys move inside it (app.js). The id is a real link (new tab, a screen reader's links list) but not a tab stop.
+function row(item, ST, model, roving) {
   const c = itemToCase(item, model);
   const v = toView(c, Date.now(), ST.cfg, null);
-  const pInv = pct(v.risk === null ? null : v.risk / 100);
-  const prep = PREP[item.prep] || item.prep || '—';
-  // The full id, split so it never truncates: patient barcode, then <prep>_<sample type>_<field>.
-  const m = CROP_ID.exec(String(v.id || ''));
-  const idHtml = m
-    ? `<b class="cid">${esc(m[1])}</b><span class="tcga-fld">_${esc(m[2])}</span>`
-    : `<b class="cid">${esc(v.id)}</b>`;
+  const tier = num(v.tier);
+  const id = String(v.id || '');
+  const pInv = pctText(isNum(item.p_invasive) ? item.p_invasive : v.risk === null ? null : v.risk / 100);
+  const sugg = classLabel(v.top, ST.cfg) || '—';
+  // Patient barcode on the first line; preparation, sample type and field spelled out on the second.
+  const parts = idParts(id);
+  const idHtml = parts
+    ? `<b class="tcga-pid">${esc(parts.patient)}</b><span class="tcga-fld">${esc(parts.text)}</span>`
+    : `<b class="tcga-pid">${esc(id)}</b>`;
+  const label = [
+    id,
+    parts && parts.spoken,
+    `tier ${tier} ${TIER_NAME[tier] || ''}`.trim(),
+    `suggested ${sugg}`,
+    `P(Invasive) ${pInv}`
+  ].filter(Boolean).join(', ');
   return (
-    `<tr class="row tr-${num(v.tier)}" tabindex="0" data-testid="tcga-row" data-case-id="${esc(v.id)}" data-tier="${num(v.tier)}">` +
-    `<td class="c-tier"><span class="tierno t${num(v.tier)}" title="Tier ${num(v.tier)}">${num(v.tier)}</span></td>` +
-    `<td class="c-case"><div class="wl-cc tcga-cc" title="${esc(v.id)}">${idHtml}</div></td>` +
-    `<td class="c-lane"><span class="lane bx">${esc(prep)}</span></td>` +
-    `<td class="c-sugg"><span class="sugg${v.top === 'Invasive' ? ' inv' : ''}">${esc(classLabel(v.top, ST.cfg) || '—')}</span></td>` +
-    `<td class="c-p"><span class="pnum${v.risk >= 50 ? ' hi' : ''}">${esc(pInv)}</span></td>` +
+    `<tr class="row tr-${tier}" tabindex="${id === roving ? 0 : -1}" aria-label="${esc(label)}" data-testid="tcga-row" data-case-id="${esc(id)}" data-tier="${tier}" data-set="${esc(setOf(id) || '')}">` +
+    `<td class="c-tier"><span class="tierno t${tier}" title="Tier ${tier} · ${esc(TIER_NAME[tier] || '')}">${tier}</span></td>` +
+    `<td class="c-case"><div class="wl-cc tcga-cc"><a class="cid" href="#/tcga/${encodeURIComponent(id)}" tabindex="-1" title="${esc(id)}">${idHtml}</a></div></td>` +
+    `<td class="c-sugg"><span class="sugg${v.top === 'Invasive' ? ' inv' : ''}">${esc(sugg)}</span></td>` +
+    `<td class="c-p"><span class="tcga-pk" aria-hidden="true">P(Invasive)</span><span class="pnum${v.risk >= 50 ? ' hi' : ''}">${esc(pInv)}</span></td>` +
     `<td class="c-set"><span class="chips">${setChips(v)}</span></td>` +
     `<td class="c-flags"><span class="sub">${esc((v.reasons || []).map((r) => r.label).join(' · ') || '—')}</span></td>` +
     '</tr>'
+  );
+}
+
+function setFilter(counts, current) {
+  const btn = ([key, text]) =>
+    `<button type="button" data-tcga-set="${key}" data-testid="tcga-set-${key}" aria-pressed="${key === current}">` +
+    `${esc(text)} <b class="tcga-n">${counts[key] || 0}</b><span class="sr-only"> fields</span></button>`;
+  return `<div class="wl-toolbar tcga-toolbar">
+      <div class="seg tcga-sets" role="group" aria-label="Specimen set" data-testid="tcga-sets">${SETS.map(btn).join('')}</div>
+    </div>`;
+}
+
+// A tier group header is a disclosure button; a collapsed group's rows are not drawn, so J/K never land on them.
+function groupRow(tier, n, open) {
+  return (
+    `<tr class="grp g-${tier}" data-testid="tcga-tier-group" data-group="${tier}"><th colspan="6" scope="colgroup">` +
+    `<button type="button" class="tcga-grp-btn" data-tcga-tier="${tier}" data-testid="tcga-tier-toggle-${tier}" aria-expanded="${open}">` +
+    '<svg class="tcga-chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"/></svg>' +
+    `<span class="g-name">Tier ${tier} · ${esc(TIER_NAME[tier] || '')}</span> <span class="g-n">${n}</span>` +
+    '<span class="sr-only"> fields</span></button></th></tr>'
   );
 }
 
@@ -372,37 +443,37 @@ function specimenTable(ST, idx) {
         <code>python scripts/build_tcga_cases.py</code>.</p>
     </section>`;
   }
-  const items = [...idx.items].sort(
+  const all = [...idx.items].sort(
     (a, b) => a.tier - b.tier || b.p_invasive - a.p_invasive || a.case_id.localeCompare(b.case_id)
   );
-  const byTier = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  const counts = { all: all.length };
+  all.forEach((it) => {
+    const s = setOf(it.case_id);
+    if (s) counts[s] = (counts[s] || 0) + 1;
+  });
+  const set = SETS.some(([key]) => key === UI.set) ? UI.set : 'all';
+  const items = set === 'all' ? all : all.filter((it) => setOf(it.case_id) === set);
+  const byTier = {};
   items.forEach((it) => {
     byTier[it.tier] = (byTier[it.tier] || 0) + 1;
   });
+  const shown = items.filter((it) => isOpen(it.tier));
+  const roving = shown.some((it) => it.case_id === ST.focusId) ? ST.focusId : shown[0] && shown[0].case_id;
   let group = null;
   let body = '';
   items.forEach((it) => {
-    const g = it.tier;
-    if (g !== group) {
-      group = g;
-      body += `<tr class="grp g-${g}" data-testid="tcga-tier-group"><th colspan="7" scope="colgroup">
-        <span class="g-name">Tier ${g} · ${esc(TIER_NAME[g] || '')}</span>
-        <span class="g-n">${byTier[g] || 0}</span></th></tr>`;
+    if (it.tier !== group) {
+      group = it.tier;
+      body += groupRow(num(group), byTier[group] || 0, isOpen(group));
     }
-    body += row(it, ST, idx.model);
+    if (isOpen(it.tier)) body += row(it, ST, idx.model, roving);
   });
-  return `<section class="wl tcga-wl tcga-specimens" data-testid="tcga-worklist">
-    <h2>Browse external specimens</h2>
-    <p class="tcga-spec-lede">Open any field the same way as a BACH biopsy — image, suggestion, and confidence.
-      Each field is scored by the BACH-trained probe. Its name is the patient barcode, preparation, the TCGA sample
-      type of its slide (tumor or normal) and the field number; the model never sees the name, and there are no
-      region-level labels.</p>
-    <div class="tblw wl-table-wrap">
-      <table class="wl-table" data-testid="tcga-table" aria-label="TCGA external specimens">
+  const table = items.length
+    ? `<div class="tblw wl-table-wrap">
+      <table class="wl-table" data-testid="tcga-table" aria-label="TCGA external specimens${set === 'all' ? '' : `, ${esc(SETS.find(([key]) => key === set)[1])}`}">
         <thead><tr>
           <th class="c-tier" scope="col"><span class="sr-only">Tier</span></th>
           <th class="c-case" scope="col">Specimen</th>
-          <th class="c-lane" scope="col">Prep</th>
           <th class="c-sugg" scope="col">Suggested</th>
           <th class="c-p" scope="col">P(Invasive)</th>
           <th class="c-set" scope="col">Confidence set</th>
@@ -410,14 +481,23 @@ function specimenTable(ST, idx) {
         </tr></thead>
         <tbody>${body}</tbody>
       </table>
-    </div>
+    </div>`
+    : '<p class="mx-muted" data-testid="tcga-set-empty">No fields in this set.</p>';
+  return `<section class="wl tcga-wl tcga-specimens" data-testid="tcga-worklist">
+    <h2>Browse external specimens</h2>
+    <p class="tcga-spec-lede">Open any field the same way as a BACH biopsy — image, suggestion, and confidence.
+      Each field is scored by the BACH-trained probe. Its name is the patient barcode, preparation, the TCGA sample
+      type of its slide (tumor or normal) and the field number; the model never sees the name, and there are no
+      region-level labels.</p>
+    ${setFilter(counts, set)}
+    ${table}
   </section>`;
 }
 
 function worklist(ST) {
   const idx = ST.tcga;
   if (!idx && !ST.metrics) {
-    return `<div class="mx tcga-page" data-testid="tcga-loading"><header class="mx-head"><h2 class="tcga-title">Outside BACH</h2>
+    return `<div class="mx tcga-page" data-testid="tcga-loading"><header class="mx-head tcga-claim"><h2 class="tcga-intro">TCGA-BRCA external test</h2>
       <p class="mx-lede">Loading external generalization results…</p></header></div>`;
   }
   return `<div class="mx tcga-page" data-testid="tcga-page">
@@ -443,7 +523,75 @@ function detail(ST, ctx) {
   });
 }
 
+const later = (fn) => (typeof requestAnimationFrame === 'function' ? requestAnimationFrame(fn) : setTimeout(fn, 0));
+
+// Back from a specimen: the list keeps its filter, and the field just read is in view and holds the list's tab stop
+// (set before the list is drawn, so its row is the one with tabindex 0).
+function revealReturn(ST) {
+  const id = returnTo;
+  returnTo = null;
+  if (!id || !(ST.tcga.items || []).some((it) => it.case_id === id)) return;
+  ST.focusId = id;
+  later(() => {
+    const el = [...document.querySelectorAll('tr.row[data-case-id]')].find((r) => r.dataset.caseId === id);
+    if (!el) return;
+    el.scrollIntoView({ block: 'center' });
+    const a = document.activeElement;
+    if (!a || a === document.body || a.id === 'app') el.focus({ preventScroll: true });
+  });
+}
+
 export function render(ST, ctx) {
+  lastST = ST;
   if (ST.caseId) return detail(ST, ctx);
+  if (returnTo && ST.tcga) revealReturn(ST);
   return worklist(ST);
+}
+
+// ---- list controls: handled here, so the filter and the tier groups need nothing from app.js ------------------------
+// Only the specimen section is redrawn; the control that was used keeps its place on screen and keeps focus.
+function redrawList(control) {
+  const live = document.querySelector('[data-testid="tcga-worklist"]');
+  if (!lastST || lastST.route !== 'tcga' || lastST.caseId || !live) return;
+  const sel = control.dataset.tcgaSet
+    ? `[data-tcga-set="${control.dataset.tcgaSet}"]`
+    : `[data-tcga-tier="${control.dataset.tcgaTier}"]`;
+  const top = control.getBoundingClientRect().top;
+  const refocus = document.activeElement === control;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = specimenTable(lastST, lastST.tcga);
+  live.replaceWith(tpl.content);
+  const next = document.querySelector(sel);
+  if (!next) return;
+  const shift = next.getBoundingClientRect().top - top;
+  if (Math.abs(shift) > 1) window.scrollBy(0, shift);
+  if (refocus) next.focus({ preventScroll: true });
+}
+
+function onListClick(e) {
+  const b = e.target && e.target.closest && e.target.closest('[data-tcga-set], [data-tcga-tier]');
+  if (!b || !b.closest('[data-testid="tcga-worklist"]')) return;
+  if (b.dataset.tcgaSet) {
+    if (UI.set === b.dataset.tcgaSet) return;
+    UI.set = b.dataset.tcgaSet;
+  } else {
+    const tier = Number(b.dataset.tcgaTier);
+    UI.open[tier] = !isOpen(tier);
+  }
+  redrawList(b);
+}
+
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  document.addEventListener('click', onListClick);
+}
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  // registered before app.js's own hashchange handler (this module is imported first), so it is set when the list draws
+  window.addEventListener('hashchange', (e) => {
+    const from = /#\/tcga\/([^/?#]+)/.exec(String(e.oldURL || ''));
+    try {
+      returnTo = from && /^#\/tcga\/?$/.test(location.hash) ? decodeURIComponent(from[1]) : null;
+    } catch (_) {
+      returnTo = null; // a malformed id in the old address
+    }
+  });
 }
