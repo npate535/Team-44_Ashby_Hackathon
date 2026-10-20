@@ -17,6 +17,7 @@ Media: when the cases folder is the flat fixtures folder, images/<file> and cell
 from __future__ import annotations
 
 import datetime
+import html
 import json
 import logging
 import math
@@ -31,11 +32,14 @@ from pathlib import Path
 from typing import Any, Literal, Optional
 
 from fastapi import Body, FastAPI, Query, Request
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend import db
 from backend.interpret import InterpretError, Interpreter
@@ -54,6 +58,33 @@ FIGURE_SUFFIXES = (".png", ".svg", ".jpg", ".jpeg")
 MEDIA_SUFFIXES = {"images": (".jpg", ".jpeg", ".png"), "cells": (".png", ".jpg", ".jpeg"), "eval": FIGURE_SUFFIXES,
                   "spotcheck": (".png", ".jpg", ".jpeg"), "fixtures": (".jpg", ".jpeg", ".png", ".json"),
                   "tcga": (".jpg", ".jpeg", ".png")}
+# Paths under these prefixes are API or media: an unknown one keeps the JSON 404 ({"detail": ...}). Any other unknown
+# path (a mistyped page address) gets NOT_FOUND_HTML, locally (StaticFiles) and on Vercel (the CDN serves public/ and
+# sends every unmatched path to the function).
+JSON_404_PREFIXES = ("/api/", "/images/", "/cells/", "/eval/", "/spotcheck/", "/fixtures/", "/tcga/", "/thumbs/")
+GZIP_MIN_BYTES = 1024          # worklist (~100 KB every 2 s) and metrics (~1 MB) compress ~10x; tiny replies stay as is
+NOT_FOUND_HTML = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex"><title>Page not found · Sepia</title>
+<style>
+:root{--bg:#f2f5f1;--sf:#fffefa;--ink:#203c38;--mut:#58675f;--ln:#d8e1d8;--hema:#28665b;--on:#fffefa;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#101e1d;--sf:#182b28;--ink:#e7f0e8;--mut:#a4b8ac;--ln:#344a42;
+--hema:#a1d7be;--on:#15372d;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:16px;background:var(--bg);color:var(--ink);
+font:16px/1.5 'Bricolage Grotesque','Avenir Next','Segoe UI',system-ui,sans-serif}
+main{width:100%;max-width:480px;background:var(--sf);border:1px solid var(--ln);border-radius:18px;padding:28px}
+h1{margin:0 0 8px;font:600 28px/1.2 'Fraunces','Iowan Old Style',Georgia,serif}
+p{margin:0 0 16px;color:var(--mut);overflow-wrap:anywhere}
+code{font-size:14px;color:var(--ink)}
+a{display:inline-block;padding:10px 18px;border-radius:999px;background:var(--hema);color:var(--on);
+text-decoration:none;font-weight:600}
+a:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+small{display:block;margin-top:20px;color:var(--mut)}
+</style></head>
+<body><main><h1>Page not found</h1><p>There is no page at <code>__PATH__</code>.</p>
+<a href="/">Open the Sepia worklist</a><small>Research prototype. Not for clinical use.</small></main></body></html>
+"""
 
 
 def cell_feature_labels(cfg: Mapping[str, Any]) -> dict[str, Any]:
@@ -720,6 +751,12 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
         app.add_middleware(CORSMiddleware, allow_origin_regex=r"^http://(localhost|127\.0\.0\.1)(:\d+)?$",
                            allow_methods=["GET", "POST"], allow_headers=["*"])
 
+    # Inside no_store (added before it, so no_store wraps it): gzip sees each route's own response, a single body, so
+    # minimum_size applies (BaseHTTPMiddleware would hand it a stream and every reply would be compressed). no_store
+    # then sets Cache-Control on the compressed response. Images and pre-encoded responses are skipped; on Vercel the
+    # edge passes a gzip body through instead of compressing it again.
+    app.add_middleware(GZipMiddleware, minimum_size=GZIP_MIN_BYTES, compresslevel=6)
+
     @app.middleware("http")
     async def no_store(request: Request, call_next):   # stale ES modules break the demo; everything is local
         response = await call_next(request)
@@ -727,6 +764,14 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
         if source.get("PATHQUEUE_RELEASE_SHA"):
             response.headers["X-Sepia-Release"] = source["PATHQUEUE_RELEASE_SHA"]
         return response
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_error(request: Request, exc: StarletteHTTPException) -> Response:
+        path = request.url.path
+        if exc.status_code == 404 and request.method in ("GET", "HEAD") and path != "/api" \
+                and not path.startswith(JSON_404_PREFIXES):
+            return HTMLResponse(NOT_FOUND_HTML.replace("__PATH__", html.escape(path)), status_code=404)
+        return await http_exception_handler(request, exc)
 
     interpreter = Interpreter(art / "interpretations", dotenv=config.REPO_ROOT / ".env", eval_dir=art / "eval")
     results_md = config.REPO_ROOT / "docs" / "RESULTS.md"

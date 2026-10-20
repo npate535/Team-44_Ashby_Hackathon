@@ -33,6 +33,23 @@ function variantText(v) {
   return 'frozen section';
 }
 
+// Open frozen sections in a room, oldest first. Sections injected while the replay clock is paused (or held after the
+// replay) share one simulator second, so the real arrival time decides, then the simulator time. Without a wall-clock
+// arrival the timer that has run longest came first.
+const wallMs = (v) => {
+  const t = v.arrivedAt ? Date.parse(v.arrivedAt) : NaN;
+  return Number.isFinite(t) ? t : null;
+};
+export function byArrival(a, b) {
+  const ta = wallMs(a);
+  const tb = wallMs(b);
+  const d =
+    ta !== null && tb !== null
+      ? ta - tb || (a.arrivedSim || 0) - (b.arrivedSim || 0)
+      : ((b.timer && b.timer.elapsedS) || 0) - ((a.timer && a.timer.elapsedS) || 0) || (a.arrivedSim || 0) - (b.arrivedSim || 0);
+  return d || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+}
+
 function activeCard(v, enter) {
   const t = v.timer;
   return (
@@ -98,7 +115,7 @@ export function render(ST, ctx) {
   for (const r of latest.values()) if (r.or_room && !roomNames.includes(r.or_room)) roomNames.push(r.or_room);
 
   const rooms = roomNames.map((room) => {
-    const active = views.filter((v) => v.room === room && !v.done && !latest.has(v.id)).sort((a, b) => a.arrivedSim - b.arrivedSim);
+    const active = views.filter((v) => v.room === room && !v.done && !latest.has(v.id)).sort(byArrival);
     const calls = [...latest.values()].filter((r) => r.or_room === room); // newest first
     const fresh = calls.some((r) => ST.freshCalls.has(routedKey(r)));
     const state = active.length ? 'busy' : calls.length ? 'called' : 'idle';

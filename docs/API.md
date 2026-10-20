@@ -285,7 +285,10 @@ concept and for cell overlays. Unknown item ids → 422; no items file → 409.
 File names must match `[A-Za-z0-9][A-Za-z0-9_.-]*` (no paths) and carry a media suffix (`.jpg/.jpeg/.png`, plus
 `.svg` for `/eval`): JSON is only ever served through the API, so it is always ground-truth free. Anything else is
 404. Every response carries `Cache-Control: no-store` (local demo; avoids stale ES modules). A malformed server-side
-file (e.g. an `eval/spotcheck.json` without `reviews`) returns 500 with a `detail` naming it.
+file (e.g. an `eval/spotcheck.json` without `reviews`) returns 500 with a `detail` naming it. Responses of 1 KB or more
+are gzip-compressed when the client accepts it (images excepted). An unknown path outside `/api/` and the media routes
+(a mistyped page address) returns a small self-contained HTML 404 page linking to `/`; `/api/*` and media keep the
+JSON `{"detail": ...}` 404.
 
 ### Workspace integrity and restart behavior
 

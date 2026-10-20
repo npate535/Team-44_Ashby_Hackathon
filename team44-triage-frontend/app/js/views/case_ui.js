@@ -191,7 +191,28 @@ window.addEventListener('hashchange', () => {
       m.d.close();
     }
   }
+  // the header's Reset confirmation (index.html) belongs to the screen it was opened on: Back closes it too
+  const reset = $('#reset-dialog');
+  if (reset && reset.open) reset.close();
 });
+
+// Going offline (app.js shows #offline after 2 failed polls) or back online changes which decision buttons are enabled
+// (agent.js and case_surgical.js read ST.fail), but nothing in the poll fingerprint changes: redraw the open case when
+// the banner appears or goes. Only on a real change: app.js re-sets `hidden` after every poll.
+function watchOffline() {
+  const el = $('#offline');
+  if (!el) return false;
+  let wasOffline = !el.hidden;
+  new MutationObserver(() => {
+    const offline = !el.hidden;
+    if (offline === wasOffline) return;
+    wasOffline = offline;
+    const s = ST();
+    if (s && s.route === 'case' && $('#app [data-testid=case-view]')) rerender();
+  }).observe(el, { attributes: true, attributeFilter: ['hidden'] });
+  return true;
+}
+if (!watchOffline()) document.addEventListener('DOMContentLoaded', watchOffline, { once: true });
 
 // ---- tooltip ----------------------------------------------------------------------------------------------------------------
 function tipEl(host) {
