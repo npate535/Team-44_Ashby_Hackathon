@@ -419,11 +419,11 @@ export function howSure(v, cfg, metrics, { compact = false, provOpen = false } =
   const observed = coverageStatus(metrics, v.model);
   const method = conformalName(metrics, v.alphaPct);
   const validation = observed
-    ? `<div class="${observed.belowTarget ? 'flag' : 'validation-note'} cv-coverage" data-testid="coverage-validation">${
+    ? `<p class="hs-cov cv-coverage${observed.belowTarget ? ' warn' : ''}" data-testid="coverage-validation">${
         v.external
           ? `Coverage of this method on the BACH held-out test split: <b>${pct1(observed.coverage)}</b> of ${esc(observed.n)} BACH test cases, against a ${pct1(observed.target)} target. It has not been measured on TCGA fields.`
           : `Held-out coverage of this method: <b>${pct1(observed.coverage)}</b> across ${esc(observed.n)} test cases, against a ${pct1(observed.target)} target.`
-      }${observed.belowTarget ? ' The target was not achieved in this experiment, so the set is less reliable than its label suggests.' : ''}</div>`
+      }${observed.belowTarget ? ' The target was not achieved in this experiment, so the set is less reliable than its label suggests.' : ''}</p>`
     : '';
   const chips = v.setSize
     ? v.set.map((cls) => setChip(cls, cfg, ' data-testid="conformal-chip"')).join('')
@@ -435,9 +435,12 @@ export function howSure(v, cfg, metrics, { compact = false, provOpen = false } =
     head +
     `<h3 class="hs-h">Calibrated probabilities</h3>${probChart(v, cfg)}` +
     `<div class="hs-set"><h3 class="hs-h">${esc(method)}</h3><div class="chips" data-testid="conformal-set">${chips}</div></div>` +
+    // one callout: what the set says, what its target means, and how the method did on held-out cases
+    `<div class="hs-callout${observed && observed.belowTarget ? ' warn' : ''}" data-testid="set-callout">` +
     `<p class="hs-say" data-testid="set-statement">${setStatement(v, cfg)}</p>` +
-    '<p class="sub">Target coverage holds on average across exchangeable cases, not as a promise for this individual case.</p>' +
+    '<p class="hs-note">Target coverage holds on average across exchangeable cases, not as a promise for this individual case.</p>' +
     validation +
+    '</div>' +
     (compact ? '' : `<h3 class="hs-h">Agreement and quality checks</h3><ul class="checks" data-testid="agreement-checks">${checks}</ul>`) +
     provenance(v, method, provOpen)
   );

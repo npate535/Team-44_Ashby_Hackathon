@@ -82,6 +82,12 @@
   .cv-grid {
     grid-template-columns: minmax(0, 1.42fr) minmax(330px, 1fr);
   }
+  /* case_ui.js fitSide adds cv-stick only when the whole decision column fits in the viewport under the header */
+  .cv-grid > .cv-side.cv-stick {
+    position: sticky;
+    top: calc(var(--stick, 0px) + 16px);
+    align-self: start;
+  }
 }
 /* The case is fetched after the first paint (app.js draws a small "Loading…" card meanwhile). The footer under that card
    would jump down by the whole case height when it arrives (cumulative layout shift): it is left out until then. */
@@ -308,14 +314,24 @@
 }
 .rg:hover .rg-n,
 .rg:focus-visible .rg-n,
-.rg.peek .rg-n,
-.vw-canvas .rg-n {
+.rg.peek .rg-n {
   opacity: 1;
 }
+/* viewer: the value badge stays on every region; the index shows on the hovered or focused region only (as in the
+   case view), and on touch screens, which have no hover, both stay visible */
 .vw-canvas .rg-n {
   transform: scale(var(--inv-s, 1));
   transform-origin: 0 0;
+}
+.vw-canvas .rg:hover .rg-n,
+.vw-canvas .rg:focus-visible .rg-n,
+.vw-canvas .rg.peek .rg-n {
   opacity: 0.85;
+}
+@media (hover: none) {
+  .vw-canvas .rg-n {
+    opacity: 0.85;
+  }
 }
 .hm-expand {
   position: absolute;
@@ -924,7 +940,7 @@
 .hs-set .chips {
   margin-top: 12px;
 }
-.hs-say {
+.hs-callout {
   margin: 10px 0 4px;
   padding: 10px 12px;
   border-radius: 8px;
@@ -933,12 +949,30 @@
   font-size: var(--cv-fs-s);
   line-height: 1.55;
 }
+.hs-callout.warn {
+  border-color: color-mix(in srgb, var(--amb) 45%, var(--ln));
+  border-left: 3px solid var(--amb);
+}
+.hs-callout > p {
+  margin: 0;
+}
+.hs-callout > p + p {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ln);
+}
 .hs-say b {
   font-weight: 600;
+}
+.hs-note {
+  color: var(--mut);
 }
 .cv-coverage {
   font-size: var(--cv-fs-s);
   line-height: 1.55;
+}
+.hs-cov.warn {
+  color: var(--amb);
 }
 .validation-note {
   margin: 10px 0;
@@ -2541,6 +2575,12 @@ dialog.cv-compare::backdrop {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
   gap: 16px !important;
 }
+/* three selected regions per case: three columns, no empty fourth (phones keep the single-column fill) */
+@media (min-width: 761px) {
+  .cv-cells-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
 .cv-cell-fig {
   margin: 0;
   min-width: 0;
@@ -2559,6 +2599,11 @@ dialog.cv-compare::backdrop {
   display: block;
   object-fit: cover;
   background-color: var(--bl);
+}
+/* the overlay PNGs carry 1 px outlines drawn at 512 px; shown at about half size they wash out on H&E. Raising
+   saturation and contrast lifts the coloured outlines without regenerating the images. */
+.cv-cell-fig img[data-testid='cells-overlay-img'] {
+  filter: saturate(1.15) contrast(1.3);
 }
 .cv-cell-fig figcaption {
   display: flex;
@@ -2605,6 +2650,20 @@ dialog.cv-compare::backdrop {
 }
 .cf-intro {
   margin: 0 0 6px;
+}
+.cf-note {
+  margin: 0 0 6px;
+}
+.cf-note .src {
+  margin: 0 4px 0 0;
+}
+/* the shared percentile axis above the first group: same columns as a row, labels only */
+.cf-row.cf-axis {
+  padding: 2px 0 0;
+  border-bottom: 0;
+}
+.cv-cf.cf-nouse .cf-row {
+  grid-template-columns: minmax(0, 1.2fr) 110px minmax(160px, 2fr);
 }
 .cv .cv-cf {
   display: block;
@@ -2687,12 +2746,17 @@ dialog.cv-compare::backdrop {
   }
 }
 @media (max-width: 760px) {
-  .cf-row {
+  .cf-row,
+  .cv-cf.cf-nouse .cf-row {
     grid-template-columns: minmax(0, 1fr) auto;
   }
   .cf-ref,
-  .cf-use {
+  .cf-use,
+  .cf-axis .pct-ticks {
     grid-column: 1 / -1;
+  }
+  .cf-axis > span {
+    display: none;
   }
   .cs-stat b {
     font-size: 19px;
