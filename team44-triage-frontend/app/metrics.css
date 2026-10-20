@@ -1419,16 +1419,23 @@
 .tcga-limits h3 { margin: 0 0 0.4rem; font-size: 1rem; }
 /* the protocol and credit lines follow the list at its size */
 .tcga-limits .tcga-foot { margin-top: 8px; font-size: 12px; line-height: 1.55; }
-.tcga-intro,
-.tcga-specimens h2 {
+/* The page heading and the specimen section heading: the serif display face at the evaluation page's section-heading
+   size. `.mx h2` (theme.css) sets the text face on every h2 of these pages, so the page class is part of the selector. */
+.tcga-page .tcga-intro,
+.tcga-page .tcga-specimens h2 {
   margin: 0 0 0.35rem;
-  font-family: var(--display, Fraunces, Georgia, serif);
-  font-weight: 500;
-  font-size: 1.35rem;
+  font: 500 25px/1.25 var(--display, Fraunces, Georgia, serif);
+  font-variation-settings: var(--display-axes);
+  letter-spacing: -0.4px;
+  color: var(--ink);
+}
+@container mx (max-width: 599px) {
+  .tcga-page .tcga-intro,
+  .tcga-page .tcga-specimens h2 { font-size: 21px; }
 }
 .tcga-spec-lede { margin: 0 0 1rem; color: var(--mut); max-width: 42rem; line-height: 1.45; }
 .tcga-wl .mx-head { max-width: none; }
-/* the page h1 ("Outside BACH") is the top bar's; the intro heading names the test, at the section-heading size */
+/* the page h1 is the top bar's; the intro heading names the test, at the section-heading size */
 .tcga-claim .mx-lede { margin: 0; max-width: 62rem; line-height: 1.5; }
 .tcga-specimens-loading { min-height: 60vh; }
 a.back {

@@ -143,8 +143,9 @@ def test_specimen_list_has_set_filter_tier_toggles_and_one_tab_stop():
     assert len(re.findall(r'data-testid="tcga-row"', html)) == 4
     assert html.count('tabindex="0"') == 1 and html.count('class="row tr-2" tabindex="0"') == 1
     assert 'aria-label="TCGA-A7-A4SD_frozen_normal_02, Frozen normal, field 2, tier 3 Low confidence' in html
-    # one page title: the top bar's h1 says "Outside BACH"; the page does not repeat it
-    assert "Outside BACH" not in text_of(html) and "TCGA-BRCA external test" in html
+    # one page name: the page's heading is "External test (TCGA-BRCA)"; it is an h2 (the top bar holds the one h1)
+    assert "Outside BACH" not in text_of(html) and "TCGA-BRCA external test" not in text_of(html)
+    assert '<h2 class="tcga-intro">External test (TCGA-BRCA)</h2>' in html and "<h1" not in html
 
 
 @node

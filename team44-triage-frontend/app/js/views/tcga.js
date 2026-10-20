@@ -23,6 +23,8 @@ const CROP_ID = /^(.+?)_(ffpe|frozen)_([a-z]+)_(\d+)$/;
 // worklist case ids (BACH fields, their simulated variants, composites; DEV_ in the dev set), never TCGA specimens
 const WORKLIST_ID = /^(BACH|COMP|DEV)_[A-Za-z0-9_]+$/;
 const PHONE = '(max-width: 640px)';
+// The page's one name, used for its heading (the top bar's h1 shows the navigation label).
+export const PAGE_NAME = 'External test (TCGA-BRCA)';
 
 /**
  * The limitations, in plain language. Each restates one entry of external_tcga.json `limitations` (`covers` is a phrase
@@ -256,9 +258,9 @@ function story(ST, idx) {
   const bach = bachBlock(ST);
   const model = (T && T.model) || (idx && idx.model) || '—';
 
-  // The page name ("Outside BACH") is the top bar's h1; the page opens with what was tested.
+  // The top bar's h1 carries the navigation label; the page's own heading names the test.
   const claim = `<header class="mx-head tcga-claim" data-testid="tcga-claim">
-    <h2 class="tcga-intro">TCGA-BRCA external test</h2>
+    <h2 class="tcga-intro">${esc(PAGE_NAME)}</h2>
     <p class="mx-lede">Same probe, trained <b>only on BACH</b> — applied unchanged to never-seen
       TCGA-BRCA tissue (other hospitals, scanners, stains, and real frozen sections).
       No TCGA training, no threshold retuning on this set. Research prototype — not clinically validated.</p>
@@ -333,7 +335,7 @@ function story(ST, idx) {
   const normalTier = normalTierCount(idx);
 
   const tcgaCard = `<section class="tcga-panel" data-testid="tcga-external">
-      <h3>TCGA external (unchanged probe)</h3>
+      <h3>TCGA-BRCA external (same model)</h3>
       <p class="tcga-panel-note">Out-of-domain · slide-level calls · not the same metric as BACH accuracy ·
         model <code>${esc(model)}</code>${T && T.quantized === false ? ' · full precision' : ''}</p>
       <dl class="tcga-dl">
@@ -546,7 +548,7 @@ function specimenTable(ST, idx) {
 function worklist(ST) {
   const idx = ST.tcga;
   if (!idx && !ST.metrics) {
-    return `<div class="mx tcga-page" data-testid="tcga-loading"><header class="mx-head tcga-claim"><h2 class="tcga-intro">TCGA-BRCA external test</h2>
+    return `<div class="mx tcga-page" data-testid="tcga-loading"><header class="mx-head tcga-claim"><h2 class="tcga-intro">${esc(PAGE_NAME)}</h2>
       <p class="mx-lede">Loading external generalization results…</p></header></div>`;
   }
   return `<div class="mx tcga-page" data-testid="tcga-page">
