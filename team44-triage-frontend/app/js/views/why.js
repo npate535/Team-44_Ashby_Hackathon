@@ -151,6 +151,8 @@ function whyRow(r, hm, maxAbs, cells, metrics) {
     .filter(Boolean)
     .join(' ');
   const tipText = [lvl.tip, spread.trim()].filter(Boolean).join(' · ');
+  // a touch screen never shows the title tooltip: the selected (tapped) row prints it instead (case.css, hover: none)
+  const touchTip = tipText && hm.why === r.id ? `<span class="wr-tip">${esc(tipText)}</span>` : '';
   return (
     `<button type="button" class="why-row${hm.why === r.id ? ' on' : ''}${spot && spot.failed ? ' unreliable' : ''}" data-testid="why-bar-${esc(r.id)}" data-why="${esc(r.id)}" data-tiles="${esc(tiles.join(','))}"${tipText ? ` title="${esc(tipText)}"` : ''} ` +
     `aria-pressed="${hm.why === r.id}" aria-label="${esc(r.label)}. ${esc(sentence)} Contribution ${esc(isNum(r.contribution) ? signed(r.contribution) : 'not available')}.${tipText ? ' ' + esc(tipText) + '.' : ''}${spot ? ` AI spot check ${spot.ok} of ${spot.n}, not pathologist-validated${spot.failed ? '; failed, association only' : ''}.` : ''}${tiles.length ? ` Highlights regions ${esc(tiles.join(', '))}.` : ''}">` +
@@ -161,8 +163,8 @@ function whyRow(r, hm, maxAbs, cells, metrics) {
     `<span class="wr-bar">${pushBar(r.contribution, maxAbs)}</span>` +
     `<span class="v ${push.cls}"><b>${isNum(r.contribution) ? signed(r.contribution) : '—'}</b><span>${esc(push.short)}</span></span>` +
     (visibleNote || tiles.length
-      ? `<span class="wr-say">${esc(visibleNote)}${tiles.length ? `${visibleNote ? ' ' : ''}<span class="wr-tiles">Strongest regions ${esc(tiles.join(', '))}</span>` : ''}</span>`
-      : '') +
+      ? `<span class="wr-say">${esc(visibleNote)}${tiles.length ? `${visibleNote ? ' ' : ''}<span class="wr-tiles">Strongest regions ${esc(tiles.join(', '))}</span>` : ''}${touchTip}</span>`
+      : touchTip ? `<span class="wr-say tip-only">${touchTip}</span>` : '') +
     '</button>'
   );
 }
@@ -248,7 +250,7 @@ export function why(v, hm, cfg, metrics) {
     .join('');
   const noLevels = !rows.some((r) => !r.measured && isNum(r.valueStd));
   const levelNote = noLevels
-    ? '<p class="sub why-nolevel" data-testid="why-no-level">This case file has no training-standardized levels for the text-prompt criteria, so only each feature\'s push is shown; hover a row for its mean tile z.</p>'
+    ? '<p class="sub why-nolevel" data-testid="why-no-level">This case file has no training-standardized levels for the text-prompt criteria, so only each feature\'s push is shown; point at or tap a row for its mean tile z.</p>'
     : '';
   return (
     regionPush(v, metrics) +
@@ -257,7 +259,7 @@ export function why(v, hm, cfg, metrics) {
     levelNote +
     `<div class="why-key" aria-hidden="true"><span>Feature</span><span>Level in this case</span><span class="axis"><span>← away</span><span>push on the invasive score</span><span>toward →</span></span></div>` +
     groups +
-    '<p class="sub why-foot">Level: the case feature in standard deviations from the average training case (the concept model\'s input); typical = within ±0.5 SD. Measured cell features use the percentile against benign/normal reference cases. Push: the concept model\'s learned weights × this case\'s standardized features for that criterion (the 3-strongest-region mean shown as the level, plus the share of regions above threshold), so the push need not follow the level\'s sign. Hover a row for the mean tile z of its 3 strongest regions and the standardized share of regions above threshold. Associated features, not causes; not a Nottingham grade. Select a row to outline its regions on the image.</p>'
+    '<p class="sub why-foot">Level: the case feature in standard deviations from the average training case (the concept model\'s input); typical = within ±0.5 SD. Measured cell features use the percentile against benign/normal reference cases. Push: the concept model\'s learned weights × this case\'s standardized features for that criterion (the 3-strongest-region mean shown as the level, plus the share of regions above threshold), so the push need not follow the level\'s sign. Point at or tap a row for the mean tile z of its 3 strongest regions and the standardized share of regions above threshold. Associated features, not causes; not a Nottingham grade. Select a row to outline its regions on the image.</p>'
   );
 }
 
@@ -587,6 +589,6 @@ export function summary(v) {
     .join('');
   return (
     `<div class="sum-badges">${badge}</div>${ps}` +
-    '<p class="sub">Written only from structured findings; it never saw the image. Hover or focus a finding to see what it refers to; select it to go there.</p>'
+    '<p class="sub">Written only from structured findings; it never saw the image. Point at or focus a finding to see what it refers to; tap or click it to go there.</p>'
   );
 }

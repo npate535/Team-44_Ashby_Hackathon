@@ -625,8 +625,12 @@ class Backend:
 # `?w=N` returns a downscaled JPEG (cached in memory, keyed by file + mtime); the full image is unchanged without it.
 THUMB_MIN_PX, THUMB_MAX_PX = 64, 1024
 # Widths the app requests as /thumbs/<w>/<kind>/<name>; scripts/package_vercel.py builds the same files for the CDN,
-# which ignores `?w=` (js/adapter.js THUMB_WIDTHS must match).
-STATIC_THUMB_WIDTHS = (240, 320, 400)
+# which ignores `?w=` (js/adapter.js THUMB_WIDTHS must match). 800 and 1024 are the case view's inline image (srcset,
+# js/views/heatmap.js), so the 1536-px display JPEG is only fetched by the full-screen viewers or a high-density wide
+# screen. Those two widths exist for case images only (`images`), and the package builds them only for the worklist
+# cases' display images: for every image, TCGA included, the upload measured 1.15 GB, past Vercel's 1 GB CLI limit.
+STATIC_THUMB_WIDTHS = (240, 320, 400, 800, 1024)
+INLINE_THUMB_WIDTHS = (800, 1024)
 STATIC_THUMB_KINDS = ("images", "tcga")
 # Bounded by bytes, not entries: any width in [64, 1024] is accepted, so 2048 near-1024-px entries would hold ~0.5 GB.
 THUMB_CACHE_BYTES = 64 * 1024 * 1024
@@ -650,7 +654,8 @@ def thumbnail(path: Path, width: int) -> bytes:
     data = buf.getvalue()
     with _THUMBS_LOCK:
         if sum(map(len, _THUMBS.values())) + len(data) > THUMB_CACHE_BYTES:
-            _THUMBS.clear()                      # a demo's thumbnails (3 widths x a few hundred images) fit easily
+            _THUMBS.clear()                      # the small widths fit for every image; 800/1024 (~0.14 / 0.2 MB) for
+                                                 # the few dozen cases a session opens
         _THUMBS[key] = data
     return data
 
@@ -838,7 +843,8 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
 
     @app.get("/thumbs/{width}/{kind}/{name}", include_in_schema=False)
     def static_thumb(width: int, kind: str, name: str) -> Response:
-        if width not in STATIC_THUMB_WIDTHS or kind not in STATIC_THUMB_KINDS:
+        if width not in STATIC_THUMB_WIDTHS or kind not in STATIC_THUMB_KINDS or (
+                width in INLINE_THUMB_WIDTHS and kind != "images"):   # as on the CDN (scripts/package_vercel.py)
             raise db.NotFoundError(f"thumbs/{width}/{kind}/{name} not found")
         path = backend.media_path(kind, name)
         if not path.is_file():
