@@ -1185,13 +1185,29 @@ export function spotVerdicts(sc) {
     if (!bucket) continue;
     bucket.n += 1;
     if (r.verdict in bucket) bucket[r.verdict] += 1;
-    reviewers.set(r.reviewer || 'unnamed', r.reviewer_kind || 'unknown');
+    const who = reviewers.get(r.reviewer || 'unnamed') || { kind: r.reviewer_kind || 'unknown', n: 0 };
+    who.n += 1;
+    reviewers.set(r.reviewer || 'unnamed', who);
   }
   if (!Object.keys(out.concepts).length && sc.summary && sc.summary.concept)
     for (const [id, b] of Object.entries(sc.summary.concept)) out.concepts[id] = { n: b.n, acceptable: b.acceptable, unsure: null, not_acceptable: null };
-  out.reviewers = [...reviewers.entries()].map(([name, kind]) => ({ name, kind }));
+  out.reviewers = [...reviewers.entries()].map(([name, w]) => ({ name, kind: w.kind, n: w.n })).sort((a, b) => b.n - a.n); // most reviews first
   out.kinds = [...new Set(out.reviewers.map((r) => r.kind))];
   return out;
+}
+// Reviewer names as recorded carry qualifiers ("Claude Opus 5.5 (AI, not a pathologist)") and one tool label
+// ("Codex UI verification"); the page shows the plain name and states AI or human separately.
+const REVIEWER_PLAIN = [[/^Codex UI (verification|check)$/i, 'Codex UI test']];
+export function reviewerName(name) {
+  const base = String(name || '').replace(/\s*\((?:AI|human)\b[^)]*\)\s*$/i, '').trim() || 'Unnamed reviewer';
+  for (const [re, plain] of REVIEWER_PLAIN) if (re.test(base)) return plain;
+  return base;
+}
+const KIND_TEXT = { ai: 'AI', human: 'human' };
+/** "Claude Opus 5.5 (AI, 200 reviews)" for one entry of spotVerdicts().reviewers. */
+export function reviewerText(r) {
+  const n = isNum(r.n) ? `, ${r.n} review${r.n === 1 ? '' : 's'}` : '';
+  return `${reviewerName(r.name)} (${KIND_TEXT[r.kind] || r.kind || 'unknown'}${n})`;
 }
 const LOW_PLAUSIBILITY = 0.25; // share of top regions judged acceptable at or below which a concept is flagged
 function lowPlausibility(ev) {
@@ -1218,7 +1234,7 @@ function figSpotcheck(ST, ev, L) {
     wide: true,
     side: true,
     title: 'Spot check of top-scoring regions',
-    caveat: `${ai ? 'AI-reviewed (not a pathologist)' : `Reviewed by: ${v.kinds.join(', ')}`}: a plausibility check of each concept's ${n} highest-scoring regions, not pathologist validation. Reviewers: ${v.reviewers.map((r) => (/\bAI\b/.test(r.name) ? r.name : `${r.name} (${r.kind})`)).join('; ')}.`,
+    caveat: `${ai ? 'AI-reviewed (not a pathologist)' : `Reviewed by ${v.kinds.map((k) => KIND_TEXT[k] || k).join(' and ')} reviewers`}: a plausibility check of each concept's ${n} highest-scoring regions, not pathologist validation. Reviewers: ${v.reviewers.map(reviewerText).join('; ')}.`,
     takeaway: `${high.length ? `${high.map(label).join(', ')}: at least 85% of top regions looked right. ` : ''}${low.length ? `${low.map((id) => `${label(id)} (${v.concepts[id].acceptable}/${v.concepts[id].n})`).join(', ')} rarely did, so explanations that cite these concepts should be discounted.` : 'No concept fell to 25% or below.'}`,
     chart,
     population: `${n} top-scoring regions per concept from the test split${v.cells ? `; ${v.cells.n} cell overlays` : ''}`,
@@ -1818,8 +1834,48 @@ const CITATIONS = [
   ['Calibration and conformal', 'Guo C, et al. (temperature scaling), ICML 2017; Sadinle M, et al. (LAC), JASA 2019; Romano Y, et al. (APS), NeurIPS 2020.'],
   ['ABMIL', 'Ilse M, Tomczak J, Welling M. Attention-based deep multiple instance learning. ICML 2018.'],
   ['Triage cost', 'Annarumma M, et al. Automated triaging of adult chest radiographs. Radiology, 2019.'],
-  ['Compute and tooling', 'NCSA Delta; ncsa/ashby-hackathon-2026 tooling (MIT); Lumen for grounded summaries.']
+  ['Compute and tooling', 'NCSA Delta; ncsa/ashby-hackathon-2026 tooling (MIT).']
 ];
+// Who wrote the shipped text and who reviewed the evidence, read from the data (eval/fact_sheet.json counts the case
+// files by summary generator and the plain-language records by model; eval/spotcheck.json holds every review). A row
+// is left out when its file is missing, rather than guessed.
+const PROVIDER_CLI = { claude: 'the Claude Code CLI', cursor: 'the Cursor agent CLI' };
+function llmName(id) {
+  const m = /^claude-([a-z]+)-(\d+)-(\d+)$/.exec(String(id));
+  return m ? `Claude ${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2]}.${m[3]} (Anthropic)` : String(id);
+}
+function creditRows(ev) {
+  const rows = [];
+  const lm = get(ev, 'fact_sheet.components.language_models');
+  const gens = get(lm, 'case_summaries.generators');
+  if (gens && typeof gens === 'object' && Object.keys(gens).length) {
+    const total = sum(Object.values(gens).filter(isNum));
+    const text = Object.entries(gens).map(([g, n]) => {
+      const files = g === 'template' && n === total ? `all ${countText(n)} case files` : `${countText(n)} case file${n === 1 ? '' : 's'}`;
+      if (g === 'template') return `a deterministic template from the structured findings, in ${files}; no language model writes them`;
+      if (g.startsWith('lumen:')) return `${g.slice(6).split('+')[0]} through Lumen${g.includes('+template') ? ' with template sentences' : ''}, in ${files}`;
+      return `${g}, in ${files}`;
+    });
+    rows.push(['Case summaries', `${text.join('; ')}.`.replace(/^./, (c) => c.toUpperCase())]);
+  }
+  const models = get(lm, 'plain_language_tab.models');
+  if (models && typeof models === 'object' && Object.keys(models).length) {
+    const text = Object.entries(models).map(([key, n]) => {
+      const m = /^(.*) \(([^)]*)\)$/.exec(key) || [key, key, ''];
+      return `${llmName(m[1])}${PROVIDER_CLI[m[2]] ? ` through ${PROVIDER_CLI[m[2]]}` : m[2] ? ` (${m[2]})` : ''}, ${countText(n)} case text${n === 1 ? '' : 's'}`;
+    });
+    rows.push(['Plain-language evidence text', `${text.join('; ')}. Optional; written from the measured evidence, with every number checked against it; not itself evidence.`]);
+  }
+  const v = spotVerdicts(ev.spotcheck);
+  if (v.reviewers.length) {
+    const who = (r) => `${reviewerName(r.name)}${/^Claude\b/.test(reviewerName(r.name)) ? ' (Anthropic)' : ''}, ${countText(r.n)} review${r.n === 1 ? '' : 's'}`;
+    const by = (kind) => v.reviewers.filter((r) => r.kind === kind);
+    const other = v.reviewers.filter((r) => r.kind !== 'ai' && r.kind !== 'human');
+    const parts = [by('ai').length ? `AI spot check: ${by('ai').map(who).join('; ')}` : '', by('human').length ? `Human review: ${by('human').map(who).join('; ')}` : '', other.length ? `Other: ${other.map(who).join('; ')}` : ''].filter(Boolean);
+    rows.push(['Evidence review', `${parts.join('. ')}.${by('human').length ? '' : ' No human or pathologist review is recorded.'}`]);
+  }
+  return rows;
+}
 function limitationsSection(ST, ev, m, L, ctx) {
   const files = Object.entries(ev)
     .filter(([, d]) => d && typeof d === 'object')
@@ -1827,7 +1883,7 @@ function limitationsSection(ST, ev, m, L, ctx) {
   const expected = Object.keys(m.expected || {}).filter((k) => !ev[k]);
   return `<figure class="mx-fig mx-wide" data-testid="limitations"><figcaption><h3>Limitations</h3></figcaption><ul class="mx-limits">${LIMITATIONS.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></figure>` +
     figDataQuality(ST, ev, L) +
-    `<figure class="mx-fig"><figcaption><h3>Datasets, models and methods</h3></figcaption><dl class="mx-cite">${CITATIONS.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></figure>` +
+    `<figure class="mx-fig"><figcaption><h3>Datasets, models, tools and reviewers</h3></figcaption><dl class="mx-cite">${[...CITATIONS, ...creditRows(ev)].map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></figure>` +
     `<figure class="mx-fig mx-wide"><figcaption><h3>Data provenance</h3><p class="mx-take">Every number on this page is read from these files at page load; re-running the pipeline updates the page.${expected.length ? ` Not produced in this run: ${esc(expected.map((e) => `${e}.json`).join(', '))}.` : ''}</p></figcaption>${table(['File', 'Created (UTC)', 'Git commit', 'Kind'], files, { title: 'Data provenance' })}${(m.figures || []).length ? details('figures-png', `Static PNG figures (${m.figures.length})`, `<div class="mx-pngs">${m.figures.map((f) => `<a href="${esc(ctx && ctx.assetUrl ? ctx.assetUrl(f.url) : f.url)}" target="_blank" rel="noopener">${esc(f.file)}</a>`).join('')}</div>`) : ''}</figure>`;
 }
 

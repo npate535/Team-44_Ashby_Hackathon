@@ -254,3 +254,32 @@ def test_deletion_figure_without_the_contribution_arm_still_renders(payloads):
     assert "Top 3 tile-probe regions" in fig and "What this shows" in fig
     for junk in ("NaN", "undefined", "[object Object]"):
         assert junk not in fig
+
+
+def test_credits_come_from_the_data_and_name_reviewers_plainly(payloads):
+    p, cfg, tmp = payloads
+    full = copy.deepcopy(p["full"])
+    full["eval"]["fact_sheet"] = {"name": "fact_sheet", "components": {"language_models": {
+        "case_summaries": {"generators": {"template": 328}},
+        "plain_language_tab": {"models": {"claude-sonnet-5-5 (claude)": 328}}}}}
+    full["eval"]["spotcheck"] = {"name": "spotcheck", "reviews": [
+        {"item_id": f"concept:invasion:X:{i}", "reviewer": "Claude Opus 5.5 (AI, not a pathologist)",
+         "reviewer_kind": "ai", "verdict": "acceptable"} for i in range(3)] + [
+        {"item_id": "cells:overlay:X:0", "reviewer": "Codex UI verification (AI, no clinical assessment)",
+         "reviewer_kind": "ai", "verdict": "unsure"}]}
+    html = _render(full, cfg, tmp)["html"]
+    cite = html[html.index("Datasets, models, tools and reviewers"):]
+    cite = cite[:cite.index("</figure>")]
+    assert "Lumen" not in cite and "gemma" not in cite
+    assert "<dt>Case summaries</dt><dd>A deterministic template from the structured findings, in all 328 case files; " \
+           "no language model writes them.</dd>" in cite
+    assert "Claude Sonnet 5.5 (Anthropic) through the Claude Code CLI, 328 case texts" in cite
+    assert "AI spot check: Claude Opus 5.5 (Anthropic), 3 reviews; Codex UI test, 1 review." in cite
+    assert "No human or pathologist review is recorded." in cite
+    assert "Reviewers: Claude Opus 5.5 (AI, 3 reviews); Codex UI test (AI, 1 review)." in html
+    for raw in ("5.5 (AI, not a pathologist)", "no clinical assessment", "Codex UI verification"):
+        assert raw not in html, raw
+    # without the fact sheet the authorship rows are left out, never guessed
+    del full["eval"]["fact_sheet"]
+    html = _render(full, cfg, tmp)["html"]
+    assert "<dt>Case summaries</dt>" not in html and "<dt>Plain-language evidence text</dt>" not in html
