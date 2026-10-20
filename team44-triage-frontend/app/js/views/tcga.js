@@ -26,6 +26,16 @@ const PHONE = '(max-width: 640px)';
 // The page's one name, used for its heading (the top bar's h1 shows the navigation label).
 export const PAGE_NAME = 'External test (TCGA-BRCA)';
 
+// Flag tags in the Flags column, as the worklist shows them (worklist.js FLAG_TAG); "Invasive suggested" is carried by
+// the Suggested column itself, so it gets no tag.
+const FLAG_TAG = {
+  aggressive_in_conformal_set: { text: 'Invasive in set', tone: 'eos', title: 'Safety rule: Invasive is in the 90% confidence set although it is not the top suggestion' },
+  set_size_gt_1: { text: 'Ambiguous', tone: 'amb', title: 'More than one class in the confidence set' },
+  empty_set: { text: 'Empty set', tone: 'amb', title: 'No class reached the confidence threshold' },
+  low_reliability: { text: 'Low reliability', tone: 'amb', title: 'Reliability flag: the read may not be trustworthy' },
+  insufficient_tissue: { text: 'Little tissue', tone: 'amb', title: 'Too few regions passed tissue quality control' }
+};
+
 /**
  * The limitations, in plain language. Each restates one entry of external_tcga.json `limitations` (`covers` is a phrase
  * of that entry; tests/test_tcga_view_static.py checks every entry is covered) and the protocol, docs/EXTERNAL_TCGA_R2.md.
@@ -438,6 +448,19 @@ function itemToCase(item, model) {
   };
 }
 
+// The Flags cell: compact tags as on the worklist, nothing for "Invasive suggested" (the Suggested column says it).
+function flagTags(v) {
+  const c = (v.reasons || []).map((r) => r.code);
+  return c
+    .filter((code) => FLAG_TAG[code] && !(code === 'aggressive_in_conformal_set' && c.includes('aggressive_top')))
+    .map((code) => {
+      const f = FLAG_TAG[code];
+      const text = code === 'set_size_gt_1' ? `${v.setSize} classes` : f.text;
+      return `<span class="ftag ${f.tone}" title="${esc(f.title)}" data-testid="reason-${esc(code)}">${esc(text)}</span>`;
+    })
+    .join('');
+}
+
 // One row is in the tab order (the last one used, else the first shown): the list is one tab stop, and J/K and the
 // arrow keys move inside it (app.js). The id is a real link (new tab, a screen reader's links list) but not a tab stop.
 function row(item, ST, model, roving) {
@@ -466,7 +489,7 @@ function row(item, ST, model, roving) {
     `<td class="c-sugg"><span class="sugg${v.top === 'Invasive' ? ' inv' : ''}">${esc(sugg)}</span></td>` +
     `<td class="c-p"><span class="tcga-pk" aria-hidden="true">P(Invasive)</span><span class="pnum${v.risk >= 50 ? ' hi' : ''}">${esc(pInv)}</span></td>` +
     `<td class="c-set"><span class="chips">${setChips(v)}</span></td>` +
-    `<td class="c-flags"><span class="sub">${esc((v.reasons || []).map((r) => r.label).join(' · ') || '—')}</span></td>` +
+    `<td class="c-flags">${flagTags(v) || '<span class="none" aria-label="no flags">–</span>'}</td>` +
     '</tr>'
   );
 }

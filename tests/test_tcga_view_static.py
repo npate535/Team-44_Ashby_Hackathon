@@ -192,6 +192,29 @@ def test_panels_say_loading_while_the_evaluation_is_on_its_way():
     assert 'data-testid="tcga-bach-missing"' in html and "Loading…" not in text_of(html)
 
 
+@node
+def test_flags_column_shows_compact_tags_like_the_worklist():
+    st = state()
+    base = st["tcga"]["items"][0]
+    st["tcga"]["items"] = [
+        {**base, "case_id": "TCGA-A7-A4SD_ffpe_tumor_00", "tier": 2, "conformal_set": ["Invasive"],
+         "tier_reasons": ["aggressive_top", "aggressive_in_conformal_set"],
+         "probs": {"Normal": 0.0, "Benign": 0.0, "InSitu": 0.01, "Invasive": 0.99}, "p_invasive": 0.99},
+        {**base, "case_id": "TCGA-A7-A4SD_frozen_tumor_00", "tier": 2, "conformal_set": ["InSitu", "Invasive"],
+         "tier_reasons": ["aggressive_in_conformal_set", "set_size_gt_1"],
+         "probs": {"Normal": 0.0, "Benign": 0.0, "InSitu": 0.6, "Invasive": 0.4}, "p_invasive": 0.4},
+        base,                                                            # tier 3, {Normal, InSitu}
+    ]
+    html = render(st)
+    flags = dict(re.findall(r'data-case-id="([^"]+)".*?<td class="c-flags">(.*?)</td>', html, re.S))
+    assert flags["TCGA-A7-A4SD_ffpe_tumor_00"] == '<span class="none" aria-label="no flags">–</span>'
+    tags = flags["TCGA-A7-A4SD_frozen_tumor_00"]
+    assert 'data-testid="reason-aggressive_in_conformal_set">Invasive in set</span>' in tags and ">2 classes<" in tags
+    assert ">2 classes<" in flags["TCGA-A7-A4SD_frozen_normal_02"] and "Invasive in set" not in flags[
+        "TCGA-A7-A4SD_frozen_normal_02"]
+    assert " · " not in "".join(flags.values()) and "suggested" not in "".join(flags.values())
+
+
 def _build():
     path = config.REPO_ROOT / "scripts" / "build_tcga_cases.py"
     spec = importlib.util.spec_from_file_location("build_tcga_cases", path)
