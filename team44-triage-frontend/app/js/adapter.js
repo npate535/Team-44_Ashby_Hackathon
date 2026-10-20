@@ -61,7 +61,7 @@ export function cssUrl(u) {
   return encodeURI(String(u)).replace(/['()]/g, (c) => '%' + c.charCodeAt(0).toString(16));
 }
 /** Widths built ahead of time at /thumbs/<w>/<kind>/<name> (backend route; static files on the deployed site). */
-export const THUMB_WIDTHS = [240, 320, 400];
+export const THUMB_WIDTHS = [240, 320, 400, 800, 1024];
 /** A downscaled copy of a media image for thumbnails: the pre-built path for those widths, else the backend's `?w=`
  *  (mock/static servers ignore the query and serve the full image). */
 export function thumbUrl(url, width) {

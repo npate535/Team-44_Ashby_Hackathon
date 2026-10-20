@@ -556,7 +556,15 @@ def test_static_thumbnail_paths_match_the_query_thumbnails(tmp_path):
     res = client.get("/thumbs/320/images/demo_0001.jpg")
     assert res.status_code == 200 and res.headers["content-type"] == "image/jpeg"
     assert res.content == client.get("/images/demo_0001.jpg?w=320").content
+    for width in (800, 1024):                                                         # the inline heatmap image srcset
+        res = client.get(f"/thumbs/{width}/images/demo_0001.jpg")
+        assert res.status_code == 200 and res.content == client.get(f"/images/demo_0001.jpg?w={width}").content
     assert client.get("/thumbs/128/images/demo_0001.jpg").status_code == 404           # only the pre-built widths
+    tcga = tmp_path / "art" / "tcga" / "images"                                       # a TCGA specimen: small widths
+    tcga.mkdir(parents=True)                                                          # only, as the package builds
+    (tcga / "demo_0001.jpg").write_bytes((FIXTURES / "demo_0001.jpg").read_bytes())
+    assert client.get("/thumbs/320/tcga/demo_0001.jpg").status_code == 200
+    assert client.get("/thumbs/800/tcga/demo_0001.jpg").status_code == 404
     assert client.get("/thumbs/320/eval/demo_0001.jpg").status_code == 404
     assert client.get("/thumbs/320/images/missing.jpg").status_code == 404
 

@@ -679,7 +679,10 @@ function openCompare(trigger, which) {
   c.d.showModal();
   stageKb(kbInput);
   showRef(which === 'contrast' ? c.list.length - 1 : Number(which) || 0);
-  c.panes[1].stage.focus({ preventScroll: true });
+  // On a phone the dialog scrolls (case.css) and WebKit scrolls a focused element into view despite preventScroll,
+  // which opened it with the bar out of sight: focus the top pane there (pan and zoom are linked either way).
+  const scrolls = c.d.scrollHeight > c.d.clientHeight;
+  c.panes[scrolls ? 0 : 1].stage.focus({ preventScroll: true });
 }
 
 // ---- event wiring -------------------------------------------------------------------------------------------------------------
@@ -805,6 +808,12 @@ document.addEventListener(
   (e) => {
     const img = e.target;
     if (!(img instanceof HTMLImageElement) || !img.hasAttribute('data-cv-img')) return;
+    if (img.hasAttribute('srcset')) {
+      // a downscaled copy failed (heatmap.js inlineImg): fall back to the full display image in `src`
+      img.removeAttribute('srcset');
+      img.removeAttribute('sizes');
+      return;
+    }
     const box = img.closest('.cv-thumb, .cv-hm, .cv-crop');
     if (box) {
       box.classList.add('is-missing');

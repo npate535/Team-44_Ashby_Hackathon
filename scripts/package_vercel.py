@@ -15,7 +15,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from backend.app import STATIC_THUMB_WIDTHS, thumbnail  # noqa: E402  (same encoder as the local /thumbs route)
+from backend.app import INLINE_THUMB_WIDTHS, STATIC_THUMB_WIDTHS, thumbnail  # noqa: E402  (same encoder as /thumbs)
 
 
 def main():
@@ -73,13 +73,22 @@ def main():
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(path, dest)
             manifest[str(relative)] = hashlib.sha256(path.read_bytes()).hexdigest()
-    # The CDN ignores `?w=`: pre-build the thumbnail widths the app requests at /thumbs/<w>/<kind>/<name>.
+    # The CDN ignores `?w=`: pre-build the thumbnail widths the app requests at /thumbs/<w>/<kind>/<name>. The inline
+    # widths (the case view's image srcset) only for the worklist cases' display images: reference-only and TCGA images
+    # are not requested at those widths, and building them for every image took the upload to 1.15 GB (Vercel CLI: 1 GB).
+    inline = set()
+    for path in (ROOT / 'artifacts' / 'cases').glob('*.json'):
+        display = str((json.loads(path.read_text()).get('image') or {}).get('display') or '')
+        if display.startswith('images/'):
+            inline.add(Path(display).name)
     n_thumbs = 0
     for kind, folder in (('images', ROOT / 'artifacts' / 'images'), ('tcga', tcga / 'images')):
         for path in sorted(folder.glob('*')):
             if not path.is_file() or path.suffix.lower() not in ('.jpg', '.jpeg'):
                 continue
             for width in STATIC_THUMB_WIDTHS:
+                if width in INLINE_THUMB_WIDTHS and not (kind == 'images' and path.name in inline):
+                    continue
                 dest = out / 'public' / 'thumbs' / str(width) / kind / path.name
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 dest.write_bytes(thumbnail(path, width))

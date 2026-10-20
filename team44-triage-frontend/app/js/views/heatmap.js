@@ -5,7 +5,23 @@
 // model's centered calibrated logit (prediction.attribution), pink toward invasive and blue away.
 // Surgical: the four margins as per-segment strips (BUILD_PLAN §A12), a specimen diagram and per-margin score bars.
 // Every number shown comes from the case JSON; nothing here is a diagnosis.
-import { esc, MARGINS, num } from '../adapter.js';
+import { esc, MARGINS, num, thumbUrl } from '../adapter.js';
+
+// The inline case image is shown at most ~880 CSS px wide, so it is served from downscaled copies (the 800 / 1024 px
+// /thumbs widths) and the 1536-px display JPEG is only picked by a high-density wide screen. `src` stays the full image:
+// the full-screen viewer copies it (case_ui.js openViewer) and it is the fallback when a copy fails to load. The overlay
+// does not depend on which file is shown: it is drawn in the case's own 2048 x 1536 coordinates over a box of that aspect.
+// The copies exist for worklist case images (images/) only, not TCGA specimens (backend/app.py INLINE_THUMB_WIDTHS).
+const DISPLAY_PX = 1536; // width of every display JPEG (artifacts/images, artifacts/tcga/images)
+const INLINE_WIDTHS = [800, 1024];
+// measured image width per layout (case.css): phones vw - 68, one column vw - 92 or less, two columns ~59vw - 95 up to 883
+const INLINE_SIZES = '(min-width: 1680px) 883px, (min-width: 1151px) calc(59vw - 95px), (min-width: 761px) calc(100vw - 92px), calc(100vw - 68px)';
+function inlineImg(src, assetUrl) {
+  const full = assetUrl(src);
+  if (!/^\/?images\//.test(String(src || ''))) return `src="${esc(full)}"`;
+  const set = [...INLINE_WIDTHS.map((w) => `${thumbUrl(full, w)} ${w}w`), `${full} ${DISPLAY_PX}w`].join(', ');
+  return `src="${esc(full)}" srcset="${esc(set)}" sizes="${INLINE_SIZES}"`;
+}
 
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 const Z_FULL = 3; // concept layers: z <= 0 is not shaded, z >= Z_FULL is fully shaded (display mapping only)
@@ -252,7 +268,7 @@ export function heatmap(v, hm, assetUrl) {
   const w = num(v.image.w),
     h = num(v.image.h);
   return (
-    `<div class="hm cv-hm" style="aspect-ratio:${w}/${h}"><img src="${esc(assetUrl(v.image.src))}" alt="${esc(imageAlt(v, hm))}" data-testid="heatmap-img" data-cv-img decoding="async">` +
+    `<div class="hm cv-hm" style="aspect-ratio:${w}/${h}"><img ${inlineImg(v.image.src, assetUrl)} alt="${esc(imageAlt(v, hm))}" data-testid="heatmap-img" data-cv-img decoding="async">` +
     overlaySvg(v, hm) +
     regionGrid(v, hm) +
     `<button type="button" class="hm-expand" data-cv-open="viewer" data-testid="viewer-open" aria-label="Open the full-screen image viewer"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5"/></svg><span>Full screen</span></button>` +
@@ -289,7 +305,7 @@ export function heatmapLegend(v, hm) {
     '<span class="lg-key"><i class="sw-hatch" aria-hidden="true"></i><span>Hatched: failed tissue QC, not read by the model</span></span>' +
     `<span class="lg-key${linked ? '' : ' dim'}"><i class="sw-hl" aria-hidden="true"></i><span>${linked ? `Outlined: regions linked to <b>${esc(conceptLabel(v, hm.why) || 'the selection')}</b> (${hm.hl.map(esc).join(', ')})` : 'Outlined: regions linked to a selected feature'}</span></span>` +
     '</div>' +
-    `<p class="lg-note">${esc(scale.note)} Hover or focus a region for its values; click it to zoom in.</p></div>`
+    `<p class="lg-note">${esc(scale.note)} Point at or focus a region for its values; tap or click to zoom in.</p></div>`
   );
 }
 
@@ -375,7 +391,7 @@ export function marginOverlay(v, assetUrl, { names = null } = {}) {
     names && name ? `<span class="ms-side ${pos} ${m ? marginStatus(m, name) : ''}">${esc(cap(name))}</span>` : '';
   return (
     `<div class="ms-frame${names ? ' labelled' : ''}">${side('top', n.top)}${side('bottom', n.bottom)}${side('left', n.left)}${side('right', n.right)}` +
-    `<div class="hm cv-hm surg" style="aspect-ratio:${w}/${h}"><img src="${esc(assetUrl(v.image.src))}" alt="${esc(marginAlt(v))}" data-testid="surgical-img" data-cv-img decoding="async">` +
+    `<div class="hm cv-hm surg" style="aspect-ratio:${w}/${h}"><img ${inlineImg(v.image.src, assetUrl)} alt="${esc(marginAlt(v))}" data-testid="surgical-img" data-cv-img decoding="async">` +
     `<svg class="hm-svg msvg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">${rects}</svg>` +
     `<button type="button" class="hm-expand" data-cv-open="viewer" data-testid="viewer-open" aria-label="Open the full-screen image viewer"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5"/></svg><span>Full screen</span></button></div></div>` +
     (m
@@ -411,8 +427,9 @@ export function specimenDiagram(v, names) {
   return (
     `<svg class="specimen" viewBox="0 0 ${W} ${H}" role="img" aria-label="Specimen diagram (simulated): ${esc(desc)}" data-testid="specimen-diagram">` +
     `<rect class="sp-body" x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" rx="8"/>` +
-    `<text class="sp-mid" x="${W / 2}" y="${H / 2 - 3}" text-anchor="middle">Specimen field</text>` +
-    `<text class="sp-mid sub" x="${W / 2}" y="${H / 2 + 13}" text-anchor="middle">borders stand in for inked margins</text>` +
+    // two short lines: one line ran under the thick side strokes and lost its first and last letters
+    `<text class="sp-mid" x="${W / 2}" y="${H / 2 - 8}" text-anchor="middle">Specimen field</text>` +
+    `<text class="sp-mid sub" x="${W / 2}" y="${H / 2 + 8}" text-anchor="middle"><tspan x="${W / 2}">Image borders stand in</tspan><tspan x="${W / 2}" dy="14">for the inked margins</tspan></text>` +
     side(n.top, x0, y0, x1, y0) +
     side(n.bottom, x0, y1, x1, y1) +
     side(n.left, x0, y0, x0, y1) +
@@ -445,14 +462,14 @@ export function marginBars(v) {
       `<div class="mb-row ${s}" data-testid="margin-bar-${name}" data-status="${s}" title="${esc(tip)}">` +
       `<span class="mb-name">${esc(cap(name))}</span>` +
       `<span class="mb-track" aria-hidden="true"><i style="left:${pos(Math.min(0, l)).toFixed(2)}%;width:${Math.abs(pos(l) - pos(0)).toFixed(2)}%"></i><b class="mb-zero" style="left:${pos(0)}%"></b>${thr !== null ? `<b class="mb-thr" style="left:${pos(logit(thr)).toFixed(2)}%"></b>` : ''}</span>` +
-      `<span class="mb-val"><b>${has ? esc(fmtLogit(p)) : '—'}</b><span class="mb-st">${esc(SHORT_STATUS[s])}</span></span>` +
+      `<span class="mb-val"><b>${has ? esc(fmtLogit(p)) : '—'}</b><span class="mb-st">${esc(SHORT_STATUS[s])}</span>${has ? `<span class="mb-p" aria-hidden="true">p ${esc(fmtProb(p))}</span>` : ''}</span>` +
       `<span class="sr-only">${esc(tip)}. ${esc(STATUS_TEXT[s])}. ${esc(len)}</span></div>`
     );
   }).join('');
   return (
     `<div class="mbars" data-testid="margin-bars"><div class="mb-head"><span>Tumour signal at margin (log-odds) · involved when above the threshold</span>${thr !== null ? `<span class="mb-key"><b class="mb-thr-key"></b>threshold ${esc(fmtLogit(thr))}</span>` : ''}</div>${rows}` +
     `<div class="mb-axis" aria-hidden="true"><span class="mb-name"></span><span class="mb-ticks">${ticks}</span><span class="mb-val"></span></div></div>` +
-    `<p class="lg-note">Each margin's signal is its highest-scoring border segment from the tile tumour probe, on a log-odds axis (clipped at ±${LOGIT_CLIP}) so near-1 probabilities stay apart; hover a row for the raw probability. ${
+    `<p class="lg-note">Each margin's signal is its highest-scoring border segment from the tile tumour probe, on a log-odds axis (clipped at ±${LOGIT_CLIP}) so near-1 probabilities stay apart; point at a row for the raw probability (touch screens show it in the row). ${
       thr !== null ? 'The threshold was tuned on benign calibration images to keep false tumour-at-margin calls rare.' : 'No threshold was supplied with this case.'
     } Simulated: not a validated margin assessment.</p>`
   );

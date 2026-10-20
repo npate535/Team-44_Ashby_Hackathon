@@ -1417,7 +1417,8 @@ dialog.cv-compare {
   padding: 0;
   border: 0;
   border-radius: 0;
-  background: #14161f;
+  --vw-bg: #14161f; /* the viewers stay dark in both themes; the sticky compare strip reuses it */
+  background: var(--vw-bg);
   color: #eef0f5;
   box-shadow: none;
   font-family: var(--font);
@@ -1563,7 +1564,7 @@ dialog.cv-compare::backdrop {
   flex-direction: column;
   min-height: 0;
   margin: 0;
-  background: #14161f;
+  background: var(--vw-bg);
 }
 .cmp-pane figcaption {
   padding: 10px 16px;
@@ -2979,5 +2980,162 @@ dialog.cv-compare[open]::backdrop {
   dialog.cv-compare[open]::backdrop,
   .cv .cv-enter {
     animation: none;
+  }
+}
+
+/* ---- phones and touch screens (keep last) -------------------------------------------------------------------------- */
+/* compare dialog on a phone: the panes shared what the bar and strip left (62 px on an iPhone 15, 0-1 px on an iPhone SE
+   or in landscape). Each image now keeps the case's 4:3 shape, the dialog scrolls, and the reference strip stays at the
+   bottom. Pan and pinch stay on the images (.vw-stage touch-action: none); the bar, captions and strip scroll the dialog. */
+@media (max-width: 760px) {
+  dialog.cv-compare[open] {
+    overflow-y: auto;
+  }
+  dialog.cv-compare .cmp-panes {
+    flex: none;
+    grid-template-rows: auto auto auto auto;
+  }
+  dialog.cv-compare .vw-stage {
+    flex: none;
+    height: auto;
+    aspect-ratio: 4 / 3;
+  }
+  dialog.cv-compare .vw-sub,
+  dialog.cv-compare .rt-lbl {
+    display: none;
+  }
+  dialog.cv-compare .ref-thumb.mini {
+    width: 72px;
+  }
+  dialog.cv-compare .cmp-strip {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    flex: none; /* a scroll container: as a shrinkable flex item it collapsed to its padding */
+    padding: 8px 12px 10px;
+    background: var(--vw-bg);
+  }
+  /* look-alike table: "strongest in region N" wraps inside its column instead of running into the next one, and the
+     difference column takes the width of its label ("Difference (SD)" ran past the card edge) */
+  .ct-table tr {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) max-content;
+    column-gap: 12px;
+  }
+  .ct-table .ct-rg {
+    margin-top: 4px;
+    line-height: 1.35;
+    white-space: normal;
+  }
+}
+/* phone landscape (and any short window): both images side by side under the bar, as large as the height allows;
+   captions and the strip scroll below them */
+@media (max-height: 500px) {
+  dialog.cv-compare[open] {
+    overflow-y: auto;
+  }
+  dialog.cv-compare .vw-bar {
+    padding: 6px 12px;
+  }
+  dialog.cv-compare .vw-sub,
+  dialog.cv-compare .rt-lbl {
+    display: none;
+  }
+  dialog.cv-compare .cmp-panes {
+    flex: none;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+  }
+  dialog.cv-compare .vw-stage {
+    flex: none;
+    aspect-ratio: auto;
+    height: min(37.5vw, calc(100vh - 64px));
+    height: min(37.5vw, calc(100dvh - 64px));
+  }
+  dialog.cv-compare .cmp-strip {
+    position: static;
+    flex: none;
+    padding: 8px 12px 10px;
+  }
+  dialog.cv-compare .ref-thumb.mini {
+    width: 72px;
+  }
+  /* full-screen viewer: the layer name and a one-line legend leave the image most of the height */
+  dialog.cv-viewer .vw-bar {
+    padding: 6px 12px;
+  }
+  dialog.cv-viewer .vw-sub {
+    display: none;
+  }
+  dialog.cv-viewer .vw-foot {
+    padding: 4px 12px 6px;
+  }
+  dialog.cv-viewer .vw-foot .lg-note,
+  dialog.cv-viewer .vw-foot .lg-keys {
+    display: none;
+  }
+  dialog.cv-viewer .vw-foot .lg-scale {
+    grid-template-columns: auto minmax(120px, 1fr);
+  }
+  dialog.cv-viewer .vw-foot .lg-title {
+    grid-row: 1 / span 2;
+  }
+}
+/* touch: controls reach 44 px. Inline chips keep their look and their line: a transparent border (the background is
+   clipped to the padding) inside a matching negative margin widens only what a finger can hit. */
+@media (pointer: coarse) {
+  .vw-tools .btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .vw-tools label {
+    min-height: 44px;
+  }
+  .hm-expand {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .cv .fref {
+    position: relative; /* painted above the neighbouring text, so its whole hit border takes the tap */
+    border: solid transparent;
+    border-width: 12px 10px;
+    border-radius: 15px / 17px;
+    margin: -12px -10px -12px -5px;
+    background-clip: padding-box;
+    outline-offset: -10px;
+  }
+  .ct-table button.ct-rg {
+    position: relative; /* above the value it overlaps (painted after the inline text) */
+    padding: 14px 0;
+    margin: -12px 0 -14px;
+  }
+}
+@media (pointer: coarse) and (max-width: 760px) {
+  .ct-table button.ct-rg {
+    margin-top: -10px; /* keeps the 4px gap under the value */
+  }
+}
+/* touch screens show no title tooltips: what a row's tooltip says is printed in the row once it is tapped (why.js) or
+   in the margin bars (heatmap.js) */
+.wr-tip,
+.mb-p {
+  display: none;
+}
+@media (hover: none) {
+  .why-row.on .wr-tip {
+    display: block;
+    margin-top: 2px;
+    color: var(--ink);
+  }
+  .mb-p {
+    display: block;
+    font-size: var(--cv-fs-xs);
+    color: var(--mut);
+    font-variant-numeric: tabular-nums;
+  }
+}
+@media (hover: hover) {
+  .wr-say.tip-only {
+    display: none;
   }
 }
