@@ -59,15 +59,28 @@ function glance(v, cfg) {
 /** A tab label with a shorter form for phones (the button's aria-label keeps the full name). */
 const tabText = (long, short) => `<span class="tab-long">${esc(long)}</span><span class="tab-short" aria-hidden="true">${esc(short)}</span>`;
 
+// A surgical case says "simulated" once, in the tag next to its id (and once in the Margins card); its tier, lane,
+// variant and question labels carry no repeat of it. The global prototype notice says so as well.
+const unsim = (t) => String(t || '').replace(/\s*\(simulated\)/gi, '').replace(/^simulated\s+(\w)/i, (_, ch) => ch.toUpperCase());
+function surgicalLine(v) {
+  const variant = v.variant === 'degraded' ? `${v.degradation || 'frozen-section'} artifact` : v.variant === 'composite' ? 'composite test field' : '';
+  return [unsim(v.laneLabel), variant, unsim(v.question)].filter(Boolean).map(esc).join(' · ');
+}
+
 export function header(v, cfg, { backHref = null, backLabel = 'Back to worklist' } = {}) {
   const back = backHref
     ? `<a class="back" href="${esc(backHref)}" data-testid="back">${esc(backLabel)}</a>`
     : `<button class="back" id="bk" data-testid="back">${esc(backLabel)}</button>`;
-  const when = v.external ? '' : ` · arrived sim +${mmss(v.arrivedSim)}`;
+  const surg = v.lane === 'surgical';
+  // arrival on the replay clock (minutes:seconds after the replay started), not a wall-clock time
+  const when = v.external ? '' : ` · arrived +${mmss(v.arrivedSim)}${surg ? ' in the replay' : ' (simulated replay)'}`;
+  const simTag = surg
+    ? ' <span class="cv-simtag" data-testid="sim-tag" title="Simulated frozen section: a BACH microscopy field stands in for a frozen section, and its borders for the inked margins">Simulated</span>'
+    : '';
   return (
     `${back}` +
-    `<div class="card cv-header"><div class="cv-head"><div class="cv-id"><h2 data-testid="case-title"><span class="cv-title-id">${esc(v.id)}</span> <span class="tier ${v.tierCls}" data-testid="tier-badge" title="${esc(v.tierNote)}">${esc(v.tierLabel)}</span></h2>` +
-    `<div class="sub">${esc(v.laneLabel)}${v.variantLabel ? ' · ' + esc(v.variantLabel) : ''} · ${esc(v.question)}${when}${v.synthetic ? ' · <b>synthetic</b>' : ''}</div>${reasonBadges(v)}</div>` +
+    `<div class="card cv-header"><div class="cv-head"><div class="cv-id"><h2 data-testid="case-title"><span class="cv-title-id">${esc(v.id)}</span>${simTag} <span class="tier ${v.tierCls}" data-testid="tier-badge" title="${esc(v.tierNote)}">${esc(surg ? unsim(v.tierLabel) : v.tierLabel)}</span></h2>` +
+    `<div class="sub">${surg ? surgicalLine(v) : `${esc(v.laneLabel)}${v.variantLabel ? ' · ' + esc(v.variantLabel) : ''} · ${esc(v.question)}`}${when}${v.synthetic ? ' · <b>synthetic</b>' : ''}</div>${reasonBadges(v)}</div>` +
     (cfg ? glance(v, cfg) : '') +
     '</div>'
   );
@@ -117,7 +130,7 @@ export function render(ST, ctx, opts = {}) {
     h += `<details class="card activity-card" data-testid="case-events" data-keep="activity"${keepOpen('activity')}><summary>Activity and decision history <span>${n} event${n === 1 ? '' : 's'}</span></summary>${activity(ST.events[v.id])}</details>`;
   h += '</div><div class="decision-column cv-side">';
   if (!hideAgent) h += agentPanel(v, ST);
-  h += `<div class="card" data-testid="how-sure"><div class="card-h"><h2>Prediction and confidence</h2></div>${howSure(v, ST.cfg, ST.metrics)}</div>`;
+  h += `<div class="card" data-testid="how-sure"><div class="card-h"><h2>Prediction and confidence</h2></div>${howSure(v, ST.cfg, ST.metrics, { provOpen: !!keepOpen('prov') })}</div>`;
   if (v.external)
     h += '<p class="note">External TCGA field — read-only. Not part of the arrival worklist.</p>';
   else if (v.tier === 4) h += '<p class="note">Unflagged: read in arrival order. The model has not cleared this case.</p>';

@@ -28,15 +28,15 @@ const TESTID = { approve_orders: 'approve', edit_orders: 'edit', closer_look: 'c
 const offline = (ST) => ST.fail >= 2;
 
 function blockedRows(v) {
-  const rows = v.agent.blocked.map(
-    (b) =>
-      `<div class="act blk" data-testid="agent-blocked"><b>Not drafted</b> ${esc(ACTION_LABEL[b.action] || humanize(b.action))}<div class="sub">${esc(b.reason)}${b.rule_id ? ' · ' + esc(b.rule_id) : ''}</div></div>`
-  );
-  if (v.lane === 'surgical') {
-    rows.push(
-      '<div class="act blk" data-testid="agent-guard"><b>Guard</b> no stain orders in the simulated frozen-section lane<div class="sub">The agent may only draft non-stain follow-up (recut, deeper levels) here; the result is your margin call.</div></div>'
+  const surgical = v.lane === 'surgical';
+  // on a frozen section the blocked stain draft and the lane's stain rule say the same thing: one line, below
+  const rows = v.agent.blocked
+    .filter((b) => !(surgical && b.action === 'draft_stains'))
+    .map(
+      (b) =>
+        `<div class="act blk" data-testid="agent-blocked"${b.rule_id ? ` title="Rule ${esc(b.rule_id)}" data-rule="${esc(b.rule_id)}"` : ''}><b>Not drafted:</b> ${esc(ACTION_LABEL[b.action] || humanize(b.action))}<div class="sub">${esc(b.reason)}</div></div>`
     );
-  }
+  if (surgical) rows.push('<div class="act blk" data-testid="agent-guard">Stains are not ordered from frozen sections.</div>');
   return rows.join('');
 }
 
@@ -159,9 +159,9 @@ export function agentPanel(v, ST) {
           .map((i) => `<b>${esc(i)}</b>`)
           .join('')}</span>`;
     orders +=
-      `<div class="act ord ${esc(o.status)}${off ? ' off' : ''}" data-testid="agent-order" data-seq="${esc(o.seq)}" data-rule="${esc(o.rule_id)}" data-status="${esc(o.status)}">` +
+      `<div class="act ord ${esc(o.status)}${off ? ' off' : ''}" data-testid="agent-order" data-seq="${esc(o.seq)}" data-rule="${esc(o.rule_id)}" data-status="${esc(o.status)}"${o.rule_id ? ` title="Drafted by rule ${esc(o.rule_id)} (listed under Model and provenance)"` : ''}>` +
       `<div class="ord-h"><span class="pill">${esc(ORDER_TYPE[o.type] || o.type)}</span>${items}<span class="ord-st">${esc(ORDER_STATUS[o.status] || o.status)}</span></div>` +
-      `<div class="sub">${esc(rationale[o.rule_id + '|' + o.type] || o.rationale || '')} <span class="ord-rule">rule <code>${esc(o.rule_id)}</code></span></div></div>`;
+      `<div class="sub">${esc(rationale[o.rule_id + '|' + o.type] || o.rationale || 'Drafted by an illustrative follow-up rule.')}</div></div>`;
   }
   if (!detail.length) orders = '<div class="note">No follow-up rule applies to this case, so nothing was drafted.</div>';
   if (v.lane === 'surgical')

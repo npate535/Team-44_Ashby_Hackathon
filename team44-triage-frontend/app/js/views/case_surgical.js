@@ -34,11 +34,12 @@ function flagReasons(v, cfg) {
   if (r.oodPct !== null && r.oodPct >= 0.9) out.push(`input unlike the reference images (${ordinalPct(r.oodPct)} OOD percentile)`);
   if (v.agreement && v.agreement.conch_musk_same_top === false) out.push('the second model (MUSK) picks a different category');
   if (v.setSize !== 1) out.push(v.setSize ? `${v.setSize} categories in the conformal set` : 'an empty conformal set');
-  if (v.degradation) out.push(`simulated ${v.degradation} artifact on this field`);
+  if (v.degradation) out.push(`a ${v.degradation} artifact added to this field`);
   return out;
 }
 
-function reliabilityBlock(v, cfg, metrics) {
+// mergedDefer: the read suggests deferring because of this flag, so the suggestion and its reason are one line here
+function reliabilityBlock(v, cfg, metrics, mergedDefer = false) {
   const r = v.reliability;
   const thr = metrics && metrics.eval && metrics.eval.reliability ? metrics.eval.reliability.threshold : null;
   const gauge =
@@ -50,8 +51,11 @@ function reliabilityBlock(v, cfg, metrics) {
   if (r.flag) {
     const why = flagReasons(v, cfg);
     return (
-      `<div class="flag rel-flag" data-testid="reliability-flag" role="status"><b>Reliability flag raised — suggestion: defer to permanent sections.</b>` +
-      `<span>Reliability ${r.score === null ? '—' : r.score.toFixed(2)}${why.length ? `; ${esc(why.join('; '))}` : ''}. The margin read is not trustworthy on this field; consider permanent sections.</span>${gauge}` +
+      `<div class="flag rel-flag${mergedDefer ? ' rel-defer' : ''}" data-testid="reliability-flag" role="status">` +
+      (mergedDefer
+        ? `<span class="sub">Suggested by the read</span><b class="rf-call">Defer to permanent sections: reliability flag raised</b>`
+        : '<b>Reliability flag raised: consider deferring to permanent sections.</b>') +
+      `<span>Reliability ${r.score === null ? '—' : r.score.toFixed(2)}${why.length ? `; ${esc(why.join('; '))}` : ''}. The margin read is not trustworthy on this field.</span>${gauge}` +
       `${typeof thr === 'number' ? `<span class="sub">Flag when the estimated error probability reaches ${thr.toFixed(2)} (reliability ≤ ${(1 - thr).toFixed(2)}), a threshold set on calibration data to catch most errors.</span>` : ''}</div>`
     );
   }
@@ -140,14 +144,16 @@ export function render(ST, ctx) {
   const names = ST.cfg.margin.names;
   const cfg = ST.cfg;
   let h = `<section class="cv cv-surg" data-testid="case-view" data-lane="surgical" data-case-id="${esc(v.id)}">` + header(v) + '</div>';
-  h +=
-    `<div class="simbanner cv-sim" data-testid="sim-banner" role="note"><span class="sim-tag">Simulated frozen section</span><span>Image borders stand in for inked margins (top = ${esc(names.top)}, bottom = ${esc(names.bottom)}, left = ${esc(names.left)}, right = ${esc(names.right)}).` +
-    (v.variant === 'degraded' ? ` This field carries a simulated frozen-section artifact${v.degradation ? ` (${esc(v.degradation)})` : ''} to test the reliability flag.` : '') +
-    (v.variant === 'composite' ? ' Composite test field stitched from two source images for the margin-localization test (simulated).' : '') +
-    ' Not a validated margin assessment.</span></div>';
+  // what is simulated about this field, said once (the header tag and the global notice carry the label)
+  const simLine =
+    `<p class="cv-simline" data-testid="sim-banner" role="note"><b>Simulated:</b> image borders stand in for inked margins (top = ${esc(names.top)}, bottom = ${esc(names.bottom)}, left = ${esc(names.left)}, right = ${esc(names.right)}).` +
+    (v.variant === 'degraded' ? ` A frozen-section artifact${v.degradation ? ` (${esc(v.degradation)})` : ''} was added to test the reliability flag.` : '') +
+    (v.variant === 'composite' ? ' Composite test field stitched from two source images to test margin localization.' : '') +
+    ' Not a validated margin assessment.</p>';
   h += '<div class="grid cv-grid"><div class="cv-main">';
   h +=
     `<div class="card cv-margins"><div class="card-h"><h2>Margins</h2><span class="sub">${m && m.stripUm ? `outermost ≈${Math.round(m.stripUm)} µm strip, scored per segment` : ''}</span></div>` +
+    simLine +
     (m ? '' : '<div class="note" data-testid="margin-null">Margin read unavailable. You can still make the call.</div>') +
     `<div class="mg-top">${specimenDiagram(v, names)}<div class="mg-bars">${marginBars(v)}</div></div>` +
     marginOverlay(v, ctx.assetUrl, { names }) +
@@ -162,20 +168,21 @@ export function render(ST, ctx) {
     `<div class="card cv-timer ${esc(t.state)}"><div class="tm-h"><span>Time since received</span><span class="sub">target ${num(ST.cfg.timer.red_min)} min · amber at ${num(ST.cfg.timer.amber_min)}</span></div>` +
     `<div class="big timer ${t.state}" data-testid="surgical-timer" data-timer="${esc(v.id)}" data-state="${esc(t.state)}" role="timer" aria-live="off">${esc(t.text)}</div>` +
     `<div class="tm-bar" aria-hidden="true"><i data-timer-bar="${esc(v.id)}" class="${t.state === 'none' ? '' : esc(t.state)}" style="width:${t.usedFrac === null ? 0 : Math.round(t.usedFrac * 100)}%"></i></div>` +
-    `<div class="tm-sub"><span data-timer-sub="${esc(v.id)}">${esc(t.countdown)}</span>${v.room ? `<span>${esc(v.room)} (simulated)</span>` : ''}</div></div>`;
+    `<div class="tm-sub"><span data-timer-sub="${esc(v.id)}">${esc(t.countdown)}</span>${v.room ? `<span>${esc(v.room)}</span>` : ''}</div></div>`;
+  const mergedDefer = !!(m && m.call === 'defer' && v.reliability.flag);
   h +=
     `<div class="card cv-call"><div class="card-h"><h2>Margin call</h2></div>` +
-    (m
+    (m && !mergedDefer
       ? `<div class="sugg-call ${esc(m.call)}" data-testid="suggested-call"><span class="sub">Suggested by the read</span><b>${esc(suggestedText(m))}</b>${
           m.call === 'tumor_at_margin' && m.involved.length
             ? `<span class="sub">${m.involved.map((n) => `${cap(n)}${m.lengths && m.lengths[n] ? ` ≈${Math.round(m.lengths[n])} µm` : ''}`).map(esc).join(' · ')}</span>`
             : ''
         }</div>`
       : '') +
-    reliabilityBlock(v, cfg, ST.metrics) +
+    reliabilityBlock(v, cfg, ST.metrics, mergedDefer) +
     callPanel(v, ST) +
     '<p class="note">The call is sent to the surgeon\'s screen and stops the timer.</p></div>';
-  h += `<div class="card" data-testid="how-sure"><div class="card-h"><h2>Case-level read</h2><span class="sub">${esc(classLabel(v.top, cfg) || '')}${v.risk === null ? '' : ` · ${fmtPct(aggProb(v, cfg))} P(invasive)`}</span></div>${howSure(v, ST.cfg, ST.metrics, { compact: true })}<details class="cv-more" data-keep="checks"${keepOpen('checks')}><summary>Agreement and quality checks</summary>${checksOnly(v, ST.cfg, ST.metrics)}</details></div>`;
+  h += `<div class="card" data-testid="how-sure"><div class="card-h"><h2>Case-level read</h2><span class="sub">${esc(classLabel(v.top, cfg) || '')}${v.risk === null ? '' : ` · ${fmtPct(aggProb(v, cfg))} P(invasive)`}</span></div>${howSure(v, ST.cfg, ST.metrics, { compact: true, provOpen: !!keepOpen('prov') })}<details class="cv-more" data-keep="checks"${keepOpen('checks')}><summary>Agreement and quality checks</summary>${checksOnly(v, ST.cfg, ST.metrics)}</details></div>`;
   h += agentPanel(v, ST);
   return h + '</div></div></section>';
 }

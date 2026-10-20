@@ -305,7 +305,7 @@ function probChart(v, cfg) {
         `<span class="pc-lbl">${esc(p.label)}${top ? '<span class="pc-tag">suggested</span>' : ''}</span>` +
         `<span class="pc-track" aria-hidden="true"><i style="width:${w.toFixed(1)}%"></i></span>` +
         `<span class="pc-val">${fmtPct(p.p)}</span>` +
-        `<span class="pc-set">${inSet ? '<span class="pc-in" aria-label="in the set">in set</span>' : '<span class="pc-out"><span aria-hidden="true">·</span><span class="sr-only">outside the set</span></span>'}</span></div>`
+        `<span class="pc-set">${inSet ? '<span class="pc-in" aria-label="in the set">in set</span>' : '<span class="pc-out"><span class="sr-only">outside the set</span></span>'}</span></div>`
       );
     })
     .join('');
@@ -322,7 +322,32 @@ function check(state, label, value, good, extra = '') {
   );
 }
 
-export function howSure(v, cfg, metrics, { compact = false } = {}) {
+// The prediction model in words (its id stays in the provenance disclosure).
+const MODEL_NAME = { uni2h512_lr: 'UNI2-h linear probe' };
+export function modelName(id) {
+  if (!id) return '';
+  if (MODEL_NAME[id]) return MODEL_NAME[id];
+  const enc = /^uni2h/i.test(id) ? 'UNI2-h' : /^conch/i.test(id) ? 'CONCH' : /^musk/i.test(id) ? 'MUSK' : '';
+  return enc ? `${enc}${/_lr$/i.test(id) ? ' linear probe' : ' classifier'}` : id;
+}
+
+/** Ids and versions behind the read, kept out of the reading path but always one click away. */
+export function provenance(v, method, open = false) {
+  const rules = [...new Set([...(v.agent && v.agent.orders ? v.agent.orders : []), ...(v.agent && v.agent.blocked ? v.agent.blocked : [])]
+    .map((o) => o.rule_id).filter(Boolean))];
+  const row = (k, val) => `<div><dt>${k}</dt><dd>${val}</dd></div>`;
+  return (
+    `<details class="cv-more cv-prov" data-testid="provenance" data-keep="prov"${open ? ' open' : ''}><summary>Model and provenance</summary><dl class="prov-list">` +
+    row('Prediction model', `${esc(modelName(v.model) || '—')} <code data-testid="model-id">${esc(v.model || 'unavailable')}</code>`) +
+    row('Calibration', 'temperature scaling') +
+    row('Prediction set', esc(method)) +
+    row('Case contract', `version <code>${esc(v.schema || '—')}</code>`) +
+    (rules.length ? row('Follow-up rules', rules.map((r) => `<code>${esc(r)}</code>`).join(' ')) : '') +
+    '</dl></details>'
+  );
+}
+
+export function howSure(v, cfg, metrics, { compact = false, provOpen = false } = {}) {
   if (!v.probs.length) return '<div class="note" data-testid="no-prediction">No model prediction in this case file. Read the image directly; nothing here is scored.</div>';
   const ev = (metrics && metrics.eval) || {};
   const ag = v.agreement || {};
@@ -405,7 +430,7 @@ export function howSure(v, cfg, metrics, { compact = false } = {}) {
     : '<span class="chip empty" data-testid="conformal-chip-empty">∅ empty set</span>';
   const head =
     `<div class="hs-head"><div class="hs-risk"><div class="bigp" data-testid="risk" title="${esc(isNum(aggProb(v, cfg)) ? exactProb(aggProb(v, cfg), 4) : '')}">${v.risk === null ? '—' : fmtPct(aggProb(v, cfg))}</div><div class="sub">calibrated P(${esc(classLabel((cfg && cfg.aggressive_class) || 'Invasive', cfg))})</div></div>` +
-    `<div class="hs-sugg"><span class="sub">Suggested category</span><b>${esc(classLabel(v.top, cfg) || '—')}</b><span class="sub"><code>${esc(v.model || 'model unavailable')}</code>, temperature-calibrated</span></div></div>`;
+    `<div class="hs-sugg"><span class="sub">Suggested category</span><b>${esc(classLabel(v.top, cfg) || '—')}</b><span class="sub" data-testid="model-name">${esc(v.model ? `${modelName(v.model)}, calibrated` : 'model unavailable')}</span></div></div>`;
   return (
     head +
     `<h3 class="hs-h">Calibrated probabilities</h3>${probChart(v, cfg)}` +
@@ -414,7 +439,7 @@ export function howSure(v, cfg, metrics, { compact = false } = {}) {
     '<p class="sub">Target coverage holds on average across exchangeable cases, not as a promise for this individual case.</p>' +
     validation +
     (compact ? '' : `<h3 class="hs-h">Agreement and quality checks</h3><ul class="checks" data-testid="agreement-checks">${checks}</ul>`) +
-    `<div class="kv stamp"><span>Stamp</span><span class="sub">${esc(v.model || '—')} · contract ${esc(v.schema || '—')}</span></div>`
+    provenance(v, method, provOpen)
   );
 }
 
@@ -576,16 +601,18 @@ export function summary(v) {
     ? `<span class="badge llm" data-testid="summary-generator" title="Written by ${esc(model)} from the structured findings only; every sentence cites findings and was checked against them.">LLM-written from findings · ${esc(model)}${plusTemplate ? ' · + required template sentence' : ''}</span>`
     : '<span class="badge" data-testid="summary-generator">Template, from findings</span>';
   const ps = s.sentences
-    .map(
-      (sent) =>
-        `<p class="sum-s">${esc(sent.text)}${(sent.findings || [])
-          .filter((f) => FINDING_ID.test(f))
-          .map((f) => {
-            const fd = v.findings.get(f);
-            return `<button type="button" class="fref" data-testid="finding-ref" data-f="${esc(f)}" data-kind="${esc((fd || {}).kind || '')}" title="${esc(findingTitle(fd))}" aria-label="${esc(findingTitle(fd))}">${esc(f)}</button>`;
-          })
-          .join('')}</p>`
-    )
+    .map((sent) => {
+      const refs = (sent.findings || [])
+        .filter((f) => FINDING_ID.test(f))
+        .map((f) => {
+          const fd = v.findings.get(f);
+          return `<button type="button" class="fref" data-testid="finding-ref" data-f="${esc(f)}" data-kind="${esc((fd || {}).kind || '')}" title="${esc(findingTitle(fd))}" aria-label="${esc(findingTitle(fd))}">${esc(f)}</button>`;
+        })
+        .join('');
+      // the citation chips stay on the line of the sentence's last word (never alone on a line of their own)
+      const [, head, last] = String(sent.text).match(/^([\s\S]*?)(\S*)\s*$/);
+      return `<p class="sum-s">${refs ? `${esc(head)}<span class="fref-nb">${esc(last)}${refs}</span>` : esc(sent.text)}</p>`;
+    })
     .join('');
   return (
     `<div class="sum-badges">${badge}</div>${ps}` +
