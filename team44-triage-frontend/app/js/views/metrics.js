@@ -1929,13 +1929,16 @@ function scope(ST, ev) {
     ng = M.n_groups ?? A.n_groups,
     vx = M.variants_excluded ?? A.variants_excluded;
   const prod = get(M, 'models.production') || get(A, 'models.production');
+  // one plain sentence on the page; the statistical method, in full, behind "Methods"
+  const lead = `Results on ${isNum(n) ? `<b>${n}</b> ` : ''}held-out BACH test images${isNum(ng) ? ` from <b>${esc(ng)}</b> patient groups` : ''}, with 95% confidence intervals.`;
   const parts = [];
-  if (isNum(n)) parts.push(`<b>${n}</b> held-out test images from <b>${esc(ng ?? '?')}</b> patient or pseudo-patient groups`);
+  if (isNum(n)) parts.push(`${n} held-out test images from ${esc(ng ?? '?')} patient or pseudo-patient groups`);
   if (isNum(vx)) parts.push(`${countText(vx)} simulated degraded / composite variants kept out of headline numbers`);
   parts.push(`intervals are 95% cluster-bootstrap CIs over ${isNum(n) ? 'those groups' : 'patient or pseudo-patient groups'}, except that a result of 0% or 100% shows its count with an exact Clopper–Pearson interval (a bootstrap has no spread there)`);
   if (prod) parts.push(`production read: ${esc(modelName(prod))}`);
-  const text = parts.join('; ');
-  return `<p class="mx-scope">${text.charAt(0).toUpperCase() + text.slice(1)}.</p>`;
+  const id = 'scope-methods';
+  const methods = `<details class="mx-src mx-methods" data-mx-open="${id}" data-testid="metrics-methods"${OPEN.has(id) ? ' open' : ''}><summary>Methods</summary><ul>${parts.map((t) => `<li>${t.charAt(0).toUpperCase() + t.slice(1)}.</li>`).join('')}</ul></details>`;
+  return `<div class="mx-scope-wrap"><p class="mx-scope" data-testid="metrics-scope">${lead}</p>${methods}</div>`;
 }
 function nav() {
   return `<nav class="mx-nav" aria-label="Evaluation sections"><div class="mx-nav-inner">${SECTIONS.map(([id, label]) => `<button type="button" data-mx-jump="mx-${id}"${activeSection === `mx-${id}` ? ' aria-current="true"' : ''}>${esc(label)}</button>`).join('')}</div></nav>`;
