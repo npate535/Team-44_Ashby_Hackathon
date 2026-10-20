@@ -606,11 +606,28 @@ function detail(ST, ctx) {
   if (!ST.cases[id]) {
     return '<div class="card" data-testid="state-loading"><h2>Loading specimen…</h2></div>';
   }
-  return biopsy.render(ST, ctx, {
-    backHref: '#/tcga',
-    backLabel: 'Back to TCGA specimens',
-    hideAgent: true
-  });
+  return specimenTitle(
+    biopsy.render(ST, ctx, {
+      backHref: '#/tcga',
+      backLabel: 'Back to TCGA specimens',
+      hideAgent: true
+    }),
+    id
+  );
+}
+
+// The shared biopsy header titles a case by its id. A specimen is titled as the list names it ("TCGA-A7-A4SD · FFPE ·
+// tumor · field 0"), with the raw id on a smaller line below; an id of another shape keeps the header as drawn.
+function specimenTitle(html, id) {
+  const parts = idParts(id);
+  const raw = `<span class="cv-title-id">${esc(id)}</span>`;
+  const at = html.indexOf(raw);
+  const end = at < 0 ? -1 : html.indexOf('</h2>', at);
+  if (!parts || end < 0) return html;
+  const title =
+    `<span class="cv-title-id"><span class="tcga-nw">${esc(parts.patient)}</span> · ${esc(parts.text)}</span>`;
+  const sub = `<div class="tcga-raw-id" data-testid="tcga-raw-id">${esc(id)}</div>`;
+  return html.slice(0, at) + title + html.slice(at + raw.length, end + 5) + sub + html.slice(end + 5);
 }
 
 const later = (fn) => (typeof requestAnimationFrame === 'function' ? requestAnimationFrame(fn) : setTimeout(fn, 0));

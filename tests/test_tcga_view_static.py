@@ -14,6 +14,7 @@ import textwrap
 import pytest
 
 from core import config
+from tests.app_helpers import FIXTURES
 
 APP = config.REPO_ROOT / "team44-triage-frontend" / "app"
 node = pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
@@ -213,6 +214,21 @@ def test_flags_column_shows_compact_tags_like_the_worklist():
     assert ">2 classes<" in flags["TCGA-A7-A4SD_frozen_normal_02"] and "Invasive in set" not in flags[
         "TCGA-A7-A4SD_frozen_normal_02"]
     assert " · " not in "".join(flags.values()) and "suggested" not in "".join(flags.values())
+
+
+@node
+def test_specimen_page_is_titled_as_the_list_names_it():
+    case = json.loads((FIXTURES / "demo_0001.json").read_text())
+    cid = "TCGA-A7-A4SD_ffpe_tumor_00"
+    case.update(case_id=cid, cohort="tcga", lane="biopsy")
+    st = {**state(), "caseId": cid, "cases": {cid: case}, "interp": {}, "events": {}, "tab": "evidence",
+          "hm": {"sel": "risk", "hl": [], "opacity": 0.6, "why": None}}
+    html = render(st)
+    title = re.search(r'<h2 data-testid="case-title">(.*?)</h2>(.*?)<div class="sub">', html, re.S)
+    assert text_of(title.group(1)).startswith("TCGA-A7-A4SD · FFPE · tumor · field 0")
+    assert cid not in title.group(1)
+    assert title.group(2) == f'<div class="tcga-raw-id" data-testid="tcga-raw-id">{cid}</div>'
+    assert f'data-case-id="{cid}"' in html                       # the case view keeps the raw id in its data
 
 
 def _build():
