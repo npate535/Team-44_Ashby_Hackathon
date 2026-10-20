@@ -102,8 +102,10 @@ def test_boundary_results_get_exact_intervals_over_true_denominators():
     # the cohort is stated once, in fields (not crops)
     assert text.count("25 patients") == 1 and "353 fields" in text and "crop" not in text.lower()
     assert "23 FFPE tumor, 25 frozen tumor, 17 frozen normal" in text
-    # the specimen id is split, never truncated, and a row renders without quality placeholders
-    assert '<b class="cid">TCGA-A7-A4SD</b><span class="tcga-fld">_frozen_normal_02</span>' in html
+    # the specimen id is split and spelled out, never truncated; the full id stays in the link, title and data
+    assert '<b class="tcga-pid">TCGA-A7-A4SD</b><span class="tcga-fld">Frozen · normal · field 2</span>' in html
+    assert 'href="#/tcga/TCGA-A7-A4SD_frozen_normal_02" tabindex="-1" title="TCGA-A7-A4SD_frozen_normal_02"' in html
+    assert 'data-case-id="TCGA-A7-A4SD_frozen_normal_02"' in html
     assert 'data-testid="tcga-row"' in html
 
 
@@ -111,6 +113,31 @@ def test_boundary_results_get_exact_intervals_over_true_denominators():
 def test_bach_denominator_falls_back_to_the_patient_bootstrap_reference():
     text = text_of(render(state(confusion=False)))
     assert "31 of 31 invasive images (exact 95% CI 88.8–100%)" in text
+
+
+@node
+def test_specimen_list_has_set_filter_tier_toggles_and_one_tab_stop():
+    st = state()
+    base = st["tcga"]["items"][0]
+    ids = ["TCGA-A7-A4SD_ffpe_tumor_00", "TCGA-A7-A4SD_ffpe_tumor_01", "TCGA-A7-A4SD_frozen_tumor_00",
+           "TCGA-A7-A4SD_frozen_normal_02"]
+    st["tcga"]["items"] = [{**base, "case_id": cid, "tier": 2 if "tumor" in cid else 3} for cid in ids]
+    html = render(st)
+    # one segmented filter whose counts add up to every field, "All" pressed
+    for key, text, n in (("all", "All", 4), ("ffpe_tumor", "FFPE tumor", 2), ("frozen_tumor", "Frozen tumor", 1),
+                         ("frozen_normal", "Frozen normal", 1)):
+        assert re.search(rf'data-tcga-set="{key}"[^>]*aria-pressed="{str(key == "all").lower()}">{text} '
+                         rf'<b class="tcga-n">{n}</b>', html), key
+    # tier groups are disclosure buttons with their counts; expanded off a phone
+    assert re.search(r'data-tcga-tier="2"[^>]*aria-expanded="true">.*?Tier 2 · Likely invasive</span>'
+                     r' <span class="g-n">3</span>', html)
+    assert 'data-tcga-tier="3"' in html and "Tier 3 · Low confidence" in html
+    # roving tab stop: one row is tabbable, the others are reached with J/K and the arrow keys
+    assert len(re.findall(r'data-testid="tcga-row"', html)) == 4
+    assert html.count('tabindex="0"') == 1 and html.count('class="row tr-2" tabindex="0"') == 1
+    assert 'aria-label="TCGA-A7-A4SD_frozen_normal_02, Frozen normal, field 2, tier 3 Low confidence' in html
+    # one page title: the top bar's h1 says "Outside BACH"; the page does not repeat it
+    assert "Outside BACH" not in text_of(html) and "TCGA-BRCA external test" in html
 
 
 def _build():
