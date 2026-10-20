@@ -116,10 +116,12 @@ export function render(ST, ctx) {
     <p class="sc-fine">Separate from the recorded results: your marks start empty and stay in this browser tab until you record them. Each record states who reviewed and whether the reviewer was a human or an AI.</p></div>
     <div class="sc-mine-n" data-testid="spot-session-count"><span><b>${done}</b> of ${total} regions marked by you</span>${progressBar(done, total, 'regions marked by you')}</div></div>`;
 
+  // On phones the button's wrapper (.sc-submit) is a bar that stays at the bottom of the screen while the regions are
+  // marked (flow.css); the reviewer fields stay here.
   h += `<section class="sc-record" aria-label="Record your review">
     <label class="sc-field"><span>Reviewer</span><input type="text" maxlength="80" data-testid="spot-reviewer" id="spot-reviewer" placeholder="Your name" autocomplete="name" value="${esc(ST.spotReviewer || '')}"></label>
     <label class="sc-field"><span>Reviewed by</span><select data-testid="spot-kind" id="spot-kind"><option value="human"${ST.spotKind === 'ai' ? '' : ' selected'}>a human</option><option value="ai"${ST.spotKind === 'ai' ? ' selected' : ''}>an AI</option></select></label>
-    <button class="btn p" data-spot="submit" data-testid="spot-submit"${done ? '' : ' aria-disabled="true"'}>Record ${done} review${done === 1 ? '' : 's'}</button>
+    <div class="sc-submit"><button class="btn p" data-spot="submit" data-testid="spot-submit"${done ? '' : ' aria-disabled="true"'}>Record ${done} review${done === 1 ? '' : 's'}</button></div>
     ${ST.spotResult ? `<span class="sc-result" role="status" data-testid="spot-result">${esc(ST.spotResult)}</span>` : ''}
   </section>`;
 

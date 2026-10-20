@@ -1225,10 +1225,10 @@ body .kbd-help kbd {
 /* ---- toasts ------------------------------------------------------------------------------------------------------------------ */
 .toasts {
   position: fixed;
-  right: auto;
-  bottom: 20px;
-  /* the content's left gutter (.wrap: max 1664 px, 32 px padding); there is no sidebar to clear */
-  left: max(32px, calc((100vw - 1664px) / 2 + 32px));
+  /* bottom right (theme.css sets the 24 px desktop offsets; phones span the width, below) */
+  left: auto;
+  right: 24px;
+  bottom: 24px;
   transform: none;
   z-index: 60;
   display: flex;
@@ -1376,9 +1376,6 @@ body .kbd-help kbd {
   }
 }
 @media (max-width: 1150px) {
-  :root {
-    --side: 196px;
-  }
   .topbar {
     flex-wrap: wrap;
   }
@@ -1398,40 +1395,41 @@ body .kbd-help kbd {
     margin-left: auto;
   }
 }
+@media (min-width: 1101px) and (max-width: 1180px) {
+  /* narrowest desktop table: P(Invasive) and Next step give up spare width so a "Low reliability" tag is not cut off */
+  .wl-table-wrap .wl-table th.c-p {
+    width: 100px;
+  }
+  .wl-table-wrap .wl-table th.c-next {
+    width: 132px;
+  }
+}
+/* Below 1100 px every worklist row is a CSS grid of its own cells, so no cell is dropped: a dense two-line table on
+   tablets (761–1100 px), a four-line card on phones. The tier-group row sticks below the masthead (and the column head
+   on tablets); the row itself is the sticky box, because a sticky cell cannot leave its own row. */
 @media (max-width: 1100px) {
-  /* stacked rows: three short lines per case */
   .wl-table,
   .wl-table tbody {
     display: block;
   }
-  .wl-table thead {
-    display: none;
-  }
   .wl-table tr.grp {
     display: block;
-  }
-  .wl-table tr.grp th {
-    display: block;
+    position: sticky;
     top: var(--stick, 0px);
-    height: auto;
-    padding: 6px 12px;
-    white-space: normal;
+    z-index: 3;
+    background: var(--sf2); /* opaque: the rows scroll underneath */
   }
-  .g-note {
+  .wl-table-wrap .wl-table tr.grp th {
     display: block;
-    font-size: 11.5px;
+    position: static;
+    background: var(--sf2);
   }
   .wl-table tr.row {
     display: grid;
-    grid-template-columns: 34px minmax(0, auto) minmax(0, 1fr) auto;
-    grid-template-areas:
-      'tier case lane wait'
-      'tier sugg sugg p'
-      'tier set set flags'
-      'tier next next next';
-    gap: 3px 8px;
-    padding: 9px 12px 10px 0;
     border-bottom: 1px solid var(--ln2);
+  }
+  .wl-table tr.row:last-child {
+    border-bottom: 0;
   }
   .wl-table tr.row td {
     display: block;
@@ -1457,25 +1455,28 @@ body .kbd-help kbd {
     display: block;
     width: auto;
     font-size: 13px;
+    line-height: 1.3;
     visibility: visible;
     grid-area: lane;
+  }
+  /* "Frozen OR-3" never splits at its hyphen; the variant moves under it as a whole when the cell is narrow */
+  .wl-table td.c-lane .lane {
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  }
+  .wl-table td.c-lane .variant {
+    display: inline-block;
   }
   .wl-table td.c-sugg {
     grid-area: sugg;
   }
   .wl-table td.c-p {
     grid-area: p;
-    text-align: right;
   }
   .wl-table td.c-set {
     grid-area: set;
   }
   .wl-table td.c-flags {
     grid-area: flags;
-    text-align: right;
   }
   .wl-table tr.row td.c-flags,
   .wl-table tr.row td.c-set {
@@ -1484,7 +1485,6 @@ body .kbd-help kbd {
   }
   .wl-table td.c-wait {
     grid-area: wait;
-    text-align: right;
     white-space: nowrap;
   }
   .wl-table td.c-next {
@@ -1493,12 +1493,182 @@ body .kbd-help kbd {
   .c-flags .none {
     display: none;
   }
+}
+@media (min-width: 761px) and (max-width: 1100px) {
+  /* tablet: two lines per case under a two-line column head (Case / Lane, Suggested / Next step, Confidence set / Flags) */
+  .wl-table thead {
+    display: block;
+    position: sticky;
+    top: var(--stick, 0px);
+    z-index: 4;
+  }
+  .wl-table thead tr,
+  .wl-table tr.row {
+    display: grid;
+    /* the case column fits a derived id (BACH_0225_FSIM_resample3) and "Frozen OR-3 composite" on one line */
+    grid-template-columns: 42px minmax(176px, 1.3fr) minmax(0, 1fr) 78px minmax(0, 0.95fr) 104px;
+    grid-template-areas:
+      'tier case sugg p set wait'
+      'tier lane next p flags wait';
+    column-gap: 10px;
+  }
+  .wl-table thead tr {
+    padding: 5px 10px 5px 0;
+    background: var(--sf2);
+    border-bottom: 1px solid var(--ln);
+  }
+  .wl-table-wrap .wl-table thead th {
+    position: static;
+    display: flex;
+    align-items: center;
+    width: auto;
+    height: 17px;
+    padding: 0;
+    border: 0;
+    font-size: 10px;
+    line-height: 17px;
+    visibility: visible; /* the lane head is hidden below 1360 px on the desktop table */
+  }
+  .wl-table-wrap .wl-table thead th:is(.c-tier, .c-p, .c-wait) {
+    height: auto;
+  }
+  .wl-table-wrap .wl-table thead th:is(.c-lane, .c-next, .c-flags) {
+    font-weight: 500;
+  }
+  .wl-table thead th.c-tier {
+    grid-area: tier;
+  }
+  .wl-table thead th.c-case {
+    grid-area: case;
+  }
+  .wl-table thead th.c-lane {
+    grid-area: lane;
+  }
+  .wl-table thead th.c-sugg {
+    grid-area: sugg;
+  }
+  .wl-table thead th.c-p {
+    grid-area: p;
+  }
+  .wl-table thead th.c-set {
+    grid-area: set;
+  }
+  .wl-table thead th.c-flags {
+    grid-area: flags;
+  }
+  .wl-table thead th.c-wait {
+    grid-area: wait;
+  }
+  .wl-table thead th.c-next {
+    grid-area: next;
+  }
+  /* the column head is 5 + 17 + 17 + 5 px plus its 1 px rule; the group row sticks under it, one line like the desktop */
+  .wl-table tr.grp {
+    top: calc(var(--stick, 0px) + 45px);
+  }
+  .wl-table-wrap .wl-table tr.grp th {
+    height: 34px;
+    padding: 0 12px;
+    line-height: 33px;
+    white-space: nowrap;
+  }
+  .wl-table tr.grp .g-n {
+    line-height: 1.55; /* the count badge keeps its desktop height inside the 33 px line */
+  }
+  .wl-table tr.row {
+    row-gap: 3px;
+    padding: 9px 10px 10px 0;
+  }
+  /* the tier cell spans the row (its colour rule runs the full height) and centres its badge, like the desktop */
+  .wl-table tr.row td.c-tier {
+    display: flex;
+    align-items: center;
+    margin-block: -9px -10px; /* over the row's padding */
+  }
+  .wl-table tr.row td:is(.c-p, .c-wait) {
+    align-self: center;
+  }
+  .wl-table tr.row td.c-lane {
+    font-size: 12px;
+  }
+  /* one line each, as on the desktop (the suggestion carries its full text as a tooltip), so rows stay two lines */
+  .wl-table tr.row td:is(.c-sugg, .c-next) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .ftag {
-    margin: 0 0 0 4px;
+    margin: 0 4px 2px 0;
+  }
+}
+@media (max-width: 760px) {
+  /* phone: four lines per case. Left: id, lane (room and frozen-section variant), suggestion, confidence set.
+     Right: waiting time, next step, P(Invasive), flags, in at most 42% of the row (wider only for the waiting time,
+     which never wraps): at 320 px both "Review 3 orders" and the id suffix "_FSIM_resample3" fit on one line. */
+  .wl-table thead {
+    display: none;
+  }
+  .wl-table-wrap .wl-table tr.row {
+    grid-template-columns: 34px minmax(0, 1fr) fit-content(42%);
+    grid-template-areas:
+      'tier case wait'
+      'tier lane next'
+      'tier sugg p'
+      'tier set flags';
+    gap: 4px 10px;
+    padding: 11px 12px 12px 0;
+  }
+  /* the tier cell's colour rule runs the full height of the card; the badge stays level with the case id */
+  .wl-table tr.row td.c-tier {
+    margin-block: -11px -12px;
+    padding-top: 11px;
+  }
+  .wl-table tr.row td:is(.c-wait, .c-next, .c-p, .c-flags) {
+    text-align: right;
+  }
+  .wl-table .cid,
+  .wl-table td.c-next .next {
+    overflow-wrap: anywhere; /* a longer derived id or step wraps instead of being cut off */
+  }
+  .ftag {
+    margin: 0 0 3px 4px;
   }
   .pnum {
     min-width: 0;
     margin-right: 6px;
+  }
+  /* every group head has the same height, so a stuck head is covered exactly by the next one; the name and the
+     note are centred in it */
+  .wl-table-wrap .wl-table tr.grp th {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    align-content: center;
+    box-sizing: border-box;
+    height: auto;
+    padding: 7px 12px;
+    white-space: normal;
+  }
+  .g-note {
+    grid-column: 1 / -1;
+    font-size: 11.5px;
+    line-height: 1.55;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+@media (max-width: 480px) {
+  /* the longest group note needs two lines here: every group head keeps room for two */
+  .wl-table-wrap .wl-table tr.grp th {
+    min-height: 72px;
+  }
+  .g-note {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
   }
 }
 @media (max-width: 760px) {
@@ -1586,8 +1756,12 @@ body .kbd-help kbd {
   .toasts {
     left: 12px;
     right: 12px;
-    bottom: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     width: auto;
+  }
+  /* Evidence review keeps its Record bar at the bottom of the screen: notifications sit just above it */
+  :root[data-route='spotcheck'] .toasts {
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   }
   .toast-item + .toast-item {
     display: none; /* phone: only the newest notification */
@@ -2052,6 +2226,143 @@ ul.sc-chips li {
     min-width: 0;
     width: 100%;
     text-align: left;
+  }
+}
+/* the Record button's wrapper: an ordinary item of the record row on wider screens */
+.sc-submit {
+  display: flex;
+}
+@container sc (max-width: 600px) {
+  .sc-submit {
+    width: 100%;
+  }
+}
+/* Phones: the reviewer fields stay above the regions and the Record button becomes a bar at the bottom of the screen
+   while any part of "Your review" is in view (it settles under the last region). .sc-record gives up its box so the
+   bar's sticky range is the whole review section, not the record row. */
+@media (max-width: 760px) {
+  .sc-mine {
+    display: flex;
+    flex-direction: column;
+  }
+  .sc .sc-record {
+    display: contents; /* outranks metrics.css, which loads after this file */
+  }
+  .sc-record > .sc-field {
+    align-self: flex-start;
+    margin-top: 12px;
+  }
+  .sc-record > .sc-field:first-child {
+    margin-top: 16px;
+  }
+  .sc-record > .sc-result {
+    align-self: flex-start;
+    margin-top: 12px;
+  }
+  .sc-submit {
+    order: 1; /* after the regions */
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    width: auto; /* stretched across the page gutters */
+    margin: 18px -16px 0;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+    /* nearly opaque: the inactive button is translucent, and a field behind it must not show through */
+    background: color-mix(in srgb, var(--sf) 94%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.3);
+    backdrop-filter: blur(18px) saturate(1.3);
+    border-top: 1px solid var(--ln);
+    box-shadow: 0 -10px 28px #1b2e2a1a;
+  }
+  .sc-submit .btn {
+    width: 100%;
+    min-height: 44px;
+    font-size: 14px;
+  }
+  /* a focused reviewer field scrolls clear of the bar */
+  :root[data-route='spotcheck'] {
+    scroll-padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ---- touch: every control in these views is at least 44 px tall (WCAG 2.5.5). Text links keep their look; their
+   hit area grows into the surrounding padding (the negative margins keep the layout where it was). ------------------ */
+@media (pointer: coarse) {
+  /* operating-room board */
+  .or-case .case-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin: -2px 0 -12px;
+  }
+  .or-history summary {
+    padding-block: 12px; /* stays a list item, so it keeps its disclosure marker */
+    line-height: 20px;
+  }
+  .or-history li {
+    padding: 0;
+    align-items: center;
+  }
+  .or-history li a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  /* oncology inbox */
+  .rep-head h2 a {
+    display: inline-block;
+    padding-block: 13px;
+    margin-block: -13px;
+  }
+  .rep-head .rep-mark {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-inline: 6px;
+    margin: -12px -6px;
+  }
+  .rep-foot .case-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-block: -9px;
+  }
+  .inbox-head .btn {
+    min-height: 44px;
+  }
+  /* surgical case: margin form and confirmation */
+  .cv-surg .cv-pick label {
+    min-height: 44px;
+    align-items: center;
+  }
+  .cv-surg .cv-pick input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+  }
+  .cv-surg .cv-pick .btn,
+  .cv-surg .cv-confirm .btn {
+    min-height: 44px;
+  }
+  /* evidence review */
+  .sc .sc-toggle {
+    min-height: 44px;
+  }
+  .sc .sc-field input,
+  .sc .sc-field select,
+  .sc .sc-record .btn,
+  .sc .sc-chip,
+  .sc .sc-v {
+    min-height: 44px;
+  }
+  /* notifications */
+  .toast-act {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .toast-x {
+    width: 44px;
+    height: 44px;
   }
 }
 
