@@ -314,14 +314,24 @@
 }
 .rg:hover .rg-n,
 .rg:focus-visible .rg-n,
-.rg.peek .rg-n,
-.vw-canvas .rg-n {
+.rg.peek .rg-n {
   opacity: 1;
 }
+/* viewer: the value badge stays on every region; the index shows on the hovered or focused region only (as in the
+   case view), and on touch screens, which have no hover, both stay visible */
 .vw-canvas .rg-n {
   transform: scale(var(--inv-s, 1));
   transform-origin: 0 0;
+}
+.vw-canvas .rg:hover .rg-n,
+.vw-canvas .rg:focus-visible .rg-n,
+.vw-canvas .rg.peek .rg-n {
   opacity: 0.85;
+}
+@media (hover: none) {
+  .vw-canvas .rg-n {
+    opacity: 0.85;
+  }
 }
 .hm-expand {
   position: absolute;
