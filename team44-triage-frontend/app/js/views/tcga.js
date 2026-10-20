@@ -280,10 +280,17 @@ function story(ST, idx) {
   const ffpe = ci(p.ffpe_tumor_sensitivity);
   const frz = ci(p.frozen_tumor_sensitivity);
   const lim = LIMITATIONS.map(({ text }) => `<li>${esc(typeof text === 'function' ? text(T) : text)}</li>`).join('');
+  // the evaluation payload (BACH metrics and the TCGA aggregates) is still on its way: say so, not "not loaded"
+  const loading = !!ST.metricsLoading;
 
-  let bachCard = `<section class="tcga-panel" data-testid="tcga-bach-missing">
+  let bachCard = loading
+    ? `<section class="tcga-panel" data-testid="tcga-bach-loading" aria-busy="true">
+        <h3>BACH held-out (same model)</h3>
+        <p class="mx-muted">Loading…</p>
+      </section>`
+    : `<section class="tcga-panel" data-testid="tcga-bach-missing">
         <h3>BACH held-out</h3>
-        <p class="mx-muted">BACH test metrics not loaded yet.</p>
+        <p class="mx-muted">BACH test metrics are not available.</p>
       </section>`;
   if (bach) {
     const inv = bach.invCount && bach.invCount.k === bach.invCount.n ? bach.invCount : null;
@@ -334,7 +341,12 @@ function story(ST, idx) {
   // The cost side of the tier rate: normal slides that would still be escalated (counted from the specimen list).
   const normalTier = normalTierCount(idx);
 
-  const tcgaCard = `<section class="tcga-panel" data-testid="tcga-external">
+  const tcgaCard = !T && loading
+    ? `<section class="tcga-panel" data-testid="tcga-external-loading" aria-busy="true">
+      <h3>TCGA-BRCA external (same model)</h3>
+      <p class="mx-muted">Loading…</p>
+    </section>`
+    : `<section class="tcga-panel" data-testid="tcga-external">
       <h3>TCGA-BRCA external (same model)</h3>
       <p class="tcga-panel-note">Out-of-domain · slide-level calls · not the same metric as BACH accuracy ·
         model <code>${esc(model)}</code>${T && T.quantized === false ? ' · full precision' : ''}</p>

@@ -178,6 +178,20 @@ def test_limitations_are_plain_language_and_cover_every_source_entry():
     assert out["credit"] in text
 
 
+@node
+def test_panels_say_loading_while_the_evaluation_is_on_its_way():
+    st = state()
+    st["metrics"] = None
+    st["metricsLoading"] = True
+    html = render(st)
+    panels = text_of(re.search(r'data-testid="tcga-compare">(.*?)</div>\s*<p class="tcga-compare-note"', html, re.S)[1])
+    assert 'data-testid="tcga-bach-loading"' in html and 'data-testid="tcga-external-loading"' in html
+    assert panels.count("Loading…") == 2 and "not loaded" not in panels and "not available" not in panels
+    st["metricsLoading"] = False                     # the request failed: say the metrics are missing
+    html = render(st)
+    assert 'data-testid="tcga-bach-missing"' in html and "Loading…" not in text_of(html)
+
+
 def _build():
     path = config.REPO_ROOT / "scripts" / "build_tcga_cases.py"
     spec = importlib.util.spec_from_file_location("build_tcga_cases", path)
