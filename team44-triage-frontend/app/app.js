@@ -1034,17 +1034,20 @@ function tick() {
     if (t.usedFrac !== null) el.style.width = Math.round(t.usedFrac * 100) + '%';
     el.className = t.state === 'none' ? '' : t.state;
   });
-  // compact waiting cells (worklist, OR board): "12.4 h / 24 h", "08:41 / 20:00"
+  // compact waiting cells (worklist): biopsies "12:24 / 24 h", frozen sections "08:41 / 20:00"
   document.querySelectorAll('[data-wait]').forEach((el) => {
     const c = lookup(el.dataset.wait);
     if (!c) return;
     const w = waitInfo(timerNow(c, now, ST.cfg, ST.sim));
-    const b = el.firstElementChild;
-    if (b && b.textContent !== w.text) b.textContent = w.text;
     if (el.dataset.state !== w.state) {
+      // a new state can bring a new shape ("Signed out after 44 min"): redraw the cell
       el.dataset.state = w.state;
       el.className = 'wait ' + w.state;
+      el.innerHTML = worklist.waitInner(w);
+      return;
     }
+    const b = el.querySelector('b');
+    if (b && b.textContent !== w.text) b.textContent = w.text;
   });
   tickClock();
 }

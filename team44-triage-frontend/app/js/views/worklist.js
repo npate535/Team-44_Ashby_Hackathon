@@ -93,14 +93,18 @@ export function reasonBadges(v, { skipSurgical = true } = {}) {
   return badges.length ? `<div class="reasons">${badges.join('')}</div>` : '';
 }
 
+/** Inside of a waiting cell for a waitInfo() result: "1:58 / 24 h", "08:41 / 20:00", "Signed out after 44 min". */
+export function waitInner(w) {
+  return (
+    (w.lead ? `<span class="wt-lead">${esc(w.lead)}</span> ` : '') +
+    `<b>${esc(w.text)}</b>${w.target ? ` <span class="wt">${esc(w.target)}</span>` : ''}`
+  );
+}
+
 /** Live waiting cell; app.js tick() refreshes every [data-wait] once a second. */
 export function waitCell(v) {
   const w = waitInfo(v.timer);
-  return (
-    `<span class="wait ${esc(w.state)}" data-wait="${esc(v.id)}" data-state="${esc(w.state)}">` +
-    `<b>${esc(w.text)}</b> <span class="wt">${esc(w.target)}</span>` +
-    `</span>`
-  );
+  return `<span class="wait ${esc(w.state)}" data-wait="${esc(v.id)}" data-state="${esc(w.state)}">${waitInner(w)}</span>`;
 }
 export const timerCell = waitCell;
 

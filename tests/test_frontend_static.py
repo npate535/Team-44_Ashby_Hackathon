@@ -269,3 +269,33 @@ def test_biopsy_timers_stand_still_while_the_replay_clock_is_held():
     assert res.returncode == 0, res.stderr
     out = json.loads(res.stdout.strip().splitlines()[-1])
     assert out == {"running": 660, "held": 600, "capped": 610, "paused": 600}
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
+def test_waiting_times_use_one_format_per_lane():
+    # biopsies: h:mm against a target in hours; frozen sections: mm:ss; a signed-out biopsy says how long it took
+    script = textwrap.dedent(f"""
+        import {{waitInfo, spanText}} from {json.dumps((APP / 'js' / 'flow.js').as_uri())};
+        import {{waitInner}} from {json.dumps((APP / 'js' / 'views' / 'worklist.js').as_uri())};
+        const bx = (elapsedS, targetS, state = 'none') => waitInfo({{kind: 'biopsy', elapsedS, targetS, state}});
+        const done = bx(44 * 60, 86400, 'stopped');
+        console.log(JSON.stringify({{
+          biopsy: [bx(29, 86400), bx(64 * 60, 86400), bx(3.5 * 3600, 172800), bx(50 * 3600, 172800)]
+            .map((w) => w.text + ' ' + w.target),
+          states: [bx(17 * 3600, 86400).state, bx(18 * 3600, 86400).state, bx(24 * 3600, 86400).state],
+          done: [done.lead, done.text, done.target, done.state],
+          doneHtml: waitInner(done),
+          long: [spanText(3 * 3600 + 12 * 60), spanText(2 * 3600)],
+          frozen: (({{text, target}}) => text + ' ' + target)(waitInfo({{kind: 'surgical', elapsedS: 521, targetS: 1200, state: 'ok', usedFrac: 0.43}})),
+        }}));
+    """)
+    res = subprocess.run(["node", "--input-type=module", "-e", script], capture_output=True, text=True, timeout=30)
+    assert res.returncode == 0, res.stderr
+    out = json.loads(res.stdout.strip().splitlines()[-1])
+    assert out["biopsy"] == ["0:00 / 24 h", "1:04 / 24 h", "3:30 / 48 h", "50:00 / 48 h"]
+    assert out["states"] == ["ok", "amber", "red"]
+    assert out["done"] == ["Signed out after", "44 min", "", "stopped"]
+    assert out["doneHtml"] == '<span class="wt-lead">Signed out after</span> <b>44 min</b>'
+    assert out["long"] == ["3 h 12 min", "2 h"]
+    assert out["frozen"] == "08:41 / 20:00"
+
