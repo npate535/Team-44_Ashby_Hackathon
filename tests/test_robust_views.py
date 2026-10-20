@@ -122,6 +122,34 @@ def test_or_board_orders_same_second_sections_by_real_arrival():
     assert out["tie"] == ["P", "Q"]                               # same wall time: simulator time decides
 
 
+def test_or_board_shows_no_model_read_before_the_pathologists_call():
+    out = run_node("""
+        const now = Date.parse('2026-10-20T10:00:00Z');
+        const runtime = (done) => ({or_room: 'OR-1', arrived_sim_s: 7200, arrived_at: '2026-10-20T09:59:00.000Z', done,
+            allowed_actions: done ? [] : ['margin_call'], decision: {signed_out_at: null, margin_call: null},
+            timer: {kind: 'surgical', clock: 'wall', elapsed_s: 74, state: done ? 'stopped' : 'ok', amber_s: 900, red_s: 1200}});
+        const open = {...surg, case_id: 'SURG_A', lane: 'surgical', _fetched_ms: now, runtime: runtime(false)};
+        const base = {freshCalls: new Set(), cfg, sim: {running: true, speed: 1}};
+        out.before = OR.render({...base, items: [open], routed: {surgeon: []}}, {now});
+        const call = {case_id: 'SURG_A', or_room: 'OR-1', call: 'clear', margins: [], at: '2026-10-20T10:00:00Z',
+                      timer_elapsed_s: 521, suggested_call: 'tumor_at_margin',
+                      report: {margin: {suggested_call: 'tumor_at_margin', involved: ['superior']}}};
+        out.after = OR.render({...base, items: [{...open, runtime: runtime(true)}], routed: {surgeon: [call]}}, {now});
+    """)
+    before, after = out["before"], out["after"]
+    # an open frozen section: timer and "awaiting" only, no model margin read and no model flag
+    assert 'data-testid="or-awaiting"' in before
+    for text in ("Model read", "Model suggestion", "Tumor at margin (", "reliability flag"):
+        assert text not in before, text
+    assert "Target 20 min" in before and "target 20:00" not in before
+    assert '<span class="or-clock-l">elapsed</span>' in before
+    # after the call: the pathologist's call leads, the model's suggestion follows as secondary text
+    assert after.index('data-testid="surgeon-result"') < after.index('data-testid="or-model-suggestion"')
+    assert "Model suggestion: Tumor at margin (sup)" in after and "Model read" not in after
+    assert "the pathologist’s call differs" in after
+    assert '<b class="timer stopped" data-testid="or-turnaround">8 min 41 s</b>' in after
+
+
 def test_tcga_not_found_links_a_worklist_id_to_its_case_page():
     out = run_node("""
         const page = (id) => T.render({caseId: id, notFound: id, cases: {}, tcga: null, metrics: null}, {});

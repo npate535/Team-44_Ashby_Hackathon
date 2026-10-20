@@ -2,7 +2,9 @@
 // until the pathologist's margin call, then stops and shows the turnaround. New calls are highlighted.
 // Live: app.js polls every 2 s and ticks timers every second. Research prototype — simulated frozen sections only.
 // Status colours follow the legend: an open frozen section is neutral (ring), a sent call takes its call's colour.
-import { esc, mmss, toView } from '../adapter.js';
+// The model's margin read never reaches this board before the pathologist's call: an open frozen section shows only
+// the timer, and a sent call shows the pathologist's call first, with the model's suggestion as secondary text.
+import { esc, toView } from '../adapter.js';
 import { CALL_TONE, joinNames, routedKey, suggestedCall } from '../flow.js';
 
 // Room header text for the latest call (the legend's wording).
@@ -23,6 +25,15 @@ function callParts(r) {
     return [`Tumor at ${joinNames(m)} margin${m.length > 1 ? 's' : ''}`, 'More tissue needed'];
   }
   return CALL_HEAD[r.call] || [String(r.call), ''];
+}
+
+// Durations in words ("8 min 41 s"), so a turnaround never reads as a time of day.
+function minSec(seconds) {
+  const s = Math.max(0, Math.floor(seconds));
+  const h = Math.floor(s / 3600),
+    m = Math.floor((s % 3600) / 60),
+    r = s % 60;
+  return h ? `${h} h ${m} min` : m ? `${m} min ${r} s` : `${r} s`;
 }
 
 const clock = (iso) => (iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—');
@@ -55,12 +66,13 @@ function activeCard(v, enter) {
   return (
     `<div class="or-case live${enter ? ' enter' : ''}" data-testid="or-card" data-case-id="${esc(v.id)}">` +
     `<div class="or-line"><span class="or-name"><b class="or-id">${esc(v.id)}</b> <span class="or-kind">${esc(variantText(v))}</span></span></div>` +
-    `<div class="or-timer timer ${esc(t.state)}" data-timer="${esc(v.id)}" data-state="${esc(t.state)}" data-testid="or-timer">${esc(t.text)}</div>` +
+    // app.js tick() rewrites the timer's text every second, so its "elapsed" label sits beside it, not inside it
+    `<div class="or-clock"><div class="or-timer timer ${esc(t.state)}" data-timer="${esc(v.id)}" data-state="${esc(t.state)}" data-testid="or-timer">${esc(t.text)}</div><span class="or-clock-l">elapsed</span></div>` +
     `<div class="or-bar"><i class="${t.state === 'none' ? '' : esc(t.state)}" data-timer-bar="${esc(v.id)}" style="width:${Math.round((t.usedFrac || 0) * 100)}%"></i></div>` +
     // the countdown ("19:52 left", "Overdue 00:23") is kept live by app.js tick() through data-timer-sub
-    `<div class="or-sub">Received ${esc(clock(v.arrivedAt))} · target ${esc(mmss(t.targetS || 1200))} · <span data-timer-sub="${esc(v.id)}">${esc(t.countdown || '')}</span></div>` +
+    `<div class="or-sub">Received ${esc(clock(v.arrivedAt))} · Target ${Math.round((t.targetS || 1200) / 60)} min · <span data-timer-sub="${esc(v.id)}">${esc(t.countdown || '')}</span></div>` +
+    // no model read here: an unconfirmed margin read must not reach the surgeon before the pathologist's call
     `<div class="or-await" data-testid="or-awaiting">Awaiting the pathologist’s margin call</div>` +
-    `<div class="or-ai">Model read: ${esc(suggestedCall(v.margin ? { suggested_call: v.margin.call, involved: v.margin.involved } : null))}${v.reliability.flag ? ' · <b>reliability flag</b>' : ''}</div>` +
     `<a class="case-link" href="#/case/${encodeURIComponent(v.id)}">Open case</a>` +
     '</div>'
   );
@@ -69,16 +81,16 @@ function activeCard(v, enter) {
 function calledCard(v, r, fresh, enter) {
   const [head, detail] = callParts(r);
   const tone = CALL_TONE[r.call] || 'defer';
-  const turnaround = Number.isFinite(r.timer_elapsed_s) ? mmss(r.timer_elapsed_s) : null;
+  const turnaround = Number.isFinite(r.timer_elapsed_s) ? minSec(r.timer_elapsed_s) : null;
   const aiMargins = (r.report && r.report.margin && r.report.margin.involved) || [];
   const suggested = r.suggested_call ? suggestedCall({ suggested_call: r.suggested_call, involved: aiMargins }) : null;
   // "tumor at margin" agrees only when the same margins were named
   const sameMargins = (a, b) => a.length === b.length && a.every((m) => b.includes(m));
   const agreement = !r.suggested_call || r.suggested_call !== r.call
-    ? ' · pathologist decided differently'
+    ? ' · the pathologist’s call differs'
     : r.call === 'tumor_at_margin' && !sameMargins(aiMargins, r.margins || [])
       ? ' · same call, different margins'
-      : ' · matches the call';
+      : ' · agrees with the pathologist’s call';
   return (
     `<div class="or-case called${fresh ? ' fresh' : ''}${enter ? ' enter' : ''}" data-testid="or-card" data-case-id="${esc(r.case_id)}">` +
     `<div class="or-line"><span class="or-name"><b class="or-id">${esc(r.case_id)}</b> <span class="or-kind">${esc(v ? variantText(v) : 'frozen section')}</span></span>${fresh ? `<span class="or-new tone-${tone}" data-testid="or-new-call">New call</span>` : ''}</div>` +
@@ -86,7 +98,8 @@ function calledCard(v, r, fresh, enter) {
     `<div class="or-meta"><span>Called ${esc(clock(r.at))} by the reading pathologist</span>` +
     (turnaround ? `<span>Turnaround <b class="timer stopped" data-testid="or-turnaround">${esc(turnaround)}</b> · timer stopped</span>` : '') +
     '</div>' +
-    (suggested ? `<div class="or-ai">Model read: ${esc(suggested)}${agreement}</div>` : '') +
+    // secondary, and only after the call: the pathologist's call above is the result
+    (suggested ? `<div class="or-ai" data-testid="or-model-suggestion">Model suggestion: ${esc(suggested)}${agreement}</div>` : '') +
     `<a class="case-link" href="#/case/${encodeURIComponent(r.case_id)}">Open case</a>` +
     '</div>'
   );
@@ -147,7 +160,7 @@ export function render(ST, ctx) {
 
   const awaiting = views.filter((v) => !v.done).length;
   const intro =
-    `<div class="orb-head"><p>Each simulated operating room shows its frozen section. The timer runs until the pathologist sends the margin call, then stops at the turnaround time. Calls appear here the moment they are sent.</p>` +
+    `<div class="orb-head"><p>Each simulated operating room shows its frozen section. The timer runs until the pathologist sends the margin call, then stops at the turnaround time. Calls appear here the moment they are sent; the model’s suggestion is shown only after the pathologist’s call.</p>` +
     `<div class="orb-key"><span class="k-busy">Awaiting call</span><span class="k-clear">Margins clear</span><span class="k-tumor">Tumor at margin</span><span class="k-defer">Defer to permanent</span></div></div>`;
   const empty = !views.length && !ST.routed.surgeon.length
     ? '<p class="orb-empty" data-testid="surgeon-empty">No frozen section in progress. Send a simulated one with the <b>Frozen section</b> buttons in the header.</p>'
