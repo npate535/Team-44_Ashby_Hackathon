@@ -16,6 +16,25 @@
     <link rel="apple-touch-icon" href="brand/sepia-mark-256.png" />
     <link rel="preload" href="fonts/bricolage-grotesque-var.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="fonts/fraunces-var.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- app.js and every module it imports statically, fetched in parallel instead of one import level per round trip
+         (tests/test_frontend_static.py keeps this list in step with the imports). The evaluation, TCGA and evidence
+         review pages load on first use. -->
+    <link rel="modulepreload" href="app.js" />
+    <link rel="modulepreload" href="js/api.js" />
+    <link rel="modulepreload" href="js/adapter.js" />
+    <link rel="modulepreload" href="js/flow.js" />
+    <link rel="modulepreload" href="js/glass.js" />
+    <link rel="modulepreload" href="js/views/worklist.js" />
+    <link rel="modulepreload" href="js/views/case_biopsy.js" />
+    <link rel="modulepreload" href="js/views/case_surgical.js" />
+    <link rel="modulepreload" href="js/views/case_ui.js" />
+    <link rel="modulepreload" href="js/views/agent.js" />
+    <link rel="modulepreload" href="js/views/cells.js" />
+    <link rel="modulepreload" href="js/views/heatmap.js" />
+    <link rel="modulepreload" href="js/views/interpret.js" />
+    <link rel="modulepreload" href="js/views/why.js" />
+    <link rel="modulepreload" href="js/views/surgeon.js" />
+    <link rel="modulepreload" href="js/views/oncologist.js" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="workspace.css" />
     <link rel="stylesheet" href="flow.css" />
@@ -42,20 +61,25 @@
       >
       <nav class="glass-nav" aria-label="Workspace">
         <span class="nav-lens" aria-hidden="true"></span>
+        <!-- each destination has a full and a short label (phones, theme.css); the accessible name is the full one,
+             with the live count added by app.js -->
         <button
           data-nav="worklist"
           data-testid="nav-worklist"
+          aria-label="Worklist"
           aria-current="page"
         >
-          <svg aria-hidden="true"><use href="icons.svg#queue" /></svg>Worklist<span
+          <svg aria-hidden="true"><use href="icons.svg#queue" /></svg><span class="nav-l">Worklist</span
+          ><span class="nav-s">Worklist</span><span
             class="nav-count"
             id="queue-count"
             title="Open cases"
             ></span
           >
         </button>
-        <button data-nav="surgeon" data-testid="nav-surgeon">
-          <svg aria-hidden="true"><use href="icons.svg#pulse" /></svg>Operating rooms<span
+        <button data-nav="surgeon" data-testid="nav-surgeon" aria-label="Operating rooms">
+          <svg aria-hidden="true"><use href="icons.svg#pulse" /></svg><span class="nav-l">Operating rooms</span
+          ><span class="nav-s">ORs</span><span
             class="nav-count live"
             id="or-count"
             title="Frozen sections awaiting a margin call"
@@ -63,8 +87,9 @@
             >0</span
           >
         </button>
-        <button data-nav="oncologist" data-testid="nav-oncologist">
-          <svg aria-hidden="true"><use href="icons.svg#inbox" /></svg>Oncology inbox<span
+        <button data-nav="oncologist" data-testid="nav-oncologist" aria-label="Oncology inbox">
+          <svg aria-hidden="true"><use href="icons.svg#inbox" /></svg><span class="nav-l">Oncology inbox</span
+          ><span class="nav-s">Inbox</span><span
             class="nav-count unread"
             id="inbox-count"
             data-testid="inbox-unread"
@@ -73,14 +98,17 @@
             >0</span
           >
         </button>
-        <button data-nav="metrics" data-testid="nav-metrics">
-          <svg aria-hidden="true"><use href="icons.svg#chart" /></svg>Model evaluation
+        <button data-nav="metrics" data-testid="nav-metrics" aria-label="Model evaluation">
+          <svg aria-hidden="true"><use href="icons.svg#chart" /></svg><span class="nav-l">Model evaluation</span
+          ><span class="nav-s">Evaluation</span>
         </button>
-        <button data-nav="tcga" data-testid="nav-tcga">
-          <svg aria-hidden="true"><use href="icons.svg#scan" /></svg>Outside BACH
+        <button data-nav="tcga" data-testid="nav-tcga" aria-label="Outside BACH">
+          <svg aria-hidden="true"><use href="icons.svg#scan" /></svg><span class="nav-l">Outside BACH</span
+          ><span class="nav-s">TCGA</span>
         </button>
-        <button data-nav="spotcheck" data-testid="nav-spotcheck">
-          <svg aria-hidden="true"><use href="icons.svg#scan" /></svg>Evidence review
+        <button data-nav="spotcheck" data-testid="nav-spotcheck" aria-label="Evidence review">
+          <svg aria-hidden="true"><use href="icons.svg#scan" /></svg><span class="nav-l">Evidence review</span
+          ><span class="nav-s">Review</span>
         </button>
       </nav>
       <div class="masthead-tools">
@@ -107,16 +135,33 @@
           <h1 id="page-title"><span id="breadcrumb">Worklist</span></h1>
           <span id="page-description" class="tb-desc"></span>
         </div>
+        <!-- phones and short landscape screens: the replay and frozen-section controls fold behind this one button
+             (theme.css); elsewhere it is not displayed and the controls are always shown -->
+        <button
+          class="replay-toggle"
+          id="replay-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="replay-panel"
+          data-testid="replay-toggle"
+          data-state="paused"
+        >
+          <i class="rs-dot" aria-hidden="true"></i><span class="sr-only">Replay controls: </span><b>Checking simulator…</b
+          ><span class="rs-t"></span
+          ><svg class="rt-chev" aria-hidden="true" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" /></svg>
+        </button>
         <section
           class="replay"
+          id="replay-panel"
           aria-label="Arrival replay controls"
           data-state="paused"
         >
           <span class="replay-state" id="sim" data-testid="sim-clock"
             >Checking simulator…</span
           >
+          <!-- every command ships disabled: app.js enables them once Sepia has answered (nothing is sent while connecting) -->
           <div class="replay-btns" role="group" aria-label="Replay">
-            <button class="rb primary" data-sim="start" data-testid="sim-start">
+            <button class="rb primary" data-sim="start" data-testid="sim-start" disabled>
               <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z" /></svg>Start replay
             </button>
             <button
@@ -126,10 +171,11 @@
               data-testid="sim-pause"
               aria-pressed="false"
               hidden
+              disabled
             >
               Pause replay
             </button>
-            <button class="rb" data-sim="reset" data-testid="sim-reset">
+            <button class="rb" data-sim="reset" data-testid="sim-reset" disabled>
               Reset
             </button>
           </div>
@@ -145,6 +191,7 @@
               data-variant="normal"
               data-testid="sim-inject-surgical"
               aria-label="Send a simulated frozen section"
+              disabled
             >
               + Standard<span class="rb-n" data-pending="normal"></span>
             </button>
@@ -154,6 +201,7 @@
               data-variant="degraded"
               data-testid="sim-inject-degraded"
               aria-label="Send a degraded simulated frozen section"
+              disabled
             >
               + Degraded<span class="rb-n" data-pending="degraded"></span>
             </button>
@@ -163,6 +211,7 @@
               data-variant="composite"
               data-testid="sim-inject-composite"
               aria-label="Send a composite simulated frozen section"
+              disabled
             >
               + Composite<span class="rb-n" data-pending="composite"></span>
             </button>

@@ -179,3 +179,73 @@ def test_thumbnail_widths_match_the_backend():
     from backend.app import STATIC_THUMB_WIDTHS
     m = re.search(r"export const THUMB_WIDTHS = \[([\d, ]+)\]", (APP / "js" / "adapter.js").read_text())
     assert m and tuple(int(x) for x in m.group(1).split(",")) == STATIC_THUMB_WIDTHS
+
+
+def _static_import_graph(entry):
+    """Every module `entry` needs before it runs: static `import … from './x.js'`, followed recursively (dynamic
+    import() is not followed: those pages load on first use)."""
+    pattern = re.compile(r"""^\s*import\s+(?:[^;]*?\sfrom\s+)?['"](\.{1,2}/[^'"]+)['"]""", re.M)
+    seen, stack = set(), [entry]
+    while stack:
+        path = stack.pop().resolve()
+        rel = path.relative_to(APP.resolve()).as_posix()
+        if rel in seen:
+            continue
+        seen.add(rel)
+        stack += [path.parent / spec for spec in pattern.findall(path.read_text())]
+    return seen
+
+
+def test_index_preloads_exactly_the_modules_app_js_imports():
+    # a module missing from the list is fetched one import level later (a round trip each on a slow connection); an
+    # extra one fetches a lazily loaded page on every first load
+    needed = _static_import_graph(APP / "app.js")
+    preloaded = re.findall(r'<link rel="modulepreload" href="([^"]+)"', (APP / "index.html").read_text())
+    assert len(preloaded) == len(set(preloaded))
+    assert set(preloaded) == needed
+    lazy = {"js/views/metrics.js", "js/views/tcga.js", "js/views/spotcheck.js", "js/charts.js"}
+    assert not lazy & needed, "the evaluation, TCGA and evidence-review pages load on first use"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
+def test_api_client_errors_are_short_and_say_what_happened():
+    # a proxy's HTML error page is never shown as it is, long details are cut short, and a request that got no reply
+    # in time is told apart from one that could not be sent (app.js reads the case again before calling it failed)
+    script = textwrap.dedent(f"""
+        import {{createApi, ApiError}} from {json.dumps((APP / 'js' / 'api.js').as_uri())};
+        const api = createApi();
+        const answer = (fn) => {{ globalThis.fetch = fn; }};
+        const out = {{}};
+        const err = async (call) => {{ try {{ await call(); return null; }} catch (e) {{
+          return {{api: e instanceof ApiError, status: e.status, detail: e.detail, timedOut: e.timedOut}}; }} }};
+        answer(async () => new Response('<html><body><h1>502 Bad Gateway</h1></body></html>', {{status: 502}}));
+        out.html502 = await err(() => api.health());
+        answer(async () => new Response('<!doctype html><title>Sepia</title>', {{status: 200}}));
+        out.html200 = await err(() => api.health());
+        answer(async () => new Response(JSON.stringify({{detail: 'x'.repeat(400)}}), {{status: 409}}));
+        out.long = await err(() => api.decide('A', 'sign_out'));
+        answer(async () => {{ const e = new Error('The operation was aborted'); e.name = 'AbortError'; throw e; }});
+        out.timeout = await err(() => api.decide('A', 'sign_out'));
+        answer(async () => {{ throw new TypeError('Failed to fetch'); }});
+        out.offline = await err(() => api.decide('A', 'sign_out'));
+        answer(async () => new Response(JSON.stringify({{ok: true}}), {{status: 200}}));
+        out.ok = await api.health();
+        console.log(JSON.stringify(out));
+    """)
+    res = subprocess.run(["node", "--input-type=module", "-e", script], capture_output=True, text=True, timeout=30)
+    assert res.returncode == 0, res.stderr
+    out = json.loads(res.stdout.strip().splitlines()[-1])
+    assert out["html502"] == {"api": True, "status": 502, "detail": "Sepia did not respond (HTTP 502)", "timedOut": False}
+    assert out["html200"]["status"] == 502 and out["html200"]["detail"] == "Sepia did not respond (HTTP 200)"
+    assert out["long"]["status"] == 409 and len(out["long"]["detail"]) <= 140 and out["long"]["detail"].endswith("…")
+    assert out["timeout"] == {"api": True, "status": 0, "detail": "timed out", "timedOut": True}
+    assert out["offline"]["status"] == 0 and out["offline"]["timedOut"] is False
+    assert out["ok"] == {"ok": True}
+
+
+def test_app_decodes_case_addresses_safely():
+    # a malformed % escape in the address (#/case/BACH_0225%) must not throw while the app starts
+    js = (APP / "app.js").read_text()
+    bare = [m.start() for m in re.finditer(r"decodeURIComponent\(", js)]
+    assert len(bare) == 1, "decode route ids through decodeId (try/catch), not decodeURIComponent directly"
+    assert re.search(r"const decodeId = \(s\) => \{\s*try \{\s*return decodeURIComponent\(s\);", js)

@@ -114,7 +114,7 @@ export function heldHint(sim) {
   const p = sim.pending.surgical || {};
   const total = (p.normal || 0) + (p.degraded || 0) + (p.composite || 0);
   if (!total) return '';
-  return `<p class="held-hint" data-testid="held-surgical">${total} simulated frozen section${total === 1 ? ' is' : 's are'} waiting in the operating rooms. Send one with the <b>Frozen section</b> buttons in the header.</p>`;
+  return `<p class="held-hint" data-testid="held-surgical">${total} simulated frozen section${total === 1 ? ' is' : 's are'} waiting in the operating rooms. Send one with the <b>Frozen section</b> buttons in the header<span class="fold-note">, under the replay button</span>.</p>`;
 }
 
 // ---- pieces --------------------------------------------------------------------------------------------------------
@@ -144,7 +144,7 @@ function row(v, ST, rank, now, roving) {
   return (
     `<tr class="row tr-${num(v.tier)}${isNew ? ' new' : ''}${v.done ? ' done' : ''}" tabindex="${v.id === roving ? 0 : -1}" aria-label="${esc(label)}" data-testid="worklist-row" data-case-id="${esc(v.id)}" data-tier="${num(v.tier)}" data-lane="${esc(v.lane)}" data-done="${v.done}" data-reasons="${esc(codes(v).join(' '))}" data-rank="${rank}">` +
     `<td class="c-tier"><span class="tierno t${num(v.tier)}" data-testid="tier-badge" title="Tier ${num(v.tier)} · ${esc(v.tierLabel)}">${num(v.tier)}</span></td>` +
-    `<td class="c-case"><div class="wl-cc"><a class="cid" href="#/case/${encodeURIComponent(v.id)}" tabindex="-1" title="${esc(v.id)}">${caseIdHtml(v.id)}</a>${v.lane === 'surgical' ? `<span class="lane-inline" title="${esc(`Simulated frozen section${v.room ? ' from ' + v.room : ''}${v.variantLabel ? ' · ' + v.variantLabel : ''}`)}">Frozen${v.room ? ' ' + esc(v.room) : ''}</span>` : ''}${isNew ? '<span class="newtag">New</span>' : ''}</div></td>` +
+    `<td class="c-case"><div class="wl-cc"><a class="cid" href="#/case/${encodeURIComponent(v.id)}" tabindex="-1" title="${esc(v.id)}">${caseIdHtml(v.id)}</a>${v.lane === 'surgical' ? `<span class="lane-inline" title="${esc(`Simulated frozen section${v.room ? ' from ' + v.room : ''}${v.variantLabel ? ' · ' + v.variantLabel : ''}`)}">Frozen${v.room ? ' ' + esc(v.room) : ''}${v.variant ? ` · ${v.variant === 'degraded' ? 'degraded' : 'composite'}` : ''}</span>` : ''}${isNew ? '<span class="newtag">New</span>' : ''}</div></td>` +
     `<td class="c-lane">${lane}</td>` +
     `<td class="c-sugg">${sugg}</td>` +
     `<td class="c-p"><span class="pnum${v.risk >= 50 ? ' hi' : ''}">${pInv}</span>${v.risk === null ? '' : miniBar(v.risk / 100, v.risk >= 50 ? 'hi' : '')}</td>` +
@@ -207,7 +207,7 @@ function toolbar(ST, views) {
   ).join('');
   return (
     '<div class="wl-toolbar">' +
-    `<label class="search"><svg aria-hidden="true"><use href="icons.svg#search"/></svg><input id="case-search" type="search" placeholder="Search case or flag" aria-label="Search cases" value="${esc(ST.search || '')}" autocomplete="off"><kbd aria-hidden="true">/</kbd></label>` +
+    `<label class="search"><svg aria-hidden="true"><use href="icons.svg#search"/></svg><input id="case-search" type="search" placeholder="Search case or flag" aria-label="Search cases" value="${esc(ST.search || '')}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search"><kbd aria-hidden="true">/</kbd></label>` +
     `<div class="seg" role="group" aria-label="Lane">${seg('lane-filter', 'lane', 'all', 'All lanes', ST.lane === 'all')}${seg('lane-filter', 'lane', 'surgical', 'Frozen', ST.lane === 'surgical')}${seg('lane-filter', 'lane', 'biopsy', 'Biopsy', ST.lane === 'biopsy')}</div>` +
     `<div class="seg" role="group" aria-label="Case status">${status('all', 'All')}${status('open', 'Open')}${status('done', 'Done')}</div>` +
     `<label class="sel"><span class="sr-only">Flag</span><select id="flag-filter" data-testid="flag-filter"><option value="all">All flags</option>${flagOpts}</select></label>` +

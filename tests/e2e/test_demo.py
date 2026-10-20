@@ -17,10 +17,18 @@ def tid(name: str) -> str:
     return f"[data-testid={name}]"
 
 
+def sim(pg, name: str) -> None:
+    """Click a replay or frozen-section control. Phones fold them behind the replay button: it is opened first."""
+    toggle = pg.locator(tid("replay-toggle"))
+    if toggle.is_visible() and toggle.get_attribute("aria-expanded") != "true":
+        toggle.click()
+    pg.click(tid(name))
+
+
 def start_and_wait_for_biopsies(pg, api, roles) -> None:
     pg.goto(pg_url(pg))
     expect(pg.locator(tid("state-empty"))).to_be_visible()
-    pg.click(tid("sim-start"))
+    sim(pg, "sim-start")
     hero = roles["hero_biopsy"]
     # the replay window bounds the last arrival (settings sim.max_replay_wall_s)
     expect(pg.locator(f"{ROW}[data-case-id='{hero}']")).to_be_visible(timeout=(REPLAY_S + 20) * 1000)
@@ -89,7 +97,7 @@ def test_demo_script(page, api, roles):
 
     # 3. Inject a surgical case: top of the list with a live timer; tumor at the superior margin; timer stops.
     pg.click(tid("nav-worklist"))
-    pg.click(tid("sim-inject-surgical"))
+    sim(pg, "sim-inject-surgical")
     first = pg.locator(ROW).first
     expect(first).to_have_attribute("data-lane", "surgical")
     expect(first).to_have_attribute("data-tier", "1")
@@ -115,7 +123,7 @@ def test_demo_script(page, api, roles):
 
     # 4. Inject a degraded case: reliability flag → Defer to permanent.
     pg.click(tid("nav-worklist"))
-    pg.click(tid("sim-inject-degraded"))
+    sim(pg, "sim-inject-degraded")
     pg.locator(f"{ROW}[data-lane=surgical]").first.click()
     expect(pg.locator(f".flag{tid('reliability-flag')}")).to_contain_text("defer to permanent")
     page.shot(f"06-degraded-{page.name}")
@@ -127,7 +135,7 @@ def test_demo_script(page, api, roles):
 
     # composite margin case
     pg.click(tid("nav-worklist"))
-    pg.click(tid("sim-inject-composite"))
+    sim(pg, "sim-inject-composite")
     pg.locator(f"{ROW}[data-lane=surgical]").first.click()
     expect(pg.locator(tid("sim-banner"))).to_contain_text("Composite")
     assert pg.locator(f"{tid('margin-seg')}[data-involved=true]").count() >= 1
@@ -215,9 +223,9 @@ def test_mock_mode_runs_without_the_api(page, api, roles):
     pg.route("**/api/**", lambda route: route.abort())      # prove mock mode never needs the backend API
     pg.goto(page.base + "/?mock=1")
     expect(pg.locator(tid("banner-mock"))).to_be_visible()
-    pg.click(tid("sim-start"))
+    sim(pg, "sim-start")
     expect(pg.locator(ROW).first).to_be_visible(timeout=20000)
-    pg.click(tid("sim-inject-surgical"))
+    sim(pg, "sim-inject-surgical")
     expect(pg.locator(ROW).first).to_have_attribute("data-lane", "surgical")
     page.assert_no_ground_truth()
 
@@ -256,8 +264,10 @@ def test_evidence_chart_style_and_navigation(page, api, roles):
     start_and_wait_for_biopsies(pg, api, roles)
     pg.locator(f"{ROW}[data-case-id='{roles['hero_biopsy']}']").press('Enter')
     expect(pg.locator(tid('case-view'))).to_be_visible()
-    # Icon strokes must not leak into the charts' small coordinate systems.
-    assert pg.locator('.why-row svg rect').first.evaluate('(el) => getComputedStyle(el).stroke') == 'none'
+    # Icon strokes must not leak into the charts' small coordinate systems. (Read from the live view: the case redraws
+    # once when the evaluation payload, fetched after the case, arrives.)
+    pg.wait_for_function("""() => { const r = document.querySelector('.why-row svg rect');
+                                   return !!r && getComputedStyle(r).stroke === 'none'; }""", timeout=5000)
     expect(pg.locator('#breadcrumb')).to_have_text('Case review')
     expect(pg.locator(tid('nav-worklist'))).to_have_attribute('aria-current', 'page')
     pg.click(tid('nav-surgeon'))
@@ -272,18 +282,18 @@ def test_replay_pause_resume_and_reset_guard(page, api, roles):
     pg = page.page
     pg._base = page.base
     start_and_wait_for_biopsies(pg, api, roles)
-    pg.click(tid('sim-pause'))
+    sim(pg, "sim-pause")
     expect(pg.locator(tid('sim-clock'))).to_contain_text('paused')
     expect(pg.locator(tid('sim-pause'))).to_have_text('Resume replay')
-    pg.click(tid('sim-pause'))
+    sim(pg, "sim-pause")
     expect(pg.locator(tid('sim-clock'))).to_contain_text('running')
     count = pg.locator(ROW).count()
-    pg.click(tid('sim-reset'))
+    sim(pg, "sim-reset")
     expect(pg.locator('#reset-dialog')).to_be_visible()
     pg.get_by_role('button', name='Keep reviewing').click()
     expect(pg.locator('#reset-dialog')).to_be_hidden()
     assert pg.locator(ROW).count() == count
-    pg.click(tid('sim-reset'))
+    sim(pg, "sim-reset")
     pg.click('[data-reset-confirm]')
     expect(pg.locator('#reset-dialog')).to_be_hidden()
     expect(pg.locator(tid('state-empty'))).to_be_visible()
@@ -361,7 +371,7 @@ def test_or_board_runs_then_stops_and_highlights_the_call(page, api, roles):
     pg.goto(page.base + "/#/surgeon")
     expect(pg.locator(tid("surgeon-empty"))).to_be_visible()
     expect(pg.locator(tid("or-room"))).to_have_count(api.get("/api/config")["sim"]["or_rooms"])
-    pg.click(tid("sim-inject-surgical"))
+    sim(pg, "sim-inject-surgical")
     card = pg.locator(f"{tid('or-card')}").first
     expect(card.locator(tid("or-awaiting"))).to_be_visible()
     timer = card.locator(tid("or-timer"))
