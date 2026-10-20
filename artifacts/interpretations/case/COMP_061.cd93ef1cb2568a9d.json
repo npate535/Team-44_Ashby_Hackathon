@@ -1,0 +1,60 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_061",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "cd93ef1cb2568a9d",
+ "markdown": "## Bottom line\n**Suggests Invasive (74%)** \u00b7 Unreliable input \u00b7 Defer to expert\n\nReliability check flagged the image; conformal set has three classes. [F6]\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 74%, Normal 16%, InSitu 6%, Benign 5% | Clear lead only |\n| Conformal set | Normal, InSitu, Invasive | Three classes not separable |\n| Reliability / OOD | 0.25; OOD 68th percentile | Input flagged suspect |\n| Second-model (MUSK) agreement | Same top class | Both models agree |\n| Similar cases | 1 of 5 Invasive | Neighbors mostly disagree |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 2, 7, 11) \u00b7 \u2191 invasive \u00b7 Strongest positive association [F3] \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 2, 3, 7) \u00b7 \u2191 invasive \u00b7 Modest positive association \u00b7 Validated\n- **Frequent mitoses** (regions 2, 3, 7) \u00b7 \u2191 invasive \u00b7 Positive association; spot check 0/20 \u00b7 Unreliable\n- **Normal lobules** (regions 0, 8, 9) \u00b7 \u2193 invasive \u00b7 Benign-leaning cue; spot check 0/20 \u00b7 Unreliable\n- **Dense lymphocytes** (regions 0, 4, 5) \u00b7 context \u00b7 Descriptive only; spot check 8/20 \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions lowers the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0: not shown faithful. Mitoses and normal lobules are Unreliable.\n\n## Could be wrong if\n- Reliability 0.25 flags the input; probabilities may be miscalibrated for this image.\n- Normal or in situ remain possible: both are in the conformal set; 4 of 5 neighbors disagree.\n\n## Check on the slide\n1. **Regions 2, 7, 11** \u2014 confirm tumor cells infiltrating stroma versus in situ growth.\n2. **Regions 2, 3, 7** \u2014 verify mitoses yourself; concept spot check was 0/20.\n3. **Regions 0, 8, 9** \u2014 confirm normal lobules are present; concept spot check was 0/20.",
+ "verification": {
+  "checked": 19,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:22:48-0500",
+ "elapsed_s": 42.1,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14395,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 6385,
+  "output_tokens_details": {
+   "thinking_tokens": 5533
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14395,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 6385,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14395,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14395
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 41371,
+ "markdown_original": "## Bottom line\n**Suggests Invasive (74%)** \u00b7 Unreliable input \u00b7 Defer to expert\n\nReliability check flagged the image; conformal set has three classes. [F6]\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 74%, Normal 16%, InSitu 6%, Benign 5% | Clear lead only |\n| Conformal set | Normal, InSitu, Invasive | Three classes not separable |\n| Reliability / OOD | 0.25; OOD 68th percentile | Input flagged suspect |\n| Second-model (MUSK) agreement | Same top class | Supports Invasive |\n| Similar cases | 1 of 5 Invasive | Neighbors mostly disagree |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 2, 7, 11) \u00b7 \u2191 invasive \u00b7 Strongest positive association [F3] \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 2, 3, 7) \u00b7 \u2191 invasive \u00b7 Modest positive association \u00b7 Validated\n- **Frequent mitoses** (regions 2, 3, 7) \u00b7 \u2191 invasive \u00b7 Positive association; spot check 0/20 \u00b7 Unreliable\n- **Normal lobules** (regions 0, 8, 9) \u00b7 \u2193 invasive \u00b7 Benign-leaning cue; spot check 0/20 \u00b7 Unreliable\n- **Dense lymphocytes** (regions 0, 4, 5) \u00b7 context \u00b7 Descriptive only; spot check 8/20 \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions lowers the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0: not shown faithful. Mitoses and normal lobules are Unreliable.\n\n## Could be wrong if\n- Reliability 0.25 flags the input; probabilities may be miscalibrated for this image.\n- Normal or in situ remain possible: both are in the conformal set; 4 of 5 neighbors disagree.\n\n## Check on the slide\n1. **Regions 2, 7, 11** \u2014 confirm tumor cells infiltrating stroma versus in situ growth.\n2. **Regions 2, 3, 7** \u2014 verify mitoses yourself; concept spot check was 0/20.\n3. **Regions 0, 8, 9** \u2014 confirm normal lobules are present; concept spot check was 0/20.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "The second-model (MUSK) row names Invasive, but agreement.conch_musk_same_top only says whether the production classifier and the MUSK probe agree; the JSON does not say which class the MUSK probe chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

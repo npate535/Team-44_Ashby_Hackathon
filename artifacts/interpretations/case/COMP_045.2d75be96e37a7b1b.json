@@ -1,0 +1,60 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_045",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "2d75be96e37a7b1b",
+ "markdown": "## Bottom line\n**Suggests InSitu (79%)** \u00b7 Ambiguous: Normal vs InSitu \u00b7 Careful review\nNormal remains in the 90% conformal set [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 79%, Normal 12% | InSitu clear leader |\n| Conformal set | Normal, InSitu | Two classes inseparable |\n| Reliability / OOD | 0.96; OOD 1.0 | Not flagged [F6] |\n| Second-model (MUSK) agreement | Agrees | Same top class |\n| Similar cases | 5/5 InSitu | Unanimous neighbors [F5] |\n\n## Tissue evidence\n- **Tubule formation** (regions 1, 5, 9) \u00b7 \u2193 invasive \u00b7 Glandular architecture; lower invasive association [F4] \u00b7 Weak\n- **Lymphocytic infiltrate** (regions 2, 3, 7) \u00b7 context \u00b7 Above typical density; descriptive only [F2] \u00b7 Weak\n- **Tumor necrosis** (regions 7, 10, 11) \u00b7 \u2191 invasive \u00b7 Largest positive concept term \u00b7 Unreliable\n- **Normal lobules** (regions 0, 8) \u00b7 \u2193 invasive \u00b7 Two-layered epithelium; lower invasive association [F3] \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Deleting top 3 regions lowers invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect vs random includes 0 (CI \u22120.005 to 0.007); not shown to reflect the classifier. Necrosis and normal lobules are Unreliable.\n\n## Could be wrong if\n- The true class is Normal (12%), which stays in the conformal set.\n- Reliability score ranks errors only moderately (AUROC 0.69, CI 0.58\u20130.87); input is a simulated composite.\n\n## Check on the slide\n1. **1, 5, 9:** Confirm gland architecture; separate benign glands from in situ involvement.\n2. **7, 10, 11:** Verify true necrosis; region 11 carries the highest region-level invasive risk (50%).\n3. **3, 7, 11:** Lateral margin strip; suggested call is tumor at margin, simulated frozen section [F7].",
+ "verification": {
+  "checked": 16,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:15:59-0500",
+ "elapsed_s": 84.4,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14342,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 11884,
+  "output_tokens_details": {
+   "thinking_tokens": 11092
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14342,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 11884,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14342,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14342
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 83646,
+ "markdown_original": "## Bottom line\n**Suggests InSitu (79%)** \u00b7 Ambiguous: Normal vs InSitu \u00b7 Careful review\nNormal remains in the 90% conformal set [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 79%, Normal 12% | InSitu clear leader |\n| Conformal set | Normal, InSitu | Two classes inseparable |\n| Reliability / OOD | 0.96; OOD 1.0 | Not flagged [F6] |\n| Second-model (MUSK) agreement | Agrees | Same top class |\n| Similar cases | 5/5 InSitu | Unanimous neighbors [F5] |\n\n## Tissue evidence\n- **Tubule formation** (regions 1, 5, 9) \u00b7 \u2193 invasive \u00b7 Glandular architecture; lower invasive association [F4] \u00b7 Validated\n- **Lymphocytic infiltrate** (regions 2, 3, 7) \u00b7 context \u00b7 Above typical density; descriptive only [F2] \u00b7 Weak\n- **Tumor necrosis** (regions 7, 10, 11) \u00b7 \u2191 invasive \u00b7 Largest positive concept term \u00b7 Unreliable\n- **Normal lobules** (regions 0, 8) \u00b7 \u2193 invasive \u00b7 Two-layered epithelium; lower invasive association [F3] \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Deleting top 3 regions lowers invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect vs random includes 0 (CI \u22120.005 to 0.007); not shown to reflect the classifier. Necrosis and normal lobules are Unreliable.\n\n## Could be wrong if\n- The true class is Normal (12%), which stays in the conformal set.\n- Reliability score ranks errors only moderately (AUROC 0.69, CI 0.58\u20130.87); input is a simulated composite.\n\n## Check on the slide\n1. **1, 5, 9:** Confirm gland architecture; separate benign glands from in situ involvement.\n2. **7, 10, 11:** Verify true necrosis; region 11 carries the highest region-level invasive risk (50%).\n3. **3, 7, 11:** Lateral margin strip; suggested call is tumor at margin, simulated frozen section [F7].",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

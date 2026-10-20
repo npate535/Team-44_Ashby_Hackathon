@@ -1,0 +1,60 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_033",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "4d69bfaa7630ca24",
+ "markdown": "## Bottom line\n**Suggests InSitu (89%)** \u00b7 Unreliable input \u00b7 Careful review\n\nThe reliability check flagged the input [F6], and Benign stays in the 90% conformal set [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 89%, Benign 8%, Invasive 3% | Clear leader |\n| Conformal set | Benign, InSitu | Two classes not separable |\n| Reliability / OOD | 0.72 / 92nd percentile | Input is suspect |\n| Second-model (MUSK) agreement | No | Models disagree on top class |\n| Similar cases | 4 of 5 InSitu | Mostly supports InSitu |\n\n## Tissue evidence\n- **Benign fibrous stroma or fat** (region 9) \u00b7 \u2191 invasive \u00b7 scarce here; concept model links scarcity to invasion \u00b7 Validated\n- **Tumor infiltrating stroma** (region 10) \u00b7 \u2193 invasive \u00b7 below-typical score; concept model leans away from invasive [F4] \u00b7 Validated\n- **Atypical cells confined within ducts** (regions 1, 5, 7) \u00b7 \u2193 invasive \u00b7 high score; fits an in situ pattern \u00b7 Weak\n- **Marked nuclear pleomorphism** (region 8) \u00b7 \u2193 invasive \u00b7 below-typical score; small effect \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Concept deletion CI spans 0 (\u22120.005 to 0.007), so not shown to reflect classifier use. Normal lobules, this case's largest concept term, is Unreliable (0/20).\n\n## Could be wrong if\n- The image is atypical for the training data (92nd percentile), making every output less trustworthy.\n- Benign is the true class, since the second model disagrees on the top class.\n\n## Check on the slide\n1. **Regions 1, 5, 7:** confirm atypical cells stay confined within ducts.\n2. **Region 10:** per-region probe gives 72% invasive risk; look for stromal infiltration.\n3. **Region 9:** check for normal lobules and benign stroma; both concept scores sat below typical.",
+ "verification": {
+  "checked": 15,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:11:12-0500",
+ "elapsed_s": 30.5,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14285,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 4488,
+  "output_tokens_details": {
+   "thinking_tokens": 3704
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14285,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 4488,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14285,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14285
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 29739,
+ "markdown_original": "## Bottom line\n**Suggests InSitu (89%)** \u00b7 Ambiguous: Benign vs InSitu \u00b7 Careful review\n\nBenign stays in the 90% conformal set, and the reliability check flagged the input [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 89%, Benign 8%, Invasive 3% | Clear leader |\n| Conformal set | Benign, InSitu | Two classes not separable |\n| Reliability / OOD | 0.72 / 92nd percentile | Input is suspect |\n| Second-model (MUSK) agreement | No | Models disagree on top class |\n| Similar cases | 4 of 5 InSitu | Mostly supports InSitu |\n\n## Tissue evidence\n- **Benign fibrous stroma or fat** (region 9) \u00b7 \u2191 invasive \u00b7 scarce here; concept model links scarcity to invasion [F3] \u00b7 Validated\n- **Tumor infiltrating stroma** (region 10) \u00b7 \u2193 invasive \u00b7 below-typical score; concept model leans away from invasive [F4] \u00b7 Validated\n- **Atypical cells confined within ducts** (regions 1, 5, 7) \u00b7 \u2193 invasive \u00b7 high score; fits an in situ pattern \u00b7 Weak\n- **Marked nuclear pleomorphism** (region 8) \u00b7 \u2193 invasive \u00b7 below-typical score; small effect \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Concept deletion CI spans 0 (\u22120.005 to 0.007), so not shown to reflect classifier use. Normal lobules, this case's largest concept term, is Unreliable (0/20).\n\n## Could be wrong if\n- The image is atypical for the training data (92nd percentile), making every output less trustworthy.\n- Benign is the true class, since the second model disagrees on the top class.\n\n## Check on the slide\n1. **Regions 1, 5, 7:** confirm atypical cells stay confined within ducts.\n2. **Region 10:** per-region probe gives 72% invasive risk; look for stromal infiltration.\n3. **Region 9:** check for normal lobules and benign stroma; both concept scores sat below typical.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "Bottom line verdict should be 'Unreliable input' because the reliability flag is set."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

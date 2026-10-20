@@ -1,0 +1,60 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_037",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "611fbc1f3e4ae4ea",
+ "markdown": "## Bottom line\n**Suggests Invasive (73%)** \u00b7 Ambiguous: InSitu vs Invasive \u00b7 Careful review\nInSitu stays in the 90% conformal set, though the input is not flagged and the second model agrees. [F1]\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 73%, InSitu 19% | Clear lead, not decisive |\n| Conformal set | InSitu, Invasive | Cannot separate the two |\n| Reliability / OOD | 0.955 / 94th percentile | Input not flagged |\n| Second-model (MUSK) agreement | Same top class | Agrees with main classifier |\n| Similar cases | 2 of 5 Invasive | Mixed; 3 are InSitu |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 3, 6, 7) \u00b7 \u2191 invasive \u00b7 Strongest concept association with invasive carcinoma [F2] \u00b7 Validated\n- **Frequent mitotic figures** (regions 2, 7, 11) \u00b7 \u2191 invasive \u00b7 Scored high but failed spot check, 0/20 [F3] \u00b7 Unreliable\n- **Marked nuclear pleomorphism** (regions 2, 10, 11) \u00b7 \u2191 invasive \u00b7 Elevated score; smaller contribution than stroma \u00b7 Validated\n- **Atypical cells confined within ducts** (regions 1, 9) \u00b7 \u2193 invasive \u00b7 Associated with lower invasive likelihood; spot check 12/20 \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0, so unproven. Mitoses and normal lobules are Unreliable.\n\n## Could be wrong if\n- InSitu is correct: 3 of 5 similar cases are InSitu, and the conformal set includes it.\n- The mitosis score reflects artifact rather than true mitoses, since it failed its spot check.\n\n## Check on the slide\n1. **Regions 3, 6, 7:** confirm tumor cells infiltrate stroma rather than staying duct-bound.\n2. **Regions 1, 9:** look for intact duct borders and myoepithelium suggesting InSitu.\n3. **Regions 3, 7, 11:** confirm tumor at the lateral margin (simulated frozen section). [F7]",
+ "verification": {
+  "checked": 14,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:12:44-0500",
+ "elapsed_s": 42.0,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14292,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 4775,
+  "output_tokens_details": {
+   "thinking_tokens": 3925
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14292,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 4775,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14292,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14292
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 41324,
+ "markdown_original": "## Bottom line\n**Suggests Invasive (73%)** \u00b7 Ambiguous: InSitu vs Invasive \u00b7 Careful review\nInSitu stays in the 90% conformal set, though image quality and the second model support Invasive. [F1]\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 73%, InSitu 19% | Clear lead, not decisive |\n| Conformal set | InSitu, Invasive | Cannot separate the two |\n| Reliability / OOD | 0.955 / 94th percentile | Input not flagged |\n| Second-model (MUSK) agreement | Same top class | Supports Invasive |\n| Similar cases | 2 of 5 Invasive | Mixed; 3 are InSitu |\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 3, 6, 7) \u00b7 \u2191 invasive \u00b7 Strongest concept association with invasive carcinoma [F2] \u00b7 Validated\n- **Frequent mitotic figures** (regions 2, 7, 11) \u00b7 \u2191 invasive \u00b7 Scored high but failed spot check, 0/20 [F3] \u00b7 Unreliable\n- **Marked nuclear pleomorphism** (regions 2, 10, 11) \u00b7 \u2191 invasive \u00b7 Elevated score; smaller contribution than stroma \u00b7 Validated\n- **Atypical cells confined within ducts** (regions 1, 9) \u00b7 \u2193 invasive \u00b7 Associated with lower invasive likelihood; spot check 12/20 \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0, so unproven. Mitoses and normal lobules are Unreliable.\n\n## Could be wrong if\n- InSitu is correct: 3 of 5 similar cases are InSitu, and the conformal set includes it.\n- The mitosis score reflects artifact rather than true mitoses, since it failed its spot check.\n\n## Check on the slide\n1. **Regions 3, 6, 7:** confirm tumor cells infiltrate stroma rather than staying duct-bound.\n2. **Regions 1, 9:** look for intact duct borders and myoepithelium suggesting InSitu.\n3. **Regions 3, 7, 11:** confirm tumor at the lateral margin (simulated frozen section). [F7]",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "The second-model (MUSK) row names Invasive, but agreement.conch_musk_same_top only says whether the production classifier and the MUSK probe agree; the JSON does not say which class the MUSK probe chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

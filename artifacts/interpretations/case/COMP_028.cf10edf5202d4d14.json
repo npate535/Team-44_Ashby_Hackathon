@@ -1,0 +1,61 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_028",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "cf10edf5202d4d14",
+ "markdown": "## Bottom line\n**Suggests Normal (55%)** \u00b7 Unreliable input \u00b7 Careful review\nTwo-class set, flagged input and model disagreement limit this call [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 55%, Benign 41%, Invasive 3% | Close call |\n| Conformal set | Normal, Benign (90%) | Cannot separate two classes |\n| Reliability / OOD | 0.61 / 76th percentile, flagged | Input suspect |\n| Second-model (MUSK) agreement | No | Models disagree |\n| Similar cases | 2 Normal, 2 Benign, 1 InSitu [F5] | Weak neighbor support |\n\n## Tissue evidence\n- **Normal lobules** (regions 2, 6, 11) \u00b7 \u2193 invasive \u00b7 Lobule pattern scored above typical [F2] \u00b7 Unreliable\n- **Tumor infiltrating stroma** (regions 8, 9) \u00b7 \u2191 invasive \u00b7 Stromal infiltration scored above typical [F4] \u00b7 Validated\n- **Gland / tubule formation** (regions 2, 3, 11) \u00b7 \u2193 invasive \u00b7 Gland formation scored high; caption check failed \u00b7 Weak\n- **Nuclear pleomorphism** (regions 1, 5, 9) \u00b7 \u2191 invasive \u00b7 Marked pleomorphism scored high \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions cuts the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0; not shown to reflect the classifier. Unreliable here: normal lobules, mitoses, necrosis.\n\n## Could be wrong if\n- Image-level 3% invasive risk dilutes focal carcinoma; regions 0, 1, 4, 5, 8, 9 each score high individually.\n- Input is flagged (reliability 0.61), so either class call may shift on recut.\n\n## Check on the slide\n1. **8, 9**: Look for tumor infiltrating stroma; this validated concept associates with invasion.\n2. **1, 5, 9**: Confirm marked nuclear pleomorphism, which also leans invasive.\n3. **2, 6, 11**: Judge whether lobules are normal or benign; the lobule concept failed its spot check.",
+ "verification": {
+  "checked": 15,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:09:22-0500",
+ "elapsed_s": 53.2,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14245,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 7710,
+  "output_tokens_details": {
+   "thinking_tokens": 6882
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14245,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 7710,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14245,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14245
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 52393,
+ "markdown_original": "## Bottom line\n**Suggests Normal (55%)** \u00b7 Ambiguous: Normal vs Benign \u00b7 Careful review\nTwo-class set, flagged input and model disagreement limit this call [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 55%, Benign 41%, Invasive 3% | Close call |\n| Conformal set | Normal, Benign (90%) | Cannot separate two classes |\n| Reliability / OOD | 0.61 / 76th percentile, flagged | Input suspect |\n| Second-model (MUSK) agreement | No | Models disagree |\n| Similar cases | 2 Normal, 2 Benign, 1 InSitu [F5] | Weak neighbor support |\n\n## Tissue evidence\n- **Normal lobules** (regions 2, 6, 11) \u00b7 \u2193 invasive \u00b7 Lobule pattern scored above typical [F2] \u00b7 Unreliable\n- **Tumor infiltrating stroma** (regions 8, 9) \u00b7 \u2191 invasive \u00b7 Stromal infiltration scored above typical [F4] \u00b7 Validated\n- **Gland / tubule formation** (regions 2, 3, 11) \u00b7 \u2193 invasive \u00b7 Gland formation scored high; caption check failed \u00b7 Validated\n- **Nuclear pleomorphism** (regions 1, 5, 9) \u00b7 \u2191 invasive \u00b7 Marked pleomorphism scored high \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions cuts the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0; not shown to reflect the classifier. Unreliable here: normal lobules, mitoses, necrosis.\n\n## Could be wrong if\n- Image-level 3% invasive risk dilutes focal carcinoma; regions 0, 1, 4, 5, 8, 9 each score high individually.\n- Input is flagged (reliability 0.61), so either class call may shift on recut.\n\n## Check on the slide\n1. **8, 9**: Look for tumor infiltrating stroma; this validated concept associates with invasion.\n2. **1, 5, 9**: Confirm marked nuclear pleomorphism, which also leans invasive.\n3. **2, 6, 11**: Judge whether lobules are normal or benign; the lobule concept failed its spot check.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "Bottom line verdict should be 'Unreliable input' because the reliability flag is set.",
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

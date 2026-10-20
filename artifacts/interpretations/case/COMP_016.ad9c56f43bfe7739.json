@@ -1,0 +1,60 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_016",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "ad9c56f43bfe7739",
+ "markdown": "## Bottom line\n**Suggests Benign (54%)** \u00b7 Ambiguous: Benign vs Invasive \u00b7 Careful review\nInvasive (45%) sits in the 90% conformal set [F1]; simulated margin call is tumor at margin [F7].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 54%, Invasive 45% | Nearly split |\n| Conformal set | Benign, Invasive | Cannot separate classes |\n| Reliability / OOD | 0.88 / 62nd percentile | Typical, usable input |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 2/5 Benign [F5] | Mixed neighbors |\n\n## Tissue evidence\n- **Gland / tubule formation** (regions 2, 3, 7) \u00b7 \u2193 invasive \u00b7 Above typical; associated with lower invasive likelihood [F2] \u00b7 Weak\n- **Tumor infiltrating stroma** (region 8) \u00b7 \u2191 invasive \u00b7 Above typical; associated with invasive carcinoma [F4] \u00b7 Validated\n- **Tumor necrosis** (regions 0, 4, 9) \u00b7 \u2191 invasive \u00b7 Above typical, but spot check only 3/20 \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Concept deletion CI includes 0 (\u22120.005 to 0.007); not shown to reflect the classifier. Necrosis is Unreliable.\n\n## Could be wrong if\n- Neighbors are split (2 Benign, 2 Invasive, 1 InSitu), so the Benign call is weakly supported.\n- Regions 0, 1, 4, 5, 8, 9 each lean strongly invasive; the other six pull toward Benign.\n\n## Check on the slide\n1. **8** \u2014 Confirm tumor-infiltrating stroma; it is a validated invasive cue (19/20).\n2. **0, 4, 9** \u2014 Verify necrosis directly; its AI spot check failed (3/20).\n3. **2, 3, 7** \u2014 Confirm glands are benign, not invasive tubule formation.",
+ "verification": {
+  "checked": 16,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:04:51-0500",
+ "elapsed_s": 39.9,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14182,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5995,
+  "output_tokens_details": {
+   "thinking_tokens": 5226
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14182,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5995,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14182,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14182
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 39149,
+ "markdown_original": "## Bottom line\n**Suggests Benign (54%)** \u00b7 Ambiguous: Benign vs Invasive \u00b7 Careful review\nInvasive (45%) sits in the 90% conformal set [F1]; simulated margin call is tumor at margin [F7].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 54%, Invasive 45% | Nearly split |\n| Conformal set | Benign, Invasive | Cannot separate classes |\n| Reliability / OOD | 0.88 / 62nd percentile | Typical, usable input |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 2/5 Benign [F5] | Mixed neighbors |\n\n## Tissue evidence\n- **Gland / tubule formation** (regions 2, 3, 7) \u00b7 \u2193 invasive \u00b7 Above typical; associated with lower invasive likelihood [F2] \u00b7 Validated\n- **Tumor infiltrating stroma** (region 8) \u00b7 \u2191 invasive \u00b7 Above typical; associated with invasive carcinoma [F4] \u00b7 Validated\n- **Tumor necrosis** (regions 0, 4, 9) \u00b7 \u2191 invasive \u00b7 Above typical, but spot check only 3/20 \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Concept deletion CI includes 0 (\u22120.005 to 0.007); not shown to reflect the classifier. Necrosis is Unreliable.\n\n## Could be wrong if\n- Neighbors are split (2 Benign, 2 Invasive, 1 InSitu), so the Benign call is weakly supported.\n- Regions 0, 1, 4, 5, 8, 9 each lean strongly invasive; the other six pull toward Benign.\n\n## Check on the slide\n1. **8** \u2014 Confirm tumor-infiltrating stroma; it is a validated invasive cue (19/20).\n2. **0, 4, 9** \u2014 Verify necrosis directly; its AI spot check failed (3/20).\n3. **2, 3, 7** \u2014 Confirm glands are benign, not invasive tubule formation.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

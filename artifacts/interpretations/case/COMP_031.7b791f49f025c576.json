@@ -1,0 +1,61 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_031",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "7b791f49f025c576",
+ "markdown": "## Bottom line\n**Suggests Invasive (84%)** \u00b7 Unreliable input \u00b7 Careful review\nReliability flag raised; second model and similar cases disagree [F6].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 84%, InSitu 10%, Benign 5% | Clear lead, wider set |\n| Conformal set | InSitu, Invasive (90%) | Cannot separate the two |\n| Reliability / OOD | 0.67 / 84th percentile | Flagged; input suspect |\n| Second-model (MUSK) agreement | No | Different top class |\n| Similar cases | 0 of 5 Invasive; 5 InSitu | Neighbors point elsewhere |\n\n## Tissue evidence\n- **Gland / tubule formation** (regions 7, 10, 11) \u00b7 \u2193 invasive \u00b7 Above typical; associated with less invasive disease [F3] \u00b7 Weak\n- **Tumor-infiltrating stroma** (region 4) \u00b7 \u2191 invasive \u00b7 Slightly above typical; small positive term \u00b7 Validated\n- **Marked nuclear pleomorphism** (region 8) \u00b7 \u2193 invasive \u00b7 Near-typical score; adds little here \u00b7 Validated\n- **Normal lobules** (region 0) \u00b7 \u2193 invasive \u00b7 Above typical, but spot check failed (0/20) [F4] \u00b7 Unreliable\n- **Lymphocytic infiltrate** (region 4) \u00b7 context \u00b7 Below-typical score; descriptive only [F2] \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Effect 0.002 (CI \u22120.005 to 0.007) includes 0; not shown to reflect the classifier. Normal lobules (0/20) is Unreliable.\n\n## Could be wrong if\n- Image quality is suspect (reliability 0.67, 84th-percentile OOD); probabilities may not transfer.\n- Second model disagrees and all five neighbors are InSitu; true class may be InSitu.\n\n## Check on the slide\n1. **Regions 8, 9** \u2014 highest-risk regions (>99%); confirm invasive growth versus in situ.\n2. **Regions 10, 11** \u2014 tubule-rich with high heatmap contribution; assess gland architecture directly.\n3. **Region 4** \u2014 stroma-infiltration signal; look for tumor cells in stroma.",
+ "verification": {
+  "checked": 18,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:10:42-0500",
+ "elapsed_s": 50.0,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14330,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 7270,
+  "output_tokens_details": {
+   "thinking_tokens": 6437
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14330,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 7270,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14330,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14330
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 49272,
+ "markdown_original": "## Bottom line\n**Suggests Invasive (84%)** \u00b7 Unreliable input \u00b7 Careful review\nReliability flag raised; second model and similar cases disagree [F6].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 84%, InSitu 10%, Benign 5% | Clear lead, wider set |\n| Conformal set | InSitu, Invasive (90%) | Cannot separate the two |\n| Reliability / OOD | 0.67 / 84th percentile | Flagged; input suspect |\n| Second-model (MUSK) agreement | No | Different top class |\n| Similar cases | 0 of 5 Invasive; 5 InSitu | Neighbors point elsewhere |\n\n## Tissue evidence\n- **Gland / tubule formation** (regions 7, 10, 11) \u00b7 \u2193 invasive \u00b7 Above typical; associated with less invasive disease [F3] \u00b7 Validated\n- **Tumor-infiltrating stroma** (region 4) \u00b7 \u2191 invasive \u00b7 Slightly above typical; small positive term \u00b7 Validated\n- **Marked nuclear pleomorphism** (region 8) \u00b7 \u2191 invasive \u00b7 Near-typical score; adds little here \u00b7 Validated\n- **Normal lobules** (region 0) \u00b7 \u2193 invasive \u00b7 Above typical, but spot check failed (0/20) [F4] \u00b7 Unreliable\n- **Lymphocytic infiltrate** (region 4) \u00b7 context \u00b7 Below-typical score; descriptive only [F2] \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Effect 0.002 (CI \u22120.005 to 0.007) includes 0; not shown to reflect the classifier. Normal lobules (0/20) is Unreliable.\n\n## Could be wrong if\n- Image quality is suspect (reliability 0.67, 84th-percentile OOD); probabilities may not transfer.\n- Second model disagrees and all five neighbors are InSitu; true class may be InSitu.\n\n## Check on the slide\n1. **Regions 8, 9** \u2014 highest-risk regions (>99%); confirm invasive growth versus in situ.\n2. **Regions 10, 11** \u2014 tubule-rich with high heatmap contribution; assess gland architecture directly.\n3. **Region 4** \u2014 stroma-infiltration signal; look for tumor cells in stroma.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed).",
+   "'Marked nuclear pleomorphism' has contribution -0.13, so its arrow must be '\u2193 invasive'."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

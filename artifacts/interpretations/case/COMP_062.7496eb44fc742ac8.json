@@ -1,0 +1,57 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_062",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "7496eb44fc742ac8",
+ "markdown": "## Bottom line\n**Suggests Benign (90%)** \u00b7 Confident \u00b7 Careful review\nSingle-class conformal set and reliable input, but the second model (MUSK) disagrees and InSitu holds 10%. [F1]\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 90%, InSitu 10% | Clear leader |\n| Conformal set | {Benign} at 90% | Single class |\n| Reliability / OOD | 0.99 / 1.0 | Not flagged |\n| Second-model (MUSK) agreement | No | Top classes differ |\n| Similar cases | 3 of 5 Benign | Moderate support |\n\n## Tissue evidence\n- **Intraductal atypia** (regions 3, 5, 6) \u00b7 \u2193 invasive \u00b7 Above typical; concept model reads as non-invasive [F2] \u00b7 Weak\n- **Tumor-infiltrating stroma** (region 0) \u00b7 \u2193 invasive \u00b7 Below typical; little infiltrative pattern [F3] \u00b7 Validated\n- **Benign stroma or fat** (region 0) \u00b7 \u2191 invasive \u00b7 Scarcer than typical; modest push toward invasive [F4] \u00b7 Validated\n- **Normal lobules** (region 1) \u00b7 \u2191 invasive \u00b7 Below typical; small push toward invasive \u00b7 Unreliable\n- **Nuclear pleomorphism** (region 10) \u00b7 \u2193 invasive \u00b7 Below typical; small push away from invasive \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0: not shown to reflect the classifier. Normal lobules Unreliable (0/20); intraductal atypia Weak.\n\n## Could be wrong if\n- The second model (MUSK) picks a different top class; its choice is not shown.\n- Intraductal atypia, a Weak concept, reflects in-situ disease; 2 of 5 similar cases are InSitu.\n\n## Check on the slide\n1. **3, 5, 6** \u2014 Assess intraductal atypia: benign proliferation versus in situ carcinoma.\n2. **0** \u2014 Confirm stroma is benign with no infiltrating tumor.\n3. **10** \u2014 Check nuclear pleomorphism and gland formation.",
+ "verification": {
+  "checked": 13,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:22:47-0500",
+ "elapsed_s": 37.8,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13942,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5591,
+  "output_tokens_details": {
+   "thinking_tokens": 4784
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13942,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5591,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13942,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13942
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 36901,
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

@@ -1,0 +1,62 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_060",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "a1486bfa262f0648",
+ "markdown": "## Bottom line\n**Suggests InSitu (76%)** \u00b7 Ambiguous: Benign vs InSitu \u00b7 Careful review\nBoth classes share the 90% conformal set [F1].\n\n## Confidence\n\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 76%, Benign 22% | Clear lead, not decisive |\n| Conformal set | Benign, InSitu | Two classes unseparated |\n| Reliability / OOD | 0.94 / 84th percentile | Input not flagged |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 1 of 5 InSitu [F5] | Neighbors mostly Benign |\n\n## Tissue evidence\n\n- **Atypical cells confined within ducts** (regions 3, 4, 5) \u00b7 \u2193 invasive \u00b7 Fits in situ, not invasive, growth \u00b7 Weak\n- **Gland / tubule formation** (regions 2, 10) \u00b7 \u2193 invasive \u00b7 Gland-forming tissue lowers invasive association \u00b7 Weak\n- **Marked nuclear pleomorphism** (regions 1, 5, 9) \u00b7 \u2191 invasive \u00b7 Atypia present; small invasive association \u00b7 Validated\n- **Tumor necrosis** (regions 4, 5, 9) \u00b7 \u2191 invasive \u00b7 Scored high but failed spot check [F3] \u00b7 Unreliable\n- **Lymphocytic infiltrate** (regions 0, 1, 9) \u00b7 context \u00b7 Descriptive only; spot check borderline \u00b7 Weak\n\n## Trust check\n\n- **Heatmap**: Removing the top 3 regions cut the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0, so not shown to reflect the classifier; necrosis and mitoses are Unreliable.\n\n## Could be wrong if\n\n- Benign and InSitu overlap; nearest neighbors lean Benign (4 of 5).\n- Reliability score only moderately flags errors (AUROC 0.69, small test set).\n\n## Check on the slide\n\n1. **Regions 3, 4, 5:** confirm atypical cells stay within ducts; no stromal breach.\n2. **Regions 4, 5, 9:** look for true necrosis; the automated score failed its spot check.\n3. **Regions 1, 5, 9:** assess nuclear atypia and mitoses directly.",
+ "verification": {
+  "checked": 12,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:22:06-0500",
+ "elapsed_s": 41.7,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14331,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5267,
+  "output_tokens_details": {
+   "thinking_tokens": 4449
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14331,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5267,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14331,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14331
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 40612,
+ "markdown_original": "**Suggests InSitu (76%)** \u00b7 Ambiguous: Benign vs InSitu \u00b7 Careful review\nBoth classes share the 90% conformal set [F1].\n\n## Confidence\n\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 76%, Benign 22% | Clear lead, not decisive |\n| Conformal set | Benign, InSitu | Two classes unseparated |\n| Reliability / OOD | 0.94 / 84th percentile | Input not flagged |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 1 of 5 InSitu [F5] | Neighbors mostly Benign |\n\n## Tissue evidence\n\n- **Atypical cells confined within ducts** (regions 3, 4, 5) \u00b7 \u2193 invasive \u00b7 Fits in situ, not invasive, growth \u00b7 Weak\n- **Gland / tubule formation** (regions 2, 10) \u00b7 \u2193 invasive \u00b7 Gland-forming tissue lowers invasive association \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 1, 5, 9) \u00b7 \u2191 invasive \u00b7 Atypia present; small invasive association \u00b7 Validated\n- **Tumor necrosis** (regions 4, 5, 9) \u00b7 \u2191 invasive \u00b7 Scored high but failed spot check [F3] \u00b7 Unreliable\n- **Lymphocytic infiltrate** (regions 0, 1, 9) \u00b7 context \u00b7 Descriptive only; spot check borderline \u00b7 Weak\n\n## Trust check\n\n- **Heatmap**: Removing the top 3 regions cut the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0, so not shown to reflect the classifier; necrosis and mitoses are Unreliable.\n\n## Could be wrong if\n\n- Benign and InSitu overlap; nearest neighbors lean Benign (4 of 5).\n- Reliability score only moderately flags errors (AUROC 0.69, small test set).\n\n## Check on the slide\n\n1. **Regions 3, 4, 5:** confirm atypical cells stay within ducts; no stromal breach.\n2. **Regions 4, 5, 9:** look for true necrosis; the automated score failed its spot check.\n3. **Regions 1, 5, 9:** assess nuclear atypia and mitoses directly.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "Bottom line does not start with '**Suggests <class> (<p>%)**'.",
+   "Bottom line verdict should be 'Ambiguous' because the conformal set is {Benign, InSitu}.",
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

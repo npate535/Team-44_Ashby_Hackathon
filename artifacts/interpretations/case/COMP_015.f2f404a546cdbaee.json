@@ -1,0 +1,61 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_015",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "f2f404a546cdbaee",
+ "markdown": "## Bottom line\n**Suggests Normal (99%)** \u00b7 Confident \u00b7 Read in turn\nConformal set holds Normal only, input is typical, and all five neighbors agree [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 99%, Benign 1% | Strongly favors Normal |\n| Conformal set | {Normal}, \u03b1=0.1 | Single class |\n| Reliability / OOD | 0.99 / 44th percentile | Typical input |\n| Second-model (MUSK) agreement | Same top class | Models concur |\n| Similar cases | 5 of 5 Normal | Unanimous neighbors |\n\n## Tissue evidence\n- **Gland / tubule formation** (regions 4, 5, 6) \u00b7 \u2193 invasive \u00b7 Prominent glands; lower invasive likelihood in concept model [F3] \u00b7 Weak\n- **Benign fibrous stroma or fat** (regions 7, 8, 11) \u00b7 \u2193 invasive \u00b7 Prominent benign stroma; lower invasive likelihood [F4] \u00b7 Validated\n- **Normal lobules** (regions 0, 2, 7) \u00b7 \u2193 invasive \u00b7 Largest term, but failed AI spot check (0/20) [F2] \u00b7 Unreliable\n- **Tumor infiltrating stroma** (region 8) \u00b7 \u2193 invasive \u00b7 Below typical overall; only region 8 peaks \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Deletion CI excludes 0 (+0.54 logit); faithful to the classifier.\n- **Concepts**: Deletion CI includes 0 (+0.002); not shown to reflect the classifier. Normal lobules is Unreliable.\n\n## Could be wrong if\n- Reliability only modestly flags errors (AUROC 0.69, CI 0.58\u20130.87); high reliability is no guarantee.\n- Calibration is imprecise on a small test set (ECE 0.05, upper bound 0.18).\n\n## Check on the slide\n1. **Regions 8, 9**: least benign-leaning on the heatmap; region 8 also peaks for infiltrating stroma.\n2. **Region 1**: peak for mitoses and lymphocytes; mitosis score is Unreliable, so confirm by eye.\n3. **Regions 0, 2, 7**: confirm two-layered normal lobules; this concept failed its spot check.",
+ "verification": {
+  "checked": 14,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:04:44-0500",
+ "elapsed_s": 40.1,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13987,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5634,
+  "output_tokens_details": {
+   "thinking_tokens": 4833
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13987,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5634,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13987,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13987
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 39409,
+ "markdown_original": "## Bottom line\n**Suggests Normal (99%)** \u00b7 Confident \u00b7 Read in turn\nConformal set holds Normal only, input is typical, and all five neighbors agree [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 99%, Benign 1% | Strongly favors Normal |\n| Conformal set | {Normal}, \u03b1=0.1 | Single class |\n| Reliability / OOD | 0.99 / 44th percentile | Typical input |\n| Second-model (MUSK) agreement | Same top class | Models concur |\n| Similar cases | 5 of 5 Normal | Unanimous neighbors |\n\n## Tissue evidence\n- **Gland / tubule formation** (regions 4, 5, 6) \u00b7 \u2193 invasive \u00b7 Prominent glands; lower invasive likelihood in concept model [F3] \u00b7 Validated\n- **Benign fibrous stroma or fat** (regions 7, 8, 11) \u00b7 \u2193 invasive \u00b7 Prominent benign stroma; lower invasive likelihood [F4] \u00b7 Validated\n- **Normal lobules** (regions 0, 2, 7) \u00b7 \u2193 invasive \u00b7 Largest term, but failed AI spot check (0/20) [F2] \u00b7 Unreliable\n- **Tumor infiltrating stroma** (region 8) \u00b7 \u2191 invasive \u00b7 Below typical overall; only region 8 peaks \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Deletion CI excludes 0 (+0.54 logit); faithful to the classifier.\n- **Concepts**: Deletion CI includes 0 (+0.002); not shown to reflect the classifier. Normal lobules is Unreliable.\n\n## Could be wrong if\n- Reliability only modestly flags errors (AUROC 0.69, CI 0.58\u20130.87); high reliability is no guarantee.\n- Calibration is imprecise on a small test set (ECE 0.05, upper bound 0.18).\n\n## Check on the slide\n1. **Regions 8, 9**: least benign-leaning on the heatmap; region 8 also peaks for infiltrating stroma.\n2. **Region 1**: peak for mitoses and lymphocytes; mitosis score is Unreliable, so confirm by eye.\n3. **Regions 0, 2, 7**: confirm two-layered normal lobules; this concept failed its spot check.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed).",
+   "'Tumor infiltrating stroma' has contribution -0.26, so its arrow must be '\u2193 invasive'."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

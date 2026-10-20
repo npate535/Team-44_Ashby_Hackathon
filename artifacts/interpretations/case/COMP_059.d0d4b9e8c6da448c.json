@@ -1,0 +1,61 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_059",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "d0d4b9e8c6da448c",
+ "markdown": "## Bottom line\n**Suggests Invasive (58%)** \u00b7 Unreliable input \u00b7 Careful review\nReliability flag is set (0.73), and InSitu stays in the conformal set [F1].\n\n## Confidence\n|Signal|Value|Reading|\n|---|---|---|\n|Top probabilities|Invasive 58%, InSitu 37%|Close two-way split|\n|Conformal set|InSitu, Invasive (90%)|Cannot separate the two|\n|Reliability / OOD|0.73 / 94th percentile|Flagged; atypical image [F6]|\n|Second-model (MUSK) agreement|No|Different top class|\n|Similar cases|2 of 5 Invasive|Weak support [F5]|\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 4, 8, 11) \u00b7 \u2191 invasive \u00b7 Above typical; strongest concept association [F2] \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 8, 9, 11) \u00b7 \u2191 invasive \u00b7 Above typical score [F4] \u00b7 Validated\n- **Atypical cells confined within ducts** (region 2) \u00b7 \u2191 invasive \u00b7 Below-typical score, yet a positive term; nearest InSitu case scores higher \u00b7 Weak\n- **Tumor necrosis** (regions 8, 9) \u00b7 \u2191 invasive \u00b7 Above typical score; failed spot check (3/20) \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0, so not shown to reflect the classifier; necrosis is Unreliable.\n\n## Could be wrong if\n- Image is atypical (94th percentile OOD); a recut or deeper levels may change the read.\n- Second model disagrees, and 3 of 5 similar cases are InSitu.\n\n## Check on the slide\n1. **Regions 4, 8, 11** \u2014 confirm tumor cells infiltrate stroma rather than stay within ducts.\n2. **Regions 6, 10** \u2014 region 6 ranks second on the heatmap; region 10 is near even (0.49).\n3. **Region 2** \u2014 check whether atypical cells remain confined within ducts.",
+ "verification": {
+  "checked": 15,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:22:10-0500",
+ "elapsed_s": 60.5,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14357,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 8741,
+  "output_tokens_details": {
+   "thinking_tokens": 7963
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14357,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 8741,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14357,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14357
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 59767,
+ "markdown_original": "## Bottom line\n**Suggests Invasive (58%)** \u00b7 Ambiguous: InSitu vs Invasive \u00b7 Careful review\nInSitu stays in the conformal set and the input is flagged atypical [F1].\n\n## Confidence\n|Signal|Value|Reading|\n|---|---|---|\n|Top probabilities|Invasive 58%, InSitu 37%|Close two-way split|\n|Conformal set|InSitu, Invasive (90%)|Cannot separate the two|\n|Reliability / OOD|0.73 / 94th percentile|Flagged; atypical image [F6]|\n|Second-model (MUSK) agreement|No|Different top class|\n|Similar cases|2 of 5 Invasive|Weak support [F5]|\n\n## Tissue evidence\n- **Tumor infiltrating stroma** (regions 4, 8, 11) \u00b7 \u2191 invasive \u00b7 Above typical; strongest concept association [F2] \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 8, 9, 11) \u00b7 \u2191 invasive \u00b7 Above typical score [F4] \u00b7 Validated\n- **Atypical cells confined within ducts** (region 2) \u00b7 \u2193 invasive \u00b7 Below typical here; nearest InSitu case scores higher \u00b7 Weak\n- **Tumor necrosis** (regions 8, 9) \u00b7 \u2191 invasive \u00b7 Above typical score; failed spot check (3/20) \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI (\u22120.005 to 0.007) includes 0, so not shown to reflect the classifier; necrosis is Unreliable.\n\n## Could be wrong if\n- Image is atypical (94th percentile OOD); a recut or deeper levels may change the read.\n- Second model disagrees, and 3 of 5 similar cases are InSitu.\n\n## Check on the slide\n1. **Regions 4, 8, 11** \u2014 confirm tumor cells infiltrate stroma rather than stay within ducts.\n2. **Regions 6, 10** \u2014 region 6 ranks second on the heatmap; region 10 is near even (0.49).\n3. **Region 2** \u2014 check whether atypical cells remain confined within ducts.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "Bottom line verdict should be 'Unreliable input' because the reliability flag is set.",
+   "'Atypical cells confined within ducts' has contribution +0.25, so its arrow must be '\u2191 invasive'."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

@@ -1,0 +1,61 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_018",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "47b741262a43e387",
+ "markdown": "## Bottom line\n**Suggests InSitu (78%)** \u00b7 Confident \u00b7 Careful review\nThe conformal set holds one class, but the second model and all 5 neighbors disagree.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 78%, Invasive 18% | Clear lead |\n| Conformal set | {InSitu} at 90% | Single class |\n| Reliability / OOD | 0.99 / 1.0 | Input not flagged |\n| Second-model (MUSK) agreement | No | Different top class |\n| Similar cases | 0/5 InSitu | No matching neighbors |\n\n## Tissue evidence\n- **Normal lobules, two-layered epithelium** (regions 9, 10, 11) \u00b7 \u2193 invasive \u00b7 Largest concept term; lowers invasive association [F2] \u00b7 Unreliable (0/20)\n- **Atypical cells confined within ducts** (regions 3, 6, 7) \u00b7 \u2193 invasive \u00b7 Concept model links this to lower invasive likelihood [F4] \u00b7 Weak\n- **Gland / tubule formation** (region 0) \u00b7 \u2193 invasive \u00b7 Above-typical score; linked to lower invasive likelihood \u00b7 Weak\n- **Marked nuclear pleomorphism** (region 9) \u00b7 \u2193 invasive \u00b7 Score is low, so it lowers invasive association \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Deletion test excludes 0 (drop 0.54 logit, CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI includes 0 (\u22120.005 to 0.007), so not shown to reflect the classifier; leans on Unreliable normal lobules.\n\n## Could be wrong if\n- Second model and all 5 neighbors disagree with InSitu.\n- Region 8's per-region probe reads 89% invasive; invasive overall is 18%.\n\n## Check on the slide\n1. **Region 8** \u2014 per-region probe reads 89% invasive; look for stromal invasion.\n2. **Regions 3, 6, 7** \u2014 confirm atypical cells stay confined within ducts.\n3. **Regions 9, 10, 11** \u2014 check whether lobules are truly normal; concept failed spot check.",
+ "verification": {
+  "checked": 15,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:05:32-0500",
+ "elapsed_s": 41.7,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14058,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 6255,
+  "output_tokens_details": {
+   "thinking_tokens": 5505
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14058,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 6255,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14058,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14058
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 41053,
+ "markdown_original": "## Bottom line\n**Suggests InSitu (78%)** \u00b7 Confident \u00b7 Careful review\nThe conformal set holds one class, but the second model and all 5 neighbors disagree.\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 78%, Invasive 18% | Clear lead |\n| Conformal set | {InSitu} at 90% | Single class |\n| Reliability / OOD | 0.99 / 1.0 | Input not flagged |\n| Second-model (MUSK) agreement | No | Different top class |\n| Similar cases | 0/5 InSitu | No matching neighbors |\n\n## Tissue evidence\n- **Normal lobules, two-layered epithelium** (regions 9, 10, 11) \u00b7 \u2193 invasive \u00b7 Largest concept term; lowers invasive association [F2] \u00b7 Unreliable (0/20)\n- **Atypical cells confined within ducts** (regions 3, 6, 7) \u00b7 \u2193 invasive \u00b7 Concept model links this to lower invasive likelihood [F4] \u00b7 Weak\n- **Gland / tubule formation** (region 0) \u00b7 \u2193 invasive \u00b7 Above-typical score; linked to lower invasive likelihood \u00b7 Validated\n- **Marked nuclear pleomorphism** (region 9) \u00b7 \u2191 invasive \u00b7 Score is low, so it lowers invasive association \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Deletion test excludes 0 (drop 0.54 logit, CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI includes 0 (\u22120.005 to 0.007), so not shown to reflect the classifier; leans on Unreliable normal lobules.\n\n## Could be wrong if\n- Second model and all 5 neighbors disagree with InSitu.\n- Region 8's per-region probe reads 89% invasive; invasive overall is 18%.\n\n## Check on the slide\n1. **Region 8** \u2014 per-region probe reads 89% invasive; look for stromal invasion.\n2. **Regions 3, 6, 7** \u2014 confirm atypical cells stay confined within ducts.\n3. **Regions 9, 10, 11** \u2014 check whether lobules are truly normal; concept failed spot check.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed).",
+   "'Marked nuclear pleomorphism' has contribution -0.15, so its arrow must be '\u2193 invasive'."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

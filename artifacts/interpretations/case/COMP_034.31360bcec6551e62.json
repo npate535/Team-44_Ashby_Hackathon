@@ -1,0 +1,63 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_034",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "31360bcec6551e62",
+ "markdown": "## Bottom line\n**Suggests Invasive (80%)** \u00b7 Ambiguous: InSitu vs Invasive \u00b7 Careful review\nInSitu remains in the 90% conformal set [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 80%, InSitu 13% | Clear lead, InSitu second |\n| Conformal set | InSitu, Invasive | Cannot separate the two |\n| Reliability / OOD | 0.95 / 94th percentile | Not flagged as suspect |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 2 of 5 Invasive | Mixed; three InSitu |\n\n## Tissue evidence\n- **Frequent mitotic figures** (regions 0, 5, 6) \u00b7 \u2191 invasive \u00b7 Above-typical score; concept-model term positive [F2] \u00b7 Unreliable\n- **Gland / tubule formation** (regions 4, 8) \u00b7 \u2193 invasive \u00b7 Above-typical score; linked to lower invasive likelihood [F3] \u00b7 Weak\n- **Atypical cells confined within ducts** (region 10) \u00b7 \u2191 invasive \u00b7 Typical score; concept-model term positive here \u00b7 Weak\n- **Tumor necrosis** (regions 2, 3) \u00b7 \u2191 invasive \u00b7 Above-typical score; failed spot check (3/20) \u00b7 Unreliable\n- **Marked nuclear pleomorphism** (region 0) \u00b7 \u2193 invasive \u00b7 Typical score here; adds little \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0; not shown to reflect the classifier. Mitoses and necrosis are Unreliable.\n\n## Could be wrong if\n- The true class is InSitu: it is in the conformal set, and 3 of 5 similar cases match it.\n- The mitosis and necrosis signals are spurious; both failed the AI spot check.\n\n## Check on the slide\n1. **0, 1, 2**: Top heatmap contribution; look for stromal invasion versus in situ growth.\n2. **0, 5, 6**: Verify whether mitotic figures are real; the concept failed its spot check.\n3. **0\u20133**: Superior margin called tumor-positive (simulated frozen section); confirm [F7].",
+ "verification": {
+  "checked": 13,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:12:02-0500",
+ "elapsed_s": 49.9,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14267,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 7319,
+  "output_tokens_details": {
+   "thinking_tokens": 6470
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14267,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 7319,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14267,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14267
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 49134,
+ "markdown_original": "## Bottom line\n**Suggests Invasive (80%)** \u00b7 Ambiguous: InSitu vs Invasive \u00b7 Careful review\nInSitu remains in the 90% conformal set [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Invasive 80%, InSitu 13% | Clear lead, InSitu second |\n| Conformal set | InSitu, Invasive | Cannot separate the two |\n| Reliability / OOD | 0.95 / 94th percentile | Not flagged as suspect |\n| Second-model (MUSK) agreement | Both Invasive | Agrees |\n| Similar cases | 2 of 5 Invasive | Mixed; three InSitu |\n\n## Tissue evidence\n- **Frequent mitotic figures** (regions 0, 5, 6) \u00b7 \u2191 invasive \u00b7 Above-typical score; concept-model term positive [F2] \u00b7 Unreliable\n- **Gland / tubule formation** (regions 4, 8) \u00b7 \u2193 invasive \u00b7 Above-typical score; linked to lower invasive likelihood [F3] \u00b7 Validated\n- **Atypical cells confined within ducts** (region 10) \u00b7 \u2193 invasive \u00b7 Typical score; linked to lower invasive likelihood \u00b7 Weak\n- **Tumor necrosis** (regions 2, 3) \u00b7 \u2191 invasive \u00b7 Above-typical score; failed spot check (3/20) \u00b7 Unreliable\n- **Marked nuclear pleomorphism** (region 0) \u00b7 \u2191 invasive \u00b7 Typical score here; adds little \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0; not shown to reflect the classifier. Mitoses and necrosis are Unreliable.\n\n## Could be wrong if\n- The true class is InSitu: it is in the conformal set, and 3 of 5 similar cases match it.\n- The mitosis and necrosis signals are spurious; both failed the AI spot check.\n\n## Check on the slide\n1. **0, 1, 2**: Top heatmap contribution; look for stromal invasion versus in situ growth.\n2. **0, 5, 6**: Verify whether mitotic figures are real; the concept failed its spot check.\n3. **0\u20133**: Superior margin called tumor-positive (simulated frozen section); confirm [F7].",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed).",
+   "'Atypical cells confined within ducts' has contribution +0.16, so its arrow must be '\u2191 invasive'.",
+   "'Marked nuclear pleomorphism' has contribution -0.13, so its arrow must be '\u2193 invasive'.",
+   "The second-model (MUSK) row names Invasive, but agreement.conch_musk_same_top only says whether the production classifier and the MUSK probe agree; the JSON does not say which class the MUSK probe chose."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

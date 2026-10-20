@@ -1,0 +1,57 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_023",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "f2fb62a2a0d74107",
+ "markdown": "## Bottom line\n**Suggests Normal (57%)** \u00b7 Ambiguous: Normal vs InSitu \u00b7 Careful review\nInSitu holds 37% and sits in the 90% conformal set [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 57%, InSitu 37%, Invasive 7% | Normal leads; InSitu close |\n| Conformal set | Normal, InSitu at 90% | Cannot separate them |\n| Reliability / OOD | 0.96 / 1.0 | Input not flagged |\n| Second-model (MUSK) agreement | Same top class | Agrees with production model |\n| Similar cases | 2 of 5 Normal [F5] | Weak neighbor support |\n\n## Tissue evidence\n- **Normal lobules** (regions 1, 2, 3) \u00b7 \u2193 invasive \u00b7 Above-typical score; linked to lower invasive likelihood [F2] \u00b7 Unreliable\n- **Benign fibrous stroma or fat** (regions 0, 1, 2) \u00b7 \u2193 invasive \u00b7 Above-typical score; linked to lower invasive likelihood [F3] \u00b7 Validated\n- **Tumor necrosis** (regions 5, 9, 11) \u00b7 \u2191 invasive \u00b7 High score, but spot check failed [F4] \u00b7 Unreliable\n- **Atypical cells confined within ducts** (regions 5, 8, 11) \u00b7 \u2193 invasive \u00b7 Above-typical score; compatible with InSitu \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Passes; removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60).\n- **Concepts**: Deletion CI includes 0 (\u22120.005 to 0.007), so not shown to reflect the classifier. Normal lobules, necrosis and mitoses are Unreliable.\n\n## Could be wrong if\n- Region 8 alone scores 91% invasive risk; the 7% image-level figure may average it away.\n- InSitu (37%) is the true class; the model cannot separate it from Normal.\n\n## Check on the slide\n1. **Region 8:** highest heatmap contribution and 91% invasive risk; look for stromal invasion.\n2. **Regions 5, 9, 11:** confirm whether necrosis is real; its spot check was 3/20.\n3. **Regions 5, 8, 11:** look for atypical cells confined within ducts versus normal lobules.",
+ "verification": {
+  "checked": 19,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:07:42-0500",
+ "elapsed_s": 66.2,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14196,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 9790,
+  "output_tokens_details": {
+   "thinking_tokens": 8968
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14196,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 9790,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14196,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14196
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 65518,
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

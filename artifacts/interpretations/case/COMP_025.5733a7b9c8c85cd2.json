@@ -1,0 +1,62 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_025",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "5733a7b9c8c85cd2",
+ "markdown": "## Bottom line\n**Suggests InSitu (84%)** \u00b7 Ambiguous: Benign vs InSitu \u00b7 Careful review\n\nInvasive probability is low (3%), but Benign stays in the 90% conformal set [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 84%, Benign 13% | Clear leader, Benign second |\n| Conformal set | Benign, InSitu | Two classes unresolved |\n| Reliability / OOD | 0.955 / 94th percentile | No input flag raised |\n| Second-model (MUSK) agreement | Same top class | Independent model concurs |\n| Similar cases | 5/5 InSitu | Neighbors support suggestion |\n\n## Tissue evidence\n- **Benign fibrous stroma or fat** (regions 8, 11) \u00b7 \u2193 invasive \u00b7 Prominent; associated with lower invasive likelihood \u00b7 Validated\n- **Gland / tubule formation** (regions 0, 1, 6) \u00b7 \u2193 invasive \u00b7 Prominent; also associated with lower invasive likelihood \u00b7 Weak\n- **Frequent mitotic figures** (region 6) \u00b7 \u2193 invasive \u00b7 Low score; associated with lower invasive likelihood; spot check 0/20 \u00b7 Unreliable\n- **Tumor infiltrating stroma** (region 2) \u00b7 \u2193 invasive \u00b7 Score near typical; strongest in region 2 only \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions cuts the invasive logit 0.54 more than random (CI 0.47 to 0.60); faithful to the classifier.\n- **Concepts**: Deletion effect versus random is 0.002 (CI \u22120.005 to 0.007), so unproven; mitoses (0/20 spot check) is Unreliable.\n\n## Could be wrong if\n- Benign and InSitu cannot be separated; the conformal set holds both.\n- Region 2 (84% regional invasive risk) reflects true invasion that the whole-image 3% understates.\n\n## Check on the slide\n1. **Regions 0, 1, 6**: gland architecture; decide benign atypia versus duct-confined in situ.\n2. **Region 2**: highest regional invasive contribution (84% risk); look for stromal invasion.\n3. **Regions 2, 3, 7, 10, 11**: margin segments scored tumor [F7]; confirm tumor at edge.",
+ "verification": {
+  "checked": 18,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:08:20-0500",
+ "elapsed_s": 38.3,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14325,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5439,
+  "output_tokens_details": {
+   "thinking_tokens": 4626
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14325,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5439,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14325,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14325
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 37482,
+ "markdown_original": "## Bottom line\n**Suggests InSitu (84%)** \u00b7 Ambiguous: Benign vs InSitu \u00b7 Careful review\n\nInvasive probability is low (3%), but Benign stays in the 90% conformal set [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 84%, Benign 13% | Clear leader, Benign second |\n| Conformal set | Benign, InSitu | Two classes unresolved |\n| Reliability / OOD | 0.955 / 94th percentile | No input flag raised |\n| Second-model (MUSK) agreement | Same top class | Independent model concurs |\n| Similar cases | 5/5 InSitu | Neighbors support suggestion |\n\n## Tissue evidence\n- **Benign fibrous stroma or fat** (regions 8, 11) \u00b7 \u2193 invasive \u00b7 Prominent; associated with lower invasive likelihood \u00b7 Validated\n- **Gland / tubule formation** (regions 0, 1, 6) \u00b7 \u2193 invasive \u00b7 Prominent; also associated with lower invasive likelihood \u00b7 Validated\n- **Frequent mitotic figures** (region 6) \u00b7 \u2191 invasive \u00b7 Low score, so not pulling toward invasive; spot check 0/20 \u00b7 Unreliable\n- **Tumor infiltrating stroma** (region 2) \u00b7 \u2191 invasive \u00b7 Score near typical; strongest in region 2 only \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions cuts the invasive logit 0.54 more than random (CI 0.47 to 0.60); faithful to the classifier.\n- **Concepts**: Deletion effect versus random is 0.002 (CI \u22120.005 to 0.007), so unproven; mitoses (0/20 spot check) is Unreliable.\n\n## Could be wrong if\n- Benign and InSitu cannot be separated; the conformal set holds both.\n- Region 2 (84% regional invasive risk) reflects true invasion that the whole-image 3% understates.\n\n## Check on the slide\n1. **Regions 0, 1, 6**: gland architecture; decide benign atypia versus duct-confined in situ.\n2. **Region 2**: highest regional invasive contribution (84% risk); look for stromal invasion.\n3. **Regions 2, 3, 7, 10, 11**: margin segments scored tumor [F7]; confirm tumor at edge.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed).",
+   "'Frequent mitotic figures' has contribution -0.20, so its arrow must be '\u2193 invasive'.",
+   "'Tumor infiltrating stroma' has contribution -0.14, so its arrow must be '\u2193 invasive'."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

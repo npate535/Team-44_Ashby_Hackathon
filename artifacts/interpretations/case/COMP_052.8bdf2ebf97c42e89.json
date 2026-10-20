@@ -1,0 +1,60 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_052",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "8bdf2ebf97c42e89",
+ "markdown": "## Bottom line\n**Suggests InSitu (57%)** \u00b7 Unreliable input \u00b7 Defer to expert\nReliability check failed; the 90% set holds all four classes [F1][F6].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 57%, Normal 17%, Benign 16%, Invasive 10% | Not decisive |\n| Conformal set | All four classes | No separation |\n| Reliability / OOD | 0.003 / 88th percentile | Input suspect |\n| Second-model (MUSK) agreement | No | Top classes differ |\n| Similar cases | 2 of 5 InSitu | Weak support |\n\n## Tissue evidence\n- **Benign fibrous stroma or fat** (regions 3, 7, 11) \u00b7 \u2193 invasive \u00b7 Associated with lower invasive likelihood \u00b7 Validated\n- **Gland/tubule formation** (regions 2, 6, 10) \u00b7 \u2193 invasive \u00b7 Associated with lower invasive likelihood \u00b7 Weak\n- **Frequent mitotic figures** (regions 1, 5, 9) \u00b7 \u2191 invasive \u00b7 Above typical; failed spot check 0/20 [F4] \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing top 3 regions drops invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion CI includes 0 (\u22120.005 to 0.007); not shown to reflect classifier. Mitoses unreliable.\n\n## Could be wrong if\n- Input is flagged (reliability 0.003), so all probabilities, including 57% InSitu, may be off.\n- Regions 1, 5, 9 score high for invasive, yet whole-image invasive probability is only 10%.\n\n## Check on the slide\n1. **1, 5, 9**: look for invasive tumor; highest invasive contribution and per-region risk.\n2. **3, 7, 11**: confirm benign stroma or fat, the validated feature pointing away from invasive.\n3. **4**: look for intraductal atypical cells; the concept is Weak (12/20) and this is its only region.",
+ "verification": {
+  "checked": 18,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:19:31-0500",
+ "elapsed_s": 86.0,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14411,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 12903,
+  "output_tokens_details": {
+   "thinking_tokens": 12180
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14411,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 12903,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14411,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14411
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 85172,
+ "markdown_original": "## Bottom line\n**Suggests InSitu (57%)** \u00b7 Unreliable input \u00b7 Defer to expert\nReliability check failed; the 90% set holds all four classes [F1][F6].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 57%, Normal 17%, Benign 16%, Invasive 10% | Not decisive |\n| Conformal set | All four classes | No separation |\n| Reliability / OOD | 0.003 / 88th percentile | Input suspect |\n| Second-model (MUSK) agreement | No | Top classes differ |\n| Similar cases | 2 of 5 InSitu | Weak support |\n\n## Tissue evidence\n- **Benign fibrous stroma or fat** (regions 3, 7, 11) \u00b7 \u2193 invasive \u00b7 Associated with lower invasive likelihood \u00b7 Validated\n- **Gland/tubule formation** (regions 2, 6, 10) \u00b7 \u2193 invasive \u00b7 Associated with lower invasive likelihood \u00b7 Validated\n- **Frequent mitotic figures** (regions 1, 5, 9) \u00b7 \u2191 invasive \u00b7 Above typical; failed spot check 0/20 [F4] \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing top 3 regions drops invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion CI includes 0 (\u22120.005 to 0.007); not shown to reflect classifier. Mitoses unreliable.\n\n## Could be wrong if\n- Input is flagged (reliability 0.003), so all probabilities, including 57% InSitu, may be off.\n- Regions 1, 5, 9 score high for invasive, yet whole-image invasive probability is only 10%.\n\n## Check on the slide\n1. **1, 5, 9**: look for invasive tumor; highest invasive contribution and per-region risk.\n2. **3, 7, 11**: confirm benign stroma or fat, the validated feature pointing away from invasive.\n3. **4**: look for intraductal atypical cells; the concept is Weak (12/20) and this is its only region.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

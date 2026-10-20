@@ -1,0 +1,57 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_032",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "05569870fd12d9af",
+ "markdown": "## Bottom line\n**Suggests InSitu (70%)** \u00b7 Ambiguous: Benign vs InSitu \u00b7 Careful review\nBenign stays in the 90% conformal set; invasive probability is under 1% [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 70%, Benign 15%, Normal 15% | Clear lead, not decisive |\n| Conformal set | Benign, InSitu (90% level) | Two classes unresolved |\n| Reliability / OOD | 0.92 / 0.74 | No reliability flag |\n| Second-model (MUSK) agreement | Same top class | Models agree on class |\n| Similar cases | 3 of 5 InSitu | Moderate neighbor support |\n\n## Tissue evidence\n- **Normal lobules** (regions 6, 8, 10) \u00b7 \u2193 invasive \u00b7 Lower invasive likelihood; spot check 0/20 [F2] \u00b7 Unreliable\n- **Duct-confined atypia** (regions 1, 5, 9) \u00b7 \u2193 invasive \u00b7 Lower invasive likelihood; spot check 12/20 [F4] \u00b7 Weak\n- **Benign stroma or fat** (regions 4, 6, 8) \u00b7 \u2193 invasive \u00b7 Lower invasive likelihood \u00b7 Validated\n- **Tumor-infiltrating stroma** (region 7) \u00b7 \u2191 invasive \u00b7 Higher invasive likelihood \u00b7 Validated\n- **Marked nuclear pleomorphism** (regions 0, 1, 5) \u00b7 \u2191 invasive \u00b7 Small upward term \u00b7 Validated\n\n## Trust check\n- **Heatmap**: Removing top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0; not shown to reflect the classifier. Normal lobules is Unreliable.\n\n## Could be wrong if\n- Benign versus InSitu is unresolved; the 90% conformal set keeps both.\n- 2 of 5 similar cases, including the closest (Normal), disagree with InSitu.\n\n## Check on the slide\n1. **1, 5, 9**: Confirm atypical cells stay inside ducts; mitosis and necrosis scores are unreliable.\n2. **7**: Look for stromal invasion; the validated invasion concept peaks here.\n3. **8**: Corner segment alone crosses the margin threshold [F7]; highest regional invasive probability (12%).",
+ "verification": {
+  "checked": 19,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:11:14-0500",
+ "elapsed_s": 78.5,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14400,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 11870,
+  "output_tokens_details": {
+   "thinking_tokens": 11014
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14400,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 11870,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14400,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14400
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 77730,
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

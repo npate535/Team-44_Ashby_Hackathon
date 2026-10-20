@@ -1,0 +1,60 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_057",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "c3a73d4b0188dbe7",
+ "markdown": "## Bottom line\n**Suggests Normal (97%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set; second model and all 5 neighbors agree. [F1]\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 97%, Benign 3% | Clear lead |\n| Conformal set | Normal only | Single class |\n| Reliability / OOD | 0.997 / 80th percentile | Typical input |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5/5 Normal | Unanimous |\n\n## Tissue evidence\n- **Normal lobules** (regions 8, 10, 11) \u00b7 \u2193 invasive \u00b7 High score; linked to lower invasive likelihood [F2] \u00b7 Unreliable\n- **Gland/tubule formation** (regions 1, 2, 4) \u00b7 \u2193 invasive \u00b7 High score; linked to lower invasive likelihood [F3] \u00b7 Weak\n- **Benign stroma or fat** (regions 10, 11) \u00b7 \u2193 invasive \u00b7 Above-typical benign background fits low invasive risk \u00b7 Validated\n- **Mitotic figures** (regions 6, 7) \u00b7 \u2191 invasive \u00b7 Above typical here, but spot check failed \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing its top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI includes 0 (\u22120.005 to 0.007); not shown to reflect the classifier. Normal lobules and mitoses are Unreliable.\n\n## Could be wrong if\n- A small focus in regions 6\u20137 (highest region risk, 4% and 6%) is under-represented.\n- Probabilities are approximate: ECE 0.05 (CI 0.03\u20130.18) on 132 test images.\n\n## Check on the slide\n1. **Regions 6, 7:** Look for mitoses and atypia; the mitosis concept failed its spot check.\n2. **Regions 8, 10, 11:** Confirm normal lobular architecture; this concept failed its spot check.\n3. **Regions 1, 2, 4:** Confirm gland formation is benign.",
+ "verification": {
+  "checked": 16,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:21:09-0500",
+ "elapsed_s": 41.4,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 13985,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5517,
+  "output_tokens_details": {
+   "thinking_tokens": 4761
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 13985,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5517,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 13985,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 13985
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 40649,
+ "markdown_original": "## Bottom line\n**Suggests Normal (97%)** \u00b7 Confident \u00b7 Read in turn\nSingle-class conformal set; second model and all 5 neighbors agree. [F1]\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Normal 97%, Benign 3% | Clear lead |\n| Conformal set | Normal only | Single class |\n| Reliability / OOD | 0.997 / 80th percentile | Typical input |\n| Second-model (MUSK) agreement | Same top class | Agrees |\n| Similar cases | 5/5 Normal | Unanimous |\n\n## Tissue evidence\n- **Normal lobules** (regions 8, 10, 11) \u00b7 \u2193 invasive \u00b7 High score; linked to lower invasive likelihood [F2] \u00b7 Unreliable\n- **Gland/tubule formation** (regions 1, 2, 4) \u00b7 \u2193 invasive \u00b7 High score; linked to lower invasive likelihood [F3] \u00b7 Validated\n- **Benign stroma or fat** (regions 10, 11) \u00b7 \u2193 invasive \u00b7 Above-typical benign background fits low invasive risk \u00b7 Validated\n- **Mitotic figures** (regions 6, 7) \u00b7 \u2191 invasive \u00b7 Above typical here, but spot check failed \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing its top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI includes 0 (\u22120.005 to 0.007); not shown to reflect the classifier. Normal lobules and mitoses are Unreliable.\n\n## Could be wrong if\n- A small focus in regions 6\u20137 (highest region risk, 4% and 6%) is under-represented.\n- Probabilities are approximate: ECE 0.05 (CI 0.03\u20130.18) on 132 test images.\n\n## Check on the slide\n1. **Regions 6, 7:** Look for mitoses and atypia; the mitosis concept failed its spot check.\n2. **Regions 8, 10, 11:** Confirm normal lobular architecture; this concept failed its spot check.\n3. **Regions 1, 2, 4:** Confirm gland formation is benign.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

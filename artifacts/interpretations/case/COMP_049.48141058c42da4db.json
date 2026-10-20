@@ -1,0 +1,57 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_049",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "48141058c42da4db",
+ "markdown": "## Bottom line\n**Suggests InSitu (76%)** \u00b7 Unreliable input \u00b7 Defer to expert\nReliability flag is set, the MUSK model disagrees, and Invasive stays in the conformal set [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 76%, Invasive 15%, Normal 9% | InSitu leads; Invasive second |\n| Conformal set | InSitu, Invasive (90%) | Cannot separate the two |\n| Reliability / OOD | 0.63 / 78th percentile | Flagged; input suspect |\n| Second-model (MUSK) agreement | No | Top class not confirmed |\n| Similar cases | 1 of 5 InSitu | Neighbors mostly disagree |\n\n## Tissue evidence\n- **Benign fibrous stroma or fat** (regions 0, 8, 9) \u00b7 \u2193 invasive \u00b7 Benign tissue linked to lower invasive likelihood \u00b7 Validated\n- **Normal lobules** (regions 0, 1, 9) \u00b7 \u2193 invasive \u00b7 Strongest negative concept term, but spot check 0/20 \u00b7 Unreliable\n- **Tumor necrosis** (regions 6, 10, 11) \u00b7 \u2191 invasive \u00b7 Scored high in these regions; spot check 3/20 \u00b7 Unreliable\n- **Atypical cells confined within ducts** (region 10) \u00b7 \u2193 invasive \u00b7 Associated with lower invasive likelihood; spot check 12/20 \u00b7 Weak\n\n## Trust check\n- **Heatmap**: removing the top 3 regions cuts the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: deletion difference 0.002 (CI \u22120.005 to 0.007) includes 0. Not shown to reflect classifier use. Normal lobules and necrosis are Unreliable.\n\n## Could be wrong if\n- The image is blurred or off-stain; reliability 0.63 is flagged, so probabilities may be off.\n- Necrosis and normal-lobule scores are artefacts; both failed spot checks.\n\n## Check on the slide\n1. **Regions 10, 7, 2, 6**: highest invasive contributions; look for stromal invasion versus intact duct borders.\n2. **Region 10**: top tile for necrosis and duct-confined atypia; confirm necrosis is real.\n3. **Region 4**: top tile for infiltrating stroma and pleomorphism; assess for invasion.",
+ "verification": {
+  "checked": 17,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:17:27-0500",
+ "elapsed_s": 40.9,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14323,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 6357,
+  "output_tokens_details": {
+   "thinking_tokens": 5513
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14323,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 6357,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14323,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14323
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 40115,
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [],
+  "repaired": false,
+  "remaining": []
+ }
+}

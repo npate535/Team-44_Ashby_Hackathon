@@ -1,0 +1,60 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_022",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "2523fcfe1b27587b",
+ "markdown": "## Bottom line\n**Suggests InSitu (66%)** \u00b7 Unreliable input \u00b7 Defer to expert\nImage looks atypical and three classes stay in the set [F6].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 66%, Benign 21%, Invasive 7% | Leading class, not dominant |\n| Conformal set | Benign, InSitu, Invasive | Three classes not separable |\n| Reliability / OOD | 0.10 / 98th percentile | Input suspect, atypical image |\n| Second-model (MUSK) agreement | No | Different top class |\n| Similar cases | 4 of 5 InSitu [F5] | Supports InSitu suggestion |\n\n## Tissue evidence\n- **Frequent mitotic figures** (regions 0, 1, 4) \u00b7 \u2191 invasive \u00b7 Highest concept score above typical; spot check 0/20 [F2] \u00b7 Unreliable\n- **Gland / tubule formation** (regions 9, 10, 11) \u00b7 \u2193 invasive \u00b7 Glandular pattern linked to lower invasive likelihood [F3] \u00b7 Weak\n- **Tumor necrosis** (regions 0, 1) \u00b7 \u2191 invasive \u00b7 Above typical, but spot check 3/20 [F4] \u00b7 Unreliable\n- **Atypical cells confined within ducts** (regions 2, 6) \u00b7 \u2193 invasive \u00b7 Scored above typical; spot check 12/20 \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI spans 0 (\u22120.005 to 0.007); not shown to reflect the classifier. Mitoses and necrosis are Unreliable.\n\n## Could be wrong if\n- Image is out of distribution (98th percentile, reliability 0.10), so all probabilities are suspect.\n- MUSK picks a different top class, so the InSitu call may not hold.\n\n## Check on the slide\n1. **Regions 0, 1:** highest invasive contribution on heatmap; look for invasion, necrosis, mitoses.\n2. **Regions 2, 6:** confirm atypia stays within ducts rather than invading stroma.\n3. **Regions 9, 10:** confirm benign glands; heatmap shows the strongest push away from invasive.",
+ "verification": {
+  "checked": 16,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:07:07-0500",
+ "elapsed_s": 37.2,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14361,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 5292,
+  "output_tokens_details": {
+   "thinking_tokens": 4481
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14361,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5292,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14361,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14361
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 36475,
+ "markdown_original": "## Bottom line\n**Suggests InSitu (66%)** \u00b7 Unreliable input \u00b7 Defer to expert\nImage looks atypical and three classes stay in the set [F6].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | InSitu 66%, Benign 21%, Invasive 7% | Leading class, not dominant |\n| Conformal set | Benign, InSitu, Invasive | Three classes not separable |\n| Reliability / OOD | 0.10 / 98th percentile | Input suspect, atypical image |\n| Second-model (MUSK) agreement | No | Different top class |\n| Similar cases | 4 of 5 InSitu [F5] | Supports InSitu suggestion |\n\n## Tissue evidence\n- **Frequent mitotic figures** (regions 0, 1, 4) \u00b7 \u2191 invasive \u00b7 Highest concept score above typical; spot check 0/20 [F2] \u00b7 Unreliable\n- **Gland / tubule formation** (regions 9, 10, 11) \u00b7 \u2193 invasive \u00b7 Glandular pattern linked to lower invasive likelihood [F3] \u00b7 Validated\n- **Tumor necrosis** (regions 0, 1) \u00b7 \u2191 invasive \u00b7 Above typical, but spot check 3/20 [F4] \u00b7 Unreliable\n- **Atypical cells confined within ducts** (regions 2, 6) \u00b7 \u2193 invasive \u00b7 Scored above typical; spot check 12/20 \u00b7 Weak\n\n## Trust check\n- **Heatmap**: Removing the top 3 regions drops the invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful to the classifier.\n- **Concepts**: Deletion CI spans 0 (\u22120.005 to 0.007); not shown to reflect the classifier. Mitoses and necrosis are Unreliable.\n\n## Could be wrong if\n- Image is out of distribution (98th percentile, reliability 0.10), so all probabilities are suspect.\n- MUSK picks a different top class, so the InSitu call may not hold.\n\n## Check on the slide\n1. **Regions 0, 1:** highest invasive contribution on heatmap; look for invasion, necrosis, mitoses.\n2. **Regions 2, 6:** confirm atypia stays within ducts rather than invading stroma.\n3. **Regions 9, 10:** confirm benign glands; heatmap shows the strongest push away from invasive.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}

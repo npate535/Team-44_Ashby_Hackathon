@@ -1,0 +1,60 @@
+{
+ "status": "ok",
+ "kind": "case",
+ "name": "COMP_010",
+ "model": "claude-sonnet-5-5",
+ "provider": "claude",
+ "prompt_version": "interp-v4",
+ "evidence_hash": "b9fe9ab891ae3672",
+ "markdown": "## Bottom line\n**Suggests Benign (78%)** \u00b7 Ambiguous: Benign vs InSitu \u00b7 Careful review\nInSitu is in the 90% conformal set; invasive risk is 2% [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 78%, InSitu 20%, Invasive 2% | Benign leads |\n| Conformal set | Benign, InSitu | Cannot separate the two |\n| Reliability / OOD | 0.96; OOD pct 1.0 | Not flagged |\n| Second-model (MUSK) agreement | Same top class | Models concur |\n| Similar cases | 2 of 5 Benign [F5] | Neighbors lean InSitu |\n\n## Tissue evidence\n- **Atypical cells confined within ducts** (regions 5, 6, 7) \u00b7 \u2193 invasive \u00b7 Above typical; points away from invasion \u00b7 Weak\n- **Scarce benign stroma or fat** (region 9) \u00b7 \u2191 invasive \u00b7 Low score; mild push toward invasive \u00b7 Validated\n- **Gland / tubule formation** (regions 9, 10) \u00b7 \u2193 invasive \u00b7 High score; lower invasive likelihood \u00b7 Weak\n- **Tumor necrosis** (regions 2, 3, 4) \u00b7 \u2191 invasive \u00b7 Scored high; spot check 3/20 \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing top 3 regions cuts invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0, so not shown to reflect the classifier. Unreliable here: necrosis.\n\n## Could be wrong if\n- Three of five neighbors are InSitu; disease may be in situ.\n- Margin model calls tumor at superior and lateral edges, unlike the 2% invasive score [F7].\n\n## Check on the slide\n1. **5, 6, 7** \u2014 Confirm atypical cells stay inside ducts.\n2. **2, 3, 4** \u2014 Verify necrosis; its AI spot check failed.\n3. **1, 2, 3** \u2014 Compare superior margin call with the low invasive score.",
+ "verification": {
+  "checked": 16,
+  "unsupported": []
+ },
+ "generated_at": "2026-10-20T00:02:43-0500",
+ "elapsed_s": 56.8,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 14293,
+  "cache_read_input_tokens": 984,
+  "output_tokens": 8328,
+  "output_tokens_details": {
+   "thinking_tokens": 7577
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 14293,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 8328,
+    "cache_read_input_tokens": 984,
+    "cache_creation_input_tokens": 14293,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 14293
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "duration_ms": 56057,
+ "markdown_original": "## Bottom line\n**Suggests Benign (78%)** \u00b7 Ambiguous: Benign vs InSitu \u00b7 Careful review\nInSitu is in the 90% conformal set; invasive risk is 2% [F1].\n\n## Confidence\n| Signal | Value | Reading |\n|---|---|---|\n| Top probabilities | Benign 78%, InSitu 20%, Invasive 2% | Benign leads |\n| Conformal set | Benign, InSitu | Cannot separate the two |\n| Reliability / OOD | 0.96; OOD pct 1.0 | Not flagged |\n| Second-model (MUSK) agreement | Same top class | Models concur |\n| Similar cases | 2 of 5 Benign [F5] | Neighbors lean InSitu |\n\n## Tissue evidence\n- **Atypical cells confined within ducts** (regions 5, 6, 7) \u00b7 \u2193 invasive \u00b7 Above typical; points away from invasion \u00b7 Weak\n- **Scarce benign stroma or fat** (region 9) \u00b7 \u2191 invasive \u00b7 Low score; mild push toward invasive \u00b7 Validated\n- **Gland / tubule formation** (regions 9, 10) \u00b7 \u2193 invasive \u00b7 High score; lower invasive likelihood \u00b7 Validated\n- **Tumor necrosis** (regions 2, 3, 4) \u00b7 \u2191 invasive \u00b7 Scored high; spot check 3/20 \u00b7 Unreliable\n\n## Trust check\n- **Heatmap**: Removing top 3 regions cuts invasive logit 0.54 more than random (CI 0.47\u20130.60); faithful.\n- **Concepts**: Deletion effect 0.002 (CI \u22120.005 to 0.007) includes 0, so not shown to reflect the classifier. Unreliable here: necrosis.\n\n## Could be wrong if\n- Three of five neighbors are InSitu; disease may be in situ.\n- Margin model calls tumor at superior and lateral edges, unlike the 2% invasive score [F7].\n\n## Check on the slide\n1. **5, 6, 7** \u2014 Confirm atypical cells stay inside ducts.\n2. **2, 3, 4** \u2014 Verify necrosis; its AI spot check failed.\n3. **1, 2, 3** \u2014 Compare superior margin call with the low invasive score.",
+ "claims": {
+  "checked_version": "claims-v2",
+  "found": [
+   "'Gland / tubule formation' is tagged Validated but should be Weak (spot check 18/20, caption check failed)."
+  ],
+  "repaired": true,
+  "remaining": []
+ }
+}
