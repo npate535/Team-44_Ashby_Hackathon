@@ -638,7 +638,7 @@ function figModels(ST, ev, L) {
   const take = pf
     ? `${modelName(prod)} has macro-F1 ${ciText(pf, { digits: 3 })}. ${overlap} of ${order.length - 1} other models have intervals that overlap it, so the test split alone cannot rank them; the choice was made by cross-validation inside train${reason ? `, recorded as "${reason}"` : ''}.${perfect.length ? ` ${perfect.map(modelName).join(' and ')} ${perfect.length > 1 ? 'rank' : 'ranks'} every invasive image above every other image (AUROC 1.000); a bootstrap interval has no spread there, so none is drawn.` : ''}`
     : 'Macro-F1 and AUROC per evaluated model.';
-  const rows = order.map((m) => [modelName(m), role(m) || '—', ciShort(ci(per[m].macro_f1), { digits: 3 }), aucShort(ci(per[m].invasive_vs_rest_auroc), counts), ciShort(ci(per[m].balanced_accuracy), { digits: 3 }), per[m].probabilities || '']);
+  const rows = order.map((m) => [modelName(m), role(m) || '—', ciShort(ci(per[m].macro_f1), { digits: 3 }), aucShort(ci(per[m].invasive_vs_rest_auroc), counts), ciShort(ci(per[m].balanced_accuracy), { digits: 3 }), String(per[m].probabilities || '').replace(/\s*\(p(?:cal)?__\)\s*$/, '')]); // drop the column prefix ("calibrated (pcal__)")
   return figure({
     id: 'models',
     wide: true,
@@ -1072,7 +1072,7 @@ function figComposition(ST, ev, L) {
     title: 'Differentials in the tier-driving set',
     takeaway: `${methodName(key)} put both in situ and invasive carcinoma in the set for ${plural(diff, 'image')}: the ambiguity that drafts p63 / calponin.${others.length ? ` For comparison: ${others.map(([m, n]) => `${methodName(m)} ${n}`).join(', ')}.` : ''}`,
     chart,
-    population: `held-out test split, n = ${AC.methods[key].n ?? sum(comp.map((x) => x.count))} images${AC.methods[key].column ? ` (predictions.csv ${AC.methods[key].column})` : ''}`,
+    population: `held-out test split, n = ${AC.methods[key].n ?? sum(comp.map((x) => x.count))} images`,
     source: 'eval/analytics.json',
     table: { head: ['Set', 'Images'], rows: comp.map((c) => [c.members.length ? c.members.map((m) => cls(m, ST)).join(' + ') : 'Empty', String(c.count)]), num: [1] }
   });
@@ -1185,13 +1185,29 @@ export function spotVerdicts(sc) {
     if (!bucket) continue;
     bucket.n += 1;
     if (r.verdict in bucket) bucket[r.verdict] += 1;
-    reviewers.set(r.reviewer || 'unnamed', r.reviewer_kind || 'unknown');
+    const who = reviewers.get(r.reviewer || 'unnamed') || { kind: r.reviewer_kind || 'unknown', n: 0 };
+    who.n += 1;
+    reviewers.set(r.reviewer || 'unnamed', who);
   }
   if (!Object.keys(out.concepts).length && sc.summary && sc.summary.concept)
     for (const [id, b] of Object.entries(sc.summary.concept)) out.concepts[id] = { n: b.n, acceptable: b.acceptable, unsure: null, not_acceptable: null };
-  out.reviewers = [...reviewers.entries()].map(([name, kind]) => ({ name, kind }));
+  out.reviewers = [...reviewers.entries()].map(([name, w]) => ({ name, kind: w.kind, n: w.n })).sort((a, b) => b.n - a.n); // most reviews first
   out.kinds = [...new Set(out.reviewers.map((r) => r.kind))];
   return out;
+}
+// Reviewer names as recorded carry qualifiers ("Claude Opus 5.5 (AI, not a pathologist)") and one tool label
+// ("Codex UI verification"); the page shows the plain name and states AI or human separately.
+const REVIEWER_PLAIN = [[/^Codex UI (verification|check)$/i, 'Codex UI test']];
+export function reviewerName(name) {
+  const base = String(name || '').replace(/\s*\((?:AI|human)\b[^)]*\)\s*$/i, '').trim() || 'Unnamed reviewer';
+  for (const [re, plain] of REVIEWER_PLAIN) if (re.test(base)) return plain;
+  return base;
+}
+const KIND_TEXT = { ai: 'AI', human: 'human' };
+/** "Claude Opus 5.5 (AI, 200 reviews)" for one entry of spotVerdicts().reviewers. */
+export function reviewerText(r) {
+  const n = isNum(r.n) ? `, ${r.n} review${r.n === 1 ? '' : 's'}` : '';
+  return `${reviewerName(r.name)} (${KIND_TEXT[r.kind] || r.kind || 'unknown'}${n})`;
 }
 const LOW_PLAUSIBILITY = 0.25; // share of top regions judged acceptable at or below which a concept is flagged
 function lowPlausibility(ev) {
@@ -1218,7 +1234,7 @@ function figSpotcheck(ST, ev, L) {
     wide: true,
     side: true,
     title: 'Spot check of top-scoring regions',
-    caveat: `${ai ? 'AI-reviewed (not a pathologist)' : `Reviewed by: ${v.kinds.join(', ')}`}: a plausibility check of each concept's ${n} highest-scoring regions, not pathologist validation. Reviewers: ${v.reviewers.map((r) => (/\bAI\b/.test(r.name) ? r.name : `${r.name} (${r.kind})`)).join('; ')}.`,
+    caveat: `${ai ? 'AI-reviewed (not a pathologist)' : `Reviewed by ${v.kinds.map((k) => KIND_TEXT[k] || k).join(' and ')} reviewers`}: a plausibility check of each concept's ${n} highest-scoring regions, not pathologist validation. Reviewers: ${v.reviewers.map(reviewerText).join('; ')}.`,
     takeaway: `${high.length ? `${high.map(label).join(', ')}: at least 85% of top regions looked right. ` : ''}${low.length ? `${low.map((id) => `${label(id)} (${v.concepts[id].acceptable}/${v.concepts[id].n})`).join(', ')} rarely did, so explanations that cite these concepts should be discounted.` : 'No concept fell to 25% or below.'}`,
     chart,
     population: `${n} top-scoring regions per concept from the test split${v.cells ? `; ${v.cells.n} cell overlays` : ''}`,
@@ -1251,7 +1267,7 @@ function figNct(ST, ev, L) {
     testid: 'metrics-concepts',
     title: 'Cross-organ check (NCT-CRC-HE-100K)',
     caveat: 'Cross-organ sanity check on colorectal tiles (NCT-CRC-HE-100K): evidence that tissue-level concepts transfer, not breast validation.',
-    takeaway: `Text-prompt scores reach AUROC ≥ 0.80 for ${good} of ${text.length} concepts${reversed.length ? `; reversed (below chance): ${reversed.join(', ')}` : ''}.${(ci(get(nct, 'pleomorphism.text'))?.est ?? 1) < 0.7 ? ' Pleomorphism is weak here, plausibly because colorectal tumour is not breast carcinoma.' : ''}`,
+    takeaway: `Text-prompt scores reach AUROC ≥ 0.80 for ${good} of ${text.length} concepts${reversed.length ? `; reversed (below chance): ${reversed.join(', ')}` : ''}.${(ci(get(nct, 'pleomorphism.text'))?.est ?? 1) < 0.7 ? ' Pleomorphism is weak here, plausibly because colorectal tumor is not breast carcinoma.' : ''}`,
     chart: chart + C.legend([{ name: 'Text prompt score', color: C.COLOR[1], kind: 'dot' }, { name: 'Caption-trained concept vector', color: C.COLOR[3], kind: 'dot' }]),
     population: `${countText(get(CO, 'nct.n_tiles') ?? '?')} colorectal tiles (${Object.keys(get(CO, 'nct.per_class_counts') || {}).length} tissue classes)${get(CO, 'nct.encoder') ? `; encoder ${modelName(get(CO, 'nct.encoder'))}` : ''}`,
     source: 'eval/concepts.json',
@@ -1279,7 +1295,7 @@ function figCav(ST, ev, L) {
     chart,
     population: `held-out caption folds (${(cav.sets_used || []).join(', ')}), grouped by video / slide${cav.encoder ? `; encoder ${modelName(cav.encoder)}` : ''}`,
     source: 'eval/concepts.json',
-    table: { head: ['Concept', 'Held-out AUROC [95% CI]', 'Positives', 'Negatives', 'Groups', 'Consistent'], rows: Object.entries(cav.concepts).map(([id, b]) => [id, aucCi(ci(b.heldout_auroc)), String(b.n_pos), String(b.n_neg), String(b.n_groups), b.caption_consistent ? 'yes' : 'no']) }
+    table: { head: ['Concept', 'Held-out AUROC [95% CI]', 'Positives', 'Negatives', 'Groups', 'Consistent'], rows: Object.entries(cav.concepts).map(([id, b]) => [get(ev, ['concepts', 'concepts', id, 'label']) || humanize(id), aucCi(ci(b.heldout_auroc)), String(b.n_pos), String(b.n_neg), String(b.n_groups), b.caption_consistent ? 'yes' : 'no']) }
   });
 }
 function figDeletion(ST, ev, L) {
@@ -1537,10 +1553,10 @@ function figMargin(ST, ev, L) {
   rows.push({ header: true, label: 'Benign test images: false alarms (lower is better)' });
   add('benign_fpr.pooled_per_margin', 'Margin wrongly called involved', C.COLOR[2], 'margins', true);
   add('benign_fpr.any_margin', 'Any of 4 margins wrongly called', C.COLOR[2], 'images');
-  rows.push({ header: true, label: 'Composite fields: half tumour, half benign (simulated)' });
-  add('composite.exact_negative_margin_clear_rate', 'Tumour-free margin called clear', C.COLOR[1], 'margins');
+  rows.push({ header: true, label: 'Composite fields: half tumor, half benign (simulated)' });
+  add('composite.exact_negative_margin_clear_rate', 'Tumor-free margin called clear', C.COLOR[1], 'margins');
   add('composite.benign_half_segment_clear_rate', 'Benign-half segments below threshold', C.COLOR[1], 'segments', true);
-  add('composite.tumor_side_margin_sensitivity', 'Tumour-side margin called involved', C.COLOR[1], 'margins');
+  add('composite.tumor_side_margin_sensitivity', 'Tumor-side margin called involved', C.COLOR[1], 'margins');
   add('composite.carcinoma_half_segment_hit_rate', 'Carcinoma-half segments above threshold', C.COLOR[1], 'segments', true);
   rows.push({ header: true, label: 'Annotated whole-slide windows' });
   add('wsi_windows.sensitivity', 'Sensitivity (involved margins found)', C.COLOR[3], 'margins', true);
@@ -1551,13 +1567,13 @@ function figMargin(ST, ev, L) {
   const g = (p) => ci(get(MG, p))?.est;
   const neg = byKey['composite.exact_negative_margin_clear_rate'],
     any = byKey['benign_fpr.any_margin'];
-  const negText = neg && neg.iv && neg.iv.k === neg.iv.n ? `kept all ${neg.iv.n} tumour-free margins clear (${exactCi(neg.iv)})` : `kept ${pc(g('composite.exact_negative_margin_clear_rate'))} of tumour-free margins clear`;
+  const negText = neg && neg.iv && neg.iv.k === neg.iv.n ? `kept all ${neg.iv.n} tumor-free margins clear (${exactCi(neg.iv)})` : `kept ${pc(g('composite.exact_negative_margin_clear_rate'))} of tumor-free margins clear`;
   const alarmText = any && any.iv && any.iv.k === 0 ? `none of the ${any.iv.n} benign test images had a margin called involved; ${exactCi(any.iv)}` : `few false alarms on benign images, ${pc(g('benign_fpr.pooled_per_margin'))}`;
   return figure({
     id: 'margin',
     title: 'Simulated margin read',
     caveat: 'Simulation: image borders stand in for inked margins (top superior, bottom inferior, left medial, right lateral). Composite fields are synthetic constructions from test images.',
-    takeaway: `On composite fields the read ${negText} and called the tumour-side margin involved ${pc(g('composite.tumor_side_margin_sensitivity'))} of the time; on annotated slide windows sensitivity was ${pc(g('wsi_windows.sensitivity'))} at ${pc(g('wsi_windows.specificity'))} specificity. The threshold is conservative (${alarmText}) and misses many involved margins, so the surgeon-facing call stays with the pathologist.`,
+    takeaway: `On composite fields the read ${negText} and called the tumor-side margin involved ${pc(g('composite.tumor_side_margin_sensitivity'))} of the time; on annotated slide windows sensitivity was ${pc(g('wsi_windows.sensitivity'))} at ${pc(g('wsi_windows.specificity'))} specificity. The threshold is conservative (${alarmText}) and misses many involved margins, so the surgeon-facing call stays with the pathologist.`,
     chart,
     notes: [...(rows.some((r) => r.iv) ? [EXACT_NOTE] : []), ...(rows.some((r) => r.countOnly) ? ['Pooled rates (several margins or segments per field) at 0% or 100% show the count only: the margins or segments of one field are not independent, so an exact interval over them would overstate the precision.'] : [])],
     population: `test images (${get(MG, 'benign_fpr.n_benign_test') ?? '?'} benign, ${get(MG, 'echo.n_carcinoma_test') ?? '?'} carcinoma), ${nComp ?? '?'} composites, ${get(MG, 'wsi_windows.n_windows') ?? '?'} WSI windows from ${get(MG, 'wsi_windows.n_patients') ?? '?'} patients; threshold ${probText(MG.threshold)} from benign calibration images`,
@@ -1641,10 +1657,33 @@ function figReasons(ST, ev, L) {
       return t ? `${shortClass(c)}: most often "${label(t[0]).toLowerCase()}" (${t[1]} of ${n[c] ?? '?'})` : '';
     }).filter(Boolean).join('; ')}. One case can carry several reasons.`,
     chart: chart + C.scaleLegend({ caption: 'Shade = share of the class', lo: '0%', hi: '100%' }),
-    population: `held-out test split, ${T.n} images; reasons from core.tiers`,
+    population: `held-out test split, ${T.n} images; reasons from the worklist tier rules`,
     source: 'eval/analytics.json',
     table: { head: ['Reason', ...classes.map(shortClass)], rows: present.map((r, i) => [label(r), ...counts[i].map(String)]), num: classes.map((_, i) => i + 1) }
   });
+}
+// queue_sim.json states the tier rule in code terms: "core.tiers (surgical 1; Invasive top or in the aps_marginal_nonempty
+// conformal set 2; set size != 1, reliability flag or insufficient tissue 3; else 4)". Said in words, clause by clause;
+// a clause this does not recognise is kept as written.
+const TIER_CLAUSES = [
+  [/^surgical$/, () => 'frozen sections'],
+  [/^Invasive top or in the (\S+) conformal set$/, (m) => `invasive carcinoma is the top category or is in the confidence set (${methodName(m[1])})`],
+  [/^set size != 1, reliability flag or insufficient tissue$/, () => 'the confidence set holds no category or more than one, the reliability flag is raised, or too little tissue passed quality control'],
+  [/^else$/, () => 'everything else']
+];
+function tierRuleText(s) {
+  const m = /^core\.tiers \((.*)\)$/.exec(String(s || ''));
+  if (!m) return s;
+  const parts = m[1].split(/;\s*/).map((clause) => {
+    const c = /^(.*?)\s+(\d)$/.exec(clause.trim());
+    if (!c) return clause;
+    for (const [re, say] of TIER_CLAUSES) {
+      const hit = re.exec(c[1]);
+      if (hit) return `tier ${c[2]}: ${say(hit)}`;
+    }
+    return `tier ${c[2]}: ${c[1].replace('set size != 1', 'confidence set not exactly one category')}`;
+  });
+  return `worklist tiers as in the app (${parts.join('; ')})`;
 }
 function figQueue(ST, ev, L) {
   const Q = ev.queue_sim;
@@ -1679,7 +1718,7 @@ function figQueue(ST, ev, L) {
   const compare = firstLook && unflagged ? `${firstLook}, while ${unflagged}.` : firstLook || unflagged ? `${firstLook || unflagged}.` : 'the arrival-order and Sepia-tier results are not both present in this run, so no comparison is drawn.';
   const take = `In ${isNum(Q.reps) ? countText(Q.reps) + ' ' : ''}simulated reading days, ${compare} ${isNum(promo.tiers_aging) && promo.tiers_aging === 0 ? 'The configured aging guard never promoted a case within an 8-hour day, so it has no measured effect here.' : ''}`;
   const a = Q.assumptions || {};
-  const assumptions = [a.arrivals, a.reader, isNum(a.utilization) ? `reader utilization ${pc(a.utilization)}` : null, a.tiers, a.interval, a.truth_use].filter(Boolean);
+  const assumptions = [a.arrivals, a.reader, isNum(a.utilization) ? `reader utilization ${pc(a.utilization)}` : null, tierRuleText(a.tiers), a.interval, a.truth_use].filter(Boolean);
   const rows = [];
   for (const p of policies) for (const m of ['aggressive_mean', 'aggressive_p90', 'non_flagged_mean', 'max_wait', 'overtime']) {
     const s = get(Q, ['results', p, m]);
@@ -1776,27 +1815,28 @@ function figDataQuality(ST, ev, L) {
     width: L.two ? L.half : L.full,
     height: 200,
     categories: classes.map(shortClass),
-    series: [{ name: 'Before the fix', color: C.COLOR.muted, values: classes.map((c) => it.old_by_class[c]) }, { name: 'After the fix', color: C.COLOR[1], values: classes.map((c) => (it.new_by_class || {})[c] ?? 0) }],
+    series: [{ name: 'Before the correction', color: C.COLOR.muted, values: classes.map((c) => it.old_by_class[c]) }, { name: 'After the correction', color: C.COLOR[1], values: classes.map((c) => (it.new_by_class || {})[c] ?? 0) }],
     y: { label: 'Images' },
     zeroLabels: true,
-    aria: 'Images with insufficient tissue before and after the QC fix'
+    aria: 'Images flagged for too little tissue before and after the tissue-detection correction'
   }) : '';
   const qp = DQ.qc_pass_rate || {};
   const grids = Object.keys(qp.old || {});
+  const gridName = (g) => (/^g\d+$/.test(g) ? `${g.slice(1)}-px tiles` : g); // "g256" → "256-px tiles"
   return figure({
     id: 'dataquality',
-    title: 'Tissue QC before and after the fix',
-    takeaway: `A tissue-mask fix ${grids.length ? `raised the tile QC pass rate ${grids.map((g) => `${pc(qp.old[g])} → ${pc((qp.new || {})[g])} (${g})`).join(', ')} and ` : ''}${isNum(it.old) && isNum(it.new) ? `reduced images flagged "insufficient tissue" from ${it.old} to ${it.new}` : 'changed which images are flagged "insufficient tissue"'}${isNum(it.old) && it.old_by_class && isNum(it.old_by_class.Invasive) && it.old_by_class.Invasive * 2 > it.old ? `; ${it.old_by_class.Invasive} of the ${it.old} were invasive, so the bug mostly hid real tumour tissue` : ''}.`,
+    title: 'Tissue detection before and after a correction',
+    takeaway: `The first tissue-detection step missed real tissue. Correcting it ${grids.length ? `raised the share of tiles accepted as tissue ${grids.map((g) => `${pc(qp.old[g])} → ${pc((qp.new || {})[g])} (${gridName(g)})`).join(', ')} and ` : ''}${isNum(it.old) && isNum(it.new) ? `reduced the images flagged for too little tissue from ${it.old} to ${it.new}` : 'changed which images are flagged for too little tissue'}${isNum(it.old) && it.old_by_class && isNum(it.old_by_class.Invasive) && it.old_by_class.Invasive * 2 > it.old ? `; ${it.old_by_class.Invasive} of those ${it.old} images were invasive carcinoma, so the earlier step mostly missed tumor tissue` : ''}.`,
     chart,
     population: `all ${DQ.n_cases ?? ''} BACH images (every split), ${isNum(DQ.n_tiles) ? countText(DQ.n_tiles) : ''} tiles; tile-level QC, not a model result`,
     source: 'eval/qc.json',
-    notes: DQ.validation_old_rule_display_vs_fullres ? [`Check: the old rule recomputed on display images matches the full-resolution tissue fractions (Pearson r ${C.fmtNum(DQ.validation_old_rule_display_vs_fullres.pearson_r, 3)}).`] : [],
-    table: { head: ['Class', 'Insufficient before', 'Insufficient after'], rows: classes.map((c) => [cls(c, ST), String(it.old_by_class[c]), String((it.new_by_class || {})[c] ?? '')]), num: [1, 2] }
+    notes: DQ.validation_old_rule_display_vs_fullres ? [`Check: the earlier rule recomputed on display images matches the full-resolution tissue fractions (Pearson r ${C.fmtNum(DQ.validation_old_rule_display_vs_fullres.pearson_r, 3)}).`] : [],
+    table: { head: ['Class', 'Too little tissue, before', 'Too little tissue, after'], rows: classes.map((c) => [cls(c, ST), String(it.old_by_class[c]), String((it.new_by_class || {})[c] ?? '')]), num: [1, 2] }
   });
 }
 const LIMITATIONS = [
   'Research prototype on a small public dataset (BACH, CC BY-NC-ND 4.0); not a clinical device and not for clinical use.',
-  'BACH labels are diagnostic categories, not Nottingham grades; "likely aggressive" means "likely invasive carcinoma".',
+  'BACH labels are diagnostic categories (normal, benign, in situ carcinoma, invasive carcinoma), not Nottingham grades: the worklist flags likely invasive carcinoma, not tumor grade or aggressiveness.',
   'Small test set (THUNDER split, 132 images) with partial patient IDs: pseudo-patient groups and wide intervals.',
   'The surgical lane is simulated: image borders stand in for inked margins and frozen-section artifacts are simulated degradations; composite fields are synthetic constructions from test images.',
   'Concept scores are features associated with the classes, not causes and not validated grade components; caption consistency measures caption co-mention, not tissue truth.',
@@ -1818,8 +1858,48 @@ const CITATIONS = [
   ['Calibration and conformal', 'Guo C, et al. (temperature scaling), ICML 2017; Sadinle M, et al. (LAC), JASA 2019; Romano Y, et al. (APS), NeurIPS 2020.'],
   ['ABMIL', 'Ilse M, Tomczak J, Welling M. Attention-based deep multiple instance learning. ICML 2018.'],
   ['Triage cost', 'Annarumma M, et al. Automated triaging of adult chest radiographs. Radiology, 2019.'],
-  ['Compute and tooling', 'NCSA Delta; ncsa/ashby-hackathon-2026 tooling (MIT); Lumen for grounded summaries.']
+  ['Compute and tooling', 'NCSA Delta; ncsa/ashby-hackathon-2026 tooling (MIT).']
 ];
+// Who wrote the shipped text and who reviewed the evidence, read from the data (eval/fact_sheet.json counts the case
+// files by summary generator and the plain-language records by model; eval/spotcheck.json holds every review). A row
+// is left out when its file is missing, rather than guessed.
+const PROVIDER_CLI = { claude: 'the Claude Code CLI', cursor: 'the Cursor agent CLI' };
+function llmName(id) {
+  const m = /^claude-([a-z]+)-(\d+)-(\d+)$/.exec(String(id));
+  return m ? `Claude ${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2]}.${m[3]} (Anthropic)` : String(id);
+}
+function creditRows(ev) {
+  const rows = [];
+  const lm = get(ev, 'fact_sheet.components.language_models');
+  const gens = get(lm, 'case_summaries.generators');
+  if (gens && typeof gens === 'object' && Object.keys(gens).length) {
+    const total = sum(Object.values(gens).filter(isNum));
+    const text = Object.entries(gens).map(([g, n]) => {
+      const files = g === 'template' && n === total ? `all ${countText(n)} case files` : `${countText(n)} case file${n === 1 ? '' : 's'}`;
+      if (g === 'template') return `a deterministic template from the structured findings, in ${files}; no language model writes them`;
+      if (g.startsWith('lumen:')) return `${g.slice(6).split('+')[0]} through Lumen${g.includes('+template') ? ' with template sentences' : ''}, in ${files}`;
+      return `${g}, in ${files}`;
+    });
+    rows.push(['Case summaries', `${text.join('; ')}.`.replace(/^./, (c) => c.toUpperCase())]);
+  }
+  const models = get(lm, 'plain_language_tab.models');
+  if (models && typeof models === 'object' && Object.keys(models).length) {
+    const text = Object.entries(models).map(([key, n]) => {
+      const m = /^(.*) \(([^)]*)\)$/.exec(key) || [key, key, ''];
+      return `${llmName(m[1])}${PROVIDER_CLI[m[2]] ? ` through ${PROVIDER_CLI[m[2]]}` : m[2] ? ` (${m[2]})` : ''}, ${countText(n)} case text${n === 1 ? '' : 's'}`;
+    });
+    rows.push(['Plain-language evidence text', `${text.join('; ')}. Optional; written from the measured evidence, with every number checked against it; not itself evidence.`]);
+  }
+  const v = spotVerdicts(ev.spotcheck);
+  if (v.reviewers.length) {
+    const who = (r) => `${reviewerName(r.name)}${/^Claude\b/.test(reviewerName(r.name)) ? ' (Anthropic)' : ''}, ${countText(r.n)} review${r.n === 1 ? '' : 's'}`;
+    const by = (kind) => v.reviewers.filter((r) => r.kind === kind);
+    const other = v.reviewers.filter((r) => r.kind !== 'ai' && r.kind !== 'human');
+    const parts = [by('ai').length ? `AI spot check: ${by('ai').map(who).join('; ')}` : '', by('human').length ? `Human review: ${by('human').map(who).join('; ')}` : '', other.length ? `Other: ${other.map(who).join('; ')}` : ''].filter(Boolean);
+    rows.push(['Evidence review', `${parts.join('. ')}.${by('human').length ? '' : ' No human or pathologist review is recorded.'}`]);
+  }
+  return rows;
+}
 function limitationsSection(ST, ev, m, L, ctx) {
   const files = Object.entries(ev)
     .filter(([, d]) => d && typeof d === 'object')
@@ -1827,7 +1907,7 @@ function limitationsSection(ST, ev, m, L, ctx) {
   const expected = Object.keys(m.expected || {}).filter((k) => !ev[k]);
   return `<figure class="mx-fig mx-wide" data-testid="limitations"><figcaption><h3>Limitations</h3></figcaption><ul class="mx-limits">${LIMITATIONS.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></figure>` +
     figDataQuality(ST, ev, L) +
-    `<figure class="mx-fig"><figcaption><h3>Datasets, models and methods</h3></figcaption><dl class="mx-cite">${CITATIONS.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></figure>` +
+    `<figure class="mx-fig"><figcaption><h3>Datasets, models, tools and reviewers</h3></figcaption><dl class="mx-cite">${[...CITATIONS, ...creditRows(ev)].map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></figure>` +
     `<figure class="mx-fig mx-wide"><figcaption><h3>Data provenance</h3><p class="mx-take">Every number on this page is read from these files at page load; re-running the pipeline updates the page.${expected.length ? ` Not produced in this run: ${esc(expected.map((e) => `${e}.json`).join(', '))}.` : ''}</p></figcaption>${table(['File', 'Created (UTC)', 'Git commit', 'Kind'], files, { title: 'Data provenance' })}${(m.figures || []).length ? details('figures-png', `Static PNG figures (${m.figures.length})`, `<div class="mx-pngs">${m.figures.map((f) => `<a href="${esc(ctx && ctx.assetUrl ? ctx.assetUrl(f.url) : f.url)}" target="_blank" rel="noopener">${esc(f.file)}</a>`).join('')}</div>`) : ''}</figure>`;
 }
 
@@ -1872,7 +1952,7 @@ export function render(ST, ctx) {
     S(figReliability, 'calibration', 'Calibration') + S(figRiskHist, 'analytics', 'Risk histogram') + S(figCoverage, 'conformal', 'Coverage') + S(figResplit, 'conformal_resplit', 'Re-split coverage') + `<div class="mx-stack">${S(figSetSize, 'conformal', 'Set size') + S(figComposition, 'analytics', 'Set composition')}</div>`);
   h += section('explanations', 'Explanations', 'Named histologic features are associated with the classes. These checks test whether they behave like the criteria they are named after.',
     S(figConceptHeat, 'concepts_bach', 'Concept heatmap') + S(figConceptDirection, 'concepts_bach', 'Concept direction') + S(figSpotcheck, 'spotcheck', 'Spot check') + S(figNct, 'concepts', 'Cross-organ check') + S(figCav, 'concepts', 'Caption consistency') + S(figDeletion, 'deletion', 'Deletion test'));
-  h += section('reliability', 'Frozen-section reliability (simulated)', 'Frozen sections were simulated by degrading microscopy images and by building half-tumour composite fields.',
+  h += section('reliability', 'Frozen-section reliability (simulated)', 'Frozen sections were simulated by degrading microscopy images and by building half-tumor composite fields.',
     S(figDegradation, 'reliability', 'Accuracy vs degradation') + S(figReliabilityScore, 'reliability', 'Reliability score') + S(figDeferral, 'deferral', 'Deferral') + S(figMargin, 'margin', 'Margin read'));
   h += section('workflow', 'Workflow', 'Where cases land in the worklist, and what prioritizing them costs the rest of the queue in a simulated reading day.',
     S(figTiers, 'analytics', 'Tiers') + S(figReasons, 'analytics', 'Flag reasons') + S(figQueue, 'queue_sim', 'Queue simulation'));

@@ -4,7 +4,7 @@
 // human or an AI reviewed; this is a qualitative check, not a validation. The page keeps two things apart: the recorded
 // spot check (eval/spotcheck.json, with its counts) and the viewer's own marks in this tab, which start at zero.
 import { esc } from '../adapter.js';
-import { spotVerdicts } from './metrics.js';
+import { reviewerName, reviewerText, spotVerdicts } from './metrics.js';
 
 // Recorded reviews (eval/spotcheck.json via GET /api/metrics): fetched once per visit, refreshed after a submit.
 let recorded = null;
@@ -41,7 +41,7 @@ function recordedPanel(sc, groups) {
   const row = (name, b) => `<li><span class="sc-rec-name">${esc(name)}</span>${bar(b)}<span class="sc-rec-n">${b.acceptable}/${b.n} show it${b.unsure ? `, ${b.unsure} unsure` : ''}</span></li>`;
   const ai = v.kinds.length === 1 && v.kinds[0] === 'ai';
   return `<section class="sc-recorded" aria-labelledby="sc-rec-h"><div class="sc-rec-head"><h3 id="sc-rec-h">Recorded spot check results</h3>
-    <p>${ai ? '<b>AI-reviewed, not a pathologist.</b> ' : ''}${esc(v.reviewers.map((r) => (/\bAI\b/.test(r.name) ? r.name : `${r.name} (${r.kind === 'ai' ? 'AI' : r.kind})`)).join('; '))}. A plausibility check, not validation.</p>
+    <p>${ai ? '<b>AI-reviewed, not a pathologist.</b> ' : ''}Reviewed by ${esc(v.reviewers.map(reviewerText).join('; '))}. A plausibility check, not validation.</p>
     <label class="sc-toggle"><input type="checkbox" id="sc-show-recorded"${showRecorded ? ' checked' : ''}> Show recorded verdicts on each region</label></div>
     <ul class="sc-rec-list">${ids.map((id) => row(labelOf[id] || id, v.concepts[id])).join('')}${v.cells ? row('Cell overlays', v.cells) : ''}</ul>
     <p class="sc-fine"><span class="sc-key sc-seg-ok"></span>shows it <span class="sc-key sc-seg-unsure"></span>unsure <span class="sc-key sc-seg-not_ok"></span>does not show it</p></section>`;
@@ -120,7 +120,7 @@ export function render(ST, ctx) {
   // marked (flow.css); the reviewer fields stay here.
   h += `<section class="sc-record" aria-label="Record your review">
     <label class="sc-field"><span>Reviewer</span><input type="text" maxlength="80" data-testid="spot-reviewer" id="spot-reviewer" placeholder="Your name" autocomplete="name" value="${esc(ST.spotReviewer || '')}"></label>
-    <label class="sc-field"><span>Reviewed by</span><select data-testid="spot-kind" id="spot-kind"><option value="human"${ST.spotKind === 'ai' ? '' : ' selected'}>a human</option><option value="ai"${ST.spotKind === 'ai' ? ' selected' : ''}>an AI</option></select></label>
+    <label class="sc-field"><span>Reviewed by</span><select data-testid="spot-kind" id="spot-kind"><option value="human"${ST.spotKind === 'ai' ? '' : ' selected'}>A human reviewer</option><option value="ai"${ST.spotKind === 'ai' ? ' selected' : ''}>An AI reviewer</option></select></label>
     <div class="sc-submit"><button class="btn p" data-spot="submit" data-testid="spot-submit"${done ? '' : ' aria-disabled="true"'}>Record ${done} review${done === 1 ? '' : 's'}</button></div>
     ${ST.spotResult ? `<span class="sc-result" role="status" data-testid="spot-result">${esc(ST.spotResult)}</span>` : ''}
   </section>`;
@@ -151,7 +151,7 @@ export function render(ST, ctx) {
     h += `<article class="sc-item" data-testid="spot-item" data-kind="${esc(item.kind)}" data-case-id="${esc(item.case_id)}" data-ref="${esc(item.item_id)}"${verdict ? ` data-verdict="${esc(verdict)}"` : ''}>
       <img src="${esc(ctx.assetUrl(item.image))}" alt="${esc(item.label)}: candidate region ${esc(item.tile_idx)} from ${esc(item.case_id)}" loading="lazy">
       <p class="sc-meta"><span>${esc(item.case_id)}</span><span>region ${esc(item.tile_idx)}</span>${item.score !== null && item.score !== undefined ? `<span>score ${(+item.score).toFixed(2)}</span>` : ''}</p>
-      ${showRecorded && priorByItem[item.item_id] ? `<ul class="sc-prior">${priorByItem[item.item_id].map((r) => `<li><b>${esc(r.reviewer_kind === 'ai' ? 'AI' : r.reviewer_kind || 'Reviewer')}: ${esc(VERDICT_TEXT[r.verdict] || r.verdict)}</b>${r.note ? ` (${esc(r.note)})` : ''}<span> ${esc(r.reviewer || '')}</span></li>`).join('')}</ul>` : ''}
+      ${showRecorded && priorByItem[item.item_id] ? `<ul class="sc-prior">${priorByItem[item.item_id].map((r) => `<li><b>${esc(String(VERDICT_TEXT[r.verdict] || r.verdict).replace(/^./, (c) => c.toUpperCase()))}</b>${r.note ? ` (${esc(r.note)})` : ''}<span> ${esc(reviewerName(r.reviewer))} (${r.reviewer_kind === 'ai' ? 'AI' : r.reviewer_kind === 'human' ? 'human' : esc(r.reviewer_kind || 'unknown')})</span></li>`).join('')}</ul>` : ''}
       <fieldset class="sc-verdicts"><legend class="sr-only">Does region ${esc(item.tile_idx)} of ${esc(item.case_id)} show ${esc(item.label)}?</legend>${radios}</fieldset>
     </article>`;
   }
@@ -176,7 +176,7 @@ export async function submit(ST, api, toast) {
   }
   try {
     const res = await api.spotcheck({ reviewer, reviewer_kind: kind, reviews });
-    ST.spotResult = `Recorded ${res.recorded} review${res.recorded === 1 ? '' : 's'} (${res.reviewer_kind})`;
+    ST.spotResult = `Recorded ${res.recorded} review${res.recorded === 1 ? '' : 's'} (${res.reviewer_kind === 'ai' ? 'AI reviewer' : res.reviewer_kind === 'human' ? 'human reviewer' : res.reviewer_kind})`;
     ST.spotDraft = {};
     recorded = null; // refetch the merged eval/spotcheck.json
   } catch (err) {

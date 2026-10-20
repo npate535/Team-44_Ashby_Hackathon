@@ -1974,6 +1974,21 @@ body .kbd-help kbd {
   margin: 8px 0 6px;
   color: var(--ink);
 }
+/* elapsed time with its label beside it, so "01:14" cannot be read as a time of day */
+.or-clock {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 8px 0 6px;
+}
+.or-clock .or-timer {
+  margin: 0;
+}
+.or-clock-l {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mut);
+}
 .or-timer.amber {
   color: var(--amb);
 }
@@ -2007,8 +2022,18 @@ body .kbd-help kbd {
   color: var(--mut);
   margin-top: 7px;
 }
-.or-ai b {
-  color: var(--amb);
+.or-ai {
+  border-top: 1px dashed var(--ln2);
+  padding-top: 6px;
+}
+.or-ai summary {
+  cursor: pointer;
+  width: fit-content;
+  font-weight: 600;
+}
+.or-ai span {
+  display: block;
+  margin-top: 3px;
 }
 .or-await {
   margin-top: 8px;
@@ -2299,6 +2324,11 @@ ul.sc-chips li {
     padding-block: 12px; /* stays a list item, so it keeps its disclosure marker */
     line-height: 20px;
   }
+  .or-ai summary {
+    padding-block: 12px;
+    margin-block: -10px -6px;
+    line-height: 20px;
+  }
   .or-history li {
     padding: 0;
     align-items: center;
@@ -2329,6 +2359,11 @@ ul.sc-chips li {
   }
   .inbox-head .btn {
     min-height: 44px;
+  }
+  .rep-method summary {
+    padding-block: 12px;
+    margin-block: -8px;
+    line-height: 20px;
   }
   /* surgical case: margin form and confirmation */
   .cv-surg .cv-pick label {
@@ -2451,7 +2486,54 @@ ul.sc-chips li {
 }
 .rep-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+/* the pathologist's sign-out leads; the model's output follows under "Decision support" */
+.rep-so {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  border-bottom: 1px solid var(--ln2);
+}
+.rep-so .rep-cell:first-child {
+  border-right: 1px solid var(--ln2);
+}
+.rep-so-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.rep-ds-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  padding: 10px 16px 0;
+}
+.rep h3.rep-ds {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.rep-ds-head span {
+  font-size: 12px;
+  color: var(--mut);
+}
+.rep-method {
+  padding: 8px 16px;
+  border-top: 1px solid var(--ln2);
+  font-size: 12px;
+  color: var(--mut);
+}
+.rep-method summary {
+  cursor: pointer;
+  font-weight: 600;
+  width: fit-content;
+}
+.rep-method ul {
+  margin: 6px 0 2px;
+  padding-left: 18px;
+  line-height: 1.6;
 }
 .rep-cell {
   padding: 12px 16px;
@@ -2585,11 +2667,14 @@ ul.sc-chips li {
   .rep-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .rep-cell:nth-child(2) {
+  .rep-grid .rep-cell:nth-child(2) {
     border-right: 0;
   }
-  .rep-cell:nth-child(-n + 2) {
+  .rep-grid .rep-cell:nth-child(-n + 2) {
     border-bottom: 1px solid var(--ln2);
+  }
+  .rep-grid .rep-cell:nth-child(3) {
+    grid-column: 1 / -1;
   }
 }
 @media (max-width: 560px) {
@@ -2602,6 +2687,12 @@ ul.sc-chips li {
   }
   .rep-cell:last-child {
     border-bottom: 0;
+  }
+  .rep-so {
+    grid-template-columns: 1fr;
+  }
+  .rep-so .rep-cell:first-child {
+    border-right: 0;
   }
   .rep-time {
     margin-left: 0;

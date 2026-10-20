@@ -363,10 +363,17 @@
 }
 
 /* ---- KPI tiles ------------------------------------------------------------------------------------------------------ */
+/* Fixed column counts that divide the eight headline tiles evenly (auto-fill left 5 + 3 with two empty cells):
+   four across from 1200 px, two across below (the narrow-container rules further down keep two, then one). */
 .mx-kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+@media (min-width: 1200px) {
+  .mx-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 .mx-kpi {
   background: var(--sf);
