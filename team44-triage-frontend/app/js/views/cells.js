@@ -35,11 +35,14 @@ function pctTrack(p) {
   if (!isNum(p)) return '<div class="sub">No reference percentile.</div>';
   const q = Math.max(0, Math.min(1, Number(p)));
   const cls = q >= 0.9 ? 'hi' : q <= 0.1 ? 'lo' : 'mid';
-  return (
-    `<div class="pct-track ${cls}" aria-hidden="true"><span class="pct-band" title="Middle 80% of benign/normal reference cases"></span><b style="left:${(q * 100).toFixed(1)}%"></b></div>` +
-    `<div class="pct-ticks" aria-hidden="true">${[0, 10, 50, 90, 100].map((t) => `<span style="left:${t}%">${t}</span>`).join('')}</div>`
-  );
+  return `<div class="pct-track ${cls}" aria-hidden="true"><span class="pct-band" title="Middle 80% of benign/normal reference cases"></span><b style="left:${(q * 100).toFixed(1)}%"></b></div>`;
 }
+
+/** One percentile axis for the whole feature list, in the reference column (the rows draw only their tracks). */
+const pctAxis = (useCol) =>
+  `<div class="cf-row cf-axis" aria-hidden="true"><span></span><span></span><div class="pct-ticks">${[0, 10, 50, 90, 100]
+    .map((t) => `<span style="left:${t}%">${t}</span>`)
+    .join('')}</div>${useCol ? '<span></span>' : ''}</div>`;
 
 /** AI spot check of the cell overlays (eval/spotcheck.json summary.cells), if recorded. */
 function spotNote(metrics) {
@@ -125,31 +128,38 @@ export function cellsTab(v, ST, assetUrl) {
     })
     .join('');
 
+  const listed = new Set(GROUPS.flatMap((g) => g.ids));
+  const extra = Object.keys(feats).filter((id) => !listed.has(id));
+  const shownGroups = [...GROUPS, ...(extra.length ? [{ label: 'Other measured features', ids: extra }] : [])]
+    .map((g) => ({ ...g, ids: g.ids.filter((id) => id in feats) }))
+    .filter((g) => g.ids.length);
+  const shownIds = shownGroups.flatMap((g) => g.ids);
+  const unused = (f) => !f || f.contribution === null || f.contribution === undefined;
+  // said once above the list instead of on every row: every listed feature is unused by the model / measured
+  const noneUsed = shownIds.length > 0 && shownIds.every((id) => unused(feats[id]));
+  const anyMeasured = shownIds.some((id) => feats[id] && isNum(feats[id].value));
   const row = (id) => {
     const f = feats[id];
     const measured = f && isNum(f.value);
     const p = f ? f.ref_percentile : null;
     const dir = meta[id] && meta[id].direction;
     const ref = isNum(p) ? refShare(p) : 'no reference percentile';
-    const contrib =
-      !f || f.contribution === null || f.contribution === undefined
-        ? 'not used by the prediction model'
-        : `concept-model push ${signed(f.contribution)}`;
+    const contrib = unused(f) ? 'not used by the prediction model' : `concept-model push ${signed(f.contribution)}`;
     return (
       `<div class="cf-row" data-testid="cells-feature-${esc(id)}">` +
-      `<div class="cf-name"><b>${esc(label(id))}</b><span class="src${measured ? ' m' : ''}">${measured ? '◆ measured' : 'unavailable'}</span>${dir === 'context' ? '<span class="src ctx">context</span>' : ''}</div>` +
+      `<div class="cf-name"><b>${esc(label(id))}</b>${measured ? '' : '<span class="src">unavailable</span>'}${dir === 'context' ? '<span class="src ctx">context</span>' : ''}</div>` +
       `<div class="cf-val"><b>${esc(fmtValue(f, meta[id] && meta[id].unit))}</b></div>` +
       `<div class="cf-ref">${pctTrack(p)}<span class="sub">${esc(ref)}</span></div>` +
-      `<div class="cf-use sub">${esc(contrib)}</div></div>`
+      (noneUsed ? '' : `<div class="cf-use sub">${esc(contrib)}</div>`) +
+      '</div>'
     );
   };
-  const listed = new Set(GROUPS.flatMap((g) => g.ids));
-  const extra = Object.keys(feats).filter((id) => !listed.has(id));
-  const groups = [...GROUPS, ...(extra.length ? [{ label: 'Other measured features', ids: extra }] : [])]
-    .map((g) => ({ ...g, ids: g.ids.filter((id) => id in feats) }))
-    .filter((g) => g.ids.length)
-    .map((g) => `<section class="cf-group"><h3>${esc(g.label)}</h3>${g.ids.map(row).join('')}</section>`)
-    .join('');
+  const groups = shownGroups.map((g) => `<section class="cf-group"><h3>${esc(g.label)}</h3>${g.ids.map(row).join('')}</section>`).join('');
+  const cfNote = anyMeasured
+    ? `<span class="src m">◆ measured</span> Values are measured from the segmented nuclei${noneUsed ? ' and are not used by the prediction model' : ''}.`
+    : noneUsed
+      ? 'These features are not used by the prediction model.'
+      : '';
 
   const flag =
     cells.flags && cells.flags.insufficient_tumor_nuclei
@@ -163,6 +173,7 @@ export function cellsTab(v, ST, assetUrl) {
     `<div class="cells-ctl"><label class="cells-toggle"><input type="checkbox" data-testid="cells-overlay-toggle" data-cells="overlay"${ST.cellsOverlay ? ' checked' : ''}> Show cell overlay</label>${legend}</div>` +
     `${flag}<div class="cells-grid cv-cells-grid">${figs}</div>` +
     `<h3 class="cf-h">Measured features against benign/normal reference cases</h3><p class="sub cf-intro">The marker shows this case's percentile among benign/normal reference cases; the shaded band is their middle 80%.</p>` +
-    `<div class="cell-features cv-cf">${groups || '<div class="note">No features.</div>'}</div></div>`
+    (cfNote ? `<p class="sub cf-note" data-testid="cells-features-note">${cfNote}</p>` : '') +
+    `<div class="cell-features cv-cf${noneUsed ? ' cf-nouse' : ''}">${groups ? pctAxis(!noneUsed) + groups : '<div class="note">No features.</div>'}</div></div>`
   );
 }

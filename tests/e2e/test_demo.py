@@ -169,7 +169,9 @@ def test_cells_tab_and_finding_refs(page, api, roles):
     expect(pg.locator(tid("cells-overlay-img"))).to_have_count(0)
     pg.click(tid("cells-overlay-toggle"))
     assert pg.locator(tid("cells-overlay-img")).first.get_attribute("src") == src
-    expect(pg.locator(tid("cells-feature-nuc_area_cv"))).to_contain_text("measured")
+    # "measured" and "not used by the prediction model" are said once above the list, not on every row
+    expect(pg.locator(tid("cells-features-note"))).to_contain_text("measured")
+    expect(pg.locator(tid("cells-feature-nuc_area_cv"))).not_to_contain_text("unavailable")
     page.shot(f"08-cells-{page.name}")
     # a case without cell measurements shows the disabled state
     pg.goto(page.base + f"/#/case/{roles['routine_normal']}")
