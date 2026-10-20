@@ -217,9 +217,14 @@ function figure(o) {
   const head = `<figcaption><h3>${esc(o.title)}</h3>${o.takeaway ? `<p class="mx-take"><span class="mx-take-label">What this shows</span> ${esc(o.takeaway)}</p>` : ''}</figcaption>
     ${o.caveat ? `<p class="mx-caveat" role="note">${esc(o.caveat)}</p>` : ''}`;
   const chart = `<div class="mx-chart">${o.chart || unavailableInline('The chart has no plottable values in this run.')}</div>`;
+  // the file path is provenance, not a reading aid: it sits inside the figure's disclosure, not on its face
+  const srcLine = src.length ? `<p class="mx-srcfile">Source: ${src.map((s) => `<code>${esc(s)}</code>`).join(', ')}</p>` : '';
+  const disclosure = o.table
+    ? details(`${o.id}-src`, 'Source numbers', srcLine + table(o.table.head, o.table.rows, { ...o.table, title: o.title }))
+    : srcLine ? details(`${o.id}-src`, 'Source file', srcLine) : '';
   const foot = `${(o.notes || []).length ? `<ul class="mx-notes">${o.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
-    <p class="mx-pop">${o.population ? `<span>Population: ${esc(o.population)}</span>` : ''}${src.length ? `<span>Source: ${src.map((s) => `<code>${esc(s)}</code>`).join(', ')}</span>` : ''}</p>
-    ${o.table ? details(`${o.id}-src`, 'Source numbers', table(o.table.head, o.table.rows, { ...o.table, title: o.title })) : ''}`;
+    ${o.population ? `<p class="mx-pop"><span>Population: ${esc(o.population)}</span></p>` : ''}
+    ${disclosure}`;
   const klass = `mx-fig${o.wide ? ' mx-wide' : ''}${o.side ? ' mx-side' : ''}`;
   const attrs = `class="${klass}" id="fig-${esc(o.id)}"${o.testid ? ` data-testid="${esc(o.testid)}"` : ''}`;
   if (o.side) return `<figure ${attrs}><div class="mx-side-text">${head}${foot}</div>${chart}</figure>`;
@@ -247,8 +252,13 @@ function chip(text, tone = 'neutral') {
 }
 
 // ---- summary tiles --------------------------------------------------------------------------------------------------------
-function tile({ label, value, ci: c, strip, sentence, tone = 'ok', status = null, source }) {
-  return `<article class="mx-kpi mx-kpi-${tone}"><h3>${esc(label)}</h3><p class="mx-kpi-value">${esc(value)}</p>${c ? `<p class="mx-kpi-ci">${esc(c)}</p>` : ''}${strip || ''}${status ? `<p class="mx-kpi-status">${status}</p>` : ''}<p class="mx-kpi-text">${esc(sentence)}</p>${source ? `<p class="mx-kpi-src"><code>${esc(source)}</code></p>` : ''}</article>`;
+function tile({ label, value, ci: c, strip, sentence, tone = 'ok', status = null }) {
+  return `<article class="mx-kpi mx-kpi-${tone}"><h3>${esc(label)}</h3><p class="mx-kpi-value">${esc(value)}</p>${c ? `<p class="mx-kpi-ci">${esc(c)}</p>` : ''}${strip || ''}${status ? `<p class="mx-kpi-status">${status}</p>` : ''}<p class="mx-kpi-text">${esc(sentence)}</p></article>`;
+}
+/** Each tile's source file, in one disclosure under the tiles (the tile faces carry no file paths). */
+function tileSources(tiles) {
+  const rows = tiles.filter((t) => t.source).map((t) => [t.label, t.source]);
+  return rows.length ? `<div class="mx-kpis-src">${details('kpi-src', 'Source files', table(['Headline number', 'Source file'], rows, { title: 'the summary tiles' }))}</div>` : '';
 }
 function tierMethod(ev) {
   const A = get(ev, 'analytics.conformal');
@@ -277,7 +287,7 @@ function summaryTiles(ST, ev) {
   const counts = invasiveCounts(ST, ev);
   if (auc) {
     const perfect = perfectAuc(auc);
-    tiles.push(tile({
+    tiles.push(({
       label: 'Separates invasive from other cases',
       value: `AUROC ${fa(auc.est)}`,
       ci: perfect ? `${rankText(auc, counts).replace(/^a/, 'A')}; no interval` : isNum(auc.lo) ? `95% CI ${range(auc.lo, auc.hi, ciFormat(auc, false, 3))}` : null,
@@ -294,7 +304,7 @@ function summaryTiles(ST, ev) {
     const row = cm && cm.matrix && cm.matrix[k];
     // true denominator: the invasive row of the confusion matrix (the block's n counts every test image)
     const iv = row ? exactOf(sens, sum(row)) : null;
-    tiles.push(tile({
+    tiles.push(({
       label: 'Invasive cases called invasive',
       value: pc(sens.est),
       ci: iv ? exactText(iv) : isNum(sens.lo) ? `95% CI ${pc(sens.lo)}–${pc(sens.hi)}` : null,
@@ -310,7 +320,7 @@ function summaryTiles(ST, ev) {
     const nonInv = cm && cm.matrix ? sum(cm.matrix.filter((_, i) => i !== k).map((r) => sum(r))) : null;
     const falsePos = cm && cm.matrix ? sum(cm.matrix.filter((_, i) => i !== k).map((r) => r[k])) : null;
     const iv = exactOf(spec, nonInv);
-    tiles.push(tile({
+    tiles.push(({
       label: 'Other cases not called invasive',
       value: pc(spec.est),
       ci: iv ? exactText(iv) : isNum(spec.lo) ? `95% CI ${pc(spec.lo)}–${pc(spec.hi)}` : null,
@@ -322,7 +332,7 @@ function summaryTiles(ST, ev) {
   const f1v = ci(prod.macro_f1),
     bacc = ci(prod.balanced_accuracy);
   if (f1v)
-    tiles.push(tile({
+    tiles.push(({
       label: 'All four classes (macro-F1)',
       value: f3(f1v.est),
       ci: isNum(f1v.lo) ? `95% CI ${f3(f1v.lo)}–${f3(f1v.hi)}` : null,
@@ -346,7 +356,7 @@ function summaryTiles(ST, ev) {
   const eceA = ci(get(CAL, 'after.ece')),
     eceB = ci(get(CAL, 'before.ece'));
   if (eceA)
-    tiles.push(tile({
+    tiles.push(({
       label: 'Calibration error after temperature',
       value: `ECE ${f3(eceA.est)}`,
       ci: isNum(eceA.lo) ? `95% CI ${f3(eceA.lo)}–${f3(eceA.hi)}` : null,
@@ -361,7 +371,7 @@ function summaryTiles(ST, ev) {
     const below = cov.est < target;
     const short = (target - cov.est) * 100;
     const pre = tm.postHoc ? ci(get(tm.methods, [tm.preRegistered, 'coverage'])) : null;
-    tiles.push(tile({
+    tiles.push(({
       label: `Conformal coverage (${methodName(tm.key)})`,
       value: pc(cov.est, 1),
       ci: isNum(cov.lo) ? `95% CI ${pc(cov.lo, 1)}–${pc(cov.hi, 1)}` : null,
@@ -378,7 +388,7 @@ function summaryTiles(ST, ev) {
     fifoQ = get(Q, 'results.fifo');
   const firstLook = ci(get(tiersQ, 'vs_fifo.aggressive_mean'));
   if (firstLook && tiersQ && fifoQ) {
-    tiles.push(tile({
+    tiles.push(({
       label: 'Invasive cases seen sooner (simulated)',
       value: `${f1(Math.abs(firstLook.est))} min ${firstLook.est <= 0 ? 'sooner' : 'later'}`,
       ci: isNum(firstLook.lo) ? (firstLook.hi <= 0 ? `95% of simulated days: ${f1(-firstLook.hi)} to ${f1(-firstLook.lo)} min sooner` : `95% of simulated days: ${range(firstLook.lo, firstLook.hi, f1)} min change`) : null,
@@ -387,7 +397,7 @@ function summaryTiles(ST, ev) {
     }));
     const cost = ci(get(tiersQ, 'vs_fifo.non_flagged_mean'));
     if (cost)
-      tiles.push(tile({
+      tiles.push(({
         label: 'Delay added to unflagged cases (simulated)',
         value: `${cost.est >= 0 ? '+' : '−'}${f1(Math.abs(cost.est))} min`,
         ci: isNum(cost.lo) ? `95% of simulated days: ${range(cost.lo, cost.hi, f1)} min` : null,
@@ -398,7 +408,7 @@ function summaryTiles(ST, ev) {
       }));
   }
   if (!tiles.length) return missing('metrics', 'Headline results', 'headline metrics');
-  return `<div class="mx-kpis" data-testid="metrics-headline">${tiles.join('')}</div>` + inBrief(ST, ev);
+  return `<div class="mx-kpis" data-testid="metrics-headline">${tiles.map(tile).join('')}${tileSources(tiles)}</div>` + inBrief(ST, ev);
 }
 /** Three to five computed sentences: what holds up, and what to be careful about. */
 function inBrief(ST, ev) {
@@ -1931,13 +1941,43 @@ function nav() {
   return `<nav class="mx-nav" aria-label="Evaluation sections"><div class="mx-nav-inner">${SECTIONS.map(([id, label]) => `<button type="button" data-mx-jump="mx-${id}"${activeSection === `mx-${id}` ? ' aria-current="true"' : ''}>${esc(label)}</button>`).join('')}</div></nav>`;
 }
 
+/**
+ * One section's cards in the two-column grid, in order. A half-width card left alone in its row (followed by a full-width
+ * card, or last) spans the row and its charts are drawn at that width; a lone stack sets its two cards side by side.
+ * items: card() results, or stack(card(), card()). The walk mirrors CSS grid auto-placement (no dense packing).
+ */
+function grid(items, L) {
+  const html = items.map((it) => (it.stack ? `<div class="mx-stack">${it.stack.map((c) => c.draw(L)).join('')}</div>` : it.draw(L)));
+  if (!L.two) return html.join('');
+  const wide = (h) => /^\s*<(?:figure|div)\b[^>]*\bclass="[^"]*\bmx-wide\b/.test(h);
+  const lone = new Set();
+  let open = -1; // a half-width card still waiting for a partner in its row
+  html.forEach((h, i) => {
+    if (wide(h)) {
+      if (open >= 0) lone.add(open);
+      open = -1;
+    } else open = open >= 0 ? -1 : i;
+  });
+  if (open >= 0) lone.add(open);
+  const LF = { ...L, half: L.full };
+  return html
+    .map((h, i) => {
+      if (!lone.has(i)) return h;
+      if (items[i].stack) return h.replace('class="mx-stack"', 'class="mx-stack mx-lone"');
+      return items[i].draw(LF).replace(/class="mx-fig\b/, 'class="mx-fig mx-lone');
+    })
+    .join('');
+}
+
 export function render(ST, ctx) {
   const m = ST.metrics;
   if (!m) return '<div data-testid="metrics" class="mx"><div class="card" data-testid="state-loading"><h2>Loading evaluation results…</h2></div></div>';
   const L = layout();
   renderedWidth = L.W;
   const ev = m.eval || {};
-  const S = (fn, key, title) => safe(() => fn(ST, ev, L), key, title);
+  const card = (fn, key, title) => ({ draw: (LL) => safe(() => fn(ST, ev, LL), key, title) });
+  const stack = (...cards) => ({ stack: cards });
+  const G = (...items) => grid(items, L);
   let h = '<div data-testid="metrics" class="mx">';
   h += `<div class="mx-top">${scope(ST, ev)}<button class="btn" data-metrics="refresh" data-testid="metrics-refresh">Reload results</button></div>`;
   if (m.synthetic)
@@ -1947,17 +1987,17 @@ export function render(ST, ctx) {
   // the language-model restatement follows the measured headline numbers it restates, never precedes them
   h += section('summary', 'Summary', 'The headline numbers, each with its uncertainty. The two workflow tiles come from a simulation, not measured clinical use.', safe(() => summaryTiles(ST, ev), 'metrics', 'Summary') + `<div class="mx-interp">${interpretPanel(ST, '__results', 'results')}</div>`);
   h += section('classification', 'Classification', 'Separation of invasive carcinoma from the other classes, error patterns, and model selection.',
-    S(figRoc, 'analytics', 'ROC') + `<div class="mx-stack">${S(figConfusion, 'metrics', 'Confusion matrix') + S(figPr, 'analytics', 'Precision-recall')}</div>` + S(figOvr, 'analytics', 'One-vs-rest ROC') + S(figModels, 'metrics', 'Model comparison') + S(figSelection, 'model_choice', 'Model selection') + S(figThunder, 'thunder', 'Benchmark') + S(figHumanBaseline, 'human_baseline', 'Human readers'));
+    G(card(figRoc, 'analytics', 'ROC'), stack(card(figConfusion, 'metrics', 'Confusion matrix'), card(figPr, 'analytics', 'Precision-recall')), card(figOvr, 'analytics', 'One-vs-rest ROC'), card(figModels, 'metrics', 'Model comparison'), card(figSelection, 'model_choice', 'Model selection'), card(figThunder, 'thunder', 'Benchmark'), card(figHumanBaseline, 'human_baseline', 'Human readers')));
   h += section('confidence', 'Confidence', 'Calibration of the probabilities and coverage of the conformal sets.',
-    S(figReliability, 'calibration', 'Calibration') + S(figRiskHist, 'analytics', 'Risk histogram') + S(figCoverage, 'conformal', 'Coverage') + S(figResplit, 'conformal_resplit', 'Re-split coverage') + `<div class="mx-stack">${S(figSetSize, 'conformal', 'Set size') + S(figComposition, 'analytics', 'Set composition')}</div>`);
+    G(card(figReliability, 'calibration', 'Calibration'), card(figRiskHist, 'analytics', 'Risk histogram'), card(figCoverage, 'conformal', 'Coverage'), card(figResplit, 'conformal_resplit', 'Re-split coverage'), stack(card(figSetSize, 'conformal', 'Set size'), card(figComposition, 'analytics', 'Set composition'))));
   h += section('explanations', 'Explanations', 'Named histologic features are associated with the classes. These checks test whether they behave like the criteria they are named after.',
-    S(figConceptHeat, 'concepts_bach', 'Concept heatmap') + S(figConceptDirection, 'concepts_bach', 'Concept direction') + S(figSpotcheck, 'spotcheck', 'Spot check') + S(figNct, 'concepts', 'Cross-organ check') + S(figCav, 'concepts', 'Caption consistency') + S(figDeletion, 'deletion', 'Deletion test'));
+    G(card(figConceptHeat, 'concepts_bach', 'Concept heatmap'), card(figConceptDirection, 'concepts_bach', 'Concept direction'), card(figSpotcheck, 'spotcheck', 'Spot check'), card(figNct, 'concepts', 'Cross-organ check'), card(figCav, 'concepts', 'Caption consistency'), card(figDeletion, 'deletion', 'Deletion test')));
   h += section('reliability', 'Frozen-section reliability (simulated)', 'Frozen sections were simulated by degrading microscopy images and by building half-tumor composite fields.',
-    S(figDegradation, 'reliability', 'Accuracy vs degradation') + S(figReliabilityScore, 'reliability', 'Reliability score') + S(figDeferral, 'deferral', 'Deferral') + S(figMargin, 'margin', 'Margin read'));
+    G(card(figDegradation, 'reliability', 'Accuracy vs degradation'), card(figReliabilityScore, 'reliability', 'Reliability score'), card(figDeferral, 'deferral', 'Deferral'), card(figMargin, 'margin', 'Margin read')));
   h += section('workflow', 'Workflow', 'Where cases land in the worklist, and what prioritizing them costs the rest of the queue in a simulated reading day.',
-    S(figTiers, 'analytics', 'Tiers') + S(figReasons, 'analytics', 'Flag reasons') + S(figQueue, 'queue_sim', 'Queue simulation'));
-  h += section('cells', 'Cell measurements', 'Automated nuclei measurements by class, checked against the direction pathology expects.', S(figCells, 'cells', 'Cells'));
-  h += section('retrieval', 'Similar cases', 'The reference cases shown beside each case come from nearest neighbours in the training library.', S(figRetrieval, 'retrieval', 'Retrieval'));
+    G(card(figTiers, 'analytics', 'Tiers'), card(figReasons, 'analytics', 'Flag reasons'), card(figQueue, 'queue_sim', 'Queue simulation')));
+  h += section('cells', 'Cell measurements', 'Automated nuclei measurements by class, checked against the direction pathology expects.', G(card(figCells, 'cells', 'Cells')));
+  h += section('retrieval', 'Similar cases', 'The reference cases shown beside each case come from nearest neighbours in the training library.', G(card(figRetrieval, 'retrieval', 'Retrieval')));
   h += section('limitations', 'Limitations and data', 'What these results do not show, where they come from, and whom to credit.', safe(() => limitationsSection(ST, ev, m, L, ctx), 'metrics', 'Limitations'));
   return h + '</div>';
 }

@@ -160,6 +160,15 @@
   .mx-kpis {
     grid-column: 1 / -1;
   }
+  /* a half-width card left alone in its row takes the row (metrics.js grid() marks it and draws its charts that wide);
+     a lone stack sets its two cards side by side */
+  .mx-grid > .mx-lone {
+    grid-column: 1 / -1;
+  }
+  .mx-stack.mx-lone {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
 }
 
 /* ---- figures -------------------------------------------------------------------------------------------------------- */
@@ -219,10 +228,17 @@
   color: var(--mut);
   line-height: 1.5;
 }
-.mx-pop code,
-.mx-kpi-src code,
+.mx-srcfile code,
 .mx-missing code {
   font-size: 11px;
+}
+/* the figure's source file, first line inside its "Source numbers" disclosure */
+.mx-srcfile {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--mut);
+  overflow-wrap: anywhere;
 }
 .mx-missing p,
 .mx-missing-inline {
@@ -422,14 +438,13 @@
   line-height: 1.5;
   color: var(--ink);
 }
-.mx-kpi-src {
-  margin: auto 0 0;
-  padding-top: 6px;
+/* one "Source files" disclosure under the tiles, across the whole row */
+.mx-kpis-src {
+  grid-column: 1 / -1;
+  min-width: 0;
 }
-.mx-kpi-src code {
-  background: none;
-  padding: 0;
-  color: var(--mut);
+.mx-kpis-src .mx-src {
+  margin-top: 0;
 }
 .mx .cx-strip {
   display: block;
