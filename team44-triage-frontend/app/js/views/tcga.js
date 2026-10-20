@@ -23,6 +23,67 @@ const CROP_ID = /^(.+?)_(ffpe|frozen)_([a-z]+)_(\d+)$/;
 // worklist case ids (BACH fields, their simulated variants, composites; DEV_ in the dev set), never TCGA specimens
 const WORKLIST_ID = /^(BACH|COMP|DEV)_[A-Za-z0-9_]+$/;
 const PHONE = '(max-width: 640px)';
+// The page's one name, used for its heading (the top bar's h1 shows the navigation label).
+export const PAGE_NAME = 'External test (TCGA-BRCA)';
+
+// Flag tags in the Flags column, as the worklist shows them (worklist.js FLAG_TAG); "Invasive suggested" is carried by
+// the Suggested column itself, so it gets no tag.
+const FLAG_TAG = {
+  aggressive_in_conformal_set: { text: 'Invasive in set', tone: 'eos', title: 'Safety rule: Invasive is in the 90% confidence set although it is not the top suggestion' },
+  set_size_gt_1: { text: 'Ambiguous', tone: 'amb', title: 'More than one class in the confidence set' },
+  empty_set: { text: 'Empty set', tone: 'amb', title: 'No class reached the confidence threshold' },
+  low_reliability: { text: 'Low reliability', tone: 'amb', title: 'Reliability flag: the read may not be trustworthy' },
+  insufficient_tissue: { text: 'Little tissue', tone: 'amb', title: 'Too few regions passed tissue quality control' }
+};
+
+/**
+ * The limitations, in plain language. Each restates one entry of external_tcga.json `limitations` (`covers` is a phrase
+ * of that entry; tests/test_tcga_view_static.py checks every entry is covered) and the protocol, docs/EXTERNAL_TCGA_R2.md.
+ * `text` may be a function of the evaluation block, for counts that are read from it.
+ */
+export const LIMITATIONS = [
+  {
+    covers: 'Labels are slide-level sample types',
+    text: 'Labels are slide-level sample types (tumor or normal), not outlines of the tumor, so a field from a tumor slide may show only stroma or fat.'
+  },
+  {
+    covers: 'no benign or in situ labels',
+    text: 'TCGA-BRCA has no benign or in situ labels, so four-class accuracy, in situ versus invasive, and the stain rule for that question (p63 and calponin) were not tested. Specificity is measured only on frozen normal tissue adjacent to the tumor.'
+  },
+  {
+    covers: 'The reliability flag and the OOD percentile are not computed',
+    text: 'The reliability flag and the out-of-distribution check were not computed for these fields: both need two further models (CONCH and MUSK) that were not available for this run. The flag is treated as off, so tiers rest on the confidence set and the top class. That can leave a field in tier 4 that the flag would have raised to tier 3; it never changes placement in tiers 1–2.'
+  },
+  {
+    covers: 'The sample is small',
+    text: 'The cohort is small, so the 95% intervals, which are resampled by patient, are wide.'
+  },
+  {
+    covers: 'GDC DeepZoom tile API',
+    text: (T) => {
+      const eq = (T && T.tile_equivalence) || {};
+      const nCut = Number.isInteger(eq.n_crops_compared) ? eq.n_crops_compared : 23;
+      const picks =
+        Number.isInteger(eq.n_slides_picks_identical) && Number.isInteger(eq.n_slides)
+          ? ` (the same fields were picked on ${eq.n_slides_picks_identical} of ${eq.n_slides} slides checked)`
+          : '';
+      return 'Fields were cut through the NCI GDC online tile service rather than decoded from downloaded slide files. ' +
+        `Re-cutting ${nCut} fields of an earlier round, first decoded from the slide files, reproduced them pixel for ` +
+        `pixel, but the service's overview image can change which tissue-rich fields are picked${picks}.`;
+    }
+  },
+  {
+    covers: 'BACH reference values are per image',
+    text: 'BACH values are per image; TCGA values are per slide, taken over up to 6 fields of each slide, so the comparison between the two is indicative, not a matched test.'
+  },
+  {
+    covers: 'Latency is measured on one laptop',
+    text: 'Speed was measured on one laptop (Apple M3 Max) for single 2048 × 1536 fields, not whole slides.'
+  },
+  { covers: 'Research prototype', text: 'Research prototype; not clinically validated.' }
+];
+// The data credit (the last entry of `limitations`), as plain text: the frontend links to nothing outside the app.
+export const CREDIT = 'Data: the TCGA Research Network, accessed through the NCI Genomic Data Commons.';
 
 // List state that outlives a redraw: the app's poll re-renders the page, and a specimen opens in place of the list.
 // `open` holds the tier groups the reader expanded or collapsed; the others follow the screen (tiers 3-4 start
@@ -207,9 +268,9 @@ function story(ST, idx) {
   const bach = bachBlock(ST);
   const model = (T && T.model) || (idx && idx.model) || '—';
 
-  // The page name ("Outside BACH") is the top bar's h1; the page opens with what was tested.
+  // The top bar's h1 carries the navigation label; the page's own heading names the test.
   const claim = `<header class="mx-head tcga-claim" data-testid="tcga-claim">
-    <h2 class="tcga-intro">TCGA-BRCA external test</h2>
+    <h2 class="tcga-intro">${esc(PAGE_NAME)}</h2>
     <p class="mx-lede">Same probe, trained <b>only on BACH</b> — applied unchanged to never-seen
       TCGA-BRCA tissue (other hospitals, scanners, stains, and real frozen sections).
       No TCGA training, no threshold retuning on this set. Research prototype — not clinically validated.</p>
@@ -228,13 +289,18 @@ function story(ST, idx) {
   const gap = p.ffpe_vs_frozen_tumor_sensitivity_gap || {};
   const ffpe = ci(p.ffpe_tumor_sensitivity);
   const frz = ci(p.frozen_tumor_sensitivity);
-  const lim = ((T && T.limitations) || (idx && idx.limitations) || [])
-    .map((l) => `<li>${esc(l)}</li>`)
-    .join('');
+  const lim = LIMITATIONS.map(({ text }) => `<li>${esc(typeof text === 'function' ? text(T) : text)}</li>`).join('');
+  // the evaluation payload (BACH metrics and the TCGA aggregates) is still on its way: say so, not "not loaded"
+  const loading = !!ST.metricsLoading;
 
-  let bachCard = `<section class="tcga-panel" data-testid="tcga-bach-missing">
+  let bachCard = loading
+    ? `<section class="tcga-panel" data-testid="tcga-bach-loading" aria-busy="true">
+        <h3>BACH held-out (same model)</h3>
+        <p class="mx-muted">Loading…</p>
+      </section>`
+    : `<section class="tcga-panel" data-testid="tcga-bach-missing">
         <h3>BACH held-out</h3>
-        <p class="mx-muted">BACH test metrics not loaded yet.</p>
+        <p class="mx-muted">BACH test metrics are not available.</p>
       </section>`;
   if (bach) {
     const inv = bach.invCount && bach.invCount.k === bach.invCount.n ? bach.invCount : null;
@@ -285,8 +351,13 @@ function story(ST, idx) {
   // The cost side of the tier rate: normal slides that would still be escalated (counted from the specimen list).
   const normalTier = normalTierCount(idx);
 
-  const tcgaCard = `<section class="tcga-panel" data-testid="tcga-external">
-      <h3>TCGA external (unchanged probe)</h3>
+  const tcgaCard = !T && loading
+    ? `<section class="tcga-panel" data-testid="tcga-external-loading" aria-busy="true">
+      <h3>TCGA-BRCA external (same model)</h3>
+      <p class="mx-muted">Loading…</p>
+    </section>`
+    : `<section class="tcga-panel" data-testid="tcga-external">
+      <h3>TCGA-BRCA external (same model)</h3>
       <p class="tcga-panel-note">Out-of-domain · slide-level calls · not the same metric as BACH accuracy ·
         model <code>${esc(model)}</code>${T && T.quantized === false ? ' · full precision' : ''}</p>
       <dl class="tcga-dl">
@@ -308,13 +379,13 @@ function story(ST, idx) {
     expected, and with this small cohort the TCGA intervals are wide.
   </p>`;
 
-  const limits = lim
-    ? `<section class="tcga-limits" data-testid="tcga-limits">
+  const limits = `<section class="tcga-limits" data-testid="tcga-limits">
         <h3>Limitations</h3>
         <ul class="mx-notes">${lim}</ul>
-        <p class="mx-pop tcga-src">Pre-registered in <code>docs/EXTERNAL_TCGA_R2.md</code> before the run.</p>
-      </section>`
-    : '';
+        <p class="tcga-foot" data-testid="tcga-protocol">The protocol was written before the run. Nothing was retrained,
+          and no threshold or rule was changed for TCGA.</p>
+        <p class="tcga-foot" data-testid="tcga-credit">${esc(CREDIT)}</p>
+      </section>`;
 
   return `${claim}
     <div class="tcga-compare" data-testid="tcga-compare">${bachCard}${tcgaCard}</div>
@@ -377,6 +448,19 @@ function itemToCase(item, model) {
   };
 }
 
+// The Flags cell: compact tags as on the worklist, nothing for "Invasive suggested" (the Suggested column says it).
+function flagTags(v) {
+  const c = (v.reasons || []).map((r) => r.code);
+  return c
+    .filter((code) => FLAG_TAG[code] && !(code === 'aggressive_in_conformal_set' && c.includes('aggressive_top')))
+    .map((code) => {
+      const f = FLAG_TAG[code];
+      const text = code === 'set_size_gt_1' ? `${v.setSize} classes` : f.text;
+      return `<span class="ftag ${f.tone}" title="${esc(f.title)}" data-testid="reason-${esc(code)}">${esc(text)}</span>`;
+    })
+    .join('');
+}
+
 // One row is in the tab order (the last one used, else the first shown): the list is one tab stop, and J/K and the
 // arrow keys move inside it (app.js). The id is a real link (new tab, a screen reader's links list) but not a tab stop.
 function row(item, ST, model, roving) {
@@ -405,7 +489,7 @@ function row(item, ST, model, roving) {
     `<td class="c-sugg"><span class="sugg${v.top === 'Invasive' ? ' inv' : ''}">${esc(sugg)}</span></td>` +
     `<td class="c-p"><span class="tcga-pk" aria-hidden="true">P(Invasive)</span><span class="pnum${v.risk >= 50 ? ' hi' : ''}">${esc(pInv)}</span></td>` +
     `<td class="c-set"><span class="chips">${setChips(v)}</span></td>` +
-    `<td class="c-flags"><span class="sub">${esc((v.reasons || []).map((r) => r.label).join(' · ') || '—')}</span></td>` +
+    `<td class="c-flags">${flagTags(v) || '<span class="none" aria-label="no flags">–</span>'}</td>` +
     '</tr>'
   );
 }
@@ -499,7 +583,7 @@ function specimenTable(ST, idx) {
 function worklist(ST) {
   const idx = ST.tcga;
   if (!idx && !ST.metrics) {
-    return `<div class="mx tcga-page" data-testid="tcga-loading"><header class="mx-head tcga-claim"><h2 class="tcga-intro">TCGA-BRCA external test</h2>
+    return `<div class="mx tcga-page" data-testid="tcga-loading"><header class="mx-head tcga-claim"><h2 class="tcga-intro">${esc(PAGE_NAME)}</h2>
       <p class="mx-lede">Loading external generalization results…</p></header></div>`;
   }
   return `<div class="mx tcga-page" data-testid="tcga-page">
@@ -522,11 +606,28 @@ function detail(ST, ctx) {
   if (!ST.cases[id]) {
     return '<div class="card" data-testid="state-loading"><h2>Loading specimen…</h2></div>';
   }
-  return biopsy.render(ST, ctx, {
-    backHref: '#/tcga',
-    backLabel: 'Back to TCGA specimens',
-    hideAgent: true
-  });
+  return specimenTitle(
+    biopsy.render(ST, ctx, {
+      backHref: '#/tcga',
+      backLabel: 'Back to TCGA specimens',
+      hideAgent: true
+    }),
+    id
+  );
+}
+
+// The shared biopsy header titles a case by its id. A specimen is titled as the list names it ("TCGA-A7-A4SD · FFPE ·
+// tumor · field 0"), with the raw id on a smaller line below; an id of another shape keeps the header as drawn.
+function specimenTitle(html, id) {
+  const parts = idParts(id);
+  const raw = `<span class="cv-title-id">${esc(id)}</span>`;
+  const at = html.indexOf(raw);
+  const end = at < 0 ? -1 : html.indexOf('</h2>', at);
+  if (!parts || end < 0) return html;
+  const title =
+    `<span class="cv-title-id"><span class="tcga-nw">${esc(parts.patient)}</span> · ${esc(parts.text)}</span>`;
+  const sub = `<div class="tcga-raw-id" data-testid="tcga-raw-id">${esc(id)}</div>`;
+  return html.slice(0, at) + title + html.slice(at + raw.length, end + 5) + sub + html.slice(end + 5);
 }
 
 const later = (fn) => (typeof requestAnimationFrame === 'function' ? requestAnimationFrame(fn) : setTimeout(fn, 0));
