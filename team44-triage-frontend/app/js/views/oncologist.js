@@ -127,10 +127,11 @@ function card(r, ST, conf, enter) {
     `<section class="rep-so" data-testid="inbox-signout"><div class="rep-cell"><h3>Pathologist sign-out</h3><p class="rep-so-text">Signed out by the reading pathologist. The pathologist’s report is the result of record; the model output below is decision support only.</p></div>` +
     `<div class="rep-cell"><h3>Follow-up orders</h3>${orders(r)}</div></section>` +
     `<div class="rep-ds-head"><h3 class="rep-ds">Decision support</h3><span>Model output, not a diagnosis.</span></div>` +
-    '<div class="rep-grid" data-testid="inbox-decision-support">' +
-    `<section class="rep-cell"><h3>Suggested category</h3><p class="rep-cat${top === 'Invasive' ? ' inv' : ''}" data-testid="inbox-category">${esc(suggestedLabel(top))}</p>` +
+    // two columns (case.css): the read (category over its confidence set) beside the features that go with it
+    '<div class="rep-grid rep-dual" data-testid="inbox-decision-support"><div class="rep-cell rep-read">' +
+    `<section><h3>Suggested category</h3><p class="rep-cat${top === 'Invasive' ? ' inv' : ''}" data-testid="inbox-category">${esc(suggestedLabel(top))}</p>` +
     `<p class="rep-sub">Probability of invasive carcinoma <b>${pctText(pInv)}</b></p></section>` +
-    `<section class="rep-cell"><h3>Confidence set</h3><p class="chips">${chips}</p><p class="rep-sub">${setText}</p></section>` +
+    `<section><h3>Confidence set</h3><p class="chips">${chips}</p><p class="rep-sub">${setText}</p></section></div>` +
     `<section class="rep-cell"><h3>Key associated features</h3>${features(rep)}</section>` +
     '</div>' +
     `<section class="rep-sum"><h3>Summary <span>${genText}</span></h3>${sentences ? `<ul>${sentences}</ul>` : '<p class="rep-none">No summary sentences.</p>'}</section>` +

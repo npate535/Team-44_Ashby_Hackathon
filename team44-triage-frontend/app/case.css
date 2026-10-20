@@ -3193,3 +3193,36 @@ dialog.cv-compare[open]::backdrop {
     display: none;
   }
 }
+
+/* Oncology inbox decision support (js/views/oncologist.js): two columns, the read (suggested category over its
+   confidence set) beside the associated features, and one column on phones. Overrides flow.css's three-column grid. */
+.rep-grid.rep-dual {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.rep-grid.rep-dual > .rep-cell {
+  grid-column: auto;
+  border-bottom: 0;
+}
+.rep-grid.rep-dual > .rep-cell:first-child {
+  border-right: 1px solid var(--ln2);
+}
+.rep-grid.rep-dual > .rep-cell:last-child {
+  border-right: 0;
+}
+.rep-read {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+.rep-read > section {
+  min-width: 0;
+}
+@media (max-width: 560px) {
+  .rep-grid.rep-dual {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rep-grid.rep-dual > .rep-cell:first-child {
+    border-right: 0;
+    border-bottom: 1px solid var(--ln2);
+  }
+}
