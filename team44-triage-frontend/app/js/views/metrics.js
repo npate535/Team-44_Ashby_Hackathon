@@ -1913,12 +1913,13 @@ function creditRows(ev) {
 function limitationsSection(ST, ev, m, L, ctx) {
   const files = Object.entries(ev)
     .filter(([, d]) => d && typeof d === 'object')
-    .map(([k, d]) => [`eval/${k}.json`, d.created_utc || '—', d.git_sha ? String(d.git_sha).slice(0, 7) : '—', d.synthetic ? 'synthetic' : 'pipeline output']);
+    // no "Kind" column: every file is pipeline output; a synthetic one says so beside its name
+    .map(([k, d]) => [`eval/${k}.json${d.synthetic ? ' (synthetic)' : ''}`, d.created_utc || '—', d.git_sha ? String(d.git_sha).slice(0, 7) : '—']);
   const expected = Object.keys(m.expected || {}).filter((k) => !ev[k]);
   return `<figure class="mx-fig mx-wide" data-testid="limitations"><figcaption><h3>Limitations</h3></figcaption><ul class="mx-limits">${LIMITATIONS.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></figure>` +
     figDataQuality(ST, ev, L) +
     `<figure class="mx-fig"><figcaption><h3>Datasets, models, tools and reviewers</h3></figcaption><dl class="mx-cite">${[...CITATIONS, ...creditRows(ev)].map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></figure>` +
-    `<figure class="mx-fig mx-wide"><figcaption><h3>Data provenance</h3><p class="mx-take">Every number on this page is read from these files at page load; re-running the pipeline updates the page.${expected.length ? ` Not produced in this run: ${esc(expected.map((e) => `${e}.json`).join(', '))}.` : ''}</p></figcaption>${table(['File', 'Created (UTC)', 'Git commit', 'Kind'], files, { title: 'Data provenance' })}${(m.figures || []).length ? details('figures-png', `Static PNG figures (${m.figures.length})`, `<div class="mx-pngs">${m.figures.map((f) => `<a href="${esc(ctx && ctx.assetUrl ? ctx.assetUrl(f.url) : f.url)}" target="_blank" rel="noopener">${esc(f.file)}</a>`).join('')}</div>`) : ''}</figure>`;
+    `<figure class="mx-fig mx-wide"><figcaption><h3>Data provenance</h3><p class="mx-take">Every number on this page is read from these files at page load; re-running the pipeline updates the page.${expected.length ? ` Not produced in this run: ${esc(expected.map((e) => `${e}.json`).join(', '))}.` : ''}</p></figcaption>${table(['File', 'Created (UTC)', 'Git commit'], files, { title: 'Data provenance' })}${(m.figures || []).length ? details('figures-png', `Static PNG figures (${m.figures.length})`, `<div class="mx-pngs">${m.figures.map((f) => `<a href="${esc(ctx && ctx.assetUrl ? ctx.assetUrl(f.url) : f.url)}" target="_blank" rel="noopener">${esc(f.file)}</a>`).join('')}</div>`) : ''}</figure>`;
 }
 
 // ---- page -------------------------------------------------------------------------------------------------------------
@@ -1929,13 +1930,16 @@ function scope(ST, ev) {
     ng = M.n_groups ?? A.n_groups,
     vx = M.variants_excluded ?? A.variants_excluded;
   const prod = get(M, 'models.production') || get(A, 'models.production');
+  // one plain sentence on the page; the statistical method, in full, behind "Methods"
+  const lead = `Results on ${isNum(n) ? `<b>${n}</b> ` : ''}held-out BACH test images${isNum(ng) ? ` from <b>${esc(ng)}</b> patient groups` : ''}, with 95% confidence intervals.`;
   const parts = [];
-  if (isNum(n)) parts.push(`<b>${n}</b> held-out test images from <b>${esc(ng ?? '?')}</b> patient or pseudo-patient groups`);
+  if (isNum(n)) parts.push(`${n} held-out test images from ${esc(ng ?? '?')} patient or pseudo-patient groups`);
   if (isNum(vx)) parts.push(`${countText(vx)} simulated degraded / composite variants kept out of headline numbers`);
   parts.push(`intervals are 95% cluster-bootstrap CIs over ${isNum(n) ? 'those groups' : 'patient or pseudo-patient groups'}, except that a result of 0% or 100% shows its count with an exact Clopper–Pearson interval (a bootstrap has no spread there)`);
   if (prod) parts.push(`production read: ${esc(modelName(prod))}`);
-  const text = parts.join('; ');
-  return `<p class="mx-scope">${text.charAt(0).toUpperCase() + text.slice(1)}.</p>`;
+  const id = 'scope-methods';
+  const methods = `<details class="mx-src mx-methods" data-mx-open="${id}" data-testid="metrics-methods"${OPEN.has(id) ? ' open' : ''}><summary>Methods</summary><ul>${parts.map((t) => `<li>${t.charAt(0).toUpperCase() + t.slice(1)}.</li>`).join('')}</ul></details>`;
+  return `<div class="mx-scope-wrap"><p class="mx-scope" data-testid="metrics-scope">${lead}</p>${methods}</div>`;
 }
 function nav() {
   return `<nav class="mx-nav" aria-label="Evaluation sections"><div class="mx-nav-inner">${SECTIONS.map(([id, label]) => `<button type="button" data-mx-jump="mx-${id}"${activeSection === `mx-${id}` ? ' aria-current="true"' : ''}>${esc(label)}</button>`).join('')}</div></nav>`;

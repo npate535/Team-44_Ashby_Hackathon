@@ -69,6 +69,23 @@
   color: var(--ink);
   font-weight: 600;
 }
+/* the scope sentence and, below it, the statistical method in full behind "Methods" */
+.mx-scope-wrap {
+  min-width: 0;
+  max-width: 82ch;
+}
+.mx-top .mx-methods {
+  margin-top: 4px;
+  border-top: 0;
+  padding-top: 0;
+}
+.mx-methods ul {
+  margin: 4px 0 2px;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--mut);
+}
 .mx-top .btn {
   flex: none;
 }
@@ -690,6 +707,10 @@
 }
 .cx-panel {
   min-width: 0;
+}
+/* one-vs-rest ROC panels: square, as a ROC plot's two rate axes are */
+#fig-ovr .cx-panel svg.cx {
+  aspect-ratio: 1;
 }
 .cx-panel-title {
   font-size: 12.5px;
@@ -1479,12 +1500,34 @@
 /* the page h1 is the top bar's; the intro heading names the test, at the section-heading size */
 .tcga-claim .mx-lede { margin: 0; max-width: 62rem; line-height: 1.5; }
 .tcga-specimens-loading { min-height: 60vh; }
+/* Back from a specimen: drawn as the case bar above a worklist case is (flow.css .casebar with its .cb-back button; the
+   bar itself is app.js's and is not shown here), at the bar's height, so the specimen header sits where a case header does */
 a.back {
-  color: inherit;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 51px;
+  margin: -4px 0 12px;
+  padding: 0 16px 0 15px;
+  border: 1px solid var(--ln);
+  border-radius: 12px;
+  background: var(--glass, var(--sf));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: var(--hema);
+  font-size: 12.5px;
+  font-weight: 600;
   text-decoration: none;
   cursor: pointer;
 }
-a.back:hover { text-decoration: underline; }
+@media (hover: hover) {
+  a.back:hover { background: var(--bl); }
+}
+a.back:focus-visible {
+  outline: 2px solid var(--hema);
+  outline-offset: 2px;
+}
 
 @media print {
   .mx-nav,
