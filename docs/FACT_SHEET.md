@@ -117,7 +117,7 @@ Near-duplicate check (Quilt/PathGen vs BACH, CONCH): highest similarity of any p
 - Rule-based: worklist tiers and the safety rule
 - Rule-based: drafted follow-up orders (never placed)
 - Case summaries (case files by generator: template 328): summaries shipped in the case files are written by a deterministic template from structured findings.
-- 'In plain language' tab (cached explanations by model and provider: gemini-4-argon-high (cursor) 330; claude-opus-5-5-medium (cursor) 1; claude-sonnet-5-5-xhigh (cursor) 1): optional explanation generated from measured evidence; every number is checked against the evidence; not itself evidence.
+- 'In plain language' tab (cached explanations by model and provider: claude-sonnet-5-5 (claude) 328): optional explanation generated from measured evidence; every number is checked against the evidence; not itself evidence.
 
 ## Three different time numbers
 
