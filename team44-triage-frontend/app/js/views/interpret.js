@@ -4,6 +4,29 @@
 // classifier decided; the panel says so, links the validation, and shows the server's number check of the text.
 // The text is cached server-side; the state lives in ST.interp.
 import { esc } from '../adapter.js';
+import { SHORT_CLASS } from '../flow.js';
+
+// ---- display-only wording pass (the cached text and its server checks stay exactly as generated) ----------------------
+// Class keys read as the case view's labels ("InSitu" → "In situ"), and a class probability never reads 100% or 0%
+// (the app shows >99% / <1% everywhere; the exact value is in the Prediction card). Only a percentage directly after a
+// class name ("Invasive (100%)", "Invasive 100%, others 0%") is a class probability; other numbers are left alone.
+const CLASS_KEYS = Object.keys(SHORT_CLASS).filter((k) => SHORT_CLASS[k] !== k);
+const CLASS_WORDS = [...new Set(Object.values(SHORT_CLASS))].map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+const PROB_AFTER_CLASS = new RegExp(`\\b(${CLASS_WORDS}|others?)(\\s*\\(\\s*|:?\\s+)(100|0)(?:\\.0+)?%`, 'g');
+export function plainText(src) {
+  let s = String(src || '');
+  for (const k of CLASS_KEYS) s = s.replace(new RegExp(`\\b${k}\\b`, 'g'), SHORT_CLASS[k]);
+  return s.replace(PROB_AFTER_CLASS, (_, cls, gap, n) => `${cls}${gap}${n === '100' ? '>99' : '<1'}%`);
+}
+
+// Trust tags as shown: "Validated" in the generated text means an AI-reviewed spot check passed (≥ 15/20 acceptable),
+// not a clinical or pathologist validation, so it reads "Spot-check passed".
+const TAGS = {
+  Validated: ['ok', 'Spot-check passed', 'Passed the AI-reviewed spot check (at least 15 of 20 regions acceptable). An AI check, not a pathologist or clinical validation.'],
+  Weak: ['weak', 'Weak', 'Mixed or missing AI-reviewed spot check (about 8 to 14 of 20 regions acceptable)'],
+  Unreliable: ['bad', 'Unreliable', 'Failed the AI-reviewed spot check (under 8 of 20 regions acceptable) or flagged as weak'],
+  Measured: ['meas', 'Measured', 'Measured from segmented cells']
+};
 
 // ---- Markdown → HTML (escaped first; headings, lists, tables, quotes, code, emphasis, [F1] citations) ---------------------
 function inline(s) {
@@ -12,11 +35,19 @@ function inline(s) {
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?!\w)/g, '$1<em>$2</em>')
     .replace(/(^|[^_\w])_([^_\s][^_]*?)_(?!\w)/g, '$1<em>$2</em>')
-    .replace(/\b(Validated|Weak|Unreliable|Measured)\b(?=\s*$|\s*[.;)]?\s*$)/g, (w) =>
-      `<span class="ai-tag ${{ Validated: 'ok', Weak: 'weak', Unreliable: 'bad', Measured: 'meas' }[w]}">${w}</span>`)
+    // a trust tag ends its line or cell, optionally followed by its spot-check count and citations
+    .replace(/\b(Validated|Weak|Unreliable|Measured)\b(?=(?:\s*\(\d+\/\d+\))?(?:\s*\[F\d+(?:\s*,\s*F\d+)*\])?\s*[.;)]?\s*$)/g, (w) =>
+      `<span class="ai-tag ${TAGS[w][0]}" title="${esc(TAGS[w][2])}">${TAGS[w][1]}</span>`)
+    .replace(/\(Validated\)/g, '(spot-check passed)')
+    .replace(/\bValidated\b/g, 'Spot-checked') // the same label used in prose ("Validated stroma … lean invasive")
     .replace(/([↑↓]) invasive/g, (_, a) => `<span class="ai-dir ${a === '↑' ? 'up' : 'down'}">${a} invasive</span>`)
     .replace(/\[(F\d+(?:\s*,\s*F\d+)*)\]/g, (_, ids) =>
-      ids.split(/\s*,\s*/).map((f) => `<button class="ai-cite" data-f="${f}" title="Show finding ${f} in the evidence">${f}</button>`).join(''));
+      ids.split(/\s*,\s*/).map((f) => `<button class="ai-cite" data-f="${f}" title="Show finding ${f} in the evidence">${f}</button>`).join(''))
+    // citation chips stay on the line of the word before them: word (or a short tagged phrase) + chips do not wrap
+    .replace(
+      /((?:<(strong|em|code)>[^<]{1,32}<\/\2>)|(?:<span class="ai-(?:dir|tag) [a-z]+"[^>]*>[^<]*<\/span>)|[^\s<>]+)( ?)((?:<button class="ai-cite"[^>]*>[^<]*<\/button>)+)/g,
+      '<span class="ai-nb">$1$3$4</span>'
+    );
 }
 
 const cells = (row) => row.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
@@ -104,7 +135,7 @@ function claimsBadge(c) {
   if (!c) return '<span class="ai-verify" title="Verdict, arrows, trust tags and OOD reading not checked yet">claims not checked</span>';
   const left = c.remaining || [];
   const fixed = (c.found || []).length - left.length;
-  if (left.length) return `<span class="ai-verify warn" title="${esc(left.join(' '))}">${left.length} claim issue${left.length === 1 ? '' : 's'}</span>`;
+  if (left.length) return `<span class="ai-verify warn" title="${esc(plainText(left.join(' ')))}">${left.length} claim issue${left.length === 1 ? '' : 's'}</span>`;
   return `<span class="ai-verify ok" title="Verdict, arrows, trust tags and OOD reading match rules computed from the data${fixed ? `; ${fixed} corrected by a repair pass` : ''}">claims checked${fixed ? ` · ${fixed} fixed` : ''}</span>`;
 }
 
@@ -146,8 +177,8 @@ export function interpretPanel(ST, key, scope = 'case') {
   } else if (s.status === 'ok' && d.markdown) {
     const bad = (d.verification && d.verification.unsupported) || [];
     body =
-      `<article class="ai-md" data-testid="interp-text">${markdown(d.markdown)}</article>` +
-      ((d.claims && (d.claims.remaining || []).length) ? `<p class="ai-unverified" role="note"><b>Check these statements:</b> ${d.claims.remaining.map(esc).join(' ')}</p>` : '') +
+      `<article class="ai-md" data-testid="interp-text">${markdown(plainText(d.markdown))}</article>` +
+      ((d.claims && (d.claims.remaining || []).length) ? `<p class="ai-unverified" role="note"><b>Check these statements:</b> ${d.claims.remaining.map((t) => esc(plainText(t))).join(' ')}</p>` : '') +
       (bad.length ? `<p class="ai-unverified" role="note"><b>Check these numbers:</b> ${bad.map(esc).join(', ')} could not be traced to the evidence (often a sum or difference the model worked out; verify before quoting).</p>` : '');
     meta =
       verifyBadge(d.verification) +

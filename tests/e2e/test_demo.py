@@ -125,7 +125,7 @@ def test_demo_script(page, api, roles):
     pg.click(tid("nav-worklist"))
     sim(pg, "sim-inject-degraded")
     pg.locator(f"{ROW}[data-lane=surgical]").first.click()
-    expect(pg.locator(f".flag{tid('reliability-flag')}")).to_contain_text("defer to permanent")
+    expect(pg.locator(f".flag{tid('reliability-flag')}")).to_contain_text(re.compile("defer to permanent", re.I))
     page.shot(f"06-degraded-{page.name}")
     pg.click(tid("call-defer"))
     pg.click(tid("confirm-action"))
