@@ -487,7 +487,7 @@ function ensureViewer() {
     '<div class="vw-tools"><label class="vw-ov"><input type="checkbox" data-vw="overlay" checked> Overlay</label>' +
     '<label class="vw-op">Opacity <input type="range" min="0" max="1" step="0.05" data-vw="opacity"></label>' +
     '<span class="vw-zoom"><button type="button" class="btn" data-vw="out" aria-label="Zoom out">−</button><output aria-live="polite">100%</output><button type="button" class="btn" data-vw="in" aria-label="Zoom in">+</button><button type="button" class="btn" data-vw="fit">Fit</button></span>' +
-    '<button type="button" class="btn p" data-vw="close">Close</button></div></div>' +
+    '<button type="button" class="btn vw-close" data-vw="close">Close <span aria-hidden="true">✕</span></button></div></div>' +
     '<div class="vw-stage" tabindex="0" aria-label="Image. Drag or use the arrow keys to pan; scroll, pinch, or press + and − to zoom; 0 fits the image."><div class="vw-canvas"></div></div>' +
     '<div class="vw-foot"></div>';
   document.body.appendChild(d);
@@ -588,7 +588,7 @@ function ensureCompare() {
     '<div class="vw-bar"><div class="vw-title"><h2 id="cv-cmp-title">Compare with a reference case</h2><span class="vw-sub">Pan and zoom are linked between the two images.</span></div>' +
     '<div class="vw-tools"><span class="vw-zoom"><button type="button" class="btn" data-cmp="prev" aria-label="Previous reference">‹ Prev</button><button type="button" class="btn" data-cmp="next" aria-label="Next reference">Next ›</button></span>' +
     '<span class="vw-zoom"><button type="button" class="btn" data-cmp="out" aria-label="Zoom out">−</button><output aria-live="polite">100%</output><button type="button" class="btn" data-cmp="in" aria-label="Zoom in">+</button><button type="button" class="btn" data-cmp="fit">Fit</button></span>' +
-    '<button type="button" class="btn p" data-cmp="close">Close</button></div></div>' +
+    '<button type="button" class="btn vw-close" data-cmp="close">Close <span aria-hidden="true">✕</span></button></div></div>' +
     '<div class="cmp-panes"><figure class="cmp-pane q"><div class="vw-stage" tabindex="0" aria-label="This case. Drag to pan, scroll to zoom."><div class="vw-canvas"></div></div><figcaption></figcaption></figure>' +
     '<figure class="cmp-pane r"><div class="vw-stage" tabindex="0" aria-label="Reference case. Drag to pan, scroll to zoom."><div class="vw-canvas"></div></div><figcaption></figcaption></figure></div>' +
     '<div class="cmp-strip" role="group" aria-label="Choose a reference"></div>';
@@ -647,14 +647,14 @@ function showRef(i) {
   const detail = ref.kind === 'contrast' && Array.isArray(ref.detail) && ref.detail.length ? ref.detail : null;
   c.panes[0].canvas.innerHTML = `<img src="${esc(assetUrl(v.image.src))}" alt="This case, ${esc(v.id)}" draggable="false">` + (detail ? cmpMarks(v, detail, 'query_region') : '');
   c.panes[1].canvas.innerHTML = `<img src="${esc(assetUrl(ref.image || 'images/' + ref.case_id + '.jpg'))}" alt="Reference ${esc(ref.case_id)}" draggable="false">` + (detail ? cmpMarks(v, detail, 'contrast_region') : '');
-  c.panes[0].cap.innerHTML = `<b>This case</b> ${esc(v.id)} · suggested ${esc(classLabel(v.top, cfg) || '—')}`;
+  c.panes[0].cap.innerHTML = `<b>This case</b> ${esc(v.id)} · Suggested: ${esc(classLabel(v.top, cfg) || '—')}`;
   const label = (id) => (v.concepts.find((k) => k.id === id) || {}).label || humanize(id);
   const diffChip = (d, i) => {
     const spot = contrastSpot(d);
     return `<span class="chip${d.reliable ? '' : ' muted'}" title="${esc(spot.tip)}"><b class="cmp-n">${i + 1}</b> ${esc(d.label || label(d.concept))} ${signed(num(d.delta))} SD${spot.why ? ` · ${esc(spot.why)}` : ''}</span>`;
   };
   c.panes[1].cap.innerHTML =
-    `<b>${ref.kind === 'contrast' ? 'Nearest case with a different label (look-alike)' : `Reference ${c.i + 1} of ${c.list.filter((x) => x.kind !== 'contrast').length}`}</b> ${esc(ref.case_id)} · reference label <b>${esc(classLabel(ref.label, cfg))}</b> (training split) · similarity ${num(ref.similarity).toFixed(2)}` +
+    `<b>${ref.kind === 'contrast' ? 'Nearest case with a different label (look-alike)' : `Reference ${c.i + 1} of ${c.list.filter((x) => x.kind !== 'contrast').length}`}</b> ${esc(ref.case_id)} · Reference label: <b>${esc(classLabel(ref.label, cfg))}</b> (training split) · Similarity ${num(ref.similarity).toFixed(2)}` +
     (detail
       ? `<span class="cmp-diff">Differs most in (this case minus look-alike, SD of training cases): ${detail.map(diffChip).join('')}</span><span class="cmp-key">Numbered outlines mark each feature's strongest region in each image.</span>`
       : ref.kind === 'contrast' && ref.differs_most_in && ref.differs_most_in.length
