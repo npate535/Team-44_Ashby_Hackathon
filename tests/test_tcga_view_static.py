@@ -209,10 +209,14 @@ def test_flags_column_shows_compact_tags_like_the_worklist():
     html = render(st)
     flags = dict(re.findall(r'data-case-id="([^"]+)".*?<td class="c-flags">(.*?)</td>', html, re.S))
     assert flags["TCGA-A7-A4SD_ffpe_tumor_00"] == '<span class="none" aria-label="no flags">–</span>'
+    # the Confidence set column lists the classes, so set size gets no tag (as on the worklist)
     tags = flags["TCGA-A7-A4SD_frozen_tumor_00"]
-    assert 'data-testid="reason-aggressive_in_conformal_set">Invasive in set</span>' in tags and ">2 classes<" in tags
-    assert ">2 classes<" in flags["TCGA-A7-A4SD_frozen_normal_02"] and "Invasive in set" not in flags[
-        "TCGA-A7-A4SD_frozen_normal_02"]
+    assert 'data-testid="reason-aggressive_in_conformal_set">Invasive in set</span>' in tags
+    assert "classes" not in tags and "reason-set_size_gt_1" not in tags
+    # a field whose only flag was its set size shows the dash, and says why to a screen reader
+    assert flags["TCGA-A7-A4SD_frozen_normal_02"] == (
+        '<span class="none" aria-label="no flags besides the confidence set">–</span>')
+    assert "classes" not in "".join(flags.values()) and "reason-set_size_gt_1" not in "".join(flags.values())
     assert " · " not in "".join(flags.values()) and "suggested" not in "".join(flags.values())
 
 
