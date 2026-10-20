@@ -61,3 +61,22 @@ def test_a_decision_whose_reply_is_lost_is_checked_before_it_is_called_failed(pa
     # aborted requests log network errors by design; no script error may have happened
     assert not [e for e in page.errors if e.startswith("pageerror")], page.errors
     page.errors.clear()
+
+
+def test_a_held_replay_clock_says_so(page, api):
+    pg = page.page
+
+    # sim.held (docs/API.md): every scheduled case is in and the replay clock stands at its hold
+    def held(route):
+        res = route.fetch()
+        body = res.json()
+        if body.get("sim"):
+            body["sim"].update(held=True, hold_at_s=body["sim"]["sim_time_s"], running=True)
+        route.fulfill(response=res, json=body)
+
+    pg.route("**/api/worklist*", held)
+    pg.goto(page.base + "/")
+    expect(pg.locator(tid("sim-clock"))).to_contain_text("Replay complete; clock held")
+    expect(pg.locator(tid("sim-clock"))).to_contain_text("simulator clock held")
+    expect(pg.locator(tid("replay-toggle"))).to_contain_text("Replay complete")
+    pg.unroute("**/api/worklist*")

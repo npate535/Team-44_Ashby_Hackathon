@@ -161,8 +161,11 @@ export function timerNow(c, nowMs, cfg, sim) {
           : 'Overdue ' + mmss(-left)
     };
   }
-  const running = sim && sim.running && t.state !== 'stopped';
-  const elapsedS = t.elapsed_s + (running ? since * (sim.speed || 1) : 0);
+  // the biopsy clock is the replay clock: it stands still while the replay is paused or held (sim.held), and between
+  // polls it is never run past the hold (sim.hold_at_s)
+  const running = sim && sim.running && !sim.held && t.state !== 'stopped';
+  const room = running && sim.hold_at_s != null ? Math.max(0, sim.hold_at_s - (sim.sim_time_s || 0)) : Infinity;
+  const elapsedS = t.elapsed_s + (running ? Math.min(room, since * (sim.speed || 1)) : 0);
   const targetS = t.target_s ?? null;
   return {
     kind: 'biopsy',
