@@ -20,6 +20,8 @@ const SETS = [
 ];
 // specimen ids are <patient>_<prep>_<sample type>_<field>, e.g. TCGA-A7-A4SD_ffpe_tumor_00
 const CROP_ID = /^(.+?)_(ffpe|frozen)_([a-z]+)_(\d+)$/;
+// worklist case ids (BACH fields, their simulated variants, composites; DEV_ in the dev set), never TCGA specimens
+const WORKLIST_ID = /^(BACH|COMP|DEV)_[A-Za-z0-9_]+$/;
 const PHONE = '(max-width: 640px)';
 
 // List state that outlives a redraw: the app's poll re-renders the page, and a specimen opens in place of the list.
@@ -509,9 +511,13 @@ function worklist(ST) {
 function detail(ST, ctx) {
   const id = ST.caseId;
   if (ST.notFound === id) {
+    // a worklist id (BACH_0225, BACH_0141_FSIM_blur3, COMP_009) typed or linked under #/tcga/: offer its case page
+    const worklistCase = WORKLIST_ID.test(String(id || ''))
+      ? ` This looks like a worklist case id: <a href="#/case/${encodeURIComponent(id)}" data-testid="worklist-case-link">open case ${esc(id)}</a>.`
+      : '';
     return `<a class="back" href="#/tcga" data-testid="back">Back to TCGA specimens</a>
       <div class="card" data-testid="case-not-found"><h2>Specimen not found</h2>
-      <p>${esc(id)} is not in the TCGA external set.</p></div>`;
+      <p>${esc(id)} is not in the TCGA external set.${worklistCase}</p></div>`;
   }
   if (!ST.cases[id]) {
     return '<div class="card" data-testid="state-loading"><h2>Loading specimen…</h2></div>';

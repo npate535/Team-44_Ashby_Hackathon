@@ -24,6 +24,8 @@ const ORDER_STATUS = { drafted: 'drafted', approved: 'approved', edited: 'approv
 const NOT_SENT = 'nothing is sent to a laboratory or ordering system';
 const RULES_NOTE = `Drafted by illustrative rules that need clinical review. You approve or edit them in Sepia; ${NOT_SENT}.`;
 const TESTID = { approve_orders: 'approve', edit_orders: 'edit', closer_look: 'closer', dismiss_flag: 'dismiss', sign_out: 'signout' };
+// app.js counts failed polls in ST.fail and shows the offline banner from 2: a decision sent then would only fail
+const offline = (ST) => ST.fail >= 2;
 
 function blockedRows(v) {
   const rows = v.agent.blocked.map(
@@ -98,7 +100,7 @@ function confirmBox(v, ST, detail) {
     }
   }[p.action];
   if (!text) return '';
-  const can = v.agent.allowed.includes(p.action) && !ST.busy;
+  const can = v.agent.allowed.includes(p.action) && !ST.busy && !offline(ST);
   return (
     `<div class="cv-confirm" role="group" aria-labelledby="cv-confirm-t" aria-describedby="cv-confirm-b" data-testid="confirm-box" data-action="${esc(p.action)}">` +
     `<b id="cv-confirm-t">${text.title}</b><p id="cv-confirm-b">${text.body}</p>` +
@@ -133,6 +135,12 @@ export function agentPanel(v, ST) {
   const pill = `<span class="pill${status === 'drafted' || status === 'deferred_closer_look' ? ' warn' : status === 'none' ? '' : ' ok'}" data-testid="agent-status" data-status="${esc(status)}">${esc(STATUS[status] || status)}</span>`;
   const detail = orderList(v);
   const rationale = Object.fromEntries(v.agent.orders.map((o) => [o.rule_id + '|' + o.type, o.rationale]));
+  // The editor stays open only while editing is still allowed: another tab (or reviewer) may have approved, dismissed
+  // or signed out meanwhile, and this tab would keep showing checkboxes with a dead Approve button.
+  if (ST.editing === 'orders' && !v.agent.allowed.includes('edit_orders')) {
+    ST.editing = null;
+    ST.editDraft = {};
+  }
   const editing = ST.editing === 'orders';
   let orders = '';
   for (const o of detail) {
@@ -158,7 +166,7 @@ export function agentPanel(v, ST) {
   if (!detail.length) orders = '<div class="note">No follow-up rule applies to this case, so nothing was drafted.</div>';
   if (v.lane === 'surgical')
     orders = '<div class="note">Non-stain follow-up only (the reliability flag is raised); the margin call is separate.</div>' + orders;
-  const can = (a) => v.agent.allowed.includes(a) && !ST.busy;
+  const can = (a) => v.agent.allowed.includes(a) && !ST.busy && !offline(ST);
   const p = pending(v.id);
   const btn = (act, label, cls = '', confirm = false) =>
     `<button class="btn${cls}" ${confirm ? 'data-cv-confirm' : 'data-act'}="${act}" data-testid="action-${TESTID[act]}"${can(act) ? '' : ' disabled'}${p && p.action === act ? ' aria-expanded="true"' : confirm ? ' aria-expanded="false"' : ''}>${label}</button>`;
@@ -182,7 +190,9 @@ export function agentPanel(v, ST) {
       ? 'Decide on the drafted orders first: approve, edit or dismiss them.'
       : ST.busy
         ? 'Saving your decision…'
-        : '';
+        : offline(ST)
+          ? 'Offline: reconnecting to Sepia before you can sign out.'
+          : '';
   const approval =
     `<div class="card cv-signout" data-testid="approval"><h2>Pathologist sign-out</h2><p class="note">The diagnosis is recorded at sign-out. The suggestion above is decision support.</p>` +
     (signed

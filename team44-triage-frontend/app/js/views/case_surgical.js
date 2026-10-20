@@ -91,7 +91,9 @@ function callPanel(v, ST) {
   );
   if (done)
     return `<div class="verdict cv-sent tone-${CALL_TONE[done.call] || 'defer'}" data-testid="verdict" role="status" tabindex="-1"><b>${esc(callText(done))}</b> — sent to the surgeon${done.at ? ` at ${esc(new Date(done.at).toLocaleTimeString())}` : ''}. Timer stopped.</div>`;
-  const can = v.agent.allowed.includes('margin_call') && !ST.busy;
+  // ST.fail: failed polls counted by app.js (offline banner from 2); a call sent then would only fail
+  const offline = ST.fail >= 2;
+  const can = v.agent.allowed.includes('margin_call') && !ST.busy && !offline;
   const dis = can ? '' : ' disabled';
   const sug = m ? m.call : null;
   const primary = (call) => (sug === call ? ' p' : '');
@@ -100,7 +102,10 @@ function callPanel(v, ST) {
     `<button class="btn${primary('clear')}" data-cv-confirm="margin_clear" data-testid="call-clear"${dis}${p && p.action === 'margin_clear' ? ' aria-expanded="true"' : ''}>Margins clear</button>` +
     `<button class="btn${sug === 'tumor_at_margin' ? ' p dd' : ' d'}" data-call="tumor" data-testid="call-tumor"${dis}${ST.editing === 'margins' ? ' aria-expanded="true"' : ''}>Tumor at margin…</button>` +
     `<button class="btn${primary('defer')}" data-cv-confirm="margin_defer" data-testid="call-defer"${dis}${p && p.action === 'margin_defer' ? ' aria-expanded="true"' : ''}>Defer to permanent</button></div>`;
-  if (!can && !ST.busy) h += '<p class="sub">The margin call is not available for this case.</p>';
+  if (!can && !ST.busy)
+    h += offline
+      ? '<p class="sub" data-testid="call-offline">Offline: reconnecting to Sepia before you can send the call.</p>'
+      : '<p class="sub">The margin call is not available for this case.</p>';
   if (ST.busy) h += '<p class="sub" role="status">Sending your call…</p>';
   if (ST.editing === 'margins') {
     h +=

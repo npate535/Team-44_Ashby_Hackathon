@@ -878,7 +878,7 @@ def test_health_sim_time_never_runs_ahead_of_the_next_read(tmp_path):
     assert later["sim_time_s"] >= health["sim_time_s"] - 1e-9
 
 
-# ---- replay hold and ordering of same-second arrivals ----------------------------------------------------------------------
+# ---- replay hold, ordering of same-second arrivals, 404 page, compression ------------------------------------------------
 def test_health_reports_the_held_clock_and_frozen_sections_still_inject(tmp_path):
     base = fixture_case("demo_0001")
     cases = [variant(base, "b1", offset=30), variant(fixture_case("demo_0002"), "s9", offset=1),
@@ -913,3 +913,45 @@ def test_health_reports_the_held_clock_and_frozen_sections_still_inject(tmp_path
     sim = client.get("/api/health").json()["sim"]
     assert sim["held"] is False and sim["hold_at_s"] is None and sim["sim_time_s"] == 0
 
+
+@pytest.mark.parametrize("frontend", [False, True])
+def test_unknown_page_is_a_small_html_404_but_api_and_media_stay_json(tmp_path, frontend):
+    root = dev_root(tmp_path)
+    client, _ = make_client(tmp_path, artifacts_root=root, frontend=frontend)
+    for url in ("/random-path", "/case/BACH_0225", "/a/b.html?x=1"):
+        res = client.get(url)
+        assert res.status_code == 404, url
+        assert res.headers["content-type"].startswith("text/html"), url
+        assert '<a href="/">' in res.text and "Page not found" in res.text
+        assert "http://" not in res.text and "https://" not in res.text                    # inline, no external URLs
+        assert res.headers["cache-control"] == "no-store"
+    assert "<script" not in client.get("/%3Cscript%3Ealert(1)%3C/script%3E").text           # the path is escaped
+    for url in ("/api/nope", "/api", "/images/missing.jpg", "/thumbs/320/images/missing.jpg", "/tcga/x.jpg",
+                "/eval/none.png", "/api/cases/NOPE_0001"):
+        res = client.get(url)
+        assert res.status_code == 404, url
+        assert res.headers["content-type"].startswith("application/json"), url
+        assert "detail" in res.json(), url
+    assert client.post("/random-path").status_code in (404, 405)
+    assert client.post("/random-path").headers["content-type"].startswith("application/json")
+
+
+def test_large_api_responses_are_gzipped_and_keep_their_headers(dev):
+    client, clock, _, _ = dev
+    arrive_all_biopsies(client, clock)
+    res = client.get("/api/worklist", headers={"Accept-Encoding": "gzip"})
+    assert res.status_code == 200 and res.headers["content-encoding"] == "gzip"
+    assert "accept-encoding" in res.headers["vary"].lower()
+    assert res.headers["cache-control"] == "no-store"
+    assert res.json()["items"]                                     # the client decodes it
+    plain = client.get("/api/worklist", headers={"Accept-Encoding": "identity"})
+    assert "content-encoding" not in plain.headers and plain.json()["items"]
+    small = client.get("/api/cases/NOPE/events", headers={"Accept-Encoding": "gzip"})   # tiny: not compressed
+    assert small.status_code == 404 and "content-encoding" not in small.headers
+
+
+def test_images_are_not_recompressed(tmp_path):
+    client, _ = make_client(tmp_path, cases_dir=FIXTURES)
+    img = client.get("/images/demo_0001.jpg", headers={"Accept-Encoding": "gzip"})
+    assert img.status_code == 200 and "content-encoding" not in img.headers
+    assert img.content == (FIXTURES / "demo_0001.jpg").read_bytes()
