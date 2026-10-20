@@ -1,6 +1,8 @@
-// Oncology inbox: one readable report card per signed-out biopsy — suggested category with calibrated probability and
-// confidence set, key associated features, the orders the pathologist placed, the sign-out time, grounded summary
-// sentences and the disclaimer. Unread/read state is a per-viewer convenience (browser storage, never required).
+// Oncology inbox: one readable report card per signed-out biopsy. It leads with the pathologist's sign-out (time and the
+// orders the pathologist approved); the model's output follows under "Decision support" — suggested category with
+// calibrated probability, confidence set, key associated features, the template summary — and the method detail an
+// oncologist does not need sits behind a small disclosure. Unread/read state is a per-viewer convenience (browser
+// storage, never required).
 // Research prototype — not for clinical use. Ground truth is never fetched or rendered. Orders are simulated: approved
 // in this workspace, never sent to a laboratory system.
 import { esc, isLLM } from '../adapter.js';
@@ -106,23 +108,34 @@ function card(r, ST, conf, enter) {
     : q.qc_tiles_kept !== undefined && q.qc_tiles_kept < 3
       ? '<span class="qflag">Little tissue passed quality control</span>'
       : '';
+  const setText = set.length > 1 ? 'More than one category cannot be ruled out.' : set.length === 1 ? 'One category in the set.' : 'No category reached the threshold.';
+  // method detail, kept out of the oncologist's way
+  const method = [
+    `Confidence set: ${esc(conf.label)}${conf.coverage !== null ? `; held-out coverage ${(conf.coverage * 100).toFixed(1)}%${conf.n ? ` (n = ${conf.n})` : ''}` : ''}.`,
+    'Probability of invasive carcinoma: calibrated by temperature scaling.',
+    `Image: one BACH microscopy field (public research dataset)${r.synthetic ? '; synthetic case' : ''}.`,
+    `Summary: ${model ? `written by ${esc(model)} from structured findings` : 'deterministic template from structured findings'}.`
+  ];
   return (
     `<article class="rep${unread ? ' unread' : ''}${enter ? ' enter' : ''}" data-testid="oncologist-item" data-case-id="${esc(r.case_id)}" data-inbox-key="${esc(key)}" data-unread="${unread}">` +
     `<header class="rep-head"><span class="udot" aria-hidden="true"></span><h2><a href="#/case/${encodeURIComponent(r.case_id)}">${esc(r.case_id)}</a></h2>` +
-    `<span class="rep-kind">Breast biopsy · BACH field${r.synthetic ? ' · synthetic' : ''}</span>` +
-    `<span class="rep-time" data-testid="inbox-signed-out">Signed out ${esc(when(r.at))}</span>` +
+    `<span class="rep-kind">Breast biopsy${r.synthetic ? ' · synthetic' : ''}</span>` +
+    `<span class="rep-time" data-testid="inbox-signed-out">Signed out by pathologist · ${esc(when(r.at))}</span>` +
     (unread ? `<span class="sr-only">Unread.</span><button class="linkbtn rep-mark" data-inbox-read="${esc(key)}">Mark as read</button>` : '') +
     '</header>' +
-    '<div class="rep-grid">' +
+    // the pathologist's part first: the sign-out and the orders the pathologist approved
+    `<section class="rep-so" data-testid="inbox-signout"><div class="rep-cell"><h3>Pathologist sign-out</h3><p class="rep-so-text">Signed out by the reading pathologist. The pathologist’s report is the result of record; the model output below is decision support only.</p></div>` +
+    `<div class="rep-cell"><h3>Follow-up orders</h3>${orders(r)}</div></section>` +
+    `<div class="rep-ds-head"><h3 class="rep-ds">Decision support</h3><span>Model output, not a diagnosis.</span></div>` +
+    '<div class="rep-grid" data-testid="inbox-decision-support">' +
     `<section class="rep-cell"><h3>Suggested category</h3><p class="rep-cat${top === 'Invasive' ? ' inv' : ''}" data-testid="inbox-category">${esc(suggestedLabel(top))}</p>` +
-    `<p class="rep-sub">P(Invasive) <b>${pctText(pInv)}</b>, calibrated</p></section>` +
-    `<section class="rep-cell"><h3>${esc(conf.label)}</h3><p class="chips">${chips}</p>` +
-    `<p class="rep-sub">${set.length > 1 ? 'More than one category cannot be ruled out.' : set.length === 1 ? 'One category in the set.' : 'No category reached the threshold.'}${conf.coverage !== null ? ` Held-out coverage ${(conf.coverage * 100).toFixed(1)}%${conf.n ? ` (n = ${conf.n})` : ''}.` : ''}</p></section>` +
+    `<p class="rep-sub">Probability of invasive carcinoma <b>${pctText(pInv)}</b></p></section>` +
+    `<section class="rep-cell"><h3>Confidence set</h3><p class="chips">${chips}</p><p class="rep-sub">${setText}</p></section>` +
     `<section class="rep-cell"><h3>Key associated features</h3>${features(rep)}</section>` +
-    `<section class="rep-cell"><h3>Follow-up orders</h3>${orders(r)}</section>` +
     '</div>' +
     `<section class="rep-sum"><h3>Summary <span>${genText}</span></h3>${sentences ? `<ul>${sentences}</ul>` : '<p class="rep-none">No summary sentences.</p>'}</section>` +
-    `<footer class="rep-foot">${quality}<span>Research prototype. Suggestions only: the pathologist’s sign-out is the result of record. “Associated with” does not mean caused by.</span><a class="case-link" href="#/case/${encodeURIComponent(r.case_id)}">Open case</a></footer>` +
+    `<details class="rep-method" data-testid="inbox-method"><summary>Method details</summary><ul>${method.map((m) => `<li>${m}</li>`).join('')}</ul></details>` +
+    `<footer class="rep-foot">${quality}<span>Research prototype, not for clinical use. “Associated with” does not mean caused by.</span><a class="case-link" href="#/case/${encodeURIComponent(r.case_id)}">Open case</a></footer>` +
     '</article>'
   );
 }

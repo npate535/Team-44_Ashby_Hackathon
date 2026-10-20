@@ -2346,6 +2346,11 @@ ul.sc-chips li {
   .inbox-head .btn {
     min-height: 44px;
   }
+  .rep-method summary {
+    padding-block: 12px;
+    margin-block: -8px;
+    line-height: 20px;
+  }
   /* surgical case: margin form and confirmation */
   .cv-surg .cv-pick label {
     min-height: 44px;
@@ -2467,7 +2472,54 @@ ul.sc-chips li {
 }
 .rep-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+/* the pathologist's sign-out leads; the model's output follows under "Decision support" */
+.rep-so {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  border-bottom: 1px solid var(--ln2);
+}
+.rep-so .rep-cell:first-child {
+  border-right: 1px solid var(--ln2);
+}
+.rep-so-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.rep-ds-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  padding: 10px 16px 0;
+}
+.rep h3.rep-ds {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.rep-ds-head span {
+  font-size: 12px;
+  color: var(--mut);
+}
+.rep-method {
+  padding: 8px 16px;
+  border-top: 1px solid var(--ln2);
+  font-size: 12px;
+  color: var(--mut);
+}
+.rep-method summary {
+  cursor: pointer;
+  font-weight: 600;
+  width: fit-content;
+}
+.rep-method ul {
+  margin: 6px 0 2px;
+  padding-left: 18px;
+  line-height: 1.6;
 }
 .rep-cell {
   padding: 12px 16px;
@@ -2601,11 +2653,14 @@ ul.sc-chips li {
   .rep-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .rep-cell:nth-child(2) {
+  .rep-grid .rep-cell:nth-child(2) {
     border-right: 0;
   }
-  .rep-cell:nth-child(-n + 2) {
+  .rep-grid .rep-cell:nth-child(-n + 2) {
     border-bottom: 1px solid var(--ln2);
+  }
+  .rep-grid .rep-cell:nth-child(3) {
+    grid-column: 1 / -1;
   }
 }
 @media (max-width: 560px) {
@@ -2618,6 +2673,12 @@ ul.sc-chips li {
   }
   .rep-cell:last-child {
     border-bottom: 0;
+  }
+  .rep-so {
+    grid-template-columns: 1fr;
+  }
+  .rep-so .rep-cell:first-child {
+    border-right: 0;
   }
   .rep-time {
     margin-left: 0;

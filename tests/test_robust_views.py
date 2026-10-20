@@ -150,6 +150,29 @@ def test_or_board_shows_no_model_read_before_the_pathologists_call():
     assert '<b class="timer stopped" data-testid="or-turnaround">8 min 41 s</b>' in after
 
 
+def test_inbox_leads_with_the_pathologists_sign_out():
+    out = run_node(f"""
+        const ON = await import({json.dumps((APP / 'js' / 'views' / 'oncologist.js').as_uri())});
+        const r = {{case_id: 'demo_0001', at: '2026-10-20T10:00:00Z', agent_status: 'approved',
+                   orders: [{{type: 'stain', items: ['ER']}}], summary: biopsy.summary,
+                   suggestion: {{classes: biopsy.prediction.classes, probs: biopsy.prediction.probs,
+                                conformal_set: ['InSitu', 'Invasive']}}, report: {{top_class: 'InSitu', features: []}}}};
+        const metrics = {{eval: {{conformal: {{drives_tiers: 'aps', n: 132, methods: {{aps: {{coverage: {{estimate: 0.917}}}}}}}}}}}};
+        out.html = ON.render({{routed: {{oncologist: [r]}}, inboxRead: new Set(), cfg, metrics}});
+    """)
+    html = out["html"]
+    # the sign-out (time and the pathologist's orders) comes before any model output
+    assert html.index('data-testid="inbox-signed-out"') < html.index('data-testid="inbox-signout"')
+    assert html.index('data-testid="inbox-signout"') < html.index("Decision support") < html.index('data-testid="inbox-category"')
+    assert "Signed out by pathologist · " in html
+    assert html.index('data-testid="inbox-order"') < html.index("Decision support")
+    # method detail sits behind the disclosure, not in the report body
+    body, method = html.split('data-testid="inbox-method"', 1)
+    for detail in ("conformal set · 90% target", "held-out coverage 91.7% (n = 132)", "BACH"):
+        assert detail not in body and detail in method, detail
+    assert "Suggested category" in body and body.endswith('<details class="rep-method" ')
+
+
 def test_tcga_not_found_links_a_worklist_id_to_its_case_page():
     out = run_node("""
         const page = (id) => T.render({caseId: id, notFound: id, cases: {}, tcga: null, metrics: null}, {});
