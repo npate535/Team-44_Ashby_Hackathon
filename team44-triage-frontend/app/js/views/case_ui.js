@@ -120,6 +120,7 @@ function afterRender() {
     if (out) out.focus({ preventScroll: true }); // focusin clears focusOutcome
   }
   markEntrances();
+  watchSide();
   // region tooltip: follow the replacement region if it is still hovered or focused, else hide it
   if (tipFor && !tipFor.isConnected) {
     const host = $('#app');
@@ -155,6 +156,29 @@ function markEntrances() {
   }
   shown = { caseId: view.dataset.caseId, tab: s.tab, keys };
 }
+// Desktop (two columns): the decision column stays in view while the long evidence column scrolls, but only when the
+// whole column fits under the sticky header; a taller column stays static so nothing in it is ever out of reach.
+const WIDE = '(min-width: 1151px)';
+let sideObs = null;
+function fitSide() {
+  const side = $('#app .cv-grid > .cv-side');
+  if (!side) return;
+  const wide = window.matchMedia && window.matchMedia(WIDE).matches;
+  const stick = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--stick')) || 0;
+  side.classList.toggle('cv-stick', !!wide && side.offsetHeight <= window.innerHeight - stick - 32);
+}
+function watchSide() {
+  const side = $('#app .cv-grid > .cv-side');
+  if (sideObs) sideObs.disconnect();
+  sideObs = null;
+  if (!side) return;
+  fitSide();
+  if (window.ResizeObserver) {
+    sideObs = new ResizeObserver(fitSide); // a disclosure opening inside the column can make it stop fitting
+    sideObs.observe(side);
+  }
+}
+window.addEventListener('resize', fitSide);
 function watchApp() {
   const app = $('#app');
   if (!app) return false;

@@ -82,6 +82,12 @@
   .cv-grid {
     grid-template-columns: minmax(0, 1.42fr) minmax(330px, 1fr);
   }
+  /* case_ui.js fitSide adds cv-stick only when the whole decision column fits in the viewport under the header */
+  .cv-grid > .cv-side.cv-stick {
+    position: sticky;
+    top: calc(var(--stick, 0px) + 16px);
+    align-self: start;
+  }
 }
 /* The case is fetched after the first paint (app.js draws a small "Loading…" card meanwhile). The footer under that card
    would jump down by the whole case height when it arrives (cumulative layout shift): it is left out until then. */
