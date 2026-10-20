@@ -1483,6 +1483,14 @@ dialog.cv-compare::backdrop {
   color: #14161f;
   border-color: #eef0f5;
 }
+/* Close is a ghost button: leaving the dialog is not the main action there */
+.vw-tools .btn.vw-close {
+  background: transparent;
+  gap: 6px;
+}
+.vw-tools .btn.vw-close:hover {
+  background: #2c3040;
+}
 .vw-zoom {
   display: inline-flex;
   align-items: center;
@@ -1658,6 +1666,19 @@ dialog.cv-compare::backdrop {
 .ref-thumb.mini .cv-thumb {
   background: #2e3042;
   box-shadow: inset 0 0 0 1px #35404d;
+}
+/* wide screens: the references share the strip's full width, each label on one line under a fixed-size image
+   (phones and short windows keep the 72 px thumbnails below) */
+@media (min-width: 761px) and (min-height: 501px) {
+  .cmp-strip .ref-thumb.mini {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 132px;
+    max-width: 260px;
+  }
+  .cmp-strip .ref-thumb.mini .cv-thumb {
+    width: 132px;
+  }
 }
 
 /* ---- phone ---------------------------------------------------------------------------------------------------------- */
@@ -3191,5 +3212,38 @@ dialog.cv-compare[open]::backdrop {
 @media (hover: hover) {
   .wr-say.tip-only {
     display: none;
+  }
+}
+
+/* Oncology inbox decision support (js/views/oncologist.js): two columns, the read (suggested category over its
+   confidence set) beside the associated features, and one column on phones. Overrides flow.css's three-column grid. */
+.rep-grid.rep-dual {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.rep-grid.rep-dual > .rep-cell {
+  grid-column: auto;
+  border-bottom: 0;
+}
+.rep-grid.rep-dual > .rep-cell:first-child {
+  border-right: 1px solid var(--ln2);
+}
+.rep-grid.rep-dual > .rep-cell:last-child {
+  border-right: 0;
+}
+.rep-read {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+.rep-read > section {
+  min-width: 0;
+}
+@media (max-width: 560px) {
+  .rep-grid.rep-dual {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rep-grid.rep-dual > .rep-cell:first-child {
+    border-right: 0;
+    border-bottom: 1px solid var(--ln2);
   }
 }
