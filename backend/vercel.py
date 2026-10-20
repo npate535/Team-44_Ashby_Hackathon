@@ -101,16 +101,11 @@ class Workspace:
         conn = self.backend.store._conn
         conn.deserialize(base64.b64decode(data['sqlite']))
         conn.executemany('UPDATE cases SET public_json=? WHERE case_id=?', self.case_payloads)
-        clock = self.backend.sim.clock_sim
         saved = data['clock']
-        clock.running = saved['running']
-        clock.speed = saved['speed']
-        clock._base = saved['sim_time_s']
-        if clock.running:
-            clock._base += max(0, time.time() - saved['wall']) * clock.speed
-            clock._started = self.backend.sim.clock.mono()
-        else:
-            clock._started = None
+        # The simulator re-dates the after-arrivals switch and applies the hold (sim.after_arrivals_max_s), so a cold
+        # start after a long gap does not extrapolate the clock past it.
+        self.backend.sim.resume(running=saved['running'], speed=saved['speed'], sim_time_s=saved['sim_time_s'],
+                                wall_gap_s=max(0, time.time() - saved['wall']))
         current_files = {str(p.relative_to(WORK)): p for p in (WORK / 'interpretations').rglob('*.json')}
         current_files['eval/spotcheck.json'] = WORK / 'eval/spotcheck.json'
         for name, target in current_files.items():

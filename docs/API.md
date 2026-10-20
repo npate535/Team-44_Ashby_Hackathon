@@ -19,7 +19,8 @@ make demo                                                  # real/synthetic pipe
 | `sim.speed` | simulator clock speed (× wall time) |
 | `sim.max_replay_wall_s` | the last self-arriving case (the biopsy hero) arrives at most this many wall seconds after Start: the clock runs faster than `sim.speed` when the offsets need it (`sim.speed` reports the effective speed, `sim.base_speed` the setting); `null` = always `sim.speed` |
 | `sim.hold_surgical_for_injection` | `true`: surgical cases arrive only through `inject_surgical` |
-| `sim.after_arrivals_speed` | once every self-arriving case is in, the clock runs at this × wall time (1 = real time) so waits stay meaningful; `null` keeps the replay speed; reset restores it |
+| `sim.after_arrivals_speed` | once every self-arriving case is in, the clock runs at this × wall time (1 = real time) so waits stay meaningful; `null` keeps the replay speed; reset restores it. A restart with nothing left to arrive restores at this speed |
+| `sim.after_arrivals_max_s` | default 7200: the clock then holds this many simulator seconds after the last scheduled arrival (`sim.held`, `sim.hold_at_s`), so an unattended replay does not age every case past its target overnight. Start/Pause and `inject_surgical` still work (surgical timers run on the wall clock); reset clears the hold; `null` never holds. A workspace saved past the cap by an older build holds where it is (the clock never runs backwards) |
 | `sim.or_rooms` | simulated OR rooms on the surgeon board (`OR-1…OR-n`, stable per case_id; also in `GET /api/config` `sim.or_rooms`) |
 | `margin.timer` | surgical timer amber/red thresholds (minutes, wall clock) |
 | `aging.*` | aging guard (core.tiers) on the simulator clock |
@@ -43,6 +44,7 @@ client-side interpolation.
  "media": "artifacts", "loaded": 18, "skipped": [{"file": "broken.json", "error": "prediction.probs: ..."}],
  "synthetic": true,
  "sim": {"running": false, "speed": 30.0, "sim_time_s": 0.0, "hold_surgical_for_injection": true,
+         "held": false, "hold_at_s": null,
          "cases": 18, "arrived": 0, "pending": {"biopsy": 14, "surgical": {"normal": 2, "degraded": 1, "composite": 1}}},
  "server_time": 1792270000.0, "server_time_iso": "2026-10-17T20:46:40.000Z"}
 ```

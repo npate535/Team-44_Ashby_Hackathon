@@ -280,12 +280,16 @@ class Backend:
         return found or f"OR-{zlib.crc32(case_id.encode('utf-8')) % self.or_rooms + 1}"
 
     def sort_rows(self, rows: list[Any], order: str, sim: float) -> list[Any]:
+        # Ties on the simulator arrival time (frozen sections injected while the clock is paused or held all arrive at
+        # the same simulator second) fall back to the real arrival time, then the case id.
         def key(row: Any) -> tuple:
             effective = self._effective(row, json.loads(row["public_json"]))
             done = db.is_done(row)
+            wall = float(row["arrived_wall"] or 0.0)
             if order == "arrival":
-                return done, float(row["arrived_sim_s"]), row["case_id"]
-            return (done, *tiers.sort_key(effective, self.cfg, now=sim))
+                return done, float(row["arrived_sim_s"]), wall, row["case_id"]
+            *head, case_id = tiers.sort_key(effective, self.cfg, now=sim)
+            return (done, *head, wall, case_id)
         return sorted(rows, key=key)
 
     # ---- payloads -------------------------------------------------------------------------------------------------

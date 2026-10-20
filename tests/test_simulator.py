@@ -202,3 +202,197 @@ def test_inject_delivers_due_arrivals_first_and_stamps_the_settled_clock(tmp_pat
     assert types == [("b1", "arrived"), ("s1", "injected")]
     assert store.row("s1")["arrived_sim_s"] == pytest.approx(sim.sim_now())
     assert sim.sim_now() < 50 * CFG["sim"]["speed"]       # the after-arrivals speed applied from b1's arrival
+
+
+# ---- hold after the replay (sim.after_arrivals_max_s) -----------------------------------------------------------------------
+CAP_S = 100.0
+CAPPED = {**CFG, "sim": {**CFG["sim"], "after_arrivals_max_s": CAP_S}}
+
+
+def _capped(tmp_path, cfg=CAPPED):
+    base = fixture_case("demo_0001")
+    cases = [variant(base, "b1", offset=30), variant(base, "b2", offset=60),
+             variant(fixture_case("demo_0002"), "s9", offset=1), variant(fixture_case("demo_0002"), "s1", offset=2)]
+    return _sim(tmp_path, cases, cfg=cfg)
+
+
+def _complete(sim, fake):
+    """Start and run until every scheduled biopsy is in (the last one, b2, is due at +60)."""
+    sim.start()
+    fake.advance(1.5)
+    assert sim.tick() == ["b1"]
+    fake.advance(1.0)
+    assert sim.tick() == ["b2"]
+
+
+def test_settings_cap_is_a_non_negative_number_or_null():
+    cap = CFG["sim"]["after_arrivals_max_s"]
+    assert cap is None or float(cap) >= 0
+
+
+def test_clock_holds_at_the_cap_after_the_last_scheduled_arrival(tmp_path):
+    sim, fake, store = _capped(tmp_path)
+    assert sim.status()["held"] is False and sim.status()["hold_at_s"] is None
+    _complete(sim, fake)
+    assert sim.status()["hold_at_s"] == pytest.approx(60 + CAP_S)
+    assert not sim.status()["held"]
+    t = sim.sim_now()
+    fake.advance(10)
+    assert sim.sim_now() == pytest.approx(t + 10 * CFG["sim"]["after_arrivals_speed"])   # still moving at 1x
+    fake.advance(12 * 3600)                                   # overnight, nobody polls
+    sim.tick()
+    assert sim.sim_now() == pytest.approx(60 + CAP_S)
+    status = sim.status()
+    assert status["held"] is True and status["running"] is True
+    assert status["speed"] == CFG["sim"]["after_arrivals_speed"]
+    fake.advance(3600)
+    assert sim.sim_now() == pytest.approx(60 + CAP_S)
+    sim.pause()
+    sim.start()
+    fake.advance(60)
+    sim.tick()
+    assert sim.sim_now() == pytest.approx(60 + CAP_S)          # Start / Pause keep the hold
+    assert store.restore(sim.loaded) == pytest.approx(60 + CAP_S)   # the checkpoint never passes the cap
+    assert all(e["sim_time_s"] <= 60 + CAP_S + 1e-9 for e in store.events())
+
+
+def test_the_hold_is_dated_to_the_last_arrival_even_when_nobody_polls(tmp_path):
+    sim, fake, _ = _capped(tmp_path)
+    sim.start()
+    fake.advance(10 * 3600)                                   # b1, b2 and the hold all came due unobserved
+    assert sim.tick() == ["b1", "b2"]
+    assert sim.sim_now() == pytest.approx(60 + CAP_S) and sim.status()["held"]
+
+
+def test_reset_clears_the_hold_and_replays(tmp_path):
+    sim, fake, _ = _capped(tmp_path)
+    replay = sim.clock_sim.speed
+    _complete(sim, fake)
+    fake.advance(3600)
+    sim.tick()
+    assert sim.status()["held"]
+    sim.reset()
+    status = sim.status()
+    assert status["held"] is False and status["hold_at_s"] is None
+    assert sim.sim_now() == 0 and sim.clock_sim.speed == replay and not status["running"]
+    _complete(sim, fake)                                      # the same replay again, then the same hold
+    fake.advance(3600)
+    sim.tick()
+    assert sim.sim_now() == pytest.approx(60 + CAP_S)
+
+
+def test_null_cap_never_holds(tmp_path):
+    sim, fake, _ = _capped(tmp_path, cfg={**CFG, "sim": {**CFG["sim"], "after_arrivals_max_s": None}})
+    _complete(sim, fake)
+    t = sim.sim_now()
+    fake.advance(3600)
+    assert sim.sim_now() == pytest.approx(t + 3600) and not sim.status()["held"]
+    assert sim.status()["hold_at_s"] is None
+
+
+def test_negative_cap_is_rejected(tmp_path):
+    with pytest.raises(ValueError, match="after_arrivals_max_s"):
+        _capped(tmp_path, cfg={**CFG, "sim": {**CFG["sim"], "after_arrivals_max_s": -1}})
+
+
+def test_restart_with_nothing_left_restores_the_after_arrivals_speed_and_the_hold(tmp_path):
+    folder = write_cases(tmp_path / "c", [variant(fixture_case("demo_0001"), "b1", offset=30)])
+    fake = FakeClock()
+    store = db.Store(tmp_path / "s.sqlite")
+    slow = {**CAPPED, "sim": {**CAPPED["sim"], "max_replay_wall_s": 0.5}}    # replay speed 60x
+    first = Simulator(store, slow, lambda: db.load_case_dir(folder), fake.clock())
+    assert first.clock_sim.speed == pytest.approx(60)
+    first.start()
+    fake.advance(1)
+    first.tick()
+    fake.advance(20)
+    first.pause()
+    paused_at = first.sim_now()
+    sim = Simulator(store, slow, lambda: db.load_case_dir(folder), fake.clock())   # restart: restored, paused
+    status = sim.status()
+    assert not status["running"] and sim.sim_now() == pytest.approx(paused_at)
+    assert status["speed"] == CFG["sim"]["after_arrivals_speed"]                  # not the 60x replay speed
+    assert status["hold_at_s"] == pytest.approx(30 + CAP_S)
+    sim.start()
+    fake.advance(3600)
+    sim.tick()
+    assert sim.sim_now() == pytest.approx(30 + CAP_S)
+    # arrivals still ahead: a restart keeps the replay speed and no hold
+    store2 = db.Store(tmp_path / "s2.sqlite")
+    Simulator(store2, slow, lambda: db.load_case_dir(folder), fake.clock())
+    again = Simulator(store2, slow, lambda: db.load_case_dir(folder), fake.clock())
+    assert again.clock_sim.speed == pytest.approx(60) and again.status()["hold_at_s"] is None
+
+
+def test_restored_workspace_past_the_cap_holds_where_it_is(tmp_path):
+    # a workspace saved by a build without the cap (the live replay reached +24.3 h): no rewind, no further drift
+    sim, fake, store = _capped(tmp_path, cfg={**CFG, "sim": {**CFG["sim"], "after_arrivals_max_s": None}})
+    _complete(sim, fake)
+    fake.advance(24 * 3600)
+    sim.pause()
+    saved = sim.sim_now()
+    assert saved > 24 * 3600
+    restarted = Simulator(store, CAPPED, lambda: sim.loader(), fake.clock())
+    assert restarted.status()["hold_at_s"] == pytest.approx(saved)
+    restarted.start()
+    fake.advance(600)
+    restarted.tick()
+    assert restarted.sim_now() == pytest.approx(saved)
+
+
+def test_resume_after_a_long_wall_gap_stays_at_the_cap(tmp_path):
+    # backend/vercel.py restores the clock on every request from {running, speed, sim_time_s, wall}
+    sim, fake, _ = _capped(tmp_path)
+    _complete(sim, fake)
+    saved = sim.status()
+    assert saved["sim_time_s"] < 60 + CAP_S
+    sim.resume(running=saved["running"], speed=saved["speed"], sim_time_s=saved["sim_time_s"], wall_gap_s=10 * 3600)
+    assert sim.sim_now() == pytest.approx(60 + CAP_S) and sim.status()["held"]
+    sim.tick()
+    assert sim.sim_now() == pytest.approx(60 + CAP_S)
+    # a short gap keeps running at the after-arrivals speed
+    sim.resume(running=True, speed=saved["speed"], sim_time_s=saved["sim_time_s"], wall_gap_s=5)
+    assert sim.sim_now() == pytest.approx(saved["sim_time_s"] + 5) and not sim.status()["held"]
+    # a legacy snapshot past the cap holds there
+    sim.resume(running=True, speed=1.0, sim_time_s=90_000.0, wall_gap_s=3600)
+    assert sim.sim_now() == pytest.approx(90_000.0) and sim.status()["held"]
+
+
+def test_resume_during_the_replay_redates_the_switch_to_the_last_arrival(tmp_path):
+    cfg = {**CFG, "sim": {**CFG["sim"], "after_arrivals_max_s": None}}
+    sim, fake, store = _capped(tmp_path, cfg=cfg)
+    replay = sim.clock_sim.speed
+    sim.start()
+    fake.advance(1.5)
+    assert sim.tick() == ["b1"]
+    saved = sim.status()                                      # snapshot mid-replay: b2 (offset 60) still pending
+    sim.resume(running=True, speed=saved["speed"], sim_time_s=saved["sim_time_s"], wall_gap_s=3600)
+    assert sim.tick() == ["b2"]
+    # b2 came due (60 - 45) / replay wall seconds into the gap; real time since
+    assert sim.sim_now() == pytest.approx(60 + 3600 - (60 - saved["sim_time_s"]) / replay)
+    # with the cap: the same resume holds at it
+    sim2, fake2, _ = _capped(tmp_path / "capped")
+    sim2.start()
+    fake2.advance(1.5)
+    sim2.tick()
+    s = sim2.status()
+    sim2.resume(running=True, speed=s["speed"], sim_time_s=s["sim_time_s"], wall_gap_s=3600)
+    sim2.tick()
+    assert sim2.sim_now() == pytest.approx(60 + CAP_S)
+
+
+def test_frozen_sections_inject_after_the_cap_with_wall_clock_timers(tmp_path):
+    sim, fake, store = _capped(tmp_path)
+    _complete(sim, fake)
+    fake.advance(6 * 3600)
+    assert sim.tick() == [] and sim.status()["held"]
+    first = sim.inject_surgical("normal")
+    injected_wall = fake.wall_s
+    fake.advance(30)
+    second = sim.inject_surgical("normal")
+    assert (first, second) == ("s9", "s1")                   # earliest offset first (equal hero score)
+    a, b = store.row(first), store.row(second)
+    assert a["arrived_sim_s"] == b["arrived_sim_s"] == pytest.approx(60 + CAP_S)   # same held simulator second
+    assert a["timer_started_wall"] == pytest.approx(injected_wall)
+    assert b["arrived_wall"] - a["arrived_wall"] == pytest.approx(30)              # real order kept on the wall clock
+    assert sim.status()["pending"]["surgical"]["normal"] == 0
