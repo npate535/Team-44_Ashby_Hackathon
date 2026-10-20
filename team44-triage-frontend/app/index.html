@@ -159,8 +159,9 @@
           <span class="replay-state" id="sim" data-testid="sim-clock"
             >Checking simulator…</span
           >
+          <!-- every command ships disabled: app.js enables them once Sepia has answered (nothing is sent while connecting) -->
           <div class="replay-btns" role="group" aria-label="Replay">
-            <button class="rb primary" data-sim="start" data-testid="sim-start">
+            <button class="rb primary" data-sim="start" data-testid="sim-start" disabled>
               <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z" /></svg>Start replay
             </button>
             <button
@@ -170,10 +171,11 @@
               data-testid="sim-pause"
               aria-pressed="false"
               hidden
+              disabled
             >
               Pause replay
             </button>
-            <button class="rb" data-sim="reset" data-testid="sim-reset">
+            <button class="rb" data-sim="reset" data-testid="sim-reset" disabled>
               Reset
             </button>
           </div>
@@ -189,6 +191,7 @@
               data-variant="normal"
               data-testid="sim-inject-surgical"
               aria-label="Send a simulated frozen section"
+              disabled
             >
               + Standard<span class="rb-n" data-pending="normal"></span>
             </button>
@@ -198,6 +201,7 @@
               data-variant="degraded"
               data-testid="sim-inject-degraded"
               aria-label="Send a degraded simulated frozen section"
+              disabled
             >
               + Degraded<span class="rb-n" data-pending="degraded"></span>
             </button>
@@ -207,6 +211,7 @@
               data-variant="composite"
               data-testid="sim-inject-composite"
               aria-label="Send a composite simulated frozen section"
+              disabled
             >
               + Composite<span class="rb-n" data-pending="composite"></span>
             </button>

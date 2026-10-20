@@ -1,11 +1,18 @@
 // Live API client for the PathQueue backend (docs/API.md). Same method surface as mock.js.
 // base '' = same origin (the backend serves this app at /); ?api=http://host:port for a separate server.
 
+// A detail longer than this (a stack trace, a page of markup) is cut short: it is shown in a notification.
+const DETAIL_MAX = 140;
+const short = (s) => (s.length > DETAIL_MAX ? s.slice(0, DETAIL_MAX - 1).trimEnd() + '…' : s);
+
+/** status 0: no reply (timedOut: the request went out and no answer came back in time; else it could not be sent). */
 export class ApiError extends Error {
-  constructor(status, detail) {
+  constructor(status, detail, { timedOut = false } = {}) {
+    detail = detail ? short(String(detail)) : detail;
     super(detail || ('HTTP ' + status));
     this.status = status;
     this.detail = detail;
+    this.timedOut = timedOut;
   }
 }
 
@@ -24,15 +31,19 @@ export function createApi({base = ''} = {}) {
       });
       const text = await res.text();
       let data = null;
-      try { data = text ? JSON.parse(text) : null; } catch (_) { data = {detail: text}; }
+      let json = true;
+      try { data = text ? JSON.parse(text) : null; } catch (_) { json = false; }
+      // Not JSON (a proxy's error page, a host that answered for a missing service): never shown as it is.
+      if (!json) throw new ApiError(res.ok ? 502 : res.status, `Sepia did not respond (HTTP ${res.status})`);
       if (!res.ok) {
         const detail = data && data.detail;
-        throw new ApiError(res.status, typeof detail === 'string' ? detail : JSON.stringify(detail));
+        throw new ApiError(res.status, typeof detail === 'string' ? detail : detail === undefined ? '' : JSON.stringify(detail));
       }
       return data;
     } catch (err) {
       if (err instanceof ApiError) throw err;
-      throw new ApiError(0, err.name === 'AbortError' ? 'timed out' : String(err.message || err));
+      const timedOut = err.name === 'AbortError';
+      throw new ApiError(0, timedOut ? 'timed out' : String(err.message || err), { timedOut });
     } finally {
       clearTimeout(timer);
     }

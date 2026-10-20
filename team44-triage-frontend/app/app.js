@@ -31,6 +31,10 @@ function loadView(route) {
       .then((mod) => {
         views[route] = mod;
         delete viewErrors[route];
+        // A page module may watch the route (tcga.js remembers the specimen the list was left for): its hashchange
+        // listener has to run before the app redraws, as when every module was imported ahead of this file.
+        window.removeEventListener('hashchange', onRoute);
+        window.addEventListener('hashchange', onRoute);
         return mod;
       })
       .catch((err) => {
@@ -56,8 +60,10 @@ function prefetchViews() {
 }
 
 const params = new URLSearchParams(location.search);
-const localService = ['localhost', '127.0.0.1', '[::1]', ''].includes(new URL(params.get('api') || location.href, location.href).hostname);
-const connectionHelp = localService
+const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]', ''];
+const localService = LOCAL_HOSTS.includes(new URL(params.get('api') || location.href, location.href).hostname);
+// the "make demo" hint only for a copy of the app opened from this machine against a local service
+const connectionHelp = localService && LOCAL_HOSTS.includes(location.hostname)
   ? 'Start it with <code>make demo</code>, or open <code>?mock=1</code> for the built-in fixtures.'
   : 'The service may be waking up. This page will reconnect automatically; you can also try again shortly.';
 const ST = {
@@ -119,12 +125,14 @@ const ctx = () => ({ now: tickAt, assetUrl: (p) => api.assetUrl(p) }); // views 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---- toasts ---------------------------------------------------------------------------------------------------------------
-// toast('text') or toast('text', {tone: 'ok'|'warn'|'surg', action: {label, href | next: true}, sub})
+// toast('text') or toast('text', {tone: 'ok'|'warn'|'surg', action: {label, href | next: true}, sub, key, net})
+// net: the notice is about the connection (cleared when Sepia answers again).
 function toast(msg, opts = {}) {
   const box = $('#toast');
   const el = document.createElement('div');
   el.className = 'toast-item ' + (opts.tone || '');
   el.dataset.testid = 'toast';
+  if (opts.net) el.dataset.net = opts.net === true ? 'yes' : opts.net;
   const action = opts.action
     ? opts.action.href
       ? `<a class="toast-act" href="${esc(opts.action.href)}">${esc(opts.action.label)}</a>`
@@ -163,6 +171,16 @@ function toast(msg, opts = {}) {
   el.addEventListener('focusout', (e) => !el.contains(e.relatedTarget) && !el.matches(':hover') && timer === null && run());
   run();
 }
+function dismissToasts(match) {
+  let n = 0;
+  document.querySelectorAll('#toast .toast-item').forEach((el) => {
+    if (match(el)) {
+      dismissToast(el);
+      n += 1;
+    }
+  });
+  return n;
+}
 function dismissToast(el) {
   if (!el.isConnected || el.classList.contains('out')) return;
   el.classList.add('out');
@@ -170,13 +188,22 @@ function dismissToast(el) {
 }
 
 // ---- routing --------------------------------------------------------------------------------------------------------------
+// A malformed % escape in a typed or truncated address (#/case/BACH_0225%) is kept as it is: decodeURIComponent would
+// throw, and the app would never finish starting. The id then simply is not found.
+const decodeId = (s) => {
+  try {
+    return decodeURIComponent(s);
+  } catch (_) {
+    return s;
+  }
+};
 function parseHash() {
   const h = location.hash.replace(/^#\/?/, '');
   if (h === 'app') return { route: ST.route, caseId: ST.caseId }; // the skip link's target is not a route
   const [route, id] = h.split('/');
-  if (route === 'case' && id) return { route: 'case', caseId: decodeURIComponent(id) };
+  if (route === 'case' && id) return { route: 'case', caseId: decodeId(id) };
   if (route === 'tcga')
-    return { route: 'tcga', caseId: id ? decodeURIComponent(id) : null };
+    return { route: 'tcga', caseId: id ? decodeId(id) : null };
   return {
     route: ['worklist', 'surgeon', 'oncologist', 'metrics', 'tcga', 'spotcheck'].includes(route) ? route : 'worklist',
     caseId: null
@@ -203,6 +230,7 @@ function onRoute() {
     ST.justDone = null;
     ST.hm = { sel: null, hl: [], opacity: ST.hm.opacity, why: null };
     setReplayOpen(false); // phones: a new page opens with the replay controls folded
+    if (!ST.metrics) ST.metricsAsked = false; // an evaluation request that failed is tried again on the next page
     delete viewErrors[r.route]; // a page whose code failed to load is tried again when it is opened again
     window.scrollTo(0, 0);
   }
@@ -228,12 +256,12 @@ function worklistQuery(route) {
 }
 
 // The evaluation payload as optional context (case coverage line, TCGA story panel, inbox wording): requested beside
-// the page's own data, never awaited by it; the page redraws when it lands. One request at a time, and after a failure
-// the next try waits 30 s (it is large, and the poll runs every 2 s).
+// the page's own data, never awaited by it; the page redraws when it lands. Asked once (it is about 1 MB and the poll
+// runs every 2 s); after a failure it is asked again when another page is opened.
 let metricsReq = null;
-let metricsFailedAt = 0;
 function metricsInBackground(force = false) {
-  if ((ST.metrics && !force) || metricsReq || Date.now() - metricsFailedAt < 30000) return;
+  if (metricsReq || (!force && (ST.metrics || ST.metricsAsked))) return;
+  ST.metricsAsked = true;
   ST.metricsLoading = true; // a view can say "loading" rather than "not available" while it is on its way
   metricsReq = api
     .metrics()
@@ -243,9 +271,7 @@ function metricsInBackground(force = false) {
         ST.metricsRev = (ST.metricsRev || 0) + 1;
       }
     })
-    .catch(() => {
-      metricsFailedAt = Date.now();
-    })
+    .catch(() => {})
     .finally(() => {
       metricsReq = null;
       ST.metricsLoading = false;
@@ -317,10 +343,9 @@ async function refresh(force, seq) {
         }
       }
     }
-  } else if (route === 'oncologist' && !ST.metrics && !ST.metricsAsked && !ST.mock) {
-    // once: the conformal method label + coverage in the inbox copy. The worklist only names the method in a column
-    // tooltip and falls back to "Confidence set"; it does not pull the 1 MB evaluation payload on first load.
-    ST.metricsAsked = true;
+  } else if (route === 'oncologist' && !ST.mock) {
+    // the conformal method label + coverage in the inbox copy. The worklist only names the method in a column tooltip
+    // and falls back to "Confidence set"; it does not pull the 1 MB evaluation payload on first load.
     metricsInBackground();
   }
   if (seq !== pollSeq) return;
@@ -423,13 +448,23 @@ async function poll(force = false) {
   try {
     await refresh(force, seq);
     if (seq !== pollSeq) return;
-    if (ST.fail >= 2) toast('Connection to Sepia restored', { tone: 'ok' });
+    if (ST.fail >= 2) {
+      const unsent = dismissToasts((el) => el.dataset.net === 'unsent');
+      dismissToasts((el) => !!el.dataset.net);
+      toast('Connection to Sepia restored', {
+        tone: 'ok',
+        sub: unsent ? 'A decision that could not be sent has to be made again.' : undefined
+      });
+    }
     ST.fail = 0;
+    ST.lastError = null;
     ST.staleSince = null;
     ST.lastOk = new Date();
+    checkUnanswered();
   } catch (err) {
     if (seq !== pollSeq) return;
     ST.fail += 1;
+    ST.lastError = { status: err instanceof ApiError ? err.status : 0 };
     if (!ST.staleSince) ST.staleSince = ST.lastOk || new Date(); // the screen shows data from the last good poll
     if (!(err instanceof ApiError) || err.status === 0 || err.status >= 500) console.warn('poll failed', err);
   }
@@ -442,11 +477,17 @@ async function poll(force = false) {
   if (ST.loadedOnce) prefetchViews();
 }
 
+// Two failed polls in a row: say whether Sepia is not reachable or answers with an error, and how old the screen is.
 function showOffline() {
   const el = $('#offline');
   if (ST.fail >= 2) {
+    const status = (ST.lastError && ST.lastError.status) || 0;
+    const since = `what you see is from ${esc(ST.staleSince.toLocaleTimeString())}`;
+    const html = status
+      ? `<b>Sepia answered with an error</b> (HTTP ${status}). Retrying every few seconds; ${since}. ${localService ? 'The service log has the details.' : 'This is on the service side; it usually clears on its own.'}`
+      : `<b>Reconnecting to Sepia</b>. Retrying every few seconds; ${since}. ${connectionHelp}`;
+    if (el.innerHTML !== html) el.innerHTML = html;
     el.hidden = false;
-    el.innerHTML = `<b>Reconnecting to Sepia</b>. Retrying every few seconds; what you see is from ${esc(ST.staleSince.toLocaleTimeString())}. ${connectionHelp}`;
   } else el.hidden = true;
 }
 
@@ -454,7 +495,7 @@ function showOffline() {
 function view() {
   if (ST.route === 'case') {
     if (ST.notFound === ST.caseId)
-      return `<button class="back" id="bk" data-testid="back">Back to worklist</button><div class="card" data-testid="case-not-found"><h2>Case not found</h2><p>${esc(ST.caseId)} is unknown or has not arrived yet. Arrivals appear as the replay runs; a reset clears earlier cases.</p></div>`;
+      return `<button class="back" id="bk" data-testid="back">Back to worklist</button><div class="card" data-testid="case-not-found"><h2>Case not found</h2><p>${notFoundText(ST.caseId)}</p></div>`;
     const c = ST.cases[ST.caseId];
     if (!c) return '<div class="card" data-testid="state-loading"><h2>Loading case…</h2></div>';
     return (c.lane === 'surgical' ? surgical : biopsy).render(ST, ctx());
@@ -466,6 +507,20 @@ function view() {
     return lazyPlaceholder();
   }
   return ({ worklist, surgeon, oncologist, ...views })[ST.route].render(ST, ctx());
+}
+
+// Why a worklist address shows nothing: an external TCGA specimen has its own page, and the simulated frozen sections
+// that are held for the OR controls arrive only when one is sent.
+function notFoundText(id) {
+  const tcga = /^TCGA-/i.test(id) || !!(ST.tcga && (ST.tcga.items || []).some((it) => it.case_id === id));
+  if (tcga)
+    return `${esc(id)} is an external TCGA specimen, not a worklist case. <a href="#/tcga/${encodeURIComponent(id)}" data-testid="not-found-tcga">Open it in Outside BACH</a>.`;
+  const held = ST.sim && ST.sim.hold_surgical_for_injection;
+  if (/^COMP_/i.test(id))
+    return `${esc(id)} is a simulated composite frozen section.${held ? ' It reaches the worklist only when one is sent with <b>+ Composite</b> in the header, and a reset clears it.' : ' It has not arrived yet, or a reset cleared it.'}`;
+  if (/_FSIM_/i.test(id))
+    return `${esc(id)} is a simulated degraded frozen section.${held ? ' It reaches the worklist only when one is sent with <b>+ Degraded</b> in the header, and a reset clears it.' : ' It has not arrived yet, or a reset cleared it.'}`;
+  return `${esc(id)} is unknown or has not arrived yet. Arrivals appear as the replay runs; a reset clears earlier cases.`;
 }
 
 // While a page's module loads: the page's own loading state (the same markup its render() draws before its data
@@ -925,16 +980,19 @@ function updateReplay() {
   pp.dataset.sim = sim.running ? 'pause' : 'start';
   pp.disabled = !loaded || ST.simBusy;
   $('[data-testid=sim-reset]').disabled = ST.simBusy || !loaded;
+  // the buttons ship disabled (index.html): nothing can be sent before the first reply
   const pending = sim.pending ? sim.pending.surgical : null;
-  if (pending) {
-    document.querySelectorAll('[data-sim=inject_surgical]').forEach((b) => {
-      const n = pending[b.dataset.variant] || 0;
-      b.disabled = n === 0 || ST.simBusy || !loaded;
-      b.title = n ? `${n} simulated ${b.dataset.variant === 'normal' ? '' : b.dataset.variant + ' '}frozen sections left` : 'None left: reset the replay to send more';
-      const tag = b.querySelector('[data-pending]');
-      if (tag) tag.textContent = n;
-    });
-  }
+  document.querySelectorAll('[data-sim=inject_surgical]').forEach((b) => {
+    if (!pending) {
+      b.disabled = ST.simBusy || !loaded;
+      return;
+    }
+    const n = pending[b.dataset.variant] || 0;
+    b.disabled = n === 0 || ST.simBusy || !loaded;
+    b.title = n ? `${n} simulated ${b.dataset.variant === 'normal' ? '' : b.dataset.variant + ' '}frozen sections left` : 'None left: reset the replay to send more';
+    const tag = b.querySelector('[data-pending]');
+    if (tag) tag.textContent = n;
+  });
 }
 
 function lookup(id) {
@@ -984,6 +1042,7 @@ function tick() {
   tickClock();
 }
 
+const simShown = { raw: 0, t: 0 }; // the replay clock last shown (seconds) and the poll value it was based on
 function tickClock() {
   const clock = $('#clock');
   const d = new Date(tickAt);
@@ -1009,11 +1068,17 @@ function tickClock() {
     const el = box.querySelector(sel);
     if (el.textContent !== text) el.textContent = text;
   };
-  const simClock = '+' + mmss((Number(sim.sim_time_s) || 0) + since);
+  // The clock runs on between polls at the replay speed; a poll that lands a little behind the extrapolation (the speed
+  // changed, a slow reply) never moves it back. Only a reset, which restarts the replay clock, does.
+  const raw = Number(sim.sim_time_s) || 0;
+  if (raw < simShown.raw) simShown.t = 0;
+  simShown.raw = raw;
+  simShown.t = Math.max(simShown.t, raw + since);
+  const simClock = '+' + mmss(simShown.t);
   set('b', state);
   set('.rs-t', simClock);
   set('.rs-x', '×' + (speed >= 10 ? Math.round(speed) : Number(speed.toFixed(1))));
-  set('.sr-only', ` · simulator ${sim.running ? 'running' : 'paused'}`);
+  set('.sr-only', ` · simulator ${offline ? 'status unknown' : sim.running ? 'running' : fresh ? 'ready' : 'paused'}`);
   // the folded controls' button reads the same state ("Replay running +4:02")
   const toggle = $('#replay-toggle');
   for (const [sel, text] of [['b', state], ['.rs-t', simClock]]) {
@@ -1080,6 +1145,7 @@ function openNext(fromId = null) {
 }
 
 // ---- actions ----------------------------------------------------------------------------------------------------------------
+// Replay commands: the follow-up poll is awaited, since the notice that follows reads the new queue.
 async function act(fn, okMsg) {
   try {
     const res = await fn();
@@ -1088,11 +1154,75 @@ async function act(fn, okMsg) {
   } catch (err) {
     if (err instanceof ApiError && err.status === 409) toast('Not allowed', { tone: 'warn', sub: err.detail });
     else if (err instanceof ApiError && err.status === 422) toast('Request rejected', { tone: 'warn', sub: err.detail });
-    else toast('Request failed', { tone: 'warn', sub: String(err.message || err) });
+    else if (err instanceof ApiError && err.status === 0)
+      toast('Sepia is not reachable; the replay command was not sent', { tone: 'warn', net: true, sub: err.timedOut ? 'No reply in time.' : undefined });
+    else toast('Request failed', { tone: 'warn', sub: String(err.message || err), net: err instanceof ApiError && err.status >= 500 });
     return null;
   } finally {
     await poll(true);
   }
+}
+
+// ---- decisions ------------------------------------------------------------------------------------------------------------
+// What each action leaves on the case (backend/db.py): how a decision whose reply was lost is recognised.
+const AGENT_TARGET = { approve_orders: 'approved', edit_orders: 'edited_and_approved', closer_look: 'deferred_closer_look', dismiss_flag: 'dismissed' };
+function decisionApplied(c, action) {
+  if (!c) return false;
+  const d = (c.runtime && c.runtime.decision) || {};
+  if (action === 'sign_out') return !!d.signed_out_at;
+  if (action === 'margin_call') return !!d.margin_call;
+  return !!(c.agent && c.agent.status === AGENT_TARGET[action]);
+}
+// A decision sent without a reply: it may still be applied. Each poll looks for it; once a poll shows it, the warning
+// gives way to the usual confirmation. Watched for two minutes.
+let unanswered = null;
+function checkUnanswered() {
+  if (!unanswered) return;
+  const { id, action, key, since } = unanswered;
+  // the open case is refreshed by every poll; any other case is read from the queue
+  const c = (ST.route === 'case' && ST.caseId === id && ST.cases[id]) || ST.items.find((x) => x.case_id === id);
+  if (c && decisionApplied(c, action)) {
+    unanswered = null;
+    dismissToasts((el) => el.dataset.key === key);
+    announceDecision(action, { case: c });
+  } else if (Date.now() - since > 120000) unanswered = null;
+}
+// A decision request that failed: a conflict or a rejection says why; with no reply, the case is read again first,
+// since the request may have reached Sepia. Returns {case} when the decision turns out to be applied.
+async function decisionFailed(id, action, err) {
+  if (!(err instanceof ApiError)) {
+    toast('Request failed', { tone: 'warn', sub: String(err.message || err) });
+    return null;
+  }
+  if (err.status === 409) {
+    toast('Already decided in another window', { sub: err.detail });
+    return null;
+  }
+  if (err.status === 422) {
+    toast('Request rejected', { tone: 'warn', sub: err.detail });
+    return null;
+  }
+  if (err.status !== 0) {
+    toast('Request failed', { tone: 'warn', sub: err.detail || `HTTP ${err.status}`, net: err.status >= 500 });
+    return null;
+  }
+  let fresh = null;
+  try {
+    fresh = await api.getCase(id);
+  } catch (_) {}
+  if (fresh && decisionApplied(fresh, action)) return { case: fresh };
+  if (!err.timedOut) {
+    toast('Sepia is not reachable; your decision was not sent', { tone: 'warn', net: 'unsent', key: `unsent:${id}` });
+    return null;
+  }
+  const key = `unanswered:${id}:${action}`;
+  unanswered = { id, action, key, since: Date.now() };
+  toast('No reply from Sepia; check the case before retrying', {
+    tone: 'warn',
+    key,
+    sub: 'The decision may still be recorded. This notice is replaced when it shows on the case.'
+  });
+  return null;
 }
 
 function orderList(c) {
@@ -1115,12 +1245,18 @@ function announceDecision(action, res) {
   }
 }
 
+// The reply is applied and confirmed at once; the poll that refreshes the queue follows without holding the verdict.
 async function decide(action, payload) {
   if (ST.busy) return; // no double submits (would only produce a confusing 409)
   const id = ST.caseId;
   ST.busy = true;
   draw(true);
-  const res = await act(() => api.decide(id, action, payload));
+  let res = null;
+  try {
+    res = await api.decide(id, action, payload);
+  } catch (err) {
+    res = await decisionFailed(id, action, err);
+  }
   ST.busy = false;
   if (res && res.case) {
     ST.cases[id] = res.case;
@@ -1130,10 +1266,11 @@ async function decide(action, payload) {
     announceDecision(action, res);
   } // a rejected edit keeps the editor open
   draw(true);
+  poll(true);
 }
 
 async function simCommand(cmd, variant) {
-  if (ST.simBusy) return;
+  if (ST.simBusy || !ST.cfg) return; // nothing is sent before the app has connected
   ST.simBusy = true;
   updateReplay();
   const res = await act(async () => {
@@ -1174,6 +1311,9 @@ function clearReplayState() {
   ST.freshCalls.clear();
   ST.inboxOpen = null;
   ST.justDone = null;
+  unanswered = null;
+  // notices that open a case point at cases the reset removed
+  dismissToasts((el) => el.dataset.key === 'arrival' || !!el.querySelector('a.toast-act[href^="#/case/"]'));
   if (ST.route === 'case') {
     location.hash = '#/worklist';
     onRoute(); // synchronously: the hashchange event fires after the follow-up poll has started
@@ -1311,7 +1451,7 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (d.sim === 'reset') {
-    $('#reset-dialog').showModal();
+    if (ST.cfg && !t.disabled) $('#reset-dialog').showModal();
     return;
   }
   if (d.sim) {
