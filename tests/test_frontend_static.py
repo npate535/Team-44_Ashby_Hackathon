@@ -249,3 +249,23 @@ def test_app_decodes_case_addresses_safely():
     bare = [m.start() for m in re.finditer(r"decodeURIComponent\(", js)]
     assert len(bare) == 1, "decode route ids through decodeId (try/catch), not decodeURIComponent directly"
     assert re.search(r"const decodeId = \(s\) => \{\s*try \{\s*return decodeURIComponent\(s\);", js)
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
+def test_biopsy_timers_stand_still_while_the_replay_clock_is_held():
+    # sim.held: the replay clock holds after the last scheduled arrival; a biopsy timer must not run on between polls
+    script = textwrap.dedent(f"""
+        import {{timerNow}} from {json.dumps((APP / 'js' / 'adapter.js').as_uri())};
+        const c = {{_fetched_ms: 1000, runtime: {{timer: {{kind: 'biopsy', elapsed_s: 600, target_s: 86400, state: 'none'}}}}}};
+        const at = (sim) => timerNow(c, 3000, null, sim).elapsedS;   // 2 s after the poll, 30x replay speed
+        console.log(JSON.stringify({{
+          running: at({{running: true, speed: 30, sim_time_s: 1000}}),
+          held: at({{running: true, speed: 30, sim_time_s: 1000, held: true, hold_at_s: 1000}}),
+          capped: at({{running: true, speed: 30, sim_time_s: 1000, held: false, hold_at_s: 1010}}),
+          paused: at({{running: false, speed: 30, sim_time_s: 1000}}),
+        }}));
+    """)
+    res = subprocess.run(["node", "--input-type=module", "-e", script], capture_output=True, text=True, timeout=30)
+    assert res.returncode == 0, res.stderr
+    out = json.loads(res.stdout.strip().splitlines()[-1])
+    assert out == {"running": 660, "held": 600, "capped": 610, "paused": 600}

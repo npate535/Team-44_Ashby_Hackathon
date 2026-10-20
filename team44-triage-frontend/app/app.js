@@ -970,7 +970,7 @@ function updateReplay() {
     return;
   }
   const fresh = !sim.running && !(sim.sim_time_s > 0);
-  box.dataset.state = ST.fail >= 2 ? 'paused' : sim.running ? 'running' : fresh ? 'ready' : 'paused';
+  box.dataset.state = ST.fail >= 2 ? 'paused' : sim.held ? 'held' : sim.running ? 'running' : fresh ? 'ready' : 'paused';
   $('#replay-toggle').dataset.state = box.dataset.state;
   start.hidden = !fresh;
   start.disabled = !loaded || ST.simBusy;
@@ -1054,15 +1054,31 @@ function tickClock() {
   const sim = ST.sim;
   if (!sim) return;
   const offline = ST.fail >= 2;
-  const since = sim._fetched_ms && sim.running && !offline ? (Math.max(0, tickAt - sim._fetched_ms) / 1000) * (Number(sim.speed) || 1) : 0;
+  // Held (sim.held: every scheduled case is in and the clock reached its hold, docs/API.md): the clock stands still,
+  // although the replay may still be running for frozen sections. Between polls it is never run past the hold.
+  const held = !!sim.held;
+  const room = sim.hold_at_s == null ? Infinity : Math.max(0, sim.hold_at_s - (Number(sim.sim_time_s) || 0));
+  const since =
+    sim._fetched_ms && sim.running && !held && !offline
+      ? Math.min(room, (Math.max(0, tickAt - sim._fetched_ms) / 1000) * (Number(sim.speed) || 1))
+      : 0;
   const fresh = !sim.running && !(sim.sim_time_s > 0);
-  const state = offline ? 'Replay status unknown' : sim.running ? 'Replay running' : fresh ? 'Replay ready' : 'Replay paused';
+  const state = offline
+    ? 'Replay status unknown'
+    : held
+      ? 'Replay complete; clock held'
+      : sim.running
+        ? 'Replay running'
+        : fresh
+          ? 'Replay ready'
+          : 'Replay paused';
   const speed = Number(sim.speed) || 1;
   // Built once, then only the text changes: rebuilding every second restarted the running dot's pulse mid-cycle.
   const box = $('#sim');
   if (!box.querySelector('.rs-t'))
     box.innerHTML =
-      '<i class="rs-dot" aria-hidden="true"></i><b></b><span class="rs-t"></span><span class="rs-x" title="Replay speed"></span>' +
+      // spaces between the parts: a screen reader reads "Replay running +4:02 ×30", not one run-together word
+      '<i class="rs-dot" aria-hidden="true"></i><b></b> <span class="rs-t"></span> <span class="rs-x" title="Replay speed"></span>' +
       `${ST.mock ? '<span class="rs-x">mock</span>' : ''}<span class="sr-only"></span>`;
   const set = (sel, text) => {
     const el = box.querySelector(sel);
@@ -1077,11 +1093,11 @@ function tickClock() {
   const simClock = '+' + mmss(simShown.t);
   set('b', state);
   set('.rs-t', simClock);
-  set('.rs-x', '×' + (speed >= 10 ? Math.round(speed) : Number(speed.toFixed(1))));
-  set('.sr-only', ` · simulator ${offline ? 'status unknown' : sim.running ? 'running' : fresh ? 'ready' : 'paused'}`);
-  // the folded controls' button reads the same state ("Replay running +4:02")
+  set('.rs-x', held ? '' : '×' + (speed >= 10 ? Math.round(speed) : Number(speed.toFixed(1)))); // no speed while held
+  set('.sr-only', ` · simulator ${offline ? 'status unknown' : held ? 'clock held' : sim.running ? 'running' : fresh ? 'ready' : 'paused'}`);
+  // the folded controls' button reads the same state ("Replay running +4:02"; held: "Replay complete clock held")
   const toggle = $('#replay-toggle');
-  for (const [sel, text] of [['b', state], ['.rs-t', simClock]]) {
+  for (const [sel, text] of [['b', held && !offline ? 'Replay complete' : state], ['.rs-t', held && !offline ? 'clock held' : simClock]]) {
     const el = toggle.querySelector(sel);
     if (el.textContent !== text) el.textContent = text;
   }
