@@ -50,14 +50,20 @@ function codes(v) {
   return v.reasons.map((r) => r.code);
 }
 
-function flagTags(v) {
+// set_size_gt_1 has no tag here: the Confidence set column, shown in every worklist layout, already lists the classes
+// (the flag filter still finds these cases).
+export function flagTags(v) {
   const c = codes(v);
   return c
-    .filter((code) => FLAG_TAG[code] && !(code === 'aggressive_in_conformal_set' && c.includes('aggressive_top')))
+    .filter(
+      (code) =>
+        FLAG_TAG[code] &&
+        code !== 'set_size_gt_1' &&
+        !(code === 'aggressive_in_conformal_set' && c.includes('aggressive_top'))
+    )
     .map((code) => {
       const f = FLAG_TAG[code];
-      const text = code === 'set_size_gt_1' ? `${v.setSize} classes` : f.text;
-      return `<span class="ftag ${f.tone}" title="${esc(f.title)}" data-testid="reason-${esc(code)}">${esc(text)}</span>`;
+      return `<span class="ftag ${f.tone}" title="${esc(f.title)}" data-testid="reason-${esc(code)}">${esc(f.text)}</span>`;
     })
     .join('');
 }
@@ -153,7 +159,7 @@ function row(v, ST, rank, now, roving) {
     `<td class="c-sugg">${sugg}</td>` +
     `<td class="c-p"><span class="pnum${v.risk >= 50 ? ' hi' : ''}">${pInv}</span>${v.risk === null ? '' : miniBar(v.risk / 100, v.risk >= 50 ? 'hi' : '')}</td>` +
     `<td class="c-set"><span class="chips">${setChips(v)}</span></td>` +
-    `<td class="c-flags">${flagTags(v) || '<span class="none" aria-label="no flags">–</span>'}</td>` +
+    `<td class="c-flags">${flagTags(v) || `<span class="none" aria-label="${codes(v).includes('set_size_gt_1') ? 'no flags besides the confidence set' : 'no flags'}">–</span>`}</td>` +
     `<td class="c-wait">${waitCell(v)}</td>` +
     `<td class="c-next"><span class="next ${next.tone}"${v.agent.drafted ? ' data-testid="orders-drafted"' : ''}>${esc(next.text)}</span></td>` +
     '</tr>'

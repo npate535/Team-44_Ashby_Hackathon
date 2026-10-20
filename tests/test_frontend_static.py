@@ -299,3 +299,21 @@ def test_waiting_times_use_one_format_per_lane():
     assert out["long"] == ["3 h 12 min", "2 h"]
     assert out["frozen"] == "08:41 / 20:00"
 
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
+def test_worklist_flags_do_not_repeat_the_confidence_set_size():
+    # the Confidence set column lists the classes in every worklist layout; "2 classes" in Flags only repeated it
+    script = textwrap.dedent(f"""
+        import {{flagTags, filterViews}} from {json.dumps((APP / 'js' / 'views' / 'worklist.js').as_uri())};
+        const v = {{setSize: 2, agent: {{}}, reasons: [{{code: 'set_size_gt_1'}}, {{code: 'low_reliability'}}]}};
+        console.log(JSON.stringify({{
+          tags: flagTags(v),
+          onlySet: flagTags({{...v, reasons: [{{code: 'set_size_gt_1'}}]}}),
+          filtered: filterViews({{status: 'all', flagFilter: 'set_size_gt_1'}}, [v]).length,
+        }}));
+    """)
+    res = subprocess.run(["node", "--input-type=module", "-e", script], capture_output=True, text=True, timeout=30)
+    assert res.returncode == 0, res.stderr
+    out = json.loads(res.stdout.strip().splitlines()[-1])
+    assert "classes" not in out["tags"] and "reason-set_size_gt_1" not in out["tags"] and ">Low reliability<" in out["tags"]
+    assert out["onlySet"] == "" and out["filtered"] == 1
