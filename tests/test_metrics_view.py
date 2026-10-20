@@ -283,3 +283,18 @@ def test_credits_come_from_the_data_and_name_reviewers_plainly(payloads):
     del full["eval"]["fact_sheet"]
     html = _render(full, cfg, tmp)["html"]
     assert "<dt>Case summaries</dt>" not in html and "<dt>Plain-language evidence text</dt>" not in html
+
+
+def test_narrative_is_plain_language(payloads):
+    p, cfg, tmp = payloads
+    full = copy.deepcopy(p["full"])
+    full["eval"]["qc"] = {"name": "qc", "n_cases": 400, "n_tiles": 1000,
+                          "insufficient_tissue_cases": {"old": 51, "new": 0, "old_by_class": {"Invasive": 32, "Normal": 19},
+                                                        "new_by_class": {"Invasive": 0, "Normal": 0}},
+                          "qc_pass_rate": {"old": {"g256": 0.74}, "new": {"g256": 0.98}}}
+    html = _render(full, cfg, tmp)["html"]
+    assert "worklist tiers as in the app (tier 1: frozen sections;" in html
+    assert "74% → 98% (256-px tiles)" in html and "so the earlier step mostly missed tumor tissue" in html
+    for raw in ("core.tiers", "!=", "tumour", "Tumour", "likely aggressive", "the bug", "(g256)", "pcal__", "p__)",
+                "predictions.csv", "Lumen"):
+        assert raw not in html, raw
