@@ -119,6 +119,10 @@ let pollTimer = null;
 let pollSeq = 0; // a response older than the latest request is dropped (lane/sort clicks race the timer)
 let dragging = false; // heatmap opacity slider held: do not re-render under it
 let tickAt = Date.now(); // the instant every timer on screen shows; it advances once a second, never between ticks
+// The connection label is shown while it is news: offline, still connecting, or for a few seconds after it changed.
+// Steadily connected, only its dot stays (theme.css #connection[data-quiet]).
+const CONN_NEWS_MS = 8000;
+const conn = { state: null, at: 0 };
 
 const $ = (sel) => document.querySelector(sel);
 const ctx = () => ({ now: tickAt, assetUrl: (p) => api.assetUrl(p) }); // views draw timers at the current tick
@@ -940,8 +944,11 @@ function updateShell() {
       ? 'pending'
       : 'ready';
   $('#connection').textContent = offline ? 'Reconnecting' : h ? 'Connected' : 'Connecting…';
-  $('#connection').title = offline ? 'Reconnecting to Sepia' : 'Sepia service';
-  $('#connection').dataset.state = offline ? 'offline' : h ? 'online' : 'pending';
+  $('#connection').title = offline ? 'Reconnecting to Sepia' : h ? 'Connected to Sepia' : 'Sepia service';
+  const connState = offline ? 'offline' : h ? 'online' : 'pending';
+  if (connState !== conn.state) Object.assign(conn, { state: connState, at: Date.now() });
+  $('#connection').dataset.state = connState;
+  quietConnection();
   updateReplay();
   syncGlass();
 }
@@ -1052,11 +1059,18 @@ function tick() {
   tickClock();
 }
 
+function quietConnection() {
+  const el = $('#connection');
+  const quiet = conn.state === 'online' && Date.now() - conn.at > CONN_NEWS_MS;
+  if (el.hasAttribute('data-quiet') !== quiet) el.toggleAttribute('data-quiet', quiet);
+}
+
 const simShown = { raw: 0, t: 0 }; // the replay clock last shown (seconds) and the poll value it was based on
 function tickClock() {
+  quietConnection();
   const clock = $('#clock');
   const d = new Date(tickAt);
-  const text = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const text = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); // the replay clock carries the seconds
   if (clock.textContent !== text) {
     clock.textContent = text;
     clock.dateTime = d.toISOString();
@@ -1103,7 +1117,8 @@ function tickClock() {
   const simClock = '+' + mmss(simShown.t);
   set('b', state);
   set('.rs-t', simClock);
-  set('.rs-x', held ? '' : '×' + (speed >= 10 ? Math.round(speed) : Number(speed.toFixed(1)))); // no speed while held
+  // no speed while held, nor at real time (×1)
+  set('.rs-x', held || speed === 1 ? '' : '×' + (speed >= 10 ? Math.round(speed) : Number(speed.toFixed(1))));
   set('.sr-only', ` · simulator ${offline ? 'status unknown' : held ? 'clock held' : sim.running ? 'running' : fresh ? 'ready' : 'paused'}`);
   // the folded controls' button reads the same state ("Replay running +4:02"; held: "Replay complete clock held")
   const toggle = $('#replay-toggle');
