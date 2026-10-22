@@ -132,6 +132,13 @@ packages the current case assets, and deploys to Vercel using the encrypted
 dedicated web Python project without the offline Torch/training dependencies.
 `X-Sepia-Release` identifies the source commit.
 
+Web Analytics is enabled in Vercel. `app/js/analytics.js` loads Vercel's deferred
+same-origin script on the production hostnames and records initial visits plus
+hash-route navigation. Case views are grouped under `/case` and external specimen
+views under `/tcga/specimen`; case IDs, query strings and workspace contents are
+not included. Local runs and `?mock=1` do not load analytics. Analytics runs
+independently of the workspace, so blocking it does not delay the application.
+
 For an authenticated manual deployment:
 
 ```sh
