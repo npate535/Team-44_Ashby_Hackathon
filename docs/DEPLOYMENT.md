@@ -14,13 +14,34 @@ through the API's ground-truth filtering; only image assets go in `public/`.
 
 Vercel's filesystem is temporary. `backend/vercel.py` keeps decisions, routing,
 events, replay-clock state, edited spot checks, and new interpretations in the
-connected **sepia-workspace** Upstash Redis database (free plan). Each API
+connected **sepia-workspace** Upstash Redis database (Pay As You Go). Each API
 request restores the shared workspace under a Redis lease; the response is sent
 after an atomic save verifies ownership. Immutable case JSONs are excluded from
 the saved SQLite snapshot and restored from packaged evidence. The initial
 snapshot is about 48 KB. Changed case evidence requires an explicit workspace
 migration; it must not silently reset saved decisions. Do not delete Redis to
 deploy code.
+
+### October 22, 2026: Redis command quota outage
+
+Production returned 503 on every API request because the Redis free plan had
+exceeded its 500,000 monthly commands (948K shown in the Upstash console).
+The REST API rejected workspace lock acquisition with HTTP 400. The existing
+database was upgraded through Vercel to Pay As You Go, listed at $0.20 per
+100K commands; the workspace keys and saved reviews were retained. Production
+health recovered with 328 loaded cases and no missing assets.
+
+The live UI now requests the worklist, health and both inboxes together using
+`/api/worklist?include_context=true`: one lease/restore/save per refresh rather
+than four. Hidden tabs stop polling and refresh immediately when visible again.
+Visible screens retain the two-second refresh interval and local timer updates.
+Provider quota errors are identified in runtime logs without logging credentials
+or review contents. A failed lease release no longer escapes the error handler.
+
+If workspace requests fail again, inspect Vercel runtime logs and the connected
+database's Upstash Usage and billing limits before redeploying. A code redeploy
+does not restore an exhausted storage quota. Keep this database on a plan that
+supports the actual command volume; do not delete or replace it to clear limits.
 
 The October 18 variant update explicitly starts `sepia:workspace:v2` with
 the rebuilt UNI2-h 512-pixel case evidence. The previous `v1` workspace is

@@ -794,8 +794,14 @@ def create_app(*, cfg: Mapping[str, Any] | None = None, cases_dir: str | Path | 
 
     @app.get("/api/worklist")
     def worklist(lane: Literal["all", "surgical", "biopsy"] = "all",
-                 order: Literal["ai", "arrival"] = "ai") -> dict[str, Any]:
-        return backend.worklist(lane, order)
+                 order: Literal["ai", "arrival"] = "ai", include_context: bool = False) -> dict[str, Any]:
+        result = backend.worklist(lane, order)
+        if include_context:
+            # One refresh holds one durable-workspace lease and saves one snapshot,
+            # instead of doing that independently for the queue, health and both inboxes.
+            result["health"] = backend.health()
+            result["routed"] = {role: backend.routed(role) for role in db.ROUTE_ROLES}
+        return result
 
     @app.get("/api/cases/{case_id}")
     def get_case(case_id: str) -> dict[str, Any]:

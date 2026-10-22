@@ -10,6 +10,7 @@ import asyncio
 import base64
 import hashlib
 import json
+import logging
 import os
 from pathlib import Path
 import shutil
@@ -39,6 +40,7 @@ RELEASE = """
 if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end
 return 0
 """
+log = logging.getLogger(__name__)
 
 
 class Workspace:
@@ -51,12 +53,20 @@ class Workspace:
         if self.redis is None:
             url = os.environ.get('UPSTASH_REDIS_REST_URL') or os.environ['KV_REST_API_URL']
             token = os.environ.get('UPSTASH_REDIS_REST_TOKEN') or os.environ['KV_REST_API_TOKEN']
+            if not url.startswith(('https://', 'http://')) or not token:
+                raise RuntimeError('Workspace REST credentials are missing or invalid')
             self.redis = httpx.AsyncClient(base_url=url, headers={'Authorization': f'Bearer {token}'}, timeout=30)
         response = await self.redis.post('/', json=list(args))
-        response.raise_for_status()
-        payload = response.json()
-        if payload.get('error'):
-            raise RuntimeError('Workspace storage command failed')
+        try:
+            payload = response.json()
+        except ValueError:
+            payload = {}
+        if not response.is_success or payload.get('error'):
+            # Provider errors often use HTTP 400 for quota exhaustion. Log the
+            # category, never command arguments (which can contain saved reviews).
+            error = str(payload.get('error', '')).lower()
+            reason = 'quota exceeded' if any(word in error for word in ('quota', 'limit', 'exceeded')) else 'command rejected'
+            raise RuntimeError(f'Workspace storage {reason} (HTTP {response.status_code})')
         return payload.get('result')
 
     def initialize(self):
@@ -171,12 +181,14 @@ class Workspace:
                 for message in messages:
                     await send(message)
             except Exception:
-                import logging
-                logging.getLogger(__name__).exception('Durable workspace request failed')
+                log.exception('Durable workspace request failed')
                 await JSONResponse({'detail': 'Workspace storage is unavailable; please retry.'}, status_code=503)(scope, receive, send)
             finally:
                 if acquired:
-                    await self.command('EVAL', RELEASE, 1, KEY + ':lock', owner)
+                    try:
+                        await self.command('EVAL', RELEASE, 1, KEY + ':lock', owner)
+                    except Exception:
+                        log.exception('Could not release workspace lease; it will expire')
 
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)

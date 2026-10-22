@@ -9,6 +9,29 @@ def tid(name: str) -> str:
     return f"[data-testid={name}]"
 
 
+def test_refresh_uses_one_workspace_request_and_suspends_while_hidden(page, api):
+    pg = page.page
+    requests = []
+    pg.on("request", lambda request: requests.append(request.url) if "/api/" in request.url else None)
+    with pg.expect_response(lambda response: "/api/worklist?" in response.url):
+        pg.goto(page.base + "/")
+    pg.wait_for_timeout(500)  # finish the initial refresh before changing visibility
+    assert any("include_context=true" in url for url in requests)
+    assert not any("/api/health" in url or "/api/routed" in url for url in requests)
+    pg.evaluate("""() => {
+        Object.defineProperty(document, 'hidden', {configurable: true, get: () => true});
+        document.dispatchEvent(new Event('visibilitychange'));
+    }""")
+    before = len(requests)
+    pg.wait_for_timeout(4500)  # more than two normal refresh intervals
+    assert len(requests) == before
+    with pg.expect_response(lambda response: "/api/worklist?" in response.url and response.status == 200):
+        pg.evaluate("""() => {
+            Object.defineProperty(document, 'hidden', {configurable: true, get: () => false});
+            document.dispatchEvent(new Event('visibilitychange'));
+        }""")
+
+
 def test_odd_case_addresses_still_start_the_app(page, api):
     pg = page.page
     # a malformed % escape (typed or truncated link) used to throw in the router, and the app never finished starting

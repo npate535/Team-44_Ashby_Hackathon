@@ -86,6 +86,11 @@ safety rule and the aging guard, risk ↓, arrival ↑, case_id). `order=arrival
 In both orders, **done** cases (signed out, or margin call sent) follow all open cases, in the same order.
 Invalid `lane`/`order` → 422.
 
+Add `include_context=true` to also return `health` (the `/api/health` payload)
+and `routed: {"surgeon": [...], "oncologist": [...]}` (the two `/api/routed`
+payloads). The live UI uses this option so each refresh restores and saves the
+shared workspace once. The default response is unchanged.
+
 ```json
 {"server_time": 1792270040.0, "server_time_iso": "2026-10-17T20:47:20.000Z",
  "sim": {"running": true, "speed": 30.0, "sim_time_s": 1500.0, "...": "as in /api/health"},

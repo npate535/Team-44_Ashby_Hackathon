@@ -55,8 +55,9 @@ export function createApi({base = ''} = {}) {
     base,
     health: () => req('GET', '/api/health'),
     config: () => req('GET', '/api/config'),
-    async worklist({lane = 'all', order = 'ai'} = {}) {
-      const data = await req('GET', `/api/worklist?lane=${q(lane)}&order=${q(order)}`);
+    async worklist({lane = 'all', order = 'ai', includeContext = false} = {}) {
+      const data = await req('GET', `/api/worklist?lane=${q(lane)}&order=${q(order)}` +
+        (includeContext ? '&include_context=true' : ''));
       const now = Date.now();
       (data.items || []).forEach(item => stamp(item, now));
       stamp(data.sim, now);

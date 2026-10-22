@@ -62,6 +62,23 @@ def test_config_exposes_ui_settings(tmp_path):
     assert cfg["classes"] == CFG["classes"] and cfg["aggressive_class"] == "Invasive"
 
 
+def test_worklist_context_contains_current_health_and_both_inboxes(dev):
+    client, clock, roles, _ = dev
+    arrive_all_biopsies(client, clock)
+    case_id = client.post("/api/sim/inject_surgical", json={"variant": "normal"}).json()["injected"]
+    assert decide(client, case_id, "margin_call", {"call": "clear"}).status_code == 200
+    response = client.get("/api/worklist?lane=biopsy&order=arrival&include_context=true")
+    assert response.status_code == 200 and response.headers["Cache-Control"] == "no-store"
+    data = response.json()
+    assert data["items"] == client.get("/api/worklist?lane=biopsy&order=arrival").json()["items"]
+    assert data["health"] == client.get("/api/health").json()
+    for role in ("surgeon", "oncologist"):
+        assert data["routed"][role] == client.get(f"/api/routed?to={role}").json()
+    assert len(data["routed"]["surgeon"]) == 1
+    assert find_keys(data) == []
+    assert "health" not in client.get("/api/worklist").json()
+
+
 # ---- arrivals and sorting -------------------------------------------------------------------------------------------------
 def test_only_arrived_cases_appear(dev):
     client, clock, roles, _ = dev

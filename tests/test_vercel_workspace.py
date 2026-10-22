@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 
+import httpx
 import pytest
 
 from backend import vercel
@@ -88,3 +90,48 @@ def test_restore_mid_replay_redates_instead_of_running_the_gap_at_the_replay_spe
     status = cold.backend.sim.status()
     assert status["pending"]["biopsy"] == 0 and status["held"] is True
     assert status["sim_time_s"] == pytest.approx(sim.last_arrival_s() + CAP_S)   # not +3 h x the replay speed
+
+
+def test_storage_quota_error_is_identifiable_without_logging_command_data():
+    async def run():
+        ws = vercel.Workspace()
+        async with httpx.AsyncClient(base_url="https://storage.invalid", transport=httpx.MockTransport(
+            lambda request: httpx.Response(400, json={"error": "ERR monthly request limit exceeded"})
+        )) as ws.redis:
+            with pytest.raises(RuntimeError, match=r"quota exceeded \(HTTP 400\)") as exc:
+                await ws.command("SET", "private-key", "private-review")
+            assert "private" not in str(exc.value)
+    asyncio.run(run())
+
+
+def test_empty_integration_credentials_fail_before_sending_a_request(monkeypatch):
+    for key in ("UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("KV_REST_API_URL", "")
+    monkeypatch.setenv("KV_REST_API_TOKEN", "")
+    with pytest.raises(RuntimeError, match="credentials are missing or invalid"):
+        asyncio.run(vercel.Workspace().command("PING"))
+
+
+def test_storage_failure_and_failed_release_still_return_one_503(tmp_path, monkeypatch):
+    root = dev_root(tmp_path)
+    fake = FakeClock()
+    monkeypatch.setattr(vercel, "WORK", root)
+    ws = _workspace(root, tmp_path / "workspace.sqlite", fake)
+    ws.seed_snapshot = ws.snapshot()
+
+    async def command(*args):
+        if args[0] == "SET":
+            return "OK"
+        if args[0] == "GET":
+            return ws.seed_snapshot
+        raise RuntimeError("Storage unavailable during save and release")
+
+    ws.command = command
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=ws), base_url="http://test") as client:
+            response = await client.get("/api/health")
+            assert response.status_code == 503
+            assert response.json() == {"detail": "Workspace storage is unavailable; please retry."}
+    asyncio.run(run())

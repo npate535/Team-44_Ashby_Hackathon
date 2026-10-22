@@ -287,12 +287,10 @@ function metricsInBackground(force = false) {
 async function refresh(force, seq) {
   const route = ST.route,
     caseId = ST.caseId;
-  const [wl, health, toSurgeon, toOncologist] = await Promise.all([
-    api.worklist(worklistQuery(route)),
-    api.health(),
-    api.routed('surgeon'),
-    api.routed('oncologist')
-  ]);
+  const wl = await api.worklist({ ...worklistQuery(route), includeContext: !ST.mock });
+  const [health, toSurgeon, toOncologist] = ST.mock
+    ? await Promise.all([api.health(), api.routed('surgeon'), api.routed('oncologist')])
+    : [wl.health, wl.routed.surgeon, wl.routed.oncologist];
   let detail = null,
     events = null,
     interpretation = null,
@@ -448,6 +446,7 @@ function noticeRouted(toSurgeon, toOncologist) {
 
 async function poll(force = false) {
   clearTimeout(pollTimer);
+  if (document.hidden && !force) return;
   const seq = ++pollSeq;
   try {
     await refresh(force, seq);
@@ -473,9 +472,10 @@ async function poll(force = false) {
     if (!(err instanceof ApiError) || err.status === 0 || err.status >= 500) console.warn('poll failed', err);
   }
   const base = ST.cfg ? ST.cfg.poll_ms : 2000;
-  // Background screens keep synchronizing, with a lower polling frequency. Scheduled before drawing: a view that
-  // throws on unexpected data must not stop the poll loop for good.
-  pollTimer = setTimeout(poll, document.hidden ? base * 5 : ST.fail >= 5 ? base * 2.5 : base);
+  // A hidden tab does not consume storage commands indefinitely. Returning to
+  // the tab refreshes immediately; visible frozen-section timers still tick locally.
+  // Schedule before drawing so a view error cannot stop synchronization.
+  if (!document.hidden) pollTimer = setTimeout(poll, ST.fail >= 5 ? base * 2.5 : base);
   showOffline();
   draw();
   if (ST.loadedOnce) prefetchViews();
@@ -1816,7 +1816,8 @@ document.addEventListener('pointerup', () => {
   }
 });
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) poll(true);
+  if (document.hidden) clearTimeout(pollTimer);
+  else poll(true);
 });
 window.addEventListener('hashchange', onRoute);
 
