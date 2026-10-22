@@ -5,6 +5,12 @@
   if (!hosts.includes(location.hostname) || new URLSearchParams(location.search).get('mock') === '1') return;
 
   window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  window.va('beforeSend', (event) => {
+    const url = new URL(event.url);
+    url.hash = '';
+    url.search = '';
+    return { ...event, url: url.href };
+  });
   const pages = ['worklist', 'surgeon', 'oncologist', 'metrics', 'tcga', 'spotcheck'];
   let previous;
 
